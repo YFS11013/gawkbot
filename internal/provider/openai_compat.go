@@ -326,25 +326,56 @@ func runOpenAICompatStream(
 	ctx, cancel := context.WithCancel(parentCtx)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
-	if err != nil {
-		ch <- bot.StreamChunk{Type: "error", Content: fmt.Sprintf("openai-compat (%s): build request: %v", kind, err)}
-		return
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "text/event-stream")
-	setOpenAICompatProviderHeaders(req, kind, botSlug)
+	// Connection failures and 5xx get exponential backoff (5s/15s/45s):
+	// transient gateway wobbles (remote close, 502/503/504) heal on their
+	// own — retrying immediately just burns a turn. Context cancellation
+	// still aborts promptly. Non-retryable errors (4xx, bad request shape)
+	// fail fast on the first attempt.
+	var resp *http.Response
+	backoffs := []time.Duration{5 * time.Second, 15 * time.Second, 45 * time.Second}
+	var lastErr error
+	for attempt := 0; ; attempt++ {
+		// Rebuild the request each attempt: the body reader is consumed.
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
+		if err != nil {
+			ch <- bot.StreamChunk{Type: "error", Content: fmt.Sprintf("openai-compat (%s): build request: %v", kind, err)}
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "text/event-stream")
+		setOpenAICompatProviderHeaders(req, kind, botSlug)
 
-	resp, err := httpClientForOpenAICompat().Do(req)
-	if err != nil {
-		ch <- bot.StreamChunk{Type: "error", Content: fmt.Sprintf("openai-compat (%s): connect %s: %v. Is the local server running?", kind, endpoint, err)}
+		resp, lastErr = httpClientForOpenAICompat().Do(req)
+		retryable := lastErr != nil
+		status := 0
+		if lastErr == nil {
+			status = resp.StatusCode
+			retryable = status == 502 || status == 503 || status == 504
+			if !retryable {
+				break
+			}
+			// Drain a bounded prefix so the connection can be reused;
+			// the full body is only read on the terminal attempt below.
+			_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 8<<10))
+			resp.Body.Close()
+		}
+		if attempt >= len(backoffs) {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			ch <- bot.StreamChunk{Type: "error", Content: fmt.Sprintf("openai-compat (%s): cancelled during retry backoff: %v", kind, ctx.Err())}
+			return
+		case <-time.After(backoffs[attempt]):
+		}
+	}
+	if lastErr != nil {
+		ch <- bot.StreamChunk{Type: "error", Content: fmt.Sprintf("openai-compat (%s): connect %s: %v (after %d retries). Is the local server running?", kind, endpoint, lastErr, len(backoffs))}
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		// Read up to 8 KiB so we can surface the server's error JSON without
-		// pulling a multi-megabyte HTML page into the chunk.
 		errBody, _ := io.ReadAll(io.LimitReader(resp.Body, 8<<10))
 		ch <- bot.StreamChunk{
 			Type:    "error",

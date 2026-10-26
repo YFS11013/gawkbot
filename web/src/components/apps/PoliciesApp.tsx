@@ -2,11 +2,11 @@ import { useCallback, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
-  createPolicy,
-  deletePolicy,
+  createPolicy as createPolicyWithAgents,
+  deactivatePolicy,
   getPolicies,
   type Policy,
-} from "../../api/client";
+} from "../../api/policies";
 import { confirm } from "../ui/ConfirmDialog";
 import { showNotice } from "../ui/Toast";
 
@@ -34,7 +34,7 @@ export function PoliciesApp() {
   const handleSave = useCallback(() => {
     const trimmed = ruleText.trim();
     if (!trimmed) return;
-    createPolicy("human_directed", trimmed)
+    createPolicyWithAgents({ rule: trimmed, source: "human_directed" })
       .then(() => {
         setRuleText("");
         setFormOpen(false);
@@ -53,7 +53,7 @@ export function PoliciesApp() {
         confirmLabel: "Deactivate",
         danger: true,
         onConfirm: () =>
-          deletePolicy(id)
+          deactivatePolicy(id)
             .then(() => invalidate())
             .catch((e: Error) =>
               showNotice(`Delete failed: ${e.message}`, "error"),
@@ -74,9 +74,7 @@ export function PoliciesApp() {
     [handleSave],
   );
 
-  const activePolicies = (data?.policies ?? []).filter(
-    (p) => p.active !== false,
-  );
+  const activePolicies = (data ?? []).filter((p) => p.active !== false);
 
   return (
     <>

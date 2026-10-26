@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 // TestHeadlessRunnersWireLiveChatRelay guards against the regression where
@@ -55,18 +55,19 @@ func TestHeadlessLiveChatRelayPostsStreamedTextToChannel(t *testing.T) {
 		func(line string) { logs = append(logs, line) },
 	)
 
-	relay.OnText("I will check the live stream now.")
+	// Paragraph-boundary flushing: a completed paragraph (double newline +
+	// enough content) posts; short sentences accumulate without posting.
+	relay.OnText("I will check the live stream now.\n\nHere is the plan. " +
+		strings.Repeat("More detail to cross the paragraph minimum. ", 10))
 
 	msgs := b.ChannelMessages("team")
 	if len(msgs) != 2 {
 		t.Fatalf("expected human root + streamed bot message, got %d: %+v", len(msgs), msgs)
 	}
 	got := msgs[1]
-	if got.From != "cos" || got.Content != "I will check the live stream now." || got.ReplyTo != root.ID {
+	if got.From != "cos" || got.ReplyTo != root.ID ||
+		!strings.HasPrefix(got.Content, "I will check the live stream now.") {
 		t.Fatalf("unexpected streamed message: %+v", got)
-	}
-	if len(logs) != 1 {
-		t.Fatalf("expected relay log entry, got %+v", logs)
 	}
 
 	_, posted, err := l.postHeadlessFinalMessageIfSilent("cos", "team", "", "late summary", startedAt)
@@ -164,6 +165,9 @@ func TestHeadlessLiveChatRelayPreservesWhitespaceChunks(t *testing.T) {
 	relay.OnText("Starting live")
 	relay.OnText(" ")
 	relay.OnText("now.")
+	// Short sentences no longer auto-flush (paragraph-boundary only);
+	// the production runners call Flush() at turn end.
+	relay.Flush()
 
 	msgs := b.ChannelMessages("team")
 	if len(msgs) != 1 {
@@ -537,5 +541,38 @@ func TestIncidentDoesNotCountAsSubstantiveProgress(t *testing.T) {
 	}
 	if !l.botPostedSubstantiveMessageSince("cos", startedAt) {
 		t.Fatal("normal streamed prose should count as substantive progress")
+	}
+}
+
+// TestNewHeadlessLiveChatRelay_RetiredChannelFallsBackToDM pins the
+// onboarding-legacy fix: a turn whose task names a retired channel
+// (#general after the DM-first retirement) must not burn the whole turn
+// on "channel not found" — the relay falls back to the bot's own DM,
+// which PostMessage auto-creates on first write.
+func TestNewHeadlessLiveChatRelay_RetiredChannelFallsBackToDM(t *testing.T) {
+	// NOTE: must NOT use newTestBroker — that fixture deliberately seeds a
+	// room literally named "general" (seedTestLegacyRoom), while production
+	// no longer has one. A bare NewBrokerAt reproduces the production state.
+	b := NewBrokerAt(filepath.Join(t.TempDir(), "broker-state.json"))
+	l := &Launcher{broker: b}
+
+	relay := newHeadlessLiveChatRelay(l, "cos", "general", "", nil)
+	if relay == nil {
+		t.Fatal("expected relay, got nil")
+	}
+	if relay.channel == "general" {
+		t.Fatalf("relay must not target retired channel general, got %q", relay.channel)
+	}
+	if !IsDMSlug(relay.channel) {
+		t.Fatalf("relay fallback must be a DM slug, got %q", relay.channel)
+	}
+
+	// End-to-end: the fallback channel accepts the post.
+	msg, err := b.PostMessage("cos", relay.channel, "hello from fallback", nil, "")
+	if err != nil {
+		t.Fatalf("post to fallback channel %q: %v", relay.channel, err)
+	}
+	if msg.Channel != relay.channel {
+		t.Fatalf("posted to %q, want %q", msg.Channel, relay.channel)
 	}
 }

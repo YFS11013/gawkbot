@@ -133,21 +133,25 @@ func RunOpencodeOneShotCtx(ctx context.Context, systemPrompt, prompt, cwd string
 	return runOpencodeOnceCtx(ctx, systemPrompt, prompt, cwd, nil)
 }
 
-// runOpencodeOnce invokes `opencode run` with the caller's prompt as the final
-// variadic positional argument (Opencode has no stdin-prompt convention),
+// runOpencodeOnce invokes `opencode run` with the caller's prompt on stdin
+// (no positional argument). Stdin keeps long prompts off the command line:
+// Windows CreateProcess caps argv at 32,767 chars (issue #1240). Verified:
+// `opencode run` with no positional prompt reads from stdin.
 // streams plain stdout lines via onLine (if provided), and returns the full
 // concatenated output.
 func runOpencodeOnce(systemPrompt, prompt, cwd string, onLine func(string)) (string, error) {
 	promptText := buildOpencodePrompt(systemPrompt, prompt)
-	args := buildOpencodeArgs(config.ResolveOpencodeModel(), promptText)
+	args := buildOpencodeArgs(config.ResolveOpencodeModel())
 	cmd := opencodeCommand("opencode", args...)
+	cmd.Stdin = strings.NewReader(promptText)
 	return runOpencodeCommand(context.Background(), cmd, cwd, onLine)
 }
 
 func runOpencodeOnceCtx(ctx context.Context, systemPrompt, prompt, cwd string, onLine func(string)) (string, error) {
 	promptText := buildOpencodePrompt(systemPrompt, prompt)
-	args := buildOpencodeArgs(config.ResolveOpencodeModel(), promptText)
+	args := buildOpencodeArgs(config.ResolveOpencodeModel())
 	cmd := opencodeCommandContext(ctx, "opencode", args...)
+	cmd.Stdin = strings.NewReader(promptText)
 	return runOpencodeCommand(ctx, cmd, cwd, onLine)
 }
 
@@ -223,19 +227,15 @@ func readOpencodeStream(r io.Reader, onLine func(string)) (string, error) {
 }
 
 // buildOpencodeArgs constructs the argv for a single-shot `opencode run`.
-// Opencode's CLI takes the prompt as trailing variadic positional arguments
-// (`opencode run [message..]`) rather than via stdin, so we pass the full
-// composed prompt as a single argv string. Working directory is set via
-// cmd.Dir by the caller — Opencode exposes no `--cwd` flag.
+// The prompt is NEVER a positional argument: callers wire it via cmd.Stdin.
+// Windows CreateProcess caps the command line at 32,767 chars (issue #1240);
+// `opencode run` with no positional prompt reads from stdin.
 // Model selection is optional; when unset Opencode uses its configured
-// default. Expected format: `provider/model` (e.g. "anthropic/claude-sonnet-4").
-func buildOpencodeArgs(model string, prompt string) []string {
-	args := []string{"run"}
+// default. Expected format: `provider/model` (e.g. "opencode-go/beam-free").
+func buildOpencodeArgs(model string) []string {
+	args := []string{"run", "--format", "json", "--pure"}
 	if strings.TrimSpace(model) != "" {
 		args = append(args, "--model", strings.TrimSpace(model))
-	}
-	if strings.TrimSpace(prompt) != "" {
-		args = append(args, prompt)
 	}
 	return args
 }

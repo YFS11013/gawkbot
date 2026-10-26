@@ -379,3 +379,17 @@ func TestRecoverFailedHeadlessTurnRetriesOfficeTaskOnceOnTransientFailure(t *tes
 		t.Fatalf("expected the second transient failure to block the task, got status=%s blocked=%v", updated.Status(), updated.Blocked())
 	}
 }
+
+func TestHeadlessReplyToIDUsesInstructionLine(t *testing.T) {
+	notification := "--- packet history ---\n- @cos (channel: \"cos__human\", reply_to_id: \"msg-old\") history text\n---\n[New from @human]: question\nReply using team_broadcast with my_slug \"cos\" and channel \"cos__human\" reply_to_id \"msg-new\". Once you have posted."
+	if got := headlessReplyToID(notification); got != "msg-new" {
+		t.Fatalf("expected trigger reply id msg-new, got %q", got)
+	}
+}
+
+func TestHeadlessReplyToIDEmptyWithoutInstruction(t *testing.T) {
+	notification := "--- packet history ---\n- @cos (channel: \"cos__human\", reply_to_id: \"msg-old\") history text\n"
+	if got := headlessReplyToID(notification); got != "" {
+		t.Fatalf("expected empty without instruction line, got %q", got)
+	}
+}

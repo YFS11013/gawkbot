@@ -29,6 +29,7 @@ interface WatchdogRecord {
   kind?: string;
   channel?: string;
   owner?: string;
+  status?: string;
   target_type?: string;
   target_id?: string;
   updated_at?: string;
@@ -163,22 +164,24 @@ export function ArtifactsApp() {
           })
         : undefined,
     })),
-    ...allWatchdogs.map<Insight>((w) => ({
-      priority: w.kind?.toLowerCase() === "critical" ? "critical" : "high",
-      category: w.kind || "watchdog",
-      title: w.summary || w.kind || "Watchdog alert",
-      body: w.target_type
-        ? `${w.target_type}${w.target_id ? ` · ${w.target_id}` : ""}`
-        : undefined,
-      target: w.channel ? `#${w.channel}` : undefined,
-      time:
-        w.updated_at || w.created_at
-          ? new Date(w.updated_at || w.created_at || "").toLocaleTimeString(
-              [],
-              { hour: "numeric", minute: "2-digit" },
-            )
+    ...allWatchdogs
+      .filter((w) => (w.status ?? "active").toLowerCase() !== "resolved")
+      .map<Insight>((w) => ({
+        priority: w.kind?.toLowerCase() === "critical" ? "critical" : "high",
+        category: w.kind || "watchdog",
+        title: w.summary || w.kind || "Watchdog alert",
+        body: w.target_type
+          ? `${w.target_type}${w.target_id ? ` · ${w.target_id}` : ""}`
           : undefined,
-    })),
+        target: w.channel ? `#${w.channel}` : undefined,
+        time:
+          w.updated_at || w.created_at
+            ? new Date(w.updated_at || w.created_at || "").toLocaleTimeString(
+                [],
+                { hour: "numeric", minute: "2-digit" },
+              )
+            : undefined,
+      })),
   ];
 
   return (

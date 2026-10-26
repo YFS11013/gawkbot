@@ -240,15 +240,7 @@ func (l *Launcher) postHeadlessFinalMessageIfSilent(slug string, targetChannel s
 	if text == "" {
 		return channelMessage{}, false, nil
 	}
-	targetChannel = normalizeChannelSlug(targetChannel)
-	if targetChannel == "" {
-		targetChannel = "general"
-	}
-	if IsDMSlug(targetChannel) {
-		if targetBot := DMTargetBot(targetChannel); targetBot != "" {
-			targetChannel = DMSlugFor(targetBot)
-		}
-	}
+	targetChannel = resolveHeadlessTargetChannel(l, slug, targetChannel)
 	if l.botPostedSubstantiveMessageToChannelSince(slug, targetChannel, startedAt) {
 		return channelMessage{}, false, nil
 	}
@@ -260,17 +252,33 @@ func (l *Launcher) postHeadlessFinalMessageIfSilent(slug string, targetChannel s
 }
 
 func headlessReplyToID(notification string) string {
+	// Match the dispatch instruction line specifically
+	// (`Reply using team_broadcast ... reply_to_id "..."`), which carries
+	// the CURRENT turn's trigger message id. A plain first/last search for
+	// `reply_to_id "` can land on a history entry quoted in the packet
+	// (resume.go lists past messages with the same marker), producing a
+	// cross-channel thread reference the UI cannot render.
 	const marker = `reply_to_id "`
-	idx := strings.LastIndex(notification, marker)
-	if idx == -1 {
-		return ""
+	best := ""
+	for _, line := range strings.Split(notification, "\n") {
+		if !strings.Contains(line, "Reply using team_broadcast") {
+			continue
+		}
+		idx := strings.Index(line, marker)
+		if idx == -1 {
+			continue
+		}
+		start := idx + len(marker)
+		end := strings.Index(line[start:], `"`)
+		if end == -1 {
+			continue
+		}
+		if id := strings.TrimSpace(line[start : start+end]); id != "" {
+			best = id
+			break
+		}
 	}
-	start := idx + len(marker)
-	end := strings.Index(notification[start:], `"`)
-	if end == -1 {
-		return ""
-	}
-	return strings.TrimSpace(notification[start : start+end])
+	return best
 }
 
 func (l *Launcher) timedOutTaskForTurn(slug string, turn headlessCodexTurn) *teamTask {
@@ -506,7 +514,21 @@ func (l *Launcher) recoverFailedHeadlessTurn(slug string, turn headlessCodexTurn
 	// language, classified cause, no raw stderr — that goes to the log.
 	appendHeadlessCodexLog(slug, "error-recovery: raw failure detail: "+truncate(trimmed, 400))
 	reason := fmt.Sprintf("@%s hit an error and stopped after retrying (%s). Restart it from here, or hand it to another bot.", slug, classifyFailureForOperator(trimmed))
-	if _, changed, err := l.broker.BlockTask(task.ID, slug, reason, ""); err != nil {
+	// Transient provider failures (gateway drop, 5xx) get a human gate
+	// instead of a bare block: raise an interview so the human can wait
+	// for the gateway or skip. The request ID becomes the blocker so the
+	// unblock cascade resumes the task automatically on answer — no more
+	// dead blocked tasks that nobody wakes.
+	blockerID := ""
+	if transient {
+		if req, err := l.broker.CreateRequest(humanInterviewForTransientFailure(slug, task, trimmed)); err == nil {
+			blockerID = req.ID
+			appendHeadlessCodexLog(slug, fmt.Sprintf("error-recovery: raised %s for transient failure, task will resume on answer", req.ID))
+		} else {
+			appendHeadlessCodexLog(slug, fmt.Sprintf("error-recovery: interview raise failed: %v", err))
+		}
+	}
+	if _, changed, err := l.broker.BlockTask(task.ID, slug, reason, blockerID); err != nil {
 		appendHeadlessCodexLog(slug, fmt.Sprintf("error-recovery-error: could not block %s: %v", task.ID, err))
 		return
 	} else if changed {
@@ -518,6 +540,38 @@ func (l *Launcher) recoverFailedHeadlessTurn(slug string, turn headlessCodexTurn
 	}
 }
 
+// humanInterviewForTransientFailure builds the gate card for a provider
+// outage: the turn died on a connection/5xx, retries are exhausted, and the
+// task is blocked. The human picks wait-for-gateway (bot retries next turn)
+// or skip. DedupeKey collapses repeat outages on the same task into one card.
+func humanInterviewForTransientFailure(slug string, task *teamTask, detail string) humanInterview {
+	channel := ""
+	taskID := ""
+	if task != nil {
+		channel = task.Channel
+		taskID = task.ID
+	}
+	return humanInterview{
+		Kind:     "interview",
+		From:     slug,
+		Channel:  channel,
+		Title:    "Provider connection unstable",
+		Question: fmt.Sprintf("@%s 的模型网关连不上（%s），已重试多次。等网关恢复后自动继续，还是先跳过？", slug, truncate(trimmedDetail(detail), 120)),
+		Options: []interviewOption{
+			{ID: "wait", Label: "等网关恢复后继续"},
+			{ID: "skip", Label: "先跳过，以后再说"},
+		},
+		RecommendedID: "wait",
+		DedupeKey:     "transient-outage:" + taskID,
+	}
+}
+
+func trimmedDetail(detail string) string {
+	if trimmed := strings.TrimSpace(detail); trimmed != "" {
+		return trimmed
+	}
+	return "unknown provider error"
+}
 func (l *Launcher) timedOutTurnAlreadyRecovered(task *teamTask, slug string, startedAt time.Time) bool {
 	if task == nil {
 		return false

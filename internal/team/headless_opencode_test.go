@@ -11,23 +11,34 @@ import (
 )
 
 func TestBuildHeadlessOpencodeArgsRequestsJSONFormat(t *testing.T) {
-	args := buildHeadlessOpencodeArgs("anthropic/claude-sonnet-4", "do the thing")
+	args := buildHeadlessOpencodeArgs("anthropic/claude-sonnet-4")
 	formatIdx := slices.Index(args, "--format")
 	if formatIdx == -1 || formatIdx+1 >= len(args) || args[formatIdx+1] != "json" {
 		t.Fatalf("expected `--format json` in args, got %v", args)
 	}
-	if args[len(args)-1] != "do the thing" {
-		t.Fatalf("expected prompt as last positional arg, got %v", args)
+	// The prompt must NEVER ride the command line (Windows CreateProcess
+	// 32,767-char cap, #1240): `opencode run` with no positional prompt
+	// reads it from stdin, which the caller wires via cmd.Stdin.
+	if !slices.Contains(args, "--pure") {
+		t.Fatalf("expected --pure (no plugins) in args, got %v", args)
+	}
+	for _, a := range args {
+		if len(a) > 100 {
+			t.Fatalf("prompt leaked onto argv: %v", args)
+		}
 	}
 }
 
 func TestBuildHeadlessOpencodeArgsOmitsModelWhenUnset(t *testing.T) {
-	args := buildHeadlessOpencodeArgs("", "ack")
+	args := buildHeadlessOpencodeArgs("")
 	if slices.Contains(args, "--model") {
 		t.Fatalf("expected no --model flag when model is empty, got %v", args)
 	}
 	if !slices.Contains(args, "--format") {
 		t.Fatalf("expected --format json even without a model, got %v", args)
+	}
+	if !slices.Contains(args, "--pure") {
+		t.Fatalf("expected --pure (no plugins) in args, got %v", args)
 	}
 }
 

@@ -9,7 +9,10 @@ import (
 // RunConfiguredOneShot runs a single-shot generation using the active LLM
 // provider's OneShot implementation. Providers without a one-shot path
 // (Capabilities.SupportsOneShot == false) and unregistered kinds fall back
-// to Claude.
+// to Opencode (stdin prompt, never argv — Windows CreateProcess 32,767 cap,
+// issue #1240). Claude was the previous fallback but its --append-system-prompt
+// argv path overflows on Windows and its one-shot auth needs an API key the
+// subscription login does not provide.
 func RunConfiguredOneShot(systemPrompt, prompt, cwd string) (string, error) {
 	return RunConfiguredOneShotCtx(context.Background(), systemPrompt, prompt, cwd)
 }
@@ -33,7 +36,7 @@ func RunConfiguredOneShotCtx(ctx context.Context, systemPrompt, prompt, cwd stri
 			return runLegacyOneShotCtx(ctx, e.OneShot, systemPrompt, prompt, cwd)
 		}
 	}
-	return RunClaudeOneShotCtx(ctx, systemPrompt, prompt, cwd)
+	return RunOpencodeOneShotCtx(ctx, systemPrompt, prompt, cwd)
 }
 
 // runLegacyOneShotCtx unblocks the caller on context cancellation, but the

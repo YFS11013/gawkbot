@@ -29,7 +29,50 @@ import { BotCharacter } from "../ui/BotCharacter";
 import { showNotice } from "../ui/Toast";
 import { ApprovalContextView } from "./ApprovalContextView";
 import { ConnectIntegrationCard } from "./ConnectIntegrationCard";
+
 import { StructuredMessageCard } from "./cards/StructuredMessageCard";
+
+const CONTEXT_PREVIEW_LINES = 3;
+
+// Long incident logs used to render in full and push the conversation out of
+// view. Collapse beyond a few lines; the full text stays one click away.
+function CollapsibleContext({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const lines = text.split("\n");
+  if (lines.length <= CONTEXT_PREVIEW_LINES + 1) {
+    return <div className="interview-bar-context">{text}</div>;
+  }
+  if (!expanded) {
+    return (
+      <div className="interview-bar-context">
+        {lines.slice(0, CONTEXT_PREVIEW_LINES).join("\n")}
+        <div>
+          <button
+            type="button"
+            className="interview-bar-context-toggle"
+            onClick={() => setExpanded(true)}
+          >
+            展开全文（共 {lines.length} 行）…
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="interview-bar-context">
+      {text}
+      <div>
+        <button
+          type="button"
+          className="interview-bar-context-toggle"
+          onClick={() => setExpanded(false)}
+        >
+          收起
+        </button>
+      </div>
+    </div>
+  );
+}
 
 /**
  * Inline interview bar shown above the Composer. Mirrors the TUI behavior:
@@ -354,7 +397,7 @@ export function InterviewBar({ channelSlug }: InterviewBarProps) {
                   if (parsed) return <ApprovalContextView parsed={parsed} />;
                 }
                 return current.context ? (
-                  <div className="interview-bar-context">{current.context}</div>
+                  <CollapsibleContext text={current.context} />
                 ) : null;
               })()}
             </div>

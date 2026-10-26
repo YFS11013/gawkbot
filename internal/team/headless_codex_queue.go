@@ -165,10 +165,9 @@ func (l *Launcher) enqueueHeadlessCodexTurnRecord(slug string, turn headlessCode
 			// bypasses it: the failing turn is still registered as active
 			// while its own retry is enqueued from inside the worker, and
 			// dropping the retry here would silently strand the task.
-			if !humanPriority && !(isLead && urgentLeadTurn) &&
+			if !humanPriority && !turn.FromRoutine && !(isLead && urgentLeadTurn) &&
 				turn.Attempts <= active.Turn.Attempts &&
 				turn.TransientRetries <= active.Turn.TransientRetries {
-				l.headless.mu.Unlock()
 				if isLead {
 					appendHeadlessCodexLog(slug, "queue-drop: lead already handling same task")
 				} else {
@@ -177,9 +176,10 @@ func (l *Launcher) enqueueHeadlessCodexTurnRecord(slug string, turn headlessCode
 				return
 			}
 		}
-		// Skip the same-task replace for human turns: each human message is
-		// distinct content and must not stomp on a previously-queued one.
-		if !humanPriority {
+		// Skip the same-task replace for human and routine turns: each
+		// human message is distinct content and must not stomp on a
+		// previously-queued one; routine fires are periodic new work.
+		if !humanPriority && !turn.FromRoutine {
 			if pending := l.replaceDuplicateTaskTurnLocked(lane, turn); pending {
 				if !l.headless.workers[lane] {
 					l.headless.workers[lane] = true

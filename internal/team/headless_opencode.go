@@ -56,8 +56,14 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 	workspaceDir, isTaskWorktree := l.headlessTurnWorkspace(slug, headlessTurnTaskID(ctx))
 
 	promptText := buildHeadlessOpencodePrompt(l.buildPrompt(slug), notification)
-	args := buildHeadlessOpencodeArgs(config.ResolveOpencodeModel(), promptText)
+	// The prompt travels on stdin, never as a positional argv element:
+	// Windows CreateProcess caps the command line at 32,767 chars and the
+	// office system prompt alone exceeds it (same class of bug as the
+	// claude --append-system-prompt argv overflow, upstream issue #1240).
+	// `opencode run` with no positional prompt reads from stdin.
+	args := buildHeadlessOpencodeArgs(config.ResolveOpencodeModel())
 	cmd := headlessOpencodeCommandContext(ctx, "opencode", args...)
+	cmd.Stdin = strings.NewReader(promptText)
 	cmd.Dir = workspaceDir
 
 	// Start from the Codex env builder (broker/workspace/identity plumbing),
@@ -291,17 +297,21 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 // [--model X] [message..]` — no --cwd, no --quiet, no stdin sentinel.
 // Working directory is set via cmd.Dir by the caller.
 //
+// The prompt is NEVER a positional argument here: it travels on cmd.Stdin
+// (set by the caller). Windows CreateProcess caps the command line at 32,767
+// chars and the office system prompt alone exceeds it — a positional prompt
+// dies at process start with "The filename or extension is too long"
+// (same class as the claude --append-system-prompt overflow, #1240).
+// `opencode run` with no positional prompt reads the prompt from stdin.
+//
 // `--format json` opts the headless path into opencode's JSON event stream so
 // wuphf can see tool-use / tool-result / error events that opencode otherwise
 // renders as TUI-styled stdout (or routes to stderr) and the previous
 // bufio.Scanner-based consumer was blind to. See #313 (Finding 1).
-func buildHeadlessOpencodeArgs(model string, prompt string) []string {
-	args := []string{"run", "--format", "json"}
+func buildHeadlessOpencodeArgs(model string) []string {
+	args := []string{"run", "--format", "json", "--pure"}
 	if strings.TrimSpace(model) != "" {
 		args = append(args, "--model", strings.TrimSpace(model))
-	}
-	if strings.TrimSpace(prompt) != "" {
-		args = append(args, prompt)
 	}
 	return args
 }

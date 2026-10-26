@@ -328,6 +328,7 @@ func (l *Launcher) sendChannelUpdate(target notificationTarget, msg channelMessa
 			Channel:     channel,
 			TaskID:      headlessCodexTaskID(prompt),
 			FromHuman:   fromHuman,
+			FromRoutine: !fromHuman && strings.TrimSpace(msg.From) == "routine",
 			ContextUsed: contextUsed,
 			EnqueuedAt:  time.Now(),
 		})

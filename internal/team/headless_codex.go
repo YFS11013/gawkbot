@@ -181,6 +181,12 @@ type headlessCodexTurn struct {
 	// and the staleness/min-age preemption floors so the bot absorbs
 	// the human input before resuming any prior bot-originated work.
 	FromHuman bool
+	// FromRoutine marks turns originating from the scheduler (cron routine
+	// fire). Like human turns they bypass the same-task dedup drop — a
+	// routine firing while the bot is busy must queue as new work, not be
+	// silently coalesced. Unlike human turns they do NOT preempt, skip the
+	// lead queue-hold, or get the [HUMAN-PRIORITY] prompt prefix.
+	FromRoutine bool
 	// ContextUsed is the manifest of knowledge items the work packet
 	// injected ("learning:<id>", "wiki:<ref>", "upstream:<task>",
 	// "journal:<task>"). Recorded at packet-build time — deterministic,

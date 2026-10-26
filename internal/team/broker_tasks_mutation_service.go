@@ -854,8 +854,16 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		}
 		// A task with no home at all is legal; there is nothing to look up or
 		// authorize against, so skip rather than 404.
+		// Retired-channel tasks (e.g. onboarding-era tasks bound to #general
+		// after the DM-first retirement) must remain completable/archiveable:
+		// refusing to close them because their room is gone leaves permanent
+		// inbox residue. Authorize against the caller's channel instead.
 		if taskChannel != "" && b.findChannelLocked(taskChannel) == nil {
-			return TaskResponse{}, taskMutationError(TaskMutationNotFound, "channel not found", nil)
+			if action == "complete" || action == "approve" {
+				taskChannel = channel
+			} else {
+				return TaskResponse{}, taskMutationError(TaskMutationNotFound, "channel not found", nil)
+			}
 		}
 		// Authorize against the task's actual channel, not caller-supplied body.Channel.
 		if taskChannel != "" && !b.canAccessChannelLocked(actor, taskChannel) {

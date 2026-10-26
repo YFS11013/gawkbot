@@ -1178,6 +1178,53 @@ func TestEnqueueHeadlessCodexTurnRecordDropsDuplicateBotTaskWhileActive(t *testi
 	}
 }
 
+func TestEnqueueHeadlessCodexTurnRecordRoutineBypassesActiveDrop(t *testing.T) {
+	l := newHeadlessLauncherForTest(t)
+	l.pack = &bot.PackDefinition{LeadSlug: "cos"}
+	l.headless.active[headlessLane{slug: "eng"}] = &headlessCodexActiveTurn{
+		Turn: headlessCodexTurn{
+			Prompt: "first prompt about #task-11",
+			TaskID: "task-11",
+		},
+		StartedAt: time.Now(),
+	}
+
+	l.enqueueHeadlessCodexTurnRecord("eng", headlessCodexTurn{
+		Prompt:      "routine fire about #task-11",
+		TaskID:      "task-11",
+		FromRoutine: true,
+		EnqueuedAt:  time.Now(),
+	})
+
+	if got := len(l.headless.queues[headlessLane{slug: "eng"}]); got != 1 {
+		t.Fatalf("expected routine turn queued despite active same task, got %d", got)
+	}
+}
+
+func TestEnqueueHeadlessCodexTurnRecordRoutineNotReplaced(t *testing.T) {
+	l := newHeadlessLauncherForTest(t)
+	l.pack = &bot.PackDefinition{LeadSlug: "cos"}
+	l.headless.workers[headlessLane{slug: "eng"}] = true
+	l.headless.queues[headlessLane{slug: "eng"}] = []headlessCodexTurn{{
+		Prompt:     "older prompt about #task-11",
+		Channel:    "youtube-factory",
+		TaskID:     "task-11",
+		EnqueuedAt: time.Now().Add(-time.Minute),
+	}}
+
+	l.enqueueHeadlessCodexTurnRecord("eng", headlessCodexTurn{
+		Prompt:      "routine fire about #task-11",
+		Channel:    "youtube-factory",
+		TaskID:     "task-11",
+		FromRoutine: true,
+		EnqueuedAt:  time.Now(),
+	})
+
+	queue := l.headless.queues[headlessLane{slug: "eng"}]
+	if got := len(queue); got != 2 {
+		t.Fatalf("expected routine turn appended (not replacing), got %d", got)
+	}
+}
 func TestEnqueueHeadlessCodexTurnRecordReplacesPendingBotTaskTurn(t *testing.T) {
 	l := newHeadlessLauncherForTest(t)
 	l.pack = &bot.PackDefinition{LeadSlug: "cos"}

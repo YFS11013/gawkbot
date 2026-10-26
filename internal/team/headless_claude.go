@@ -39,6 +39,14 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 		botMCP = path
 	}
 
+	// Windows CreateProcess caps the command line at 32,767 chars and the
+	// office system prompt alone exceeds it, so the prompt travels via
+	// --append-system-prompt-file (same helper the tmux path uses) instead
+	// of an inlined --append-system-prompt argument. Upstream issue #1240.
+	promptPath, err := l.writeBotPromptFile(slug, l.buildPrompt(slug)+mount.promptHint())
+	if err != nil {
+		return fmt.Errorf("write bot prompt file: %w", err)
+	}
 	args := []string{
 		"--model", l.headlessClaudeModel(ctx, slug),
 		"--print", "-",
@@ -47,7 +55,7 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 		"--max-turns", l.headlessClaudeMaxTurns(slug, notification),
 		"--disable-slash-commands",
 		"--setting-sources", "user",
-		"--append-system-prompt", l.buildPrompt(slug) + mount.promptHint(),
+		"--append-system-prompt-file", promptPath,
 		"--mcp-config", botMCP,
 		"--strict-mcp-config",
 		// NOTE: tried --disallowedTools ToolSearch to block the

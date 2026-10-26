@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -18,13 +19,13 @@ type opencodeHelperRecord struct {
 	Stdin string   `json:"stdin"`
 }
 
-func TestBuildOpencodeArgsPassesPromptAsFinalArgAndModel(t *testing.T) {
-	args := buildOpencodeArgs("anthropic/claude-sonnet-4", "ship the thing")
+func TestBuildOpencodeArgsPassesModelWithoutPrompt(t *testing.T) {
+	args := buildOpencodeArgs("opencode-go/beam-free")
 	if len(args) == 0 || args[0] != "run" {
 		t.Fatalf("expected `run` as first arg, got %v", args)
 	}
 	joined := strings.Join(args, " ")
-	if !strings.Contains(joined, "--model anthropic/claude-sonnet-4") {
+	if !strings.Contains(joined, "--model opencode-go/beam-free") {
 		t.Fatalf("expected explicit model flag, got %q", joined)
 	}
 	// Opencode's CLI has no --cwd/--quiet/- flags; working dir comes from cmd.Dir.
@@ -33,25 +34,27 @@ func TestBuildOpencodeArgsPassesPromptAsFinalArgAndModel(t *testing.T) {
 			t.Fatalf("unexpected flag %q: Opencode CLI does not accept it; got %v", a, args)
 		}
 	}
-	if args[len(args)-1] != "ship the thing" {
-		t.Fatalf("expected prompt as final variadic arg, got %q", args[len(args)-1])
+	// The prompt must NEVER ride argv (Windows 32,767 cap, #1240):
+	// `opencode run` with no positional prompt reads it from stdin.
+	for _, a := range args {
+		if a == "ship the thing" || strings.Contains(a, " ") && len(a) > 100 {
+			t.Fatalf("prompt leaked onto argv: %v", args)
+		}
+	}
+	if !slices.Contains(args, "--pure") {
+		t.Fatalf("expected --pure (no plugins) in args, got %v", args)
 	}
 }
 
 func TestBuildOpencodeArgsOmitsModelWhenUnset(t *testing.T) {
-	args := buildOpencodeArgs("", "do the thing")
+	args := buildOpencodeArgs("")
 	for _, a := range args {
 		if a == "--model" {
 			t.Fatalf("did not expect --model flag when model empty, got %v", args)
 		}
 	}
-}
-
-func TestBuildOpencodeArgsOmitsPromptWhenEmpty(t *testing.T) {
-	args := buildOpencodeArgs("anthropic/claude-sonnet-4", "")
-	// With no prompt, only `run` + `--model X` should be present.
-	if len(args) != 3 {
-		t.Fatalf("expected [run --model X], got %v", args)
+	if !slices.Contains(args, "--pure") {
+		t.Fatalf("expected --pure (no plugins) in args, got %v", args)
 	}
 }
 
@@ -103,10 +106,14 @@ func TestCreateOpencodeCLIStreamFnStreamsPlainText(t *testing.T) {
 	if len(records) != 1 {
 		t.Fatalf("expected 1 opencode invocation, got %d", len(records))
 	}
-	// Prompt is passed as the final variadic positional arg (not stdin).
-	lastArg := records[0].Args[len(records[0].Args)-1]
-	if !strings.Contains(lastArg, "<system>") || !strings.Contains(lastArg, "Ship it.") {
-		t.Fatalf("expected composed prompt as final argv arg, got %q", lastArg)
+	// Prompt travels on stdin, never argv (Windows 32,767 cap, #1240).
+	if !strings.Contains(records[0].Stdin, "<system>") || !strings.Contains(records[0].Stdin, "Ship it.") {
+		t.Fatalf("expected composed prompt on stdin, got %q", records[0].Stdin)
+	}
+	for _, a := range records[0].Args {
+		if len(a) > 100 {
+			t.Fatalf("prompt leaked onto argv: %#v", records[0].Args)
+		}
 	}
 	// cwd is conveyed via cmd.Dir, not a CLI flag — confirm no stale --cwd.
 	for _, a := range records[0].Args {

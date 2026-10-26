@@ -5,8 +5,13 @@ import (
 )
 
 const (
-	headlessLiveChatMinFlushChars = 16
-	headlessLiveChatMaxFlushChars = 480
+	// Flush only on paragraph boundaries with enough content: sentence-end
+	// flushing (16 chars + trailing ./!/?) shattered streamed replies into
+	// one-or-two-sentence fragments (data-keeper DM msg-393..397). Live
+	// relay is a progress heartbeat — the turn's final post carries the
+	// full text — so batching to paragraphs is strictly better UX.
+	headlessLiveChatMinFlushChars = 200
+	headlessLiveChatMaxFlushChars = 2000
 )
 
 type headlessLiveChatRelay struct {
@@ -20,10 +25,13 @@ type headlessLiveChatRelay struct {
 	postFailures int
 }
 
-func newHeadlessLiveChatRelay(l *Launcher, slug string, targetChannel string, notification string, logf func(string)) *headlessLiveChatRelay {
-	if l == nil || l.broker == nil {
-		return nil
-	}
+// resolveHeadlessTargetChannel normalizes the turn's target channel and
+// repairs it when it names a channel that no longer exists (e.g.
+// onboarding-era tasks bound to #general after the DM-first retirement).
+// Dropping the output on "channel not found" burns the whole turn, so a
+// missing non-DM channel falls back to the bot's own DM — PostMessage
+// auto-creates it, and the message keeps an owner instead of vanishing.
+func resolveHeadlessTargetChannel(l *Launcher, slug string, targetChannel string) string {
 	targetChannel = normalizeChannelSlug(targetChannel)
 	if targetChannel == "" {
 		targetChannel = "general"
@@ -32,11 +40,26 @@ func newHeadlessLiveChatRelay(l *Launcher, slug string, targetChannel string, no
 		if targetBot := DMTargetBot(targetChannel); targetBot != "" {
 			targetChannel = DMSlugFor(targetBot)
 		}
+		return targetChannel
+	}
+	if l == nil || l.broker == nil {
+		return targetChannel
+	}
+	if l.broker.findChannelLocked(targetChannel) == nil {
+		if dm := DMSlugFor(slug); dm != "" {
+			targetChannel = dm
+		}
+	}
+	return targetChannel
+}
+func newHeadlessLiveChatRelay(l *Launcher, slug string, targetChannel string, notification string, logf func(string)) *headlessLiveChatRelay {
+	if l == nil || l.broker == nil {
+		return nil
 	}
 	return &headlessLiveChatRelay{
 		l:       l,
 		slug:    strings.TrimSpace(slug),
-		channel: targetChannel,
+		channel: resolveHeadlessTargetChannel(l, slug, targetChannel),
 		replyTo: headlessReplyToID(notification),
 		logf:    logf,
 	}
@@ -110,19 +133,14 @@ func (r *headlessLiveChatRelay) postText(text string) {
 }
 
 func headlessLiveChatShouldFlush(text string) bool {
-	if strings.Contains(text, "\n\n") {
-		return len(strings.TrimSpace(text)) >= headlessLiveChatMinFlushChars
-	}
-	trimmed := strings.TrimSpace(text)
-	if len(trimmed) < headlessLiveChatMinFlushChars {
+	// Paragraph-boundary only: a double newline with enough buffered content
+	// ends one post. Sentence-end flushing is gone (see const comment) —
+	// short sentences accumulate until the paragraph completes or the max
+	// cap forces a flush.
+	if !strings.Contains(text, "\n\n") {
 		return false
 	}
-	switch trimmed[len(trimmed)-1] {
-	case '.', '!', '?':
-		return true
-	default:
-		return false
-	}
+	return len(strings.TrimSpace(text)) >= headlessLiveChatMinFlushChars
 }
 
 func headlessLiveChatLooksIssue(text string) bool {
