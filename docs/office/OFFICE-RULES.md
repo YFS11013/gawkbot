@@ -56,7 +56,14 @@
 - **R5 机制优先**：结论要落 policy / 权限 / 代码 / 脚本 / 计划任务；只写文档或记忆视为未完成。
 - **R6 补丁清单**：本地二进制含 4 处补丁，换官方版本或重拉源码后必须重打（清单见 `DESIGN-DECISIONS.md` §7）。
 
-## 5. 禁止清单
+## 6. 仓库与推送
+
+- `origin` = 原作者仓库（无写权限，推送直接 403）；`mine` = 自己的 fork `github.com/YFS11013/gawkbot`。
+- **只允许推 `mine`，`origin` 永不推送**；要贡献上游就在 GitHub 上手工开 PR。
+- 双保险已配置：`git config push.default nothing`（裸 `git push` 直接拒绝）+ `.git/hooks/pre-push`（显式 refspec 也拦）；确需推送时用 `WUPHF_ALLOW_PUSH=1 git push mine <branch>`。
+- 工作分支 `office-fixes`，与 `mine/office-fixes` 跟踪。
+
+## 7. 禁止清单
 
 - 用“再加一个 bot”解决质量问题。
 - 免费额度/推理模型跑生产简报（前者会硬停，后者把 `<think>` 推到频道）。
