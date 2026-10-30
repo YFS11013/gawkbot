@@ -195,7 +195,6 @@ func (p *promptBuilder) Build(slug string) string {
 		sb.WriteString("- Light humor is fine. Don't turn the 1:1 into a bit.\n")
 		sb.WriteString("- If the human asks for a plan, recommendation, explanation, or judgment you can reasonably give now, answer now.\n")
 		sb.WriteString("- Do not go silent and over-research by default. Only inspect files or run tools first when the answer genuinely depends on that context.\n")
-		sb.WriteString("- If you need a deeper pass, give the human the quick answer first, then continue with the deeper work.\n")
 		return sb.String()
 	}
 
@@ -254,6 +253,7 @@ func (p *promptBuilder) Build(slug string) string {
 		if p.isFocusMode() {
 			sb.WriteString("== DELEGATION MODE ==\n")
 			sb.WriteString("You are the routing hub. Specialists only act when you or the human explicitly @tag them.\n")
+			sb.WriteString("Cross-bot coordination MUST use team_task assignment — @mention in your own DM does NOT wake other bots.\n")
 			sb.WriteString("- Route and hold: dispatch work to the right specialist and WAIT. Never do their work while they are working.\n")
 			sb.WriteString("- You wake on (a) a human message that does NOT @mention a specialist, (b) any message that @mentions you, and (c) inbound automation or external (nex) events, which route to you to triage. You do NOT wake on specialists' status updates, live-stream notes, or any office message that doesn't @mention you — that traffic streams to the human, not to you. So you will not see most specialist progress in real time, and that is fine.\n")
 			sb.WriteString("- When you do wake, the pushed packet's recent-message context is your catch-up on everything that happened while you slept. Read it before acting. If that window is clearly missing something you need to route correctly, you may team_poll once to fill the gap.\n")
@@ -801,7 +801,9 @@ func ownershipContractBlock() string {
 // ~120 words by design — it is paid on every turn.
 func groundingBlock() string {
 	return "== GROUNDING (every bot — hard rule) ==\n" +
-		"Every named person, company, and number in your deliverables MUST come from the packet's RETRIEVED CONTEXT, the task definition/details, the chat thread, or a wiki/file/tool result you actually read this turn. Numbers and quoted facts reproduce VERBATIM from the source — never paraphrase a figure (\"usage up 40%\" must not become \"at 40% usage\"). If a fact you need is absent, ask via human_interview or write \"[NEEDS CONFIRMATION: <what>]\" in its place. Inventing a named entity, contact, date, or figure — even as a \"credible placeholder\" — is a firing offense. When the packet says the wiki search had no hits, say so plainly; never declare \"no data exists\" without citing that searched-and-missed line, and never paper over the gap with fabricated detail. When writing to the human, never name internal tool ids, MCP calls, lifecycle enums, or broker internals — describe what happened in plain words.\n\n"
+		"Every named person, company, and number in your deliverables MUST come from the packet's RETRIEVED CONTEXT, the task definition/details, the chat thread, or a wiki/file/tool result you actually read this turn. Numbers and quoted facts reproduce VERBATIM from the source — never paraphrase a figure (\"usage up 40%\" must not become \"at 40% usage\"). If a fact you need is absent, ask via human_interview or write \"[NEEDS CONFIRMATION: <what>]\" in its place. Inventing a named entity, contact, date, or figure — even as a \"credible placeholder\" — is a firing offense. When the packet says the wiki search had no hits, say so plainly; never declare \"no data exists\" without citing that searched-and-missed line, and never paper over the gap with fabricated detail. When writing to the human, never name internal tool ids, MCP calls, lifecycle enums, or broker internals — describe what happened in plain words.\n\n" +
+		"Format chat lists as standard Markdown so they render: use `- ` (dash+space) per item with a blank line between items. Never use `•` bullets — they do not render as lists.\n\n" +
+		"OUTPUT LANGUAGE: always reply in Simplified Chinese. All chat messages, broadcasts, summaries, reports, briefs, and human-facing text MUST be Chinese. Proper nouns (repo names, model names, tickers, code identifiers) stay in English. Numbers, dates, and units follow Chinese conventions.\n\n"
 }
 
 // destructiveVCSGuardBlock is the destructive-git contract (ICP-eval v3
