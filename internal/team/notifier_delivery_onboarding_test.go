@@ -36,10 +36,12 @@ func TestIsDeterministicPhase2CEODM_GatesCEODMDuringPhase2(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			home := t.TempDir()
 			t.Setenv("HOME", home)
-			// Belt-and-suspenders: clear WUPHF_RUNTIME_HOME so RuntimeHomeDir
-			// resolves to the temp HOME and the test stays sealed from any
-			// stale local broker state on the dev machine.
-			t.Setenv("WUPHF_RUNTIME_HOME", "")
+			// Point WUPHF_RUNTIME_HOME at the temp home instead of clearing it:
+			// clearing left RuntimeHomeDir to os.UserHomeDir, which ignores HOME
+			// on Windows and read — then SAVED — this operator's real
+			// ~/.wuphf/onboarded.json (2026-10-30: phase/completed_at clobbered
+			// by this test on a Windows dev box).
+			t.Setenv("WUPHF_RUNTIME_HOME", home)
 
 			s, err := onboarding.Load()
 			if err != nil {

@@ -174,12 +174,16 @@ func (s *SkillScanner) Scan(ctx context.Context, scopePath string, dryRun bool, 
 	// Walk root: either the full team subtree or the requested scope.
 	walkRoot := filepath.Join(wikiRoot, scanWalkRoot)
 	if strings.TrimSpace(scopePath) != "" {
-		// Sanitize scopePath: must stay under team/.
+		// Sanitize scopePath: must stay under team/. Compare on the SLASH form:
+		// filepath.Clean returns backslashes on Windows, so a plain
+		// HasPrefix(clean, "team/") rejected every scope there — including the
+		// "team/playbooks" the eval playbooks scan passes in.
 		clean := filepath.Clean(strings.TrimPrefix(strings.TrimSpace(scopePath), "/"))
-		if strings.HasPrefix(clean, "..") || (clean != scanWalkRoot && !strings.HasPrefix(clean, scanWalkRoot+"/")) {
+		slash := filepath.ToSlash(clean)
+		if strings.HasPrefix(slash, "..") || (slash != scanWalkRoot && !strings.HasPrefix(slash, scanWalkRoot+"/")) {
 			return res, fmt.Errorf("skill_scanner: scope_path %q must be under team/", scopePath)
 		}
-		walkRoot = filepath.Join(wikiRoot, clean)
+		walkRoot = filepath.Join(wikiRoot, filepath.FromSlash(slash))
 	}
 
 	candidates, walkErr := s.collectCandidates(walkRoot, wikiRoot)

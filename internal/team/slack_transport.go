@@ -682,6 +682,14 @@ func (t *SlackTransport) FormatOutbound(msg channelMessage) (transport.Outbound,
 	if isHumanMessageSender(msg.From) {
 		return transport.Outbound{}, false
 	}
+	// An empty sender is not a bot either. The message handler normalizes a
+	// missing From to "system" before it reaches a transport, so this only
+	// catches direct/internal constructions — but speaking in Slack requires a
+	// known identity, and "" would fall through to the display-name rewrite
+	// below as if it were a bot.
+	if strings.TrimSpace(msg.From) == "" {
+		return transport.Outbound{}, false
+	}
 	// A spawned Slack bot posts as ITSELF: capture the sender BEFORE the
 	// display-name rewrite below and carry it to Send via the otherwise-unused
 	// Participant field (see slack_spawned_agents.go).
