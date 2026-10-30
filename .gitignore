@@ -12,6 +12,9 @@
 # Local artifacts
 /bench/results/
 /docs/*
+# Office ops docs (workflow, decisions, todos) ship with the repo
+!/docs/office/
+!/docs/office/**
 !/docs/specs/
 !/docs/specs/**
 !/docs/evals/
