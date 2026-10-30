@@ -630,7 +630,18 @@ func (b *Broker) applyLifecycleStateLocked(task *teamTask, newState LifecycleSta
 	// packet flush that transitionLifecycleLocked performed, leaving the
 	// task-detail read (which serves the packet) stale against the board
 	// (which serves the task). No-op when the task has no packet.
-	b.onLifecycleTransitionLocked(task.ID, prev, newState)
+	if prev != newState {
+		b.onLifecycleTransitionLocked(task.ID, prev, newState)
+	}
+	// Terminal transitions retire the build lane: a build task that ends
+	// (done/archive/rejected) without publishing leaves its app draft in
+	// "building" forever (sidebar placeholder with no publish). Flip such
+	// drafts to "failed" so the operator sees an honest state. Ready apps
+	// are untouched (MarkBuildFailed skips non-building), and the store
+	// carries its own lock so this is safe under b.mu.
+	if newState == LifecycleStateApproved || newState == LifecycleStateArchived || newState == LifecycleStateRejected {
+		b.markChannelAppBuildsFailedLocked(task.Channel)
+	}
 	return nil
 }
 

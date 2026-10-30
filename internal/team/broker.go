@@ -785,6 +785,10 @@ func (b *Broker) StartOnPort(port int) error {
 	// see broker_apps_integrations.go for the widened-surface security notes.
 	mux.HandleFunc("/apps/integrations/call", b.requireAuth(b.handleAppsIntegrationsCall))
 	mux.HandleFunc("/apps/integrations/catalog", b.requireAuth(b.handleAppsIntegrationsCatalog))
+	// Read-only public-data proxy for sandboxed apps (CSP connect-src 'none'):
+	// same-origin GET /apps/fetch?url=…, broker-side host allowlist. Distinct
+	// route from the integration call above — do not fold them together.
+	mux.HandleFunc("/apps/fetch", b.requireAuth(b.handleAppFetch))
 	mux.HandleFunc("/apps/ai", b.requireAuth(b.handleAppsAI))
 	// Preserved visual artifacts (HTML briefs / PDFs) from the previous
 	// product's wiki, attached to legacy Knowledge pages.

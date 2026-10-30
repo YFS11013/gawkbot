@@ -14,6 +14,14 @@ import (
 	"github.com/nex-crm/wuphf/internal/config"
 )
 
+// HealthDispatch exposes scheduler-dispatch liveness so an operator can
+// tell "broker up but no turns" apart from "broker down": subscribers>0
+// means notifyBotsLoop is attached; members is the roster size.
+type HealthDispatch struct {
+	MessageSubscribers int `json:"message_subscribers"`
+	Members            int `json:"members"`
+}
+
 // HealthResponse is the stable JSON response served by GET /health.
 type HealthResponse struct {
 	Status              string         `json:"status"`
@@ -26,6 +34,7 @@ type HealthResponse struct {
 	MemoryBackendActive string         `json:"memory_backend_active"`
 	MemoryBackendReady  bool           `json:"memory_backend_ready"`
 	Build               buildinfo.Info `json:"build"`
+	Dispatch            HealthDispatch `json:"dispatch"`
 }
 
 func (b *Broker) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -34,6 +43,8 @@ func (b *Broker) handleHealth(w http.ResponseWriter, r *http.Request) {
 	bot := b.oneOnOneBot
 	focus := b.focusMode
 	provider := b.runtimeProvider
+	subs := len(b.messageSubscribers)
+	members := len(b.members)
 	b.mu.Unlock()
 	if strings.TrimSpace(provider) == "" {
 		provider = config.ResolveLLMProvider("")
@@ -61,6 +72,7 @@ func (b *Broker) handleHealth(w http.ResponseWriter, r *http.Request) {
 		MemoryBackendActive: memoryStatus.ActiveKind,
 		MemoryBackendReady:  ready,
 		Build:               buildinfo.Current(),
+		Dispatch:            HealthDispatch{MessageSubscribers: subs, Members: members},
 	})
 }
 

@@ -19,7 +19,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -97,6 +99,69 @@ func (b *Broker) handleApps(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+// handleAppFetch proxies read-only GETs to an allowlisted set of public data
+// endpoints so sandboxed apps (CSP connect-src 'none') can show live data
+// without direct network access. The app fetches same-origin
+// `/api/apps/fetch?url=...` and the broker does the upstream GET.
+// Allowlist is deliberately narrow (GitHub API + opencode public endpoints);
+// responses are capped to keep a buggy app from blowing memory.
+func (b *Broker) handleAppFetch(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	target := strings.TrimSpace(r.URL.Query().Get("url"))
+	if target == "" {
+		http.Error(w, "missing url", http.StatusBadRequest)
+		return
+	}
+	u, err := url.Parse(target)
+	if err != nil || (u.Scheme != "https") {
+		http.Error(w, "only https urls", http.StatusBadRequest)
+		return
+	}
+	if u.User != nil {
+		http.Error(w, "credentials not allowed", http.StatusBadRequest)
+		return
+	}
+	host := strings.ToLower(u.Hostname())
+	allowed := host == "api.github.com" || host == "opencode.ai" || strings.HasSuffix(host, ".opencode.ai")
+	if !allowed {
+		http.Error(w, "host not allowed", http.StatusForbidden)
+		return
+	}
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, target, nil)
+	if err != nil {
+		http.Error(w, "bad url", http.StatusBadRequest)
+		return
+	}
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("User-Agent", "gawkbot-app-fetch")
+	// Redirects are refused: a 30x out of an allowlisted host would otherwise
+	// turn this proxy into a general SSRF primitive (the host check only runs
+	// on the URL the app supplied, not on where it lands).
+	client := &http.Client{
+		Timeout: 20 * time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, "upstream failed: "+truncate(err.Error(), 200), http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
+	if err != nil {
+		http.Error(w, "read failed", http.StatusBadGateway)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	_, _ = w.Write(body)
 }
 
 func (b *Broker) handleAppByID(w http.ResponseWriter, r *http.Request) {
@@ -552,6 +617,33 @@ func (b *Broker) ensureAppEditChannel(id string) (string, error) {
 		return "", err
 	}
 	return channel, nil
+}
+
+// markChannelAppBuildsFailedLocked flips every still-building app draft
+// bound to channel to "failed". Called from the lifecycle transition
+// chokepoint when a task terminally ends (done/archive/rejected) without
+// publishing, so the sidebar stops showing a "building…" placeholder for
+// a dead lane. Ready/published apps are untouched. Best-effort: store
+// errors are swallowed (list failure = nothing to match; mark failure =
+// already failed or gone). Caller holds b.mu; the store has its own lock.
+func (b *Broker) markChannelAppBuildsFailedLocked(channel string) {
+	channel = strings.TrimSpace(channel)
+	if channel == "" || b == nil {
+		return
+	}
+	apps, err := b.appStore().List()
+	if err != nil {
+		return
+	}
+	for i := range apps {
+		if strings.TrimSpace(apps[i].EditChannel) != channel {
+			continue
+		}
+		if apps[i].Status != customAppStatusBuilding {
+			continue
+		}
+		_ = b.appStore().MarkBuildFailed(apps[i].ID)
+	}
 }
 
 // handleAppImprove applies a human-requested change to an existing app:

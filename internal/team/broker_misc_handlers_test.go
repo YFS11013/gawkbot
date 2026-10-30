@@ -36,7 +36,7 @@ func TestHandleHealth_ReturnsOKAndVersionFields(t *testing.T) {
 	if got["status"] != "ok" {
 		t.Errorf("status: want ok, got %v", got["status"])
 	}
-	for _, k := range []string{"session_mode", "one_on_one_agent", "provider", "memory_backend", "memory_backend_active", "memory_backend_ready", "build"} {
+	for _, k := range []string{"session_mode", "one_on_one_agent", "provider", "memory_backend", "memory_backend_active", "memory_backend_ready", "build", "dispatch"} {
 		if _, ok := got[k]; !ok {
 			t.Errorf("missing field %q", k)
 		}
@@ -44,6 +44,13 @@ func TestHandleHealth_ReturnsOKAndVersionFields(t *testing.T) {
 	build, _ := got["build"].(map[string]any)
 	if _, ok := build["version"]; !ok {
 		t.Errorf("missing build.version")
+	}
+	dispatch, _ := got["dispatch"].(map[string]any)
+	if _, ok := dispatch["message_subscribers"]; !ok {
+		t.Errorf("missing dispatch.message_subscribers")
+	}
+	if _, ok := dispatch["members"]; !ok {
+		t.Errorf("missing dispatch.members")
 	}
 }
 
