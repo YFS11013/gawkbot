@@ -26,6 +26,7 @@
 
 import type { ComponentProps, ReactElement, ReactNode } from "react";
 import type { Components } from "react-markdown";
+import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import type { PluggableList } from "unified";
 
@@ -286,9 +287,10 @@ function walk(node: MdAnyNode, onParent: (parent: MdParent) => void) {
 
 // ── Plugin lists ──
 
-/** Remark plugins for chat messages: GFM autolinks/strikethrough + @-mentions. */
+/** Remark plugins for chat messages: GFM autolinks/strikethrough + @-mentions + single-newline breaks (OpenHands/SillyTavern parity: render what the model wrote). */
 export const messageRemarkPlugins: PluggableList = [
   remarkGfm,
+  remarkBreaks,
   mentionRemarkPlugin(),
 ];
 

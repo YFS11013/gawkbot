@@ -194,6 +194,12 @@ type Parsed =
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 const BARE_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+// The panel's copy is English ("2 rows", "Emails"), so dates are formatted in
+// en-US rather than the operator's host locale: otherwise the same row renders
+// "Sep 16, 2026" or "2026年9月16日" depending on the machine, and the
+// table becomes unscannable for anyone whose OS locale differs from the rest of
+// the UI. Also keeps the rendering deterministic for tests.
+const DATE_LOCALE = "en-US";
 
 function humanizeDate(iso: string): string {
   // A bare date ("2026-09-16") has no time and no timezone. Date.parse reads
@@ -203,7 +209,7 @@ function humanizeDate(iso: string): string {
   const bare = BARE_DATE_RE.exec(iso);
   if (bare) {
     const d = new Date(Number(bare[1]), Number(bare[2]) - 1, Number(bare[3]));
-    return d.toLocaleDateString(undefined, {
+    return d.toLocaleDateString(DATE_LOCALE, {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -211,7 +217,7 @@ function humanizeDate(iso: string): string {
   }
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString(undefined, {
+  return d.toLocaleString(DATE_LOCALE, {
     month: "short",
     day: "numeric",
     hour: "numeric",

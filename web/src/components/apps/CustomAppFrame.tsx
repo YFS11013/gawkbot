@@ -90,6 +90,10 @@ const ALLOWED_GET_PREFIXES: readonly string[] = [
   // other app's full HTML source via GET /apps/<id> (security review L2). Apps
   // reach their own data through the dedicated bridge endpoints, not /apps/<id>.
   "/apps/integrations/catalog",
+  // "/apps/fetch" (read-only public-data proxy for sandboxed apps) is safe to
+  // allowlist: it only GETs an allowlisted set of public hosts (broker-side
+  // check), unlike GET /apps/<id> which would leak other apps' source.
+  "/apps/fetch",
   "/tasks",
   "/office-members",
   "/channels",

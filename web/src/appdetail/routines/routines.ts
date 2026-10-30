@@ -102,11 +102,15 @@ export function humanSchedule(schedule: string): string {
 /** Humanize a timestamp: an ISO/RFC3339 string becomes a short local
  * "Mon D, HH:MM"; a value that isn't a date (a seeded label like "12 minutes
  * ago", or "v3") passes through untouched. Shared by routine run-stamps and
- * artifact chips so both humanize the same way. */
+ * artifact chips so both humanize the same way.
+ *
+ * Formatted in en-US rather than the host locale: the surrounding UI copy is
+ * English, and a zh-CN machine otherwise renders "7月3日 09:08" inside an
+ * otherwise-English panel (and breaks the layout's fixed-width stamp). */
 export function formatStamp(value: string): string {
   const t = Date.parse(value);
   if (Number.isNaN(t)) return value;
-  return new Date(t).toLocaleString(undefined, {
+  return new Date(t).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
