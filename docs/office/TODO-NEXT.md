@@ -27,6 +27,7 @@
 - 处置：重启 broker（命令见附录），重读 token，重发。
 - 复发记录：2026-10-30 05:11（空闲 16 小时后首次唤醒失败）。
 - 待办：定位 notify/dispatch 循环退出的原因（上游级）。
+- ✅ 2026-10-30 22:31：找到并修掉代码级根因（入队丢弃分支漏解锁，见 P3 7d），新二进制已部署；重启后 cos turn 12s/62s 正常完成。
 
 ## P0 — 明早必须盯的两次自动运行
 
@@ -99,6 +100,15 @@
 - 处置：给 `headless_session_typing_test.go` 补同一构建标签。
 - 验收：`go vet ./internal/team/` 干净；`go test ./internal/team -run 'Scheduler|Opencode|Headless' -count=1` 可编译执行。
 
+### 7c. 包级测试在 Windows 的剩余红项（2026-10-30 首次运行）
+- 全包 24 红；修掉 3 个真 bug 后仍有 ~21 条，全部是 OS 能力差（非代码回归）：symlink 权限（`MkdirAll` 建链需管理员）、POSIX 0600/chmod 语义、`/Users/me/...` 绝对路径断言、SIGKILL 退出码、box CLI 未安装、临时目录内 git 缺 identity、rename 并发语义、`os.UserHomeDir` 不认 `HOME`。
+- 未做：逐条加 `runtime.GOOS == "windows" → t.Skip`。要跑绿得先决定「Windows 是否一等公民」；在此之前只用定向 `-run`。
+- **危险（已修）**：只 `t.Setenv("HOME")` 而不设 `WUPHF_RUNTIME_HOME` 的用例，在 Windows 上会读写真实 `~/.wuphf`。`TestIsDeterministicPhase2CEODM` 曾在 22:16 覆写 `~/.wuphf/onboarded.json` 的 `phase`/`completed_at`（已改指临时 home；真实文件已把 phase 恢复成 `complete`，`completed_at` 仍是测试夹具值 `2026-05-28`，日期不可考）。
+
+### 7d. 唤醒掉线的代码级根因（2026-10-30 修复）
+- `enqueueHeadlessCodexTurnRecord` 的同任务丢弃分支在 `headless.mu` 持有状态下 `return`（该函数无 defer，其余分支都显式 Unlock）。丢一次重复 lead 唤醒 → 锁永久泄漏 → 后续每次入队/`stopHeadlessWorkers` 阻塞，表现为「进程在、调度在、消息不进 turn」。
+- 与 P0-0 观察一致（05:11 空闲 16h 后首次唤醒失败）。已修并部署（22:31 重启后 cos turn 正常，queue_wait 46ms）。
+
 ### 7b. 三条僵尸任务（更新 10-30）
 - ✅ ACMER-1742：plan 已批准（`lifecycle: running`），data-keeper 可收尾。
 - 仍存：task-skill-1852 / 1857（in_progress，零消息）。
@@ -110,6 +120,7 @@
 ### 8. 清理
 - `YFS11013/gawkbot-office`（空仓库，创建后被 fork 方案取代）：删除需 `delete_repo` scope → `gh auth refresh -h github.com -s delete_repo && gh repo delete YFS11013/gawkbot-office --yes`，或网页删。
 - `C:\Users\ireke\code\gawkbot\gawkbot-fix.exe.bak-20261029`（回滚点，确认稳定后再删）
+- `C:\Users\ireke\code\gawkbot\gawkbot-fix.exe.old-20261030`（10-30 22:27 前的二进制，含入队死锁；仅在需要复现旧故障时保留）
 - `C:\Users\ireke\code\gawkbot\gawkbot-fix.exe~`（更早的备份）
 
 ## 附：当前运行参数（避免下次再猜）
