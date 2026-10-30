@@ -27,6 +27,10 @@ func TestConfigEndpointAndHealth(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(tmp, ".wuphf"), 0o700); err != nil {
 		t.Fatal(err)
 	}
+	// Pin the memory backend: left to fallback, ResolveMemoryBackend returns
+	// gbrain whenever the machine has the gbrain CLI plus an embedding
+	// provider, so this test asserted the operator's machine, not the code.
+	t.Setenv("WUPHF_MEMORY_BACKEND", config.MemoryBackendMarkdown)
 	// Seed config with claude-code, then POST codex.
 	initial := `{"llm_provider":"claude-code"}`
 	if err := os.WriteFile(filepath.Join(tmp, ".wuphf", "config.json"), []byte(initial), 0o600); err != nil {

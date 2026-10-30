@@ -1,3 +1,10 @@
+//go:build darwin || linux
+
+// Shares broker_session_messaging_test.go's shell-script fixtures, which are
+// POSIX-only (fake CLI tools + process-group kills). Without this tag the
+// Windows build compiles this file alone and fails on undefined
+// newSessionMsgFixture/sessionAnswer/pollUntil.
+
 package team
 
 import (
