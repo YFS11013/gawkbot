@@ -19,6 +19,7 @@ repo-local instruction files are the runtime source of truth for contributors.
 - Do not revert changes you did not make unless the user explicitly asks.
 - Own bugs surfaced during the work. Do not dismiss them as unrelated when they
   block the requested outcome.
+- When facing a rendering, architecture, or library-choice problem, research mature practice first: spawn sub-agents to collect source-level evidence (file paths + line numbers + code snippets) from 2-3 well-known open-source projects, compare in a table, then decide. No guessing from docs, no gut calls.
 - Ask before destructive or hard-to-reverse actions: deleting state, clearing
   Docker volumes, applying migrations outside local dev, or changing production
   infrastructure.

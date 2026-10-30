@@ -3,6 +3,16 @@
 > 与 `DESIGN-DECISIONS.md` 配套。每条都有验收标准，不用“看起来正常”结案。
 > 时区：**UTC 为主，括号内为北京时间**。
 
+## 已完成 — 工作树回归修复（2026-10-30 22:05）
+- `/apps/integrations/call` 路由被误删 → 恢复注册；新增的 `/apps/fetch` 独立注册并带 `requireAuth`。
+- `web/package.json` 误删 `remark-gfm`（8+ 文件仍 import）→ 恢复，与 `remark-breaks` 并存。
+- `CustomAppFrame` GET 白名单误删 `/apps/integrations/catalog` → 恢复。
+- `applyLifecycleStateLocked` 误删 `onLifecycleTransitionLocked`（Decision Packet flush）→ 恢复，保留新增的“终态把 building 草案标 failed”。
+- `/health` 误删 `build` 字段（StatusBar / HealthCheckApp 依赖）→ 恢复，与新增 `dispatch` 并存。
+- `/apps/fetch` 补 SSRF 硬化：拒绝 URL 内凭据、拒绝 30x 跳转（否则可跳出白名单）。
+- `docs/agents/INSTRUCTIONS.md` 断句修复（新增规则另起一条，未吞掉原“Own bugs”条）。
+- `internal/team` 测试包 Windows 编不过 → 见 P3 #7。
+
 ## 已完成 — 工作流与规则重梳（2026-10-30 20:20）
 - `AGENTS.md` 重写为唯一工作流入口：三种任务→三条路径（巡检/排障/变更）、五层判据、四条处置原则、六条硬规则、六条禁止项。
 - `RULES.md` 修正过时基线（单轮 10–15 分钟 → 18–60 秒）并指向 `AGENTS.md`。
@@ -84,9 +94,10 @@
 
 ## P3 — 工程债
 
-### 7. `internal/team` 测试包编不过
-- `headless_session_typing_test.go` 缺 `sessionAnswer` / `pollUntil`；新增用例 `broker_scheduler_enabled_gate_test.go` 因此跑不了。
-- **验收**：`go test ./internal/team -run 'Scheduler|Opencode' -count=1` 能编译并绿。
+### 7. ~~`internal/team` 测试包编不过~~ ✅ 已完成（2026-10-30）
+- 根因不是「缺 helper」：`newSessionMsgFixture` / `sessionAnswer` / `pollUntil` 定义在 `broker_session_messaging_test.go`，该文件与 `_limits_test.go` 都带 `//go:build darwin || linux`（假 CLI 是 shell 脚本）；`headless_session_typing_test.go` 复用了这些 fixture 却没有同名构建标签，Windows 上独自编译才报 undefined。
+- 处置：给 `headless_session_typing_test.go` 补同一构建标签。
+- 验收：`go vet ./internal/team/` 干净；`go test ./internal/team -run 'Scheduler|Opencode|Headless' -count=1` 可编译执行。
 
 ### 7b. 三条僵尸任务（更新 10-30）
 - ✅ ACMER-1742：plan 已批准（`lifecycle: running`），data-keeper 可收尾。
