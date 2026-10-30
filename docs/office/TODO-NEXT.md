@@ -97,6 +97,7 @@
 - 若要清：让 CoS「取消 task-skill-1852/1857，无产出；1742 保留」并观察一轮。
 
 ### 8. 清理
+- `YFS11013/gawkbot-office`（空仓库，创建后被 fork 方案取代）：删除需 `delete_repo` scope → `gh auth refresh -h github.com -s delete_repo && gh repo delete YFS11013/gawkbot-office --yes`，或网页删。
 - `C:\Users\ireke\code\gawkbot\gawkbot-fix.exe.bak-20261029`（回滚点，确认稳定后再删）
 - `C:\Users\ireke\code\gawkbot\gawkbot-fix.exe~`（更早的备份）
 
