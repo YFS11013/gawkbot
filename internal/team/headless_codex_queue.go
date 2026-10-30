@@ -168,6 +168,12 @@ func (l *Launcher) enqueueHeadlessCodexTurnRecord(slug string, turn headlessCode
 			if !humanPriority && !turn.FromRoutine && !(isLead && urgentLeadTurn) &&
 				turn.Attempts <= active.Turn.Attempts &&
 				turn.TransientRetries <= active.Turn.TransientRetries {
+				// Release before logging/returning: every other early exit in
+				// this function unlocks explicitly (no defer), and returning
+				// with the mutex held deadlocked the next
+				// stopHeadlessWorkers() — which is exactly what this drop
+				// branch does on every duplicate lead wake.
+				l.headless.mu.Unlock()
 				if isLead {
 					appendHeadlessCodexLog(slug, "queue-drop: lead already handling same task")
 				} else {
@@ -419,7 +425,7 @@ func (l *Launcher) stopHeadlessWorkers() {
 		<-done
 		return
 	}
-	ticker := time.NewTicker(20 * time.Millisecond)
+	ticker := time.NewTicker(50 * time.Millisecond)
 	defer ticker.Stop()
 	for {
 		select {
@@ -821,6 +827,11 @@ func (l *Launcher) beginHeadlessCodexTurn(lane headlessLane) (headlessCodexTurn,
 		// assuming the current one will pick up the new item.
 		delete(l.headless.workers, lane)
 		delete(l.headless.queues, lane)
+		// Nothing was queued — the spawn raced a drain and there is no turn to
+		// start. Returning here (instead of indexing the empty slice below) is
+		// what kept panicking the whole office: a lane spawn that lost the race
+		// took down every worker with "index out of range [0] with length 0".
+		// See logs/panics.log and TestBeginHeadlessCodexTurnOnEmptyLaneReportsNoWork.
 		return headlessCodexTurn{}, nil, time.Time{}, 0, false
 	}
 

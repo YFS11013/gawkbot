@@ -214,6 +214,13 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 	// The previous SIGKILL fallback for bufio.ErrTooLong is therefore gone.
 
 	if err := cmd.Wait(); err != nil {
+		// A turn cancelled for newer work (human preempt) kills the opencode
+		// subprocess mid-write — its stderr EPIPE is the kill succeeding,
+		// not a provider failure. Suppress the misleading stderr record;
+		// the queue's canceled branch already logs the preempt honestly.
+		if ctx.Err() == context.Canceled {
+			return err
+		}
 		detail := strings.TrimSpace(stderr.String())
 		metrics.TotalMs = time.Since(startedAt).Milliseconds()
 		if detail != "" {
@@ -309,7 +316,7 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 // renders as TUI-styled stdout (or routes to stderr) and the previous
 // bufio.Scanner-based consumer was blind to. See #313 (Finding 1).
 func buildHeadlessOpencodeArgs(model string) []string {
-	args := []string{"run", "--format", "json", "--pure"}
+	args := []string{"run", "--format", "json", "--pure", "--agent", "wuphf-headless"}
 	if strings.TrimSpace(model) != "" {
 		args = append(args, "--model", strings.TrimSpace(model))
 	}

@@ -620,9 +620,12 @@ func TestPrepareHeadlessCodexHomeUsesDedicatedRuntimeHomeAndCopiesAuth(t *testin
 	// prepareHeadlessCodexHome prefers an explicit CODEX_HOME whose auth.json
 	// exists over WUPHF_GLOBAL_HOME, so a developer with CODEX_HOME exported
 	// had this test copy and then PRINT their real codex credentials on
-	// failure. Clearing it keeps the test hermetic; the assertions below no
-	// longer print file contents either.
-	t.Setenv("CODEX_HOME", "")
+	// failure. Clearing it is not enough on Windows: headlessCodexHomeDir
+	// then falls back to os.UserHomeDir(), which ignores the HOME override
+	// above (it reads USERPROFILE) and finds the developer's real ~/.codex.
+	// Point CODEX_HOME at an empty dir instead — present but auth-less — so
+	// the WUPHF_GLOBAL_HOME branch is what actually gets exercised.
+	t.Setenv("CODEX_HOME", filepath.Join(t.TempDir(), "codex-home-without-auth"))
 
 	sourceCodexHome := filepath.Join(sourceHome, ".codex")
 	if err := os.MkdirAll(sourceCodexHome, 0o755); err != nil {
@@ -2213,6 +2216,34 @@ func TestBeginHeadlessCodexTurnCapturesWorktreeForLocalWorktreeBuilder(t *testin
 	}
 	if active.WorkspaceSnapshot != "snapshot" {
 		t.Fatalf("expected workspace snapshot to be recorded, got %q", active.WorkspaceSnapshot)
+	}
+}
+
+// An empty lane is not a turn. Before the fix, beginHeadlessCodexTurn dropped the
+// empty queue and then indexed queue[0] anyway, panicking with
+// "index out of range [0] with length 0" — the exact signature filling
+// logs/panics.log, which killed the worker for every bot in the office.
+func TestBeginHeadlessCodexTurnOnEmptyLaneReportsNoWork(t *testing.T) {
+	lane := headlessLane{slug: "builder"}
+
+	l := newHeadlessLauncherForTest(t)
+	l.headless.workers[lane] = true
+
+	turn, ctx, startedAt, timeout, ok := l.beginHeadlessCodexTurn(lane)
+	if ok {
+		t.Fatalf("expected no work on an empty lane, got turn=%+v", turn)
+	}
+	if ctx != nil || !startedAt.IsZero() || timeout != 0 {
+		t.Fatalf("expected zero-value turn metadata, got ctx=%v startedAt=%v timeout=%v", ctx, startedAt, timeout)
+	}
+	if l.headless.workers[lane] {
+		t.Fatal("expected the idle lane's worker flag to be cleared so a later enqueue can spawn one")
+	}
+	if _, queued := l.headless.queues[lane]; queued {
+		t.Fatal("expected the empty queue to be dropped")
+	}
+	if _, active := l.headless.active[lane]; active {
+		t.Fatal("expected no active turn to be registered")
 	}
 }
 

@@ -113,6 +113,11 @@ func TestGovernorResumeClearsPause(t *testing.T) {
 // bug: the dispatch worker's idle-drain iteration (beginHeadlessCodexTurn !ok)
 // must NOT be credited to the governor. Two real turns must count as exactly
 // two, not three (two turns + the trailing empty-queue drain).
+//
+// It also guards the empty-lane crash: the trailing drain used to fall through
+// to `queue[0]` after deleting the empty queue and panic (logs/panics.log,
+// "index out of range [0] with length 0"). Before that fix this test could not
+// even reach the assertion — the worker goroutine died first.
 func TestGovernorCountsOnlyRealTurns(t *testing.T) {
 	processed := make(chan string, 4)
 	setHeadlessCodexRunTurnForTest(t, func(_ *Launcher, _ context.Context, _ string, notification string, _ ...string) error {

@@ -22,6 +22,10 @@ func TestBuildHeadlessOpencodeArgsRequestsJSONFormat(t *testing.T) {
 	if !slices.Contains(args, "--pure") {
 		t.Fatalf("expected --pure (no plugins) in args, got %v", args)
 	}
+	agentIdx := slices.Index(args, "--agent")
+	if agentIdx == -1 || agentIdx+1 >= len(args) || args[agentIdx+1] != "wuphf-headless" {
+		t.Fatalf("expected --agent wuphf-headless in args, got %v", args)
+	}
 	for _, a := range args {
 		if len(a) > 100 {
 			t.Fatalf("prompt leaked onto argv: %v", args)
