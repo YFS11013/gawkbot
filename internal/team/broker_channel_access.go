@@ -85,7 +85,7 @@ func (b *Broker) canAccessChannelLocked(slug, channel string) bool {
 	// NOTE: any new entry added here MUST also be added to
 	// reservedChannelSlugs above so the channel-create handler keeps the
 	// invariant "no user channel can shadow a trusted sender slug".
-	if isHumanMessageSender(slug) || slug == "nex" || slug == "system" {
+	if slug == "" || isHumanMessageSender(slug) || slug == "nex" || slug == "system" {
 		return true
 	}
 	// A DM admits exactly the two participants its SLUG names — never its

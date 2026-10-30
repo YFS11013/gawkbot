@@ -296,7 +296,7 @@ func (l *Launcher) sendChannelUpdate(target notificationTarget, msg channelMessa
 	notification := ""
 	var contextUsed []string
 	humanPrefix := ""
-	fromHuman := isHumanMessageSender(msg.From)
+	fromHuman := isHumanMessageSender(msg.From) && strings.TrimSpace(msg.Content) != ""
 	if fromHuman {
 		// Front-load a directive so the model treats the human chat as a
 		// preemption signal: absorb the message before resuming any prior

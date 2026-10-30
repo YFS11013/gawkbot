@@ -57,7 +57,7 @@ func humanMessageSender(slug string) string {
 
 func isHumanMessageSender(sender string) bool {
 	sender = normalizeActorSlug(sender)
-	return sender == "" || sender == "you" || sender == "human" || strings.HasPrefix(sender, "human:")
+	return sender == "you" || sender == "human" || strings.HasPrefix(sender, "human:")
 }
 
 func humanIdentityFromActor(actor requestActor) HumanIdentity {

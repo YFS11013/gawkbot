@@ -444,7 +444,10 @@ func (l *Launcher) notificationTargetsForMessage(msg channelMessage) (immediate 
 		if _, muted := disabledMembers[slug]; muted {
 			return
 		}
-		if !isExplicit(slug) && len(enabledMembers) > 0 {
+		// Lead bypasses the member filter: the CEO is woken by human @-mention
+		// on any lane (app/task channels included), same as the DM branch
+		// which returns targetMap[lead] without this check. Disabled still mutes.
+		if slug != lead && !isExplicit(slug) && len(enabledMembers) > 0 {
 			if _, ok := enabledMembers[slug]; !ok {
 				return
 			}

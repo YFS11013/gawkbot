@@ -79,6 +79,9 @@ func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	if actor, ok := requestActorFromContext(r.Context()); ok && actor.Kind == requestActorKindHuman {
 		body.From = humanMessageSender(actor.Slug)
 	}
+	if strings.TrimSpace(body.From) == "" {
+		body.From = "system"
+	}
 	// What the request itself proves about who is posting, taken before
 	// anything in the body is read for it (broker_session_messaging.go).
 	ownerPost := b.requestIsOwnerPost(r)
