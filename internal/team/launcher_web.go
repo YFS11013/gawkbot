@@ -151,7 +151,7 @@ func (l *Launcher) LaunchWeb(webPort int) error {
 	go l.notifyBotsLoop()
 	go l.notifyTaskActionsLoop()
 	go l.notifyOfficeChangesLoop()
-	go l.watchdogSchedulerLoop()
+	go func() { defer recoverPanicTo("watchdogSchedulerLoop", ""); l.watchdogSchedulerLoop() }()
 	if l.paneBackedBots {
 		go l.primeVisibleBots()
 	}

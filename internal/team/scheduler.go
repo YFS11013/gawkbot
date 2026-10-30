@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
@@ -154,10 +155,23 @@ func (w *watchdogScheduler) run(ctx context.Context) {
 	if !w.wait(ctx, w.initialDelay) {
 		return
 	}
+	log.Printf("scheduler: loop started (poll=%s)", w.pollEvery)
+	// Heartbeat: when this line stops appearing the loop is dead. On
+	// 2026-10-30 the loop stopped silently and nothing in the logs said so.
+	lastBeat := time.Now()
+	startedAt := lastBeat
 	for {
-		w.processOnce()
+		due := w.processOnce()
 		w.signalTick()
+		if due > 0 {
+			log.Printf("scheduler: dispatched %d due job(s)", due)
+		}
+		if since := time.Since(lastBeat); since >= 10*time.Minute {
+			log.Printf("scheduler: heartbeat (uptime=%s, poll=%s)", time.Since(startedAt).Truncate(time.Second), w.pollEvery)
+			lastBeat = time.Now()
+		}
 		if !w.wait(ctx, w.pollEvery) {
+			log.Printf("scheduler: loop exited after %s", time.Since(startedAt).Truncate(time.Second))
 			return
 		}
 	}
@@ -214,13 +228,13 @@ func (w *watchdogScheduler) Stop() {
 // processOnce processes every currently-due job. Exposed (lowercase
 // method, same package) so tests can drive a single tick deterministically
 // without going through Start.
-func (w *watchdogScheduler) processOnce() {
+func (w *watchdogScheduler) processOnce() int {
 	if w.broker == nil {
-		return
+		return 0
 	}
 	jobs := w.broker.DueSchedulerJobs()
 	if len(jobs) == 0 {
-		return
+		return 0
 	}
 	for _, job := range jobs {
 		// PR 8 Lane G: per-instance jobs (task_follow_up, request_follow_up,
@@ -253,6 +267,7 @@ func (w *watchdogScheduler) processOnce() {
 			_ = w.broker.UpdateSchedulerJobState(job.Slug, nextRun, "scheduled")
 		}
 	}
+	return len(jobs)
 }
 
 func (w *watchdogScheduler) processTaskJob(job schedulerJob) {

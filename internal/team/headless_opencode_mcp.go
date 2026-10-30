@@ -78,7 +78,45 @@ func (l *Launcher) writeHeadlessOpencodeMCPConfig(slug string) (string, error) {
 	for _, key := range ServerKeys() {
 		mcp[key] = entry
 	}
+	// The local map must go back into the merged config: without this line the
+	// entry is written to a map nobody marshals, every bot spawned by this
+	// build starts with no MCP server, and its turn reports "no team tools".
+	// (2026-10-29: cos/data-keeper/forex-watch/analyst all hit this; only
+	// fund-invest — whose file predates the regression — still had wuphf-office.)
 	merged["mcp"] = mcp
+	// Agent-level permission allowlist for headless runs (C plan): the
+	// wuphf-headless agent carries explicit allows so headless turns never
+	// stall on permission prompts, while interactive opencode sessions are
+	// untouched (no global permission change). MCP tool key uses the
+	// hyphenated server key (wuphf-office_*, not wuphf_office_*).
+	agents, _ := merged["agent"].(map[string]any)
+	if agents == nil {
+		agents = map[string]any{}
+	}
+	agents["wuphf-headless"] = map[string]any{
+		"permission": map[string]any{
+			"read":               "allow",
+			// Shell is not part of the core loop: bridge + QA run as scheduled
+			// tasks outside the bot. Bash turned bots into agents that probed
+			// the broker's own auth endpoints and edited files mid-brief.
+			"bash":               "deny",
+			"edit":               "allow",
+			"glob":               "allow",
+			"grep":               "allow",
+			"external_directory": "allow",
+			"doom_loop":          "allow",
+			// The digest is the only data source; fetching the web lets a bot
+			// invent numbers that the brief cannot cite back.
+			"webfetch":           "deny",
+			// Subagents have no wuphf routing: a model that spawns one stalls
+			// the turn on "subagent route unsupported for this slug" instead of
+			// answering. Deny at the permission layer — prompt rules alone did
+			// not hold (2026-10-29: qwen3.5-122b looped twice on this).
+			"task": "deny",
+			"wuphf-office_*":     "allow",
+		},
+	}
+	merged["agent"] = agents
 	if _, ok := merged["$schema"]; !ok {
 		merged["$schema"] = "https://opencode.ai/config.json"
 	}

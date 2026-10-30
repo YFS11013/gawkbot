@@ -187,6 +187,17 @@ func schedulerJobDue(job schedulerJob, now time.Time) bool {
 	if strings.EqualFold(job.Status, "done") || strings.EqualFold(job.Status, "canceled") {
 		return false
 	}
+	// A paused agent routine must not fire just because its DueAt/NextRun is
+	// already in the past. PATCH {enabled:false} only flipped the flag and the
+	// status string, so 2026-10-29 a "disabled" market-analyst routine still
+	// ran at 07:30 UTC. Task/request follow-ups are created without Enabled
+	// set and must keep firing, hence the kind check.
+	if strings.EqualFold(job.Kind, "agent_routine") && !job.Enabled {
+		return false
+	}
+	if strings.EqualFold(job.Status, "disabled") {
+		return false
+	}
 	if job.DueAt != "" {
 		if due, err := time.Parse(time.RFC3339, job.DueAt); err == nil && !due.After(now) {
 			return true
