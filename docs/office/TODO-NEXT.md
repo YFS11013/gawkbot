@@ -110,6 +110,13 @@
 - 未做：逐条加 `runtime.GOOS == "windows" → t.Skip`。要跑绿得先决定「Windows 是否一等公民」；在此之前只用定向 `-run`。
 - **危险（已修）**：只 `t.Setenv("HOME")` 而不设 `WUPHF_RUNTIME_HOME` 的用例，在 Windows 上会读写真实 `~/.wuphf`。`TestIsDeterministicPhase2CEODM` 曾在 22:16 覆写 `~/.wuphf/onboarded.json` 的 `phase`/`completed_at`（已改指临时 home；真实文件已把 phase 恢复成 `complete`，`completed_at` 仍是测试夹具值 `2026-05-28`，日期不可考）。
 
+### 7e. turn 超时不生效 → 8.5h 挂死（2026-10-31 修复）
+- 现象：10-30 23:31:14 起三个 cos turn，`first_event_ms=-1`，直到 10-31 08:00:05 才落地 `timed out after 25m0s`，`total_ms≈30.53M`，收尾是 Bun 的 `EPIPE: broken pipe, write`；期间队列被堵，后续 turn `queue_wait_ms` 达 28.4 分钟。
+- 根因：`opencode` 解析到 npm shim `opencode.cmd`，`TerminateProcess` 只杀 shim，真正的 Bun 子进程继续持有 stdout 管道，worker 的 `cmd.Wait` 一直等它，直到它自己写失败退出。
+- 修法：Windows 侧改 `taskkill /F /T /PID`（杀进程树）+ opencode/codex/claude 三个 runner 设 `cmd.WaitDelay=30s`（孤儿持管道也不能把 Wait 拖过 turn 截止）。
+- 回归测试 `TestTerminateHeadlessProcessPIDKillsGrandchild`：旧实现必红（实测 16s 后报 grandchild 存活），新实现 2.3s 通过。
+- 同类隐患：`configureHeadlessProcess` 在 Windows 仍是空操作（没有 Job Object），工具自身再派生的进程仍可能逃逸；后续可考虑 Job Object + `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`。
+
 ### 7d. 唤醒掉线的代码级根因（2026-10-30 修复）
 - `enqueueHeadlessCodexTurnRecord` 的同任务丢弃分支在 `headless.mu` 持有状态下 `return`（该函数无 defer，其余分支都显式 Unlock）。丢一次重复 lead 唤醒 → 锁永久泄漏 → 后续每次入队/`stopHeadlessWorkers` 阻塞，表现为「进程在、调度在、消息不进 turn」。
 - 与 P0-0 观察一致（05:11 空闲 16h 后首次唤醒失败）。已修并部署（22:31 重启后 cos turn 正常，queue_wait 46ms）。
