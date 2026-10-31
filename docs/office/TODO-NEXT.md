@@ -161,6 +161,10 @@
    - 计划任务用的是 **Windows PowerShell 5.1**（`powershell -File`，不是 `pwsh`）。5.1 解码子进程的中文会变乱码，所以**告警与去重全在 repo 脚本里（PS7）**，watchdog 只读首行 ASCII 状态（`DRIFT: none|cleared|<n>`）与退出码。
    - **drift 从不重启 broker**（重启只属于 liveness）；新违规集按内容 SHA256 追加到 `wiki/team/alerts.md` 一次，恢复时删状态文件；`watchdog.log` 只在「首次检出」与「恢复」各写一行，持续期间静默。
    - 已实测（5.1 与 7 两个宿主）：干净静默、强制违规告警一次且中文正常、重复运行不重复告警、恢复后状态清除。
-2. **入口裁剪（需人拍板）**：`docs/agents/INSTRUCTIONS.md` 641 行 ≈9k tokens 每 session 常驻，其中 323–632 行是共享树经验散文；建议裁到 ≤200 行入口 + 硬规则，散文迁 `docs/agents/shared-tree-lessons.md` 并在 `docs/office/INDEX.md` 登记。未做，因为删别人的团队约定需要证据。
+2. ~~**入口裁剪**~~ —— **已做（2026-10-31）**：`docs/agents/INSTRUCTIONS.md` 641 行 / 31.0 KB → **118 行 / 6.2 KB**，只留硬规则（Working Rules、Git/PR、Quality Bar、Wuphf Commands、Landing、Lint）+ 首屏「按任务读哪份」路由表。
+   - 散文（Nex Context、Triangulation、Verification agents、When to use which、Screenshots、Storybook、Multi-round review、Sub-agent dispatch contract、共享树 12 节、Worktree parallelism、Demo+oracle）原样迁到 `docs/agents/shared-tree-lessons.md`（544 行 / 26.4 KB），分 A 基座 / B Wuphf 仪式 / C 共享工作树三组。
+   - 校验：原文件 511 条非空行中，仅 21 行未出现在拆分后（全部属于被重写的 Landing Changes 段），其余逐行保留；29 个章节标题各自只落在一个文件里。
+   - 顺带修掉一处规则冲突：旧入口写「commit to main 并直接 push origin」（原作者仓库规则），对本 fork 是错的（`push.default nothing` + origin 无写权限），改为对齐 `OFFICE-RULES.md` §6 的 `mine`-only 规则。
+   - 路由表就是索引，没有另建 `docs/office/INDEX.md` —— 多一份要被记住的文件就多一处腐烂点。
 3. **policy 全文本**不入 git（每次 PATCH 生成新 revision + id）。repo 只记意图与 id，生效与否一律 `GET` 验证。
 4. ~~**空壳 workflow 收尾**~~ —— skill `daily-opencode-model-snapshot` 已 archive（2026-10-31）；scheduler job 无 DELETE 端点，保持 disabled + 清单 `requires_file` 把关。
