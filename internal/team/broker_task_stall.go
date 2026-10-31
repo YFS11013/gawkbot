@@ -124,6 +124,19 @@ func (b *Broker) markSilentRunningTasksLocked(now time.Time, threshold time.Dura
 	changed := false
 	var idx taskTraceIndex
 	indexed := false
+	// One chat line per (channel, owner, title) per sweep. N stalled copies of
+	// the same skill task used to produce N identical "gone quiet" lines and
+	// flood the DM (2026-10-31: >=8 for one skill). Each task still gets its
+	// own audit action and StalledSince stamp.
+	type stallNotice struct {
+		channel   string
+		ownerRef  string
+		title     string
+		silentFor time.Duration
+		taskIDs   []string
+	}
+	notices := make(map[string]*stallNotice)
+	var noticeOrder []string
 	for i := range b.tasks {
 		task := &b.tasks[i]
 		if task.System {
@@ -170,22 +183,60 @@ func (b *Broker) markSilentRunningTasksLocked(now time.Time, threshold time.Dura
 			channel = "general"
 		}
 		silentFor := now.Sub(trace).Round(time.Minute)
-		b.counter++
-		b.appendMessageLocked(channelMessage{
-			ID:      fmt.Sprintf("msg-%d", b.counter),
-			From:    "system",
-			Channel: channel,
-			Kind:    taskStalledMessageKind,
-			Content: fmt.Sprintf("%s has gone quiet on “%s” for about %d minutes. It may still be working — if nothing lands soon, restart it from the task.", ownerRef, strings.TrimSpace(task.Title), int(silentFor.Minutes())),
-			// Stamp with the watchdog's now (not wall clock) so a
-			// fixture-clock eval produces a consistent record.
-			Timestamp: now.UTC().Format(time.RFC3339),
-		})
+		key := channel + "\x00" + ownerRef + "\x00" + strings.TrimSpace(task.Title)
+		notice, ok := notices[key]
+		if !ok {
+			notice = &stallNotice{
+				channel:  channel,
+				ownerRef: ownerRef,
+				title:    strings.TrimSpace(task.Title),
+			}
+			notices[key] = notice
+			noticeOrder = append(noticeOrder, key)
+		}
+		if silentFor > notice.silentFor {
+			notice.silentFor = silentFor
+		}
+		notice.taskIDs = append(notice.taskIDs, task.ID)
 		// Audit-trail entry. Actor "system" keeps it out of the
 		// observable-trace index, so the watchdog cannot clear its own
 		// marker with its own bookkeeping.
 		b.appendActionLocked(taskStalledMessageKind, "office", channel, "system",
 			truncateSummary(fmt.Sprintf("no visible activity on %s for %s — marked stalled", task.ID, silentFor), 140), task.ID)
 	}
+	for _, key := range noticeOrder {
+		notice := notices[key]
+		b.counter++
+		b.appendMessageLocked(channelMessage{
+			ID:      fmt.Sprintf("msg-%d", b.counter),
+			From:    "system",
+			Channel: notice.channel,
+			Kind:    taskStalledMessageKind,
+			Content: stallNoticeContent(notice.ownerRef, notice.title, notice.silentFor, notice.taskIDs),
+			// Stamp with the watchdog's now (not wall clock) so a
+			// fixture-clock eval produces a consistent record.
+			Timestamp: now.UTC().Format(time.RFC3339),
+		})
+	}
 	return changed
+}
+
+// stallNoticeContent renders one stall line. A single task keeps the original
+// wording; a group names the size and up to three task IDs so an operator can
+// jump straight to the board.
+func stallNoticeContent(ownerRef, title string, silentFor time.Duration, taskIDs []string) string {
+	base := fmt.Sprintf("%s has gone quiet on “%s” for about %d minutes", ownerRef, title, int(silentFor.Minutes()))
+	if len(taskIDs) <= 1 {
+		return base + ". It may still be working — if nothing lands soon, restart it from the task."
+	}
+	shown := taskIDs
+	if len(shown) > 3 {
+		shown = shown[:3]
+	}
+	suffix := ""
+	if len(taskIDs) > len(shown) {
+		suffix = "…"
+	}
+	return fmt.Sprintf("%s (%d tasks: %s%s). They may still be working — if nothing lands soon, restart them from the task board.",
+		base, len(taskIDs), strings.Join(shown, ", "), suffix)
 }

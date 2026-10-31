@@ -526,3 +526,89 @@ func TestBackfillSkillFilesFromState_PreservesExistingFile(t *testing.T) {
 			len(originalRaw), len(rawAfter))
 	}
 }
+
+// seedInvocableSkill installs one active skill and returns the broker.
+func seedInvocableSkill(t *testing.T) *Broker {
+	t.Helper()
+	b := newTestBroker(t)
+	b.mu.Lock()
+	b.members = []officeMember{{Slug: "cos", Name: "CEO", Role: "lead"}}
+	b.skills = append(b.skills, teamSkill{
+		ID:      "skill-data-modeling",
+		Name:    "data-modeling",
+		Title:   "Data modeling",
+		Status:  "active",
+		Channel: "team",
+		Content: "Step 1: read the TRACK. Step 2: model.",
+	})
+	b.mu.Unlock()
+	return b
+}
+
+func invokeSkillForTest(t *testing.T, b *Broker) map[string]any {
+	t.Helper()
+	body := bytes.NewBufferString(`{"invoked_by":"eng","channel":"team"}`)
+	req := httptest.NewRequest(http.MethodPost, "/skills/data-modeling/invoke", body)
+	rec := httptest.NewRecorder()
+	b.handleInvokeSkill(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("invoke: status %d body %s", rec.Code, rec.Body.String())
+	}
+	var out map[string]any
+	if err := json.NewDecoder(rec.Body).Decode(&out); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	return out
+}
+
+// A bot that cannot finish a skill used to re-invoke it every wake, creating a
+// fresh "Run skill: X" task each time (2026-10-31: 18 open copies of one skill
+// starved the task board and tripped the overdue watchdog twice). A second
+// invoke while the first run is open must return the SAME task, not a new one.
+func TestInvokeSkillDeduplicatesOpenSkillRunTask(t *testing.T) {
+	b := seedInvocableSkill(t)
+
+	first := invokeSkillForTest(t, b)
+	firstID, _ := first["task_id"].(string)
+	if firstID == "" {
+		t.Fatalf("first invoke returned no task_id: %v", first)
+	}
+
+	second := invokeSkillForTest(t, b)
+	secondID, _ := second["task_id"].(string)
+	if secondID != firstID {
+		t.Fatalf("second invoke created a new task: first=%q second=%q", firstID, secondID)
+	}
+	if dedup, _ := second["deduplicated"].(bool); !dedup {
+		t.Fatalf("expected deduplicated=true on the second invoke, got %v", second)
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	open := 0
+	for i := range b.tasks {
+		if b.tasks[i].TaskType == "skill_run" {
+			open++
+		}
+	}
+	if open != 1 {
+		t.Fatalf("expected exactly one skill_run task, got %d", open)
+	}
+}
+
+// Once the run is closed the next invoke must dispatch fresh work.
+func TestInvokeSkillAllowsNewRunAfterTaskCloses(t *testing.T) {
+	b := seedInvocableSkill(t)
+	firstID, _ := invokeSkillForTest(t, b)["task_id"].(string)
+
+	b.mu.Lock()
+	task := b.findTaskByIDLocked(firstID)
+	task.status = "done"
+	task.LifecycleState = LifecycleStateApproved
+	b.mu.Unlock()
+
+	secondID, _ := invokeSkillForTest(t, b)["task_id"].(string)
+	if secondID == "" || secondID == firstID {
+		t.Fatalf("expected a fresh task after the previous run closed, got %q (first %q)", secondID, firstID)
+	}
+}

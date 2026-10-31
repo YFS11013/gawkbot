@@ -664,6 +664,21 @@ func (b *Broker) handleInvokeSkill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// One live skill-run task per skill. Without this guard a bot that cannot
+	// finish a skill re-invokes it every wake and the office fills with
+	// identical "Run skill: X" rows (2026-10-31: 18 open copies of one skill,
+	// which starved every other task and tripped the overdue watchdog twice).
+	if existing := b.activeSkillRunTaskLocked(skillRunTaskTitle(sk)); existing != "" {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"skill":        *sk,
+			"task_id":      existing,
+			"deduplicated": true,
+			"hint":         "A skill-run task for this skill is already open. Finish or close it (team_task action=complete) instead of invoking the skill again.",
+		})
+		return
+	}
+
 	sk.UsageCount++
 	sk.UpdatedAt = now
 
@@ -723,6 +738,41 @@ func (b *Broker) handleInvokeSkill(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
+// skillRunTaskTitle is the single place the dispatch title is spelled, so the
+// dedupe guard in handleInvokeSkill and the created task can never drift.
+func skillRunTaskTitle(sk *teamSkill) string {
+	title := strings.TrimSpace(sk.Title)
+	if title == "" {
+		title = strings.TrimSpace(sk.Name)
+	}
+	return "Run skill: " + title
+}
+
+// activeSkillRunTaskLocked returns the ID of a still-open skill-run task with
+// the same title, or "" when none exists. Caller holds b.mu.
+func (b *Broker) activeSkillRunTaskLocked(taskTitle string) string {
+	taskTitle = strings.TrimSpace(taskTitle)
+	if taskTitle == "" {
+		return ""
+	}
+	for i := range b.tasks {
+		task := &b.tasks[i]
+		if task.TaskType != "skill_run" || strings.TrimSpace(task.Title) != taskTitle {
+			continue
+		}
+		switch strings.ToLower(strings.TrimSpace(task.status)) {
+		case "done", "archived", "cancelled", "canceled", "rejected":
+			continue
+		}
+		switch task.LifecycleState {
+		case LifecycleStateApproved, LifecycleStateArchived, LifecycleStateRejected:
+			continue
+		}
+		return task.ID
+	}
+	return ""
+}
+
 // createSkillRunTaskLocked dispatches a task so the office lead picks up and
 // executes the skill. Caller must hold b.mu. Returns the new task ID.
 func (b *Broker) createSkillRunTaskLocked(sk *teamSkill, channel, invoker, now string) (string, error) {
@@ -734,11 +784,7 @@ func (b *Broker) createSkillRunTaskLocked(sk *teamSkill, channel, invoker, now s
 		owner = "cos"
 	}
 
-	title := strings.TrimSpace(sk.Title)
-	if title == "" {
-		title = strings.TrimSpace(sk.Name)
-	}
-	taskTitle := "Run skill: " + title
+	taskTitle := skillRunTaskTitle(sk)
 
 	header := fmt.Sprintf("Invoked by @%s on %s. Follow the steps below.\n\n", invoker, now)
 	details := header + strings.TrimSpace(sk.Content)

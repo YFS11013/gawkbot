@@ -197,3 +197,42 @@ func TestTeamTaskStalledSinceRoundTripsOnWire(t *testing.T) {
 		t.Fatalf("round trip lost stalled_since: %q", out.StalledSince)
 	}
 }
+
+// N stalled copies of the same task title must produce ONE line, not N. The
+// 2026-10-31 skill storm put 18 "Run skill: Data modeling" rows on the board
+// and the watchdog posted an identical "gone quiet" line per row into the same
+// DM, burying real output.
+func TestStallWatchdogGroupsIdenticalTitles(t *testing.T) {
+	b := newStallTestBroker(t)
+	base := time.Now().UTC().Add(-2 * taskStallThreshold)
+	seedRunningTask(b, "A", "task-office-1", "eng", base.Format(time.RFC3339))
+	seedRunningTask(b, "B", "task-office-1", "eng", base.Format(time.RFC3339))
+	seedRunningTask(b, "C", "task-office-1", "eng", base.Format(time.RFC3339))
+	b.mu.Lock()
+	for i := range b.tasks {
+		b.tasks[i].Title = "Run skill: Data modeling"
+	}
+	b.mu.Unlock()
+
+	stallSweep(b, base.Add(taskStallThreshold+time.Minute))
+
+	msgs := stallMessages(b, "task-office-1")
+	if len(msgs) != 1 {
+		t.Fatalf("expected one grouped stall line, got %d: %+v", len(msgs), msgs)
+	}
+	if !strings.Contains(msgs[0].Content, "3 tasks") {
+		t.Fatalf("grouped line must state the group size, got %q", msgs[0].Content)
+	}
+	for _, id := range []string{"A", "B", "C"} {
+		if taskStalledSince(t, b, id) == "" {
+			t.Errorf("task %s must still be stamped stalled", id)
+		}
+	}
+
+	// Different titles still get their own line.
+	seedRunningTask(b, "D", "task-office-1", "eng", base.Format(time.RFC3339))
+	stallSweep(b, base.Add(taskStallThreshold+2*time.Minute))
+	if msgs := stallMessages(b, "task-office-1"); len(msgs) != 2 {
+		t.Fatalf("expected a second line for the distinct title, got %d", len(msgs))
+	}
+}
