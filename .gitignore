@@ -129,3 +129,6 @@ gawkbot-testdrive.log
 # Local verification builds
 gawkbot-fix.exe
 gawkbot-fix.exe~
+
+# Local verification builds keep dated rollback copies next to the binary
+gawkbot-fix.exe.*
