@@ -31,6 +31,11 @@
 
 ## P0 — 明早必须盯的两次自动运行
 
+### 0. 夜间稳定性 + 09:00 周六基金周报（2026-10-31 09:02 实测）
+- broker uptime 10h20m（22:31 重启后未再重启），`scheduler: heartbeat` 每 10 分钟连续，`watchdog.log` 无新记录 → 入队死锁修复后夜间未复发。
+- `weekly-saturday-fund-portfolio-ratio-analysis-report` 01:00:03Z 触发（=09:00 北京），fund-invest turn 79.7s `status=ok`，产物 msg-2257，next=11-07。
+- **缺口**：该周报只进聊天，无 artifact、无 task → 与 P2 5b 同一问题（routine 直接产出，蒸馏空转）。
+
 ### 1. forex-watch 08:30 UTC（16:30 北京）自动简报
 - **要验证三件事同时成立**：
   1. per-agent 配置含 `mcp: ['wuphf-office']`（MCP 修复未回退）
