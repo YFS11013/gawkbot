@@ -105,6 +105,9 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 		cmd.Dir = botScratchDir(slug)
 	}
 	configureHeadlessProcess(cmd)
+	// Same guard as the codex/opencode runners: a surviving shim child must not
+	// keep Wait blocked past the turn deadline.
+	cmd.WaitDelay = 30 * time.Second
 	env := l.buildHeadlessClaudeEnv(slug)
 	if worktreeDir != "" {
 		env = append(env, "WUPHF_WORKTREE_PATH="+worktreeDir)

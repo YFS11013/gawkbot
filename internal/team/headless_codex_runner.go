@@ -107,6 +107,10 @@ func (l *Launcher) runHeadlessCodexTurn(ctx context.Context, slug string, notifi
 	stdinText := buildHeadlessCodexPrompt(l.buildPrompt(slug)+mount.promptHint(), withAppAskPreface(notification))
 	cmd.Stdin = strings.NewReader(stdinText)
 	configureHeadlessProcess(cmd)
+	// Never let an orphaned tool child (npm .cmd shims, inherited pipes) hold
+	// Wait past the turn deadline: 2026-10-30 a timed-out cos turn sat 8.5h
+	// because the survivor kept the pipe open.
+	cmd.WaitDelay = 30 * time.Second
 	dumpHeadlessCodexInvocation(slug, workspaceDir, args, cmd.Env, stdinText)
 
 	stdout, err := cmd.StdoutPipe()

@@ -65,6 +65,11 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 	cmd := headlessOpencodeCommandContext(ctx, "opencode", args...)
 	cmd.Stdin = strings.NewReader(promptText)
 	cmd.Dir = workspaceDir
+	// Belt-and-braces for the same failure mode terminateHeadlessProcessPID
+	// fixes: if anything the turn started still holds the pane's pipes, Wait
+	// must not block past the turn budget. Without this a timed-out turn sat
+	// 8.5 hours on 2026-10-30 waiting for an orphaned Bun child to die.
+	cmd.WaitDelay = 30 * time.Second
 
 	// Start from the Codex env builder (broker/workspace/identity plumbing),
 	// then apply the Opencode-specific fixups: restore the user's real HOME so
