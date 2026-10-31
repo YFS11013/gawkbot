@@ -146,3 +146,21 @@
 | 桥 | Windows 计划任务跑 `forex-bridge-run.vbs`，每 6 小时；健康时无 `wiki/team/alerts.md` |
 | 简报产物 | `~/.wuphf/wiki/artifacts/forex/<date>.md` + `<date>-headline.md` |
 | 常规检查 | `curl -s 127.0.0.1:7892/health`（含 model 与 members） |
+
+## 9. 期望态 vs 运行态（2026-10-31 定案）
+
+结论：**git 只放期望态与契约，运行时仍是唯一权威**；两者靠脚本对照，不靠人记得。
+
+已做：
+- `docs/office/expected-scheduler.json` — standing job（系统 cron / bot routine / workflow job）+ 计划任务的期望值、依赖文件、日志新鲜度阈值。per-task follow-up 与 recheck 类 job 不列（按任务生命周期增删，列进去会永远漂移）。
+- `scripts/office/check-office-drift.ps1` — 只读比对，输出越界项，exit 1。已实测三种探针会红：参数漂移、清单外新 job、计划任务日志停更；当前实跑 `DRIFT: none`。
+- `OFFICE-RULES.md` §1 巡检第 8 项改为「必须跑该脚本」。
+
+待办：
+1. ~~**自动化**：把 drift 检查挂进 watchdog~~ —— **已做（2026-10-31）**：`~/.wuphf/data/broker-watchdog.ps1`（计划任务 `WUPHF-BrokerWatchdog`，15 分钟）新增 `Invoke-DriftCheck`，`-DriftOnly` 可单跑；备份 `broker-watchdog.ps1.bak-20261031`。关键设计：
+   - 计划任务用的是 **Windows PowerShell 5.1**（`powershell -File`，不是 `pwsh`）。5.1 解码子进程的中文会变乱码，所以**告警与去重全在 repo 脚本里（PS7）**，watchdog 只读首行 ASCII 状态（`DRIFT: none|cleared|<n>`）与退出码。
+   - **drift 从不重启 broker**（重启只属于 liveness）；新违规集按内容 SHA256 追加到 `wiki/team/alerts.md` 一次，恢复时删状态文件；`watchdog.log` 只在「首次检出」与「恢复」各写一行，持续期间静默。
+   - 已实测（5.1 与 7 两个宿主）：干净静默、强制违规告警一次且中文正常、重复运行不重复告警、恢复后状态清除。
+2. **入口裁剪（需人拍板）**：`docs/agents/INSTRUCTIONS.md` 641 行 ≈9k tokens 每 session 常驻，其中 323–632 行是共享树经验散文；建议裁到 ≤200 行入口 + 硬规则，散文迁 `docs/agents/shared-tree-lessons.md` 并在 `docs/office/INDEX.md` 登记。未做，因为删别人的团队约定需要证据。
+3. **policy 全文本**不入 git（每次 PATCH 生成新 revision + id）。repo 只记意图与 id，生效与否一律 `GET` 验证。
+4. ~~**空壳 workflow 收尾**~~ —— skill `daily-opencode-model-snapshot` 已 archive（2026-10-31）；scheduler job 无 DELETE 端点，保持 disabled + 清单 `requires_file` 把关。

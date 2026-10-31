@@ -1,7 +1,10 @@
 # OFFICE-RULES.md — gawkbot office 工作流与规则
 
+**读者**：在**仓库里**操作这台机器上运行中实例的 AI agent（Claude/Codex/omp 等），以及人类 operator 本人。
+**不是**给 office bot 看的 —— cos/data-keeper 等 bot 运行在 `~/.wuphf` 工作区，读不到 repo 里的 md；对它们生效的只有 policy（每 turn 注入）、权限 deny/allow、per-bot prompt 和 wiki。改 bot 行为请走那些机制，别指望改这份文档。
+
 适用：`~/.wuphf` 下的产出、排障、运维、routine / digest / 桥脚本 / policy 改动。
-配套文档：`DESIGN-DECISIONS.md`（决策与事故）、`TODO-NEXT.md`（待办与验收）。
+配套文档：`DESIGN-DECISIONS.md`（决策与事故）、`TODO-NEXT.md`（待办与验收）、`RUNTIME-API.md`（broker 运行时接口契约）。
 
 ## 0. 三种任务，三条路径
 
@@ -21,6 +24,8 @@
 4. digest 生成时间 + `wiki/team/alerts.md` 是否存在
 5. `git -C ~/.wuphf/wiki status --porcelain` — 应只剩 `.reads/reads.jsonl`
 6. `~/.wuphf/logs/watchdog.log` — 无文件即健康
+7. 任务卫生：`GET /tasks?all_channels=true&include_done=true` 里没有 `[@bot] Bot stuck on: …` 的 in_progress 单（有就按 RUNTIME-API §1.1 处理）
+8. 漂移：`pwsh -NoProfile -File scripts/office/check-office-drift.ps1` — 必须 `DRIFT: none` 且 exit 0。**只贴「看起来正常」不算这一项**；没有脚本输出即巡检未完成。它一次覆盖：期望 job 缺失/参数漂移、依赖文件缺失（workflow 定义、脚本）、启用中 job 的 `last_run_status`、skill `last_execution_status=failed`、清单外新 standing job、计划任务日志停更。
 
 输出格式固定：**结论一行 → 健康表（项/状态/证据）→ 问题（每条带判据）→ 待办**。
 
@@ -49,12 +54,24 @@
 
 ## 4. 硬规则
 
-- **R1 记忆分层**：账本是 md（`docs/office/` 两份 + `~/.wuphf/wiki/**`，git 可 diff）；`recall`/`retain` 只放触发点与指针；一条事实只写一处；写完必须回读验证。
+- **R1 记忆分层**：账本是 md（`docs/office/` 三份 + `~/.wuphf/wiki/**`，git 可 diff）；`recall`/`retain` 只放触发点与指针；一条事实只写一处；写完必须回读验证。
+  - 三层各司其职：**repo md = 权威账本**；**托管技能 = 可执行流程**（本机 `~/.omp/agent/managed-skills/`，git 管不到）；**memory = 指针**（一两条关键词，指向 md 或技能）。
+  - 技能**不得成为事实的唯一副本**：技能 body 里的事实必须同时存在于 repo md 或代码里，否则换机即失、也无法 diff 审查。
 - **R2 证据制**：文件:行号、带日期的日志时间、进程命令行。禁用“看起来/应该/可能”。
 - **R3 不先杀进程**：卡死先对基线（当前单轮 18–60 秒，首字节可到 2 分钟）；未超基线禁止 kill。
 - **R4 同轮归档**：行为有变化 → 同轮更新 `DESIGN-DECISIONS.md` 与 `TODO-NEXT.md`。
 - **R5 机制优先**：结论要落 policy / 权限 / 代码 / 脚本 / 计划任务；只写文档或记忆视为未完成。
 - **R6 补丁清单**：本地二进制含 4 处补丁，换官方版本或重拉源码后必须重打（清单见 `DESIGN-DECISIONS.md` §7）。
+
+## 5. 运行时 API 契约
+
+写运行时状态（任务、routine、数据空间、app 元数据）**只走 broker HTTP**（`7892` + token，token 由 `GET 7891/api-token` 取），
+禁止手改 `broker-state.json`、`~/.wuphf/apps/*/app.json`、`~/.wuphf/data/*.db`。完整契约见 `RUNTIME-API.md`；
+代价最高的三条红线：
+
+- 数据空间读写必须带 `X-WUPHF-Agent: <bot>`，只带 token 报 403 `did not identify its caller`（`internal/team/broker.go:49`）
+- `PATCH /apps/{id}` 只做 rename；`summary`/`description` 只能由 App Builder 的 `register_app` 写（`internal/team/broker_apps.go:439`）
+- `workflow_provider=one|composio` 的 routine 读本地 `~/.wuphf/workflows/<provider>/<key>.json`，文件缺失即每次 `failed`（`internal/action/workflow_store.go:15`）
 
 ## 6. 仓库与推送
 

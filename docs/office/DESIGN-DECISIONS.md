@@ -109,7 +109,7 @@ digest ──► render_artifacts()（脚本，0 LLM）
 
 ## 5. 强制机制（不靠记忆）
 
-> 工作流（巡检 / 排障 / 变更）与禁止清单见 `AGENTS.md` §1–§5；本节只登记“机制清单”，不重复流程描述。
+> 工作流（巡检 / 排障 / 变更）与禁止清单见 `OFFICE-RULES.md` §0–§4、§7，接口契约见 `RUNTIME-API.md`；本节只登记“机制清单”，不重复流程描述。
 
 - `~/.omp/agent/RULES.md`（sticky，每次请求注入）：先 recall、证据制、卡死先对基线、改完必须读回产物。
 - `headless` 权限：`task: deny`；下一步去 `bash`。
@@ -117,6 +117,7 @@ digest ──► render_artifacts()（脚本，0 LLM）
 - **policy 1（scoped: cos）**：跨 bot 派活必须真的调用 `team_task` / `team_broadcast` 并给出回执（task id / message id）；禁止无回执的“已转交”；私聊里 @ 非成员不会唤醒，必须开到对方所在频道。`policy-1793277982913860200`
 - **policy 2（scoped: forex-watch, market-analyst）**：回答日历/前值/点位只能转述当日 artifact 与 headline，保留 GMT+北京双时区；文件没有的事件与数字写「digest 未收录」，禁止引用 RSS 标题或其他网站日历。`policy-1793278353959898300`
 - 桥脚本：时区/星期/星级/已过/去重全部由脚本计算，模型无权换算。
+- **运行时契约**：`docs/office/RUNTIME-API.md`（数据空间必须带 `X-WUPHF-Agent`、`PATCH /apps/{id}` 只 rename、`workflow_provider` 定义文件缺失即每次 failed、任务/routine 只走 HTTP 不手改 json/db）。
 
 ## 6. 已知风险与开放问题
 
@@ -187,6 +188,15 @@ digest ──► render_artifacts()（脚本，0 LLM）
 - **根因**：所有频道都是两两私聊，`cos__human` 只有 `['human','cos']`；在别人的 DM 里 @ 一个非成员 bot，broker 不会派发。
 - **修复**：写入 policy 1（见 §5）。CoS 现在会真的开 `cos__forex-watch` 频道、发消息并回报 `msg-1794` 回执；forex 71 秒后在该频道作答。
 - **附带发现**：派活修好后，forex 的*自由作答*仍在编造（把 Core PCE 预期写成 3.1%、加入德国 CPI / Tokyo CPI / KOF 等 digest 没有的事件，时间只写 UTC）。据此写入 policy 2，复测后回答收敛为 6 条 digest 事件 + 「digest 未收录」标注。
+
+### 8.5 快照 routine 每天失败，真写入方是计划任务脚本（2026-10-31）
+
+- **现象**：skill `daily-opencode-model-snapshot` 的 `last_execution_status` 持续 `failed`，但数据空间 `models_snapshot` 每天 08:00 都有新记录，来源不明。
+- **根因**：`one-workflow:cos__human:daily-opencode-model-snapshot`（`workflow_provider: one`）每次执行都去读 `~/.wuphf/workflows/one/daily-opencode-model-snapshot.json`，该文件从未生成（`~/.wuphf/workflows` 与 `~/.wuphf/one` 不存在/为空）；实际写入是 Windows 计划任务 `WUPHF-ModelSnapshot` 跑 `~/.wuphf/data/model-snapshot.ps1`。
+- **判据**：`created_at` 08:00:04 早于两条 routine 的 `last_run` 08:00:18；`created_by="model-snapshot"` 是脚本写库常量（无同名 bot）；`~/.wuphf/logs/model-snapshot.log` 有 `fetched N models` + `db: OK updated rec_…`；`grep -r daily-opencode-model-snapshot ~/.wuphf --include=*.json` 只命中 broker-state。
+- **处置**：停用该 one_workflow（可逆）；`daily-0800-utc-…` agent_routine 的 payload 补「空值（new_models/removed_models 为空）写空字符串，不写"无"」，并把字段名从 schema 里不存在的 `published_at` 改为 `new_models`/`removed_models`；接口契约落 `RUNTIME-API.md`，硬规则落 `OFFICE-RULES.md` §5。
+- **收尾（2026-10-31）**：skill `daily-opencode-model-snapshot` 已 archive（workflow 路径退役，真写入方仍是计划任务脚本）；scheduler job **没有 DELETE 端点**（`/scheduler/{slug}` 只支持 PATCH），所以只能 disabled，并由 `expected-scheduler.json` 的 `requires_file` 把关 —— 谁重新启用它，drift 检查立刻变红直到补上定义文件。
+- **教训**：①「有产出」≠「那条 routine 在产出」，先对时间戳与 actor 再改 prompt；②`workflow_provider` 类 routine 失败是静默的，只在 skill 的 `last_execution_status` 留一行，巡检必看；③可编辑的 prompt ≠ 生效的 prompt，同一产出最多只有一条链路在真写。
 
 ## 9. 与作者 core loop 的对齐度（2026-10-29 21:00 评估）
 

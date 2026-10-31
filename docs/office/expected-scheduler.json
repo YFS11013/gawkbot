@@ -1,0 +1,54 @@
+{
+  "_comment": "期望态清单 —— 由 scripts/office/check-office-drift.ps1 消费，不要当散文读。改这里 = 声明运行时应该长什么样；apply 仍走 broker HTTP（见 RUNTIME-API.md）。不含任何运行时数据：消息、任务、token、pid 一律不入。",
+  "_updated": "2026-10-31",
+  "broker": {
+    "_comment": "per-task / per-request follow-up 与 recheck 按任务生命周期自动增删，列入此处会永远漂移，故排除（脚本对它们只做 churn 过滤，不比对）。",
+    "expected_jobs": [
+      { "slug": "one-relay-events", "enabled": true, "interval_minutes": 1, "note": "系统 cron，v1 只读" },
+      { "slug": "request_follow_up", "enabled": true, "interval_minutes": 60 },
+      { "slug": "review-expiry", "enabled": true, "interval_minutes": 10 },
+      { "slug": "wiki-archive-sweep", "enabled": true, "interval_minutes": 1440 },
+      { "slug": "task_follow_up", "enabled": true, "interval_minutes": 60 },
+      { "slug": "task_recheck", "enabled": true, "interval_minutes": 15 },
+      { "slug": "task_reminder", "enabled": true, "interval_minutes": 30 },
+
+      { "slug": "5", "enabled": true, "schedule_expr": "30 8 * * 1-5", "target_id": "forex-watch", "channel": "forex-watch__human", "note": "外汇日简报" },
+      { "slug": "weekly-saturday-fund-portfolio-ratio-analysis-report", "enabled": true, "schedule_expr": "0 1 * * 6", "target_id": "fund-invest", "channel": "fund-invest__human" },
+      { "slug": "forex-bridge-refresh-daily-data-pull", "enabled": false, "schedule_expr": "0 22 * * *", "target_id": "forex-watch", "channel": "forex-watch__human", "requires_file": "C:\\Users\\ireke\\.wuphf\\data\\forex-bridge.py", "note": "桥每 6h 由 VBS 计划任务跑，此 routine 只是人工兜底，停用是期望态" },
+      { "slug": "data-keeper-daily-bridge-health-check", "enabled": false, "schedule_expr": "30 23 * * *", "target_id": "data-keeper", "channel": "data-keeper__human" },
+      { "slug": "market-analyst-daily-direction-rating-after-forex-brief", "enabled": false, "schedule_expr": "30 7 * * 1-5", "target_id": "market-analyst", "channel": "human__market-analyst" },
+
+      { "slug": "daily-0800-utc-opencode-model-snapshot-to-data-space-space-7c90a37850d8b0a1", "enabled": false, "schedule_expr": "0 8 * * *", "target_id": "data-keeper", "channel": "cos__human", "note": "agent_routine 备用路径；真写入方是 WUPHF-ModelSnapshot 计划任务。payload 含「空值写空字符串」规则" },
+      { "slug": "daily-model-snapshot-verification-routine", "enabled": true, "schedule_expr": "0 8 * * *", "target_id": "cos", "channel": "general", "note": "cos 每日核对（payload 为空，只发 label 唤醒）" },
+      { "slug": "check-scheduled-task-status-for-model-snapshot-daily-archive-verification", "enabled": true, "schedule_expr": "daily", "target_id": "cos", "channel": "general" },
+      {
+        "slug": "one-workflow:cos__human:daily-opencode-model-snapshot",
+        "enabled": false,
+        "schedule_expr": "0 8 * * *",
+        "target_id": "daily-opencode-model-snapshot",
+        "channel": "cos__human",
+        "skill": "daily-opencode-model-snapshot",
+        "requires_file": "C:\\Users\\ireke\\.wuphf\\workflows\\one\\daily-opencode-model-snapshot.json",
+        "note": "2026-10-31 停用：workflow 定义文件从未生成 → 每天静默 failed（DESIGN-DECISIONS §8.5）。重新启用前必须先补 requires_file"
+      }
+    ]
+  },
+  "scheduled_tasks": [
+    {
+      "name": "WUPHF-ModelSnapshot",
+      "schedule_utc": "08:00 daily",
+      "requires_file": "C:\\Users\\ireke\\.wuphf\\data\\model-snapshot.ps1",
+      "log": "C:\\Users\\ireke\\.wuphf\\logs\\model-snapshot.log",
+      "max_age_hours": 26,
+      "note": "模型快照真写入方：写 wiki/team/opencode-models-YYYY-MM-DD.md + upsert 数据空间 models_snapshot（空值写 ''）"
+    },
+    {
+      "name": "WUPHF-BrokerWatchdog",
+      "schedule_utc": "every 15 min",
+      "requires_file": "C:\\Users\\ireke\\.wuphf\\data\\broker-watchdog.ps1",
+      "log": "C:\\Users\\ireke\\.wuphf\\logs\\watchdog.log",
+      "max_age_hours": null,
+      "note": "watchdog.log 不存在 = 健康，故不校验新鲜度"
+    }
+  ]
+}

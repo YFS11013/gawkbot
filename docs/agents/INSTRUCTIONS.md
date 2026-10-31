@@ -1,5 +1,9 @@
 # Agent Instructions
 
+> **先看这里**：涉及 `~/.wuphf` 的运行时（broker、routine、任务状态、数据空间、app 元数据、巡检/排障/变更）
+> 时，走 `docs/office/OFFICE-RULES.md`（工作流与硬规则）+ `docs/office/RUNTIME-API.md`（接口契约）。
+> 那两处的规则优先于本文件里面向产品代码的流程约定。
+
 ## Base Agent Instructions
 
 These instructions apply to AI coding agents working in Nex repositories. Keep
