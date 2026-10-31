@@ -89,6 +89,20 @@ func TestBrokerSkillInvocationE2E_PersistsAcrossReload(t *testing.T) {
 		t.Fatal("first invoke: skill ID missing from response")
 	}
 
+	// One live skill-run per skill (2026-10-31 storm guard): a second invoke
+	// while the first run is open must not mint another task or bump usage.
+	if _, dupCount := invoke(t, "qa"); dupCount != 1 {
+		t.Fatalf("deduped invoke must not bump usage, got %d", dupCount)
+	}
+	b.mu.Lock()
+	for i := range b.tasks {
+		if b.tasks[i].TaskType == "skill_run" {
+			b.tasks[i].status = "done"
+			b.tasks[i].LifecycleState = LifecycleStateApproved
+		}
+	}
+	b.mu.Unlock()
+
 	if _, count2 := invoke(t, "qa"); count2 != 2 {
 		t.Fatalf("second invoke: expected usage_count=2, got %d", count2)
 	}

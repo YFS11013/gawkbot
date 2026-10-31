@@ -261,6 +261,12 @@ type teamTask struct {
 	reviewState      string
 	SourceSignalID   string   `json:"source_signal_id,omitempty"`
 	SourceDecisionID string   `json:"source_decision_id,omitempty"`
+	// SkillID/SkillName identify the skill a skill_run task executes. The
+	// dispatch title ("Run skill: <title>") is display text and is NOT unique:
+	// two skills can share a title, and an empty Title falls back to Name.
+	// Dedupe must key on identity, so creation stamps these.
+	SkillID          string   `json:"skill_id,omitempty"`
+	SkillName        string   `json:"skill_name,omitempty"`
 	WorktreePath     string   `json:"worktree_path,omitempty"`
 	WorktreeBranch   string   `json:"worktree_branch,omitempty"`
 	DependsOn        []string `json:"depends_on,omitempty"`
@@ -503,6 +509,8 @@ type teamTaskWire struct {
 	ReviewState          string                  `json:"review_state,omitempty"`
 	SourceSignalID       string                  `json:"source_signal_id,omitempty"`
 	SourceDecisionID     string                  `json:"source_decision_id,omitempty"`
+	SkillID              string                  `json:"skill_id,omitempty"`
+	SkillName            string                  `json:"skill_name,omitempty"`
 	WorktreePath         string                  `json:"worktree_path,omitempty"`
 	WorktreeBranch       string                  `json:"worktree_branch,omitempty"`
 	DependsOn            []string                `json:"depends_on,omitempty"`
@@ -560,6 +568,8 @@ func (t teamTask) MarshalJSON() ([]byte, error) {
 		ReviewState:          t.reviewState,
 		SourceSignalID:       t.SourceSignalID,
 		SourceDecisionID:     t.SourceDecisionID,
+		SkillID:              t.SkillID,
+		SkillName:            t.SkillName,
 		WorktreePath:         t.WorktreePath,
 		WorktreeBranch:       t.WorktreeBranch,
 		DependsOn:            t.DependsOn,
@@ -619,6 +629,8 @@ func (t *teamTask) UnmarshalJSON(data []byte) error {
 	t.reviewState = w.ReviewState
 	t.SourceSignalID = w.SourceSignalID
 	t.SourceDecisionID = w.SourceDecisionID
+	t.SkillID = w.SkillID
+	t.SkillName = w.SkillName
 	t.WorktreePath = w.WorktreePath
 	t.WorktreeBranch = w.WorktreeBranch
 	t.DependsOn = w.DependsOn

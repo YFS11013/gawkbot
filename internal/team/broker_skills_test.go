@@ -612,3 +612,94 @@ func TestInvokeSkillAllowsNewRunAfterTaskCloses(t *testing.T) {
 		t.Fatalf("expected a fresh task after the previous run closed, got %q (first %q)", secondID, firstID)
 	}
 }
+
+// invokeSkillNamed posts an invoke for the skill whose Name is name.
+func invokeSkillNamed(t *testing.T, b *Broker, name string) map[string]any {
+	t.Helper()
+	body := bytes.NewBufferString(`{"invoked_by":"eng","channel":"team"}`)
+	req := httptest.NewRequest(http.MethodPost, "/skills/"+name+"/invoke", body)
+	rec := httptest.NewRecorder()
+	b.handleInvokeSkill(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("invoke %s: status %d body %s", name, rec.Code, rec.Body.String())
+	}
+	var out map[string]any
+	if err := json.NewDecoder(rec.Body).Decode(&out); err != nil {
+		t.Fatalf("decode %s: %v", name, err)
+	}
+	return out
+}
+
+// seedTwoSkillsWithTheSameTitle installs two distinct skills whose display
+// Title is identical — the case a title-keyed dedupe conflates.
+func seedTwoSkillsWithTheSameTitle(t *testing.T) *Broker {
+	t.Helper()
+	b := newTestBroker(t)
+	b.mu.Lock()
+	b.members = []officeMember{{Slug: "cos", Name: "CEO", Role: "lead"}}
+	b.skills = append(b.skills,
+		teamSkill{ID: "skill-alpha", Name: "alpha", Title: "Data modeling", Status: "active", Channel: "team", Content: "A"},
+		teamSkill{ID: "skill-beta", Name: "beta", Title: "Data modeling", Status: "active", Channel: "team", Content: "B"},
+	)
+	b.mu.Unlock()
+	return b
+}
+
+// Dedupe must key on skill identity, not the display title: two skills can
+// share a Title, and an empty Title falls back to Name.
+func TestInvokeSkillDedupeKeysOnIdentityNotTitle(t *testing.T) {
+	b := seedTwoSkillsWithTheSameTitle(t)
+
+	alpha := invokeSkillNamed(t, b, "alpha")
+	alphaID, _ := alpha["task_id"].(string)
+	beta := invokeSkillNamed(t, b, "beta")
+	betaID, _ := beta["task_id"].(string)
+	if alphaID == "" || betaID == "" || alphaID == betaID {
+		t.Fatalf("two different skills sharing a Title must get separate runs: alpha=%q beta=%q", alphaID, betaID)
+	}
+
+	again := invokeSkillNamed(t, b, "alpha")
+	if got, _ := again["task_id"].(string); got != alphaID {
+		t.Fatalf("alpha must dedupe onto its own run: want %q got %q", alphaID, got)
+	}
+	if dedup, _ := again["deduplicated"].(bool); !dedup {
+		t.Fatalf("expected deduplicated=true, got %v", again)
+	}
+}
+
+// A row created before identity was stamped matches on the title once and is
+// backfilled, so a second same-title skill is never conflated with it.
+func TestInvokeSkillBackfillsLegacyTitleOnlyTask(t *testing.T) {
+	b := seedTwoSkillsWithTheSameTitle(t)
+	b.mu.Lock()
+	b.tasks = append(b.tasks, teamTask{
+		ID:        "task-skill-legacy",
+		Channel:   "team",
+		Title:     "Run skill: Data modeling",
+		Owner:     "cos",
+		status:    "in_progress",
+		TaskType:  "skill_run",
+		CreatedBy: "eng",
+		CreatedAt: "2026-10-30T00:00:00Z",
+		UpdatedAt: "2026-10-30T00:00:00Z",
+	})
+	b.mu.Unlock()
+
+	alpha := invokeSkillNamed(t, b, "alpha")
+	if got, _ := alpha["task_id"].(string); got != "task-skill-legacy" {
+		t.Fatalf("legacy open run must absorb the first invoke: got %q", got)
+	}
+
+	b.mu.Lock()
+	stamped := b.findTaskByIDLocked("task-skill-legacy")
+	if stamped == nil || stamped.SkillID != "skill-alpha" || stamped.SkillName != "alpha" {
+		b.mu.Unlock()
+		t.Fatalf("legacy task must be backfilled with the skill identity, got %+v", stamped)
+	}
+	b.mu.Unlock()
+
+	beta := invokeSkillNamed(t, b, "beta")
+	if got, _ := beta["task_id"].(string); got == "task-skill-legacy" || got == "" {
+		t.Fatalf("different skill must NOT dedupe onto the backfilled legacy task, got %q", got)
+	}
+}

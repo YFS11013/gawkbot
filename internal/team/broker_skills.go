@@ -668,7 +668,7 @@ func (b *Broker) handleInvokeSkill(w http.ResponseWriter, r *http.Request) {
 	// finish a skill re-invokes it every wake and the office fills with
 	// identical "Run skill: X" rows (2026-10-31: 18 open copies of one skill,
 	// which starved every other task and tripped the overdue watchdog twice).
-	if existing := b.activeSkillRunTaskLocked(skillRunTaskTitle(sk)); existing != "" {
+	if existing := b.activeSkillRunTaskLocked(sk); existing != "" {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"skill":        *sk,
@@ -748,29 +748,52 @@ func skillRunTaskTitle(sk *teamSkill) string {
 	return "Run skill: " + title
 }
 
-// activeSkillRunTaskLocked returns the ID of a still-open skill-run task with
-// the same title, or "" when none exists. Caller holds b.mu.
-func (b *Broker) activeSkillRunTaskLocked(taskTitle string) string {
-	taskTitle = strings.TrimSpace(taskTitle)
-	if taskTitle == "" {
-		return ""
-	}
+// activeSkillRunTaskLocked returns the ID of a still-open skill-run task for
+// THIS skill, or "" when none exists. Caller holds b.mu.
+//
+// Identity, not display text: the dispatch title ("Run skill: <title>") is
+// not unique — two skills may share a Title, and an empty Title falls back to
+// Name. Rows created before identity was stamped are matched on the title once
+// and backfilled, so the ambiguity cannot outlive the first invoke.
+func (b *Broker) activeSkillRunTaskLocked(sk *teamSkill) string {
+	wantID := strings.TrimSpace(sk.ID)
+	wantName := strings.TrimSpace(sk.Name)
+	title := skillRunTaskTitle(sk)
 	for i := range b.tasks {
 		task := &b.tasks[i]
-		if task.TaskType != "skill_run" || strings.TrimSpace(task.Title) != taskTitle {
+		if task.TaskType != "skill_run" || skillRunTaskTerminal(task) {
 			continue
 		}
-		switch strings.ToLower(strings.TrimSpace(task.status)) {
-		case "done", "archived", "cancelled", "canceled", "rejected":
-			continue
-		}
-		switch task.LifecycleState {
-		case LifecycleStateApproved, LifecycleStateArchived, LifecycleStateRejected:
+		switch {
+		case strings.TrimSpace(task.SkillID) != "":
+			if task.SkillID != wantID {
+				continue
+			}
+		case strings.TrimSpace(task.SkillName) != "":
+			if !strings.EqualFold(task.SkillName, wantName) {
+				continue
+			}
+		case strings.TrimSpace(task.Title) == title:
+			task.SkillID, task.SkillName = wantID, wantName
+		default:
 			continue
 		}
 		return task.ID
 	}
 	return ""
+}
+
+// skillRunTaskTerminal reports whether a task already left the open set.
+func skillRunTaskTerminal(task *teamTask) bool {
+	switch strings.ToLower(strings.TrimSpace(task.status)) {
+	case "done", "archived", "cancelled", "canceled", "rejected":
+		return true
+	}
+	switch task.LifecycleState {
+	case LifecycleStateApproved, LifecycleStateArchived, LifecycleStateRejected:
+		return true
+	}
+	return false
 }
 
 // createSkillRunTaskLocked dispatches a task so the office lead picks up and
@@ -799,6 +822,8 @@ func (b *Broker) createSkillRunTaskLocked(sk *teamSkill, channel, invoker, now s
 		status:        "in_progress",
 		CreatedBy:     invoker,
 		TaskType:      "skill_run",
+		SkillID:       strings.TrimSpace(sk.ID),
+		SkillName:     strings.TrimSpace(sk.Name),
 		PipelineID:    "skill_invocation",
 		ExecutionMode: "office",
 		CreatedAt:     now,
