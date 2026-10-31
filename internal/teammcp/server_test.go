@@ -1623,3 +1623,17 @@ func TestHandleTeamTaskCreatePreservesTaskMetadata(t *testing.T) {
 	}
 	t.Fatal("expected created task to be present")
 }
+
+// A DM is where this office's work actually lands: homeless tasks bind to the
+// owner's DM and the data-modeling skill is dispatched there. The DM tool set
+// used to omit team_task and every data_* tool, so a bot could start a task in
+// its DM and never complete it — 2026-10-31 left 18 open "Run skill: Data
+// modeling" rows and blocked the lead from closing ACMER-1870.
+func TestConfigureServerToolsGivesDMBotsTaskAndDataTools(t *testing.T) {
+	names := listRegisteredTools(t, "fund-invest__human", false)
+	for _, want := range []string{"team_task", "team_tasks", "data_query_records", "data_create_space"} {
+		if !slices.Contains(names, want) {
+			t.Fatalf("DM tool set must expose %q so DM-homed tasks are completable; got %v", want, names)
+		}
+	}
+}

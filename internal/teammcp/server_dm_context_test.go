@@ -66,13 +66,20 @@ func TestCanonicalDMTrimsASpecialistsOfficeTools(t *testing.T) {
 	// up for them as the office coordination surface being trimmed away.
 	names := listRegisteredToolsWithSlug(t, "pm", "human__pm", false)
 
-	for _, tool := range []string{"team_channels", "team_dm_open", "team_members", "team_task"} {
+	for _, tool := range []string{"team_channels", "team_dm_open", "team_members"} {
 		if hasTool(names, tool) {
 			t.Errorf("specialist in a canonical DM must not get %q; got %v", tool, names)
 		}
 	}
 	if !hasTool(names, "team_broadcast") {
 		t.Errorf("specialist in a DM still needs a voice; got %v", names)
+	}
+	// team_task stays: a homeless task binds to the owner's DM, and the
+	// data-modeling skill is dispatched there, so trimming it left DM work
+	// permanently un-completable (2026-10-31: 18 open "Run skill: Data
+	// modeling" rows, lead unable to close ACMER-1870).
+	if !hasTool(names, "team_task") {
+		t.Errorf("specialist in a DM must be able to complete its own task; got %v", names)
 	}
 }
 

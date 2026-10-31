@@ -228,6 +228,22 @@ func configureServerTools(server *mcp.Server, slug string, channel string, oneOn
 		), handleTeamSkillRun)
 		registerSkillTools(server)
 		registerRoutineTools(server)
+		// Task + data surfaces are core loop, not office-only. This office is
+		// DM-first: homeless tasks bind to the owner's DM, and the data-modeling
+		// system skill is dispatched into the DM. Leaving these out made every
+		// DM-homed task permanently un-completable — on 2026-10-31 bots reported
+		// "team_task unavailable / data_* unavailable" on every turn, 18
+		// "Run skill: Data modeling" rows stayed open, and the lead could not
+		// close ACMER-1870. The extra schema is the price of a working loop.
+		mcp.AddTool(server, readOnlyTool(
+			"team_tasks",
+			"List the current shared tasks and who owns them so the team does not duplicate work.",
+		), handleTeamTasks)
+		mcp.AddTool(server, officeWriteTool(
+			"team_task",
+			"Update the task you are working: claim, comment, complete (pass artifact_path for the deliverable), block with a reason, or cancel. Create binds a new task to this DM.",
+		), handleTeamTask)
+		registerDataTools(server)
 		if isLead || isLibrarian {
 			registerWikiLinkTool(server)
 		}
