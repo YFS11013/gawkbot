@@ -10,7 +10,7 @@
 | # | 条目 | 需要什么 | 卡在哪 |
 |---|---|---|---|
 | B | P2 #5 digest 的 `actual` 实际值来源 | **人拍板来源** | 一手（央行/统计局）/ FF 发布后页面 / 新闻标题，成本与准确性成反比 |
-| D | ~~P3 #7c Windows 包级测试红~~ | ✅ 2026-11-02 拍板「Windows 一等公民」，全包在 Windows 转绿（§7c 收口） | — |
+| D | ~~P3 #7c Windows 包级测试红~~ | ✅ 2026-11-02 拍板「Windows 一等公民」；判据扩到全仓，`go test ./...` 45 包 0 红（§7c 收口）。遗留：多 workspace spawn 未实现，见 E | — |
 | E | P3 #7e 后续：Windows 用 Job Object 收口 | 无，纯工程 | 现在只能杀进程树，工具自派生的进程仍可能逃逸 |
 | F | P3 #8 清理：空仓库 `YFS11013/gawkbot-office`、3 个 exe 备份 | 前者需 `gh auth refresh -s delete_repo` | 备份 ~88 MB/个，删前确认不需要回滚点 |
 | G | P0 #1 forex-watch 16:30 自动简报 | **等时间** | `next_run=2026-11-02T08:30:00Z`（周一 16:30 北京），现在无法验 |
