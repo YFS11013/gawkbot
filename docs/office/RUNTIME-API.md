@@ -259,6 +259,8 @@ python: can't open file 'C:\Users\...\agent-scratch\data-keeper\"C:\...\check_pr
 | 判据（修复前） | `verification_result`: `exit: exit status 2 / python: can't open file '<cwd>\"C:\...\"'` |
 | 判据（修复后） | 同一 spec 重跑：`prep ok: 4/4 sections; counterparty 6 dated+sourced (+1 stated-absent); questions 5; branches 5`，`pass: true` |
 | 自动审阅 | done 后生成 `OFFICE-2968`（owner `cos`，标题「审阅：准备包：与 fund-invest 的周度对齐」） |
+| 审阅结果 | `team/reviews/ACMER-2920.md`（10086 B）：4 条验收全部通过，但判出 1 条**阻断**——准备包把 `team/drills/review-target-*.md` 的 smoke 审阅结果写成了 fund-invest 的业绩评价，会面时据此发问会跑偏 |
+| 结论 | 机检只管结构与可追溯性，**语义正确性由审阅回合兜底**；两者都过才叫交付过关 |
 
 `--self-test` 的 8 个样例覆盖：缺日期、缺出处、问题不足、分支无映射、诚实占位豁免、全占位被拒、空文件。其中「诚实占位豁免」是在真实交付上发现的——第一版把「未收录：持仓明细…」当成断言要求日期与出处，逼着写手编一个日期，与判据 4 的方向相反。
 
