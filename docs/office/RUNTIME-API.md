@@ -210,3 +210,85 @@ curl -s http://127.0.0.1:7892/health   # 不需要 token
 | 其余 | `status` / `provider` / `focus_mode` / `dispatch` / `memory_backend*` / `build` / `session_mode` / `one_on_one_agent` | `build.version=dev` 表示这是本地 `go build` 产物 |
 
 日志重定向是否生效，不看 `/health`：看 `~/.wuphf/logs/broker.err.log` 里有没有**本次启动之后**的新行（`Start-Process` 的重定向是覆盖不是追加，重启后文件会缩到几行）。
+
+## 9. 会议准备包（A4）：建单 → playbook → 机械判据
+
+一件活拆成三件可替换的件，一条链串起来：
+
+| 件 | 位置 | 作用 |
+|---|---|---|
+| 建单脚本 | `scripts/office/new_prep_task.py` | `--who <对象> --date <YYYY-MM-DD> [--owner bot] [--topic 主题] [--approve]`。路径只算一次，同时用于 `artifact_path`、成功标准文字、校验 spec——手写三次就会漂 |
+| playbook 源 | wiki `team/playbooks/meeting-prep.md` | 四节写法与判据。标准 wiki 写入后自动编译成 `team/playbooks/.compiled/meeting-prep/SKILL.md`，`/skills` 里出现 `meeting-prep` |
+| 判据脚本 | `scripts/office/check_prep_pack.py` | `command` kind 的 spec；`--self-test` 内置 8 个正反样例 |
+
+**不要直接写 `team/skills/*.md`**：那是编译**输出**目录，`skill_scanner.go` 的 `scanSkippedDirs`
+明确跳过它。裸写既不会编译也不会 register，bot 拿不到可调用的 skill。
+
+判据（每条都是拒绝一种空壳，不是风格偏好）：
+
+1. 四个小节齐全：`对方近况` / `我方既有结论` / `要问的问题` / `如果他说…`（各带别名，见脚本 `REQUIRED`）。
+2. 「对方近况」每条 bullet 必须**同时**有日期（`YYYY-MM-DD` / `YYYY-MM` / `YYYY年M月`）与出处
+   （链接、`出处：`、`来源：`、wiki 路径、`ACMER-` 任务号）。
+3. 以「未收录 / 待确认 / 未核实 / 无记录」开头的 bullet **豁免**——诚实标注缺失不算违规；
+   但整节都是占位则拒（"什么都没查到"不是准备包）。
+4. 「我方既有结论」至少引用一个既有产物（`.md` 路径 / `team/` / `ACMER-` / `review` / `任务`）。
+5. 问题 ≥3；分支 ≥1 且带 `→` / `=>` / `then`。
+
+失败时 `verification_result.detail` 逐条列出缺项（缺日期、缺出处、问题不足），bot 按提示补写后重试一次。
+
+### Windows 坑：`command` spec 里的引号（已修）
+
+spec 含引号（Windows 路径必备）时，旧实现 `exec.Command("cmd", "/C", spec)` 把 spec 当一个 argv
+重新转义，cmd 再把结果拼到工作目录后面——脚本根本没执行：
+
+```
+python: can't open file 'C:\Users\...\agent-scratch\data-keeper\"C:\...\check_prep_pack.py"': [Errno 22] Invalid argument
+```
+
+现实现（`task_verification_shell_windows.go`）用 `SysProcAttr.CmdLine = "cmd /C " + spec`，
+把 spec 原样交给 cmd。回归测试 `TestVerificationShellKeepsQuotedSpec`——旧实现下 `echo "a b"`
+输出 `\"a b\"`，测试 FAIL。**所有**用绝对路径的 `command` 校验都受这个 bug 影响，不止准备包。
+
+### 9.1 实测（2026-11-01）
+
+| 环节 | 证据 |
+|---|---|
+| playbook 编译 | `POST /wiki/write` 写 `team/playbooks/meeting-prep.md` → 10 秒内出现 `team/playbooks/.compiled/meeting-prep/SKILL.md`；日志 `compiled skill created name=meeting-prep slug=meeting-prep created_by=librarian owner_agents=4`；`GET /skills` 里可查到 `meeting-prep` |
+| 建单 | `python scripts/office/new_prep_task.py --who forex-watch --date 2026-11-03 --owner data-keeper --approve` → `OFFICE-2943  team/prep/forex-watch-2026-11-03.md  owner=data-keeper  gate=check_prep_pack.py` |
+| 交付 | `ACMER-2920` 产出 `team/prep/fund-invest-2026-11-02.md`（6224 B，四节齐全，「对方近况」6 条真实条目各带日期+出处、1 条「未收录」豁免、5 问、5 分支） |
+| 判据（修复前） | `verification_result`: `exit: exit status 2 / python: can't open file '<cwd>\"C:\...\"'` |
+| 判据（修复后） | 同一 spec 重跑：`prep ok: 4/4 sections; counterparty 6 dated+sourced (+1 stated-absent); questions 5; branches 5`，`pass: true` |
+| 自动审阅 | done 后生成 `OFFICE-2968`（owner `cos`，标题「审阅：准备包：与 fund-invest 的周度对齐」） |
+
+`--self-test` 的 8 个样例覆盖：缺日期、缺出处、问题不足、分支无映射、诚实占位豁免、全占位被拒、空文件。其中「诚实占位豁免」是在真实交付上发现的——第一版把「未收录：持仓明细…」当成断言要求日期与出处，逼着写手编一个日期，与判据 4 的方向相反。
+
+## 10. 启动开关：`memory_backend` 必须是 markdown，否则 wiki 全挂
+
+`/health` 里的 `memory_backend` 不只是记忆层选择，它还决定 **wiki worker 是否创建**：
+
+- `ensureWikiWorker`（`broker_wiki_lifecycle.go`）第一行就是
+  `if config.ResolveMemoryBackend("") != MemoryBackendMarkdown { return }`。
+- 因此 `memory_backend=gbrain` 时 `b.wikiWorker` 永远为 nil，所有 `/wiki/write*` 返回
+  `503 {"error":"wiki backend is not active"}`；bot 若仍要交付，只能绕开写门禁直接写文件，
+  产物落在 `team/prep/...` 却不进 git（`git status` 里是 `??`，不 commit、不索引）。
+- `ResolveMemoryBackend` 在**未显式设置**时：`WUPHF_MEMORY_BACKEND` → `config.json` →
+  「gbrain 二进制在 PATH 且 embedding 可用就用 gbrain，否则 markdown」。所以同一个二进制、
+  同一个命令，换个父进程环境（PATH 里多了 gbrain、或设了 embedding key）就会从 markdown
+  变成 gbrain，表现为"重启后 wiki 突然不能写"。
+
+**启动时显式钉住**：
+
+```bash
+WUPHF_MEMORY_BACKEND=markdown WUPHF_WIKI_BACKEND=memory \
+WUPHF_OPENCODE_MODEL=<model> ./gawkbot-fix.exe --broker-port 7892 --provider opencode --no-open \
+  >> ~/.wuphf/logs/broker.log 2>> ~/.wuphf/logs/broker.err.log
+```
+
+用一个 `>>` 而不是 `>`：`>` 会把上一次启动的诊断行覆盖掉，而这正是需要留下的东西。
+
+**巡检判据**：`curl -s http://127.0.0.1:7892/health | grep -o '"memory_backend":"[^"]*"'`
+必须是 `"markdown"`；`/wiki/list` 返回真实条目（不是 `_No articles yet._`）。
+
+实测（2026-11-01）：未设该变量重启 → `/wiki/write` 503、`/wiki/read` 报
+`gbrain call get_page ... initialize: EOF`、`/wiki/list` 空；加 `WUPHF_MEMORY_BACKEND=markdown`
+重启后三个端点全部恢复，learnings 与 playbook 写入均返回 commit sha。
