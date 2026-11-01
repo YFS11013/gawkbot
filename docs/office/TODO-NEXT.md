@@ -86,6 +86,8 @@
 - 背景：routine 已停用；10-30 07:30 那份简报含三处编造（Cook 反对票 / RBA 今日升息 4.85% / Warsh GDP 表态）。
 - 处置：选 A（删除成员，forex 已覆盖事件层）——`POST /office-members {"action":"remove","slug":"market-analyst"}` 返 200，成员现为 `cos,fund-invest,forex-watch,data-keeper`；`market-analyst-daily-direction-rating-after-forex-brief` 早已 `enabled=false`，不再点火。
 - 遗留：该成员留下的 routine / DM 频道 slug 仍在调度表与消息历史里（只是不再有 owner），属正常历史数据，不清理。
+- 遗留（2026-11-01 巡检新发现）：`GET /channels?type=dm` 里 `human__market-analyst` 有 **3 行同 slug**（members 只剩 `human`，created 10-27 05:39、10-27 05:40、10-31 02:39）。`findChannelLocked` 按 slug 建索引，只有最后一行可被解析，另两行是孤儿；side bar 会列出三条同名死房间。**没有安全的 HTTP 清理路径**：`POST /channels {"action":"remove","slug":...}` 每次只删首个匹配，且会连带删掉该频道的消息/任务/请求（`ACMER-1119`/`ACMER-1150` 的历史就在里面）。要么等有人拍板连历史一起删，要么留给状态修复脚本，本轮不动。
+- 顺带确认：`GET /channels` 默认返回 `{"channels": []}` 不是故障——默认只列非 DM 的命名房间，而命名频道已退役（`namedChannelsEnabled()` 为 false，`internal/team/broker_office_channels.go:744-753`）；`?type=dm` 能看到 7 个 DM。
 
 ## P2 — 数据缺口（决定“预期差”能不能恢复）
 
