@@ -325,6 +325,25 @@ func richArtifactHTMLPath(id string) string {
 	return filepath.ToSlash(filepath.Join(richArtifactRoot, id+".html"))
 }
 
+// visualArtifactWikiRelPath maps a visual-artifact id to the wiki-relative
+// path of the HTML it names. Bots are handed the id (visual_artifact_create
+// names it ra_<16 hex>) and put that id in artifact_path; a definition of
+// done that only speaks wiki paths still has to be able to check it.
+func visualArtifactWikiRelPath(id string) string {
+	return filepath.ToSlash(filepath.Join(strings.TrimPrefix(richArtifactRoot, "wiki/"), id+".html"))
+}
+
+// visualArtifactIDRef reports whether s names a visual artifact rather than a
+// wiki path: either the id itself (ra_<16 hex>) or that id with a .html
+// suffix. Anything else is left to the ordinary path checks.
+func visualArtifactIDRef(s string) (string, bool) {
+	id := strings.TrimSuffix(strings.TrimSpace(s), ".html")
+	if validateRichArtifactID(id) != nil {
+		return "", false
+	}
+	return id, true
+}
+
 func validateRichArtifactID(id string) error {
 	id = strings.TrimSpace(id)
 	if len(id) != len("ra_")+16 || !strings.HasPrefix(id, "ra_") {

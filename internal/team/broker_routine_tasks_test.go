@@ -204,6 +204,15 @@ func TestRunTaskVerification_WikiArtifact(t *testing.T) {
 	if err := os.WriteFile(empty, nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
+	// A routine whose deliverable is an HTML article completes with the id
+	// visual_artifact_create handed it, so the check has to resolve that id.
+	const visualID = "ra_0123456789abcdef"
+	if err := os.MkdirAll(filepath.Join(wiki, "visual-artifacts"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(wiki, "visual-artifacts", visualID+".html"), []byte("<html>report</html>"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	v := TaskVerification{Kind: taskVerificationKindWikiArtifact, Spec: "artifact_path declared on complete", Required: true}
 
 	cases := []struct {
@@ -217,6 +226,9 @@ func TestRunTaskVerification_WikiArtifact(t *testing.T) {
 		{"artifact missing", "artifacts/forex/2026-11-03.md", false, "is not in the wiki"},
 		{"artifact empty", "artifacts/forex/empty.md", false, "is empty"},
 		{"path escapes the wiki", "../../etc/passwd", false, "escapes the wiki root"},
+		{"visual artifact id", visualID, true, visualID + ".html"},
+		{"visual artifact id with .html", visualID + ".html", true, visualID + ".html"},
+		{"visual artifact id with no file", "ra_ffffffffffffffff", false, "is not in the wiki"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

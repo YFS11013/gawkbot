@@ -198,6 +198,13 @@ func runTaskVerificationIn(v TaskVerification, env taskVerificationEnv) TaskVeri
 			res.Detail = "no artifact_path on the completion: pass the wiki-relative path of the deliverable (e.g. artifacts/forex/<date>.md)"
 			return res
 		}
+		// A visual artifact is handed back to bots as an id, and bots put
+		// that id in artifact_path. Resolve it to the HTML it names before
+		// the containment check below, so an HTML deliverable satisfies the
+		// same definition of done a markdown article does.
+		if id, ok := visualArtifactIDRef(artifact); ok {
+			artifact = visualArtifactWikiRelPath(id)
+		}
 		root := strings.TrimSpace(env.WikiRoot)
 		if root == "" {
 			res.Detail = "wiki root is not configured on this broker, so a wiki artifact cannot be checked"
