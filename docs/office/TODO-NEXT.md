@@ -34,7 +34,9 @@
 
 ## P0-0 — 唤醒/调度链路
 - ✅ 2026-10-30 19:30：外部看门狗已上线（`WUPHF-BrokerWatchdog`，每 15 分钟，超期 >10 分钟重启，20 分钟防抖）。
-- ✅ 调度器已加心跳日志：`grep scheduler ~/.wuphf/logs/broker.err.log`，正常应每 10 分钟一行 `heartbeat`；断流即停摆。
+- ✅ 调度器已加心跳日志：`grep "scheduler:" ~/.wuphf/logs/broker.err.log`，正常每 10 分钟一行 `heartbeat`。
+  - **日志按进程截断**：`Start-Process -RedirectStandardError` 是覆盖不是追加，重启后文件里只剩新进程的输出。所以重启后 10 分钟内没有 heartbeat 属正常；进程在跑而超过 15 分钟仍无 `loop started` 之后的任何行，才是真断流。
+  - 换二进制必须照 watchdog 的启动参数（`-RedirectStandardOutput logs\broker.log -RedirectStandardError logs\broker.err.log` + `WUPHF_OPENCODE_MODEL`）。2026-11-01 手工换二进制时漏了重定向，进程健康但日志 45 分钟全静默，心跳巡检当场失明。
 - 每日巡检动作：`tail -3 ~/.wuphf/logs/watchdog.log`（无文件=健康）+ 上面那条心跳 grep。
 - 未验证：看门狗的 kill/restart 分支。首次真实触发时优先核对 `broker.log` 是否重新出现 `Loop started`。
 - 判据：human 消息 2 分钟内日志无 `stage=started`，且消息已在 `broker-state.json` ⇒ 唤醒掉线。
@@ -104,6 +106,7 @@
   - `ACMER-2779`（带校验版）：`verification_result={pass:true, detail:"wiki artifact artifacts\forex\2026-11-01.md (2337 bytes)"}`，`git -C ~/.wuphf/wiki log` 出现 `learning: operational/5`（40f046d，作者 forex-watch，task_id=ACMER-2779），`team/learnings/index.jsonl` 新增一条 `source=execution trusted=true`。
   - 该次运行没有 `archivist:` 提交——中文简报标题/正文没有命中已知实体，属数据事实，不是链路断。
 - 备注：`learningKeyFromTitle` 把中文标题压成 `5`（ASCII 数字），所以同一条 routine 的每日 learning 在渲染页按 (scope,type,key) 去重成一行，JSONL 每次追加一行。要按天区分得另给 key，当前不做。
+- 已知失效模式（巡检 2026-11-01 实测）：routine 的 `channel` 已不存在时，建 task 直接 `404 channel not found`，回落的消息也照旧写进那个死房间（消息存储不校验频道注册），于是每天一条 `failed` 运行 + 一次无效唤醒。`#general` 已退役，实测 `POST /tasks {channel:"general"}` → 404；已把两条指向 `#general` 的 agent_routine（`check-scheduled-task-status-for-model-snapshot-daily-archive-verification`、`daily-model-snapshot-verification-routine`）停用（可逆，快照流水线已于 10-31 归档）。现存启用的 agent_routine 只剩 `5`（forex DM）与周报（fund DM），都指向活频道。
 
 ### 5c. ~~artifact 进索引~~ ✅ 已完成（10-30 05:10）
 - 做法：bridge 增加 `git_commit()`；额外输出 `team/forex-brief-<date>.md` 摘要（索引只扫 `team/`）。
