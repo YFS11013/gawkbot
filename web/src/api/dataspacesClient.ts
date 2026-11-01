@@ -44,7 +44,9 @@ import type {
   RecordValuesPatch,
   SchemaRelationship,
   SpaceAccess,
+  SpaceGrant,
   SpaceSchema,
+  SpaceScope,
 } from "./dataspaces";
 import {
   CALLER_LEVELS,
@@ -115,13 +117,24 @@ interface WireSpace {
   name: string;
   description?: string;
   owner: string;
-  access: SpaceAccess;
+  /**
+   * Loose on purpose: brokers before 2026-11-01 sent `grants: null` for a
+   * private or global space (a Go nil slice), and mapSpace is where that is
+   * normalised. Typing this as SpaceAccess would be a lie the compiler cannot
+   * check against the wire.
+   */
+  access?: WireSpaceAccess | null;
   object_type_count: number;
   record_count: number;
   attached_app_ids?: readonly string[];
   created_at: string;
   updated_at: string;
   caller_level?: string;
+}
+
+interface WireSpaceAccess {
+  scope?: SpaceScope;
+  grants?: readonly SpaceGrant[] | null;
 }
 
 interface WireRecordRef {
@@ -252,13 +265,26 @@ function mapObjectType(objectType: WireObjectType): ObjectType {
   };
 }
 
+/**
+ * `grants` is always a list once it leaves this function. The data page's
+ * access badge maps over it, and a null there took the whole page down with
+ * "Cannot read properties of null (reading 'map')" — a private space is enough
+ * to trigger it, so this is not an edge case.
+ */
+function mapAccess(access: WireSpace["access"]): SpaceAccess {
+  return {
+    scope: access?.scope ?? "private",
+    grants: Array.isArray(access?.grants) ? access.grants : [],
+  };
+}
+
 function mapSpace(space: WireSpace): DataSpace {
   return {
     id: space.id,
     name: space.name,
     description: space.description ?? "",
     owner: space.owner,
-    access: space.access,
+    access: mapAccess(space.access),
     objectTypeCount: space.object_type_count,
     recordCount: space.record_count,
     attachedAppIds: space.attached_app_ids ?? [],

@@ -501,3 +501,58 @@ describe("broker DataClient wire mapping", () => {
     expect(get).toHaveBeenCalledWith("/data/spaces/space_1/records/rec%2F1");
   });
 });
+
+describe("spaces from the wire", () => {
+  const baseSpace = {
+    id: "space_1",
+    name: "Model tracking",
+    owner: "cos",
+    object_type_count: 1,
+    record_count: 4,
+    created_at: "",
+    updated_at: "",
+    caller_level: "write",
+  };
+
+  // The live broker sent `"access":{"scope":"private","grants":null}`: a Go nil
+  // slice, which is null on the wire. The data page's access badge mapped over
+  // it and the whole page died with "Cannot read properties of null (reading
+  // 'map')". One private space was enough.
+  it("turns a null grants list into an empty one", async () => {
+    get.mockResolvedValueOnce({
+      spaces: [{ ...baseSpace, access: { scope: "private", grants: null } }],
+    });
+
+    const [space] = await client.listSpaces();
+
+    expect(space.access).toEqual({ scope: "private", grants: [] });
+  });
+
+  it("fills in a missing access object rather than rejecting the space", async () => {
+    get.mockResolvedValueOnce({
+      spaces: [{ ...baseSpace, access: null }, { ...baseSpace, id: "space_2" }],
+    });
+
+    const spaces = await client.listSpaces();
+
+    expect(spaces).toHaveLength(2);
+    for (const space of spaces) {
+      expect(space.access).toEqual({ scope: "private", grants: [] });
+    }
+  });
+
+  it("keeps real grants untouched", async () => {
+    get.mockResolvedValueOnce({
+      spaces: [
+        {
+          ...baseSpace,
+          access: { scope: "shared", grants: [{ bot: "ops", level: "read" }] },
+        },
+      ],
+    });
+
+    const [space] = await client.listSpaces();
+
+    expect(space.access.grants).toEqual([{ bot: "ops", level: "read" }]);
+  });
+});

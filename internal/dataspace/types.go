@@ -18,6 +18,7 @@ package dataspace
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -59,6 +60,26 @@ type Grant struct {
 type Access struct {
 	Scope  Scope   `json:"scope"`
 	Grants []Grant `json:"grants"`
+}
+
+// MarshalJSON always sends grants as a list.
+//
+// A nil slice is how Go spells "no grants"; null is how JavaScript spells "not
+// a list". The web UI's access badge mapped over whatever arrived, so a private
+// space — which NormalizeAccess stores with Grants nil — serialized to
+// {"scope":"private","grants":null} and took the whole data page down with
+// "Cannot read properties of null (reading 'map')". The wire shape is fixed
+// here, once, instead of in every consumer.
+func (a Access) MarshalJSON() ([]byte, error) {
+	type wireAccess struct {
+		Scope  Scope   `json:"scope"`
+		Grants []Grant `json:"grants"`
+	}
+	grants := a.Grants
+	if grants == nil {
+		grants = []Grant{}
+	}
+	return json.Marshal(wireAccess{Scope: a.Scope, Grants: grants})
 }
 
 // Actor is who is calling. A bot's slug, or ActorHuman for the operator, who

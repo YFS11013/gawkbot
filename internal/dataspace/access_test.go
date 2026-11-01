@@ -1,7 +1,9 @@
 package dataspace
 
 import (
+	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -439,5 +441,62 @@ func TestMissingIDsAreBothValidationAndNotFound(t *testing.T) {
 				t.Fatalf("%v does not unwrap to ErrNotFound", err)
 			}
 		})
+	}
+}
+
+// TestAccessJSONAlwaysSendsAGrantList pins the wire shape the web UI depends on.
+// A private space normalizes to a nil Grants slice, which marshals to
+// {"scope":"private","grants":null} without the custom marshaler; the data page
+// then threw "Cannot read properties of null (reading 'map')" on every space.
+func TestAccessJSONAlwaysSendsAGrantList(t *testing.T) {
+	cases := []struct {
+		name string
+		in   Access
+		want string
+	}{
+		{"private with nil grants", Access{Scope: ScopePrivate}, `{"scope":"private","grants":[]}`},
+		{"global with nil grants", Access{Scope: ScopeGlobal}, `{"scope":"global","grants":[]}`},
+		{
+			"shared keeps its grants",
+			Access{Scope: ScopeShared, Grants: []Grant{{Bot: "cos", Level: LevelRead}}},
+			`{"scope":"shared","grants":[{"bot":"cos","level":"read"}]}`,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			raw, err := json.Marshal(tc.in)
+			if err != nil {
+				t.Fatalf("marshal: %v", err)
+			}
+			if string(raw) != tc.want {
+				t.Fatalf("got %s, want %s", raw, tc.want)
+			}
+			if strings.Contains(string(raw), "null") {
+				t.Fatalf("wire JSON must never carry null: %s", raw)
+			}
+		})
+	}
+}
+
+// TestAccessJSONRoundTrips keeps the custom marshaler honest against the
+// storage path, which unmarshals what it marshaled.
+func TestAccessJSONRoundTrips(t *testing.T) {
+	raw, err := json.Marshal(Access{Scope: ScopeShared, Grants: []Grant{{Bot: "ops", Level: LevelWrite}}})
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	var back Access
+	if err := json.Unmarshal(raw, &back); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if back.Scope != ScopeShared || len(back.Grants) != 1 || back.Grants[0].Bot != "ops" || back.Grants[0].Level != LevelWrite {
+		t.Fatalf("round trip lost data: %+v", back)
+	}
+	var empty Access
+	if err := json.Unmarshal([]byte(`{"scope":"private","grants":[]}`), &empty); err != nil {
+		t.Fatalf("unmarshal empty grants: %v", err)
+	}
+	if len(empty.Grants) != 0 {
+		t.Fatalf("expected no grants, got %+v", empty.Grants)
 	}
 }
