@@ -14,6 +14,7 @@ package team
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 )
@@ -113,9 +114,26 @@ func (b *Broker) maybeSpawnAppBuilderTaskFromProposal(requestID string) {
 
 	note := snapshot.Answered.GetCustomText()
 	title, details := appBuilderTaskBrief(*snapshot.AppProposal, note)
-	channel := normalizeChannelSlug(snapshot.Channel)
+	// The proposal's own room is the room the approval happened in, but only
+	// while that room still exists: #general is retired and a member's DM goes
+	// away with the member, so the stored slug can be stale by the time the
+	// human approves. A stale room would make the create below answer 404 and
+	// the error message land in that same missing room. Fall back to where the
+	// builder actually lives; no home at all (app-builder is off the roster)
+	// means a homeless task, which the task engine accepts.
+	channel := bucketChannelKey(snapshot.Channel)
+	if channel != "" {
+		b.mu.Lock()
+		exists := b.findChannelLocked(channel) != nil
+		b.mu.Unlock()
+		if !exists {
+			channel = ""
+		}
+	}
 	if channel == "" {
-		channel = "general"
+		if home, err := b.homeChannelFor(appBuilderSlug); err == nil {
+			channel = home
+		}
 	}
 	if _, err := b.MutateTask(TaskPostRequest{
 		Action:    "create",
@@ -126,6 +144,12 @@ func (b *Broker) maybeSpawnAppBuilderTaskFromProposal(requestID string) {
 		CreatedBy: "system",
 		TaskType:  "issue",
 	}); err != nil {
+		// No room means no wall to pin the failure to; the log is the only
+		// surface left, and a silent swallow is what this path already did once.
+		if channel == "" {
+			log.Printf("apps: app builder task for %q failed with no home channel: %v", snapshot.AppProposal.Name, err)
+			return
+		}
 		b.mu.Lock()
 		b.counter++
 		b.appendMessageLocked(channelMessage{

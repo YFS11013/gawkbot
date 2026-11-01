@@ -163,6 +163,7 @@
   - B. 内部 actor 允许以「转述」身份写入被唤起的 DM（消息带 `from=cos, relayed`），要动访问控制；
   - C. 回答作为任务评论/线程写回任务所在频道（需要评论模型，不只是消息）。
 - 顺带：失败重投不降噪（审计建议 N 次后停），本轮未动。
+- 同类已修（2026-11-01）：app 提案审批后建 App Builder 任务也把空频道默认成 `#general`（`broker_apps_proposal.go`）。现在按「提案所在房间 → 建者（app-builder）的主场 → 记日志放弃」解析；提案房间在审批前退役（`#general` 退役、成员删除带走 DM）时不再把任务和错误消息塞进死房间。新增 `TestProposeAppApprovalSurvivesARetiredRoom`。
 
 ### 8. 清理
 - `YFS11013/gawkbot-office`（空仓库，创建后被 fork 方案取代）：删除需 `delete_repo` scope → `gh auth refresh -h github.com -s delete_repo && gh repo delete YFS11013/gawkbot-office --yes`，或网页删。

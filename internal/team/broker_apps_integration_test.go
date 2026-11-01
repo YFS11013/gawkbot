@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -295,6 +296,90 @@ func postAppsStatus(t *testing.T, url, token, botSlug string, body []byte) int {
 	defer resp.Body.Close()
 	_, _ = io.ReadAll(resp.Body)
 	return resp.StatusCode
+}
+
+// TestProposeAppApprovalSurvivesARetiredRoom covers the channel going away
+// between the proposal and the approval. Approving used to create the task in
+// the request's stored room; when that room no longer exists the create answers
+// 404 channel not found and the failure message is posted into it as well. The
+// spawn must land somewhere a builder can actually be woken from.
+func TestProposeAppApprovalSurvivesARetiredRoom(t *testing.T) {
+	b := newTestBroker(t)
+	// app-builder has to be on the roster for a home to exist once the room is
+	// gone; that is the case the fallback is for.
+	b.mu.Lock()
+	b.members = append(b.members, officeMember{Slug: appBuilderSlug, Name: "App Builder", Role: "Builder"})
+	b.mu.Unlock()
+	if err := b.StartOnPort(0); err != nil {
+		t.Fatalf("start broker: %v", err)
+	}
+	defer b.Stop()
+	base := fmt.Sprintf("http://%s", b.Addr())
+
+	body, _ := json.Marshal(map[string]any{
+		"kind":     "approval",
+		"from":     "cos",
+		"channel":  testTeamRoom,
+		"title":    "Build a new internal tool: Lead Scorer?",
+		"question": "Build a new internal tool: Lead Scorer?",
+		"blocking": false,
+		"required": false,
+		"app_proposal": map[string]any{
+			"name":        "Lead Scorer",
+			"icon":        "🎯",
+			"summary":     "Score inbound leads",
+			"description": "Rank inbound leads against our ICP weights.",
+		},
+	})
+	created := postAppsJSON(t, base+"/requests", b.Token(), body)
+	reqObj, _ := created["request"].(map[string]any)
+	reqID, _ := reqObj["id"].(string)
+	if reqID == "" {
+		t.Fatalf("no request id: %v", created)
+	}
+
+	// The room is retired while the approval is still pending.
+	const retired = "retired-room"
+	b.mu.Lock()
+	for i := range b.requests {
+		if b.requests[i].ID == reqID {
+			b.requests[i].Channel = retired
+		}
+	}
+	b.mu.Unlock()
+
+	answer, _ := json.Marshal(map[string]any{"id": reqID, "choice_id": "approve"})
+	postAppsJSON(t, base+"/requests/answer", b.Token(), answer)
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	var task *teamTask
+	for i := range b.tasks {
+		if b.tasks[i].Owner == appBuilderSlug {
+			task = &b.tasks[i]
+			break
+		}
+	}
+	if task == nil {
+		t.Fatalf("approval must still spawn the app-builder task; tasks=%+v", b.tasks)
+	}
+	if task.Channel == retired || task.Channel == GeneralChannelSlug {
+		t.Fatalf("task landed in a dead room %q; want the builder's home", task.Channel)
+	}
+	home := b.findChannelLocked(task.Channel)
+	if home == nil {
+		t.Fatalf("task channel %q does not exist", task.Channel)
+	}
+	if !containsSlug(home.Members, appBuilderSlug) {
+		t.Fatalf("task landed in %q, which the builder is not part of: members=%v", task.Channel, home.Members)
+	}
+	// The approval echo itself may still be stamped with the request's room;
+	// what must not happen is THIS path pinning its failure there.
+	for _, msg := range b.messages {
+		if normalizeChannelSlug(msg.Channel) == retired && strings.Contains(msg.Content, "Could not start the App Builder task") {
+			t.Fatalf("failure message posted into the retired room: %+v", msg)
+		}
+	}
 }
 
 func postAppsJSON(t *testing.T, url, token string, body []byte) map[string]any {
