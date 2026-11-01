@@ -312,22 +312,12 @@ func TestConfigRefusesABadBoxKeyBeforeSaving(t *testing.T) {
 // secret. The marker lets the test flip the account state mid-flow.
 func writeFakeBoxCLI(t *testing.T, dir string) string {
 	t.Helper()
-	marker := filepath.Join(dir, "signed-in")
-	script := "#!/bin/sh\n" +
-		"case \"$1\" in\n" +
-		"  login) echo '{\"event\":\"login_url\",\"url\":\"https://ascii.dev/api/box/auth/github?state=abc\"}'; exit 0 ;;\n" +
-		"  onboard) sleep 0.2; echo '{\"event\":\"login_complete\"}'; touch " + marker + "; exit 0 ;;\n" +
-		"  status) if [ -f " + marker + " ]; then echo '{\"account\":{\"loginState\":\"signed in\"}}'; else echo '{\"account\":{\"loginState\":\"signed out\"}}'; fi ;;\n" +
-		"  api-key) case \"$2\" in list) echo '{\"apiKeys\":[{\"id\":\"k1\",\"name\":\"gawkbot\"},{\"id\":\"k2\",\"name\":\"other\"}]}' ;; revoke) echo \"$3\" >> " + filepath.Join(dir, "revoked") + " ;; *) echo '{\"id\":\"k1\",\"secret\":\"box_minted\"}' ;; esac ;;\n" +
-		"  logout) rm -f " + marker + "; echo '{\"event\":\"logged_out\"}' ;;\n" +
-		"  limits) echo '{\"event\":\"limits\",\"limits\":{\"canStart\":false,\"blockedReason\":\"subscription_required\",\"planName\":null,\"accessTier\":\"trial\",\"trialLine\":\"2 boxes, 25h compute\"}}' ;;\n" +
-		"  *) exit 2 ;;\n" +
-		"esac\n"
-	path := filepath.Join(dir, "box")
-	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	return path
+	// The box CLI is faked by the test binary itself (see fake_cli_helper_test.go):
+	// a /bin/sh script cannot be started on Windows, and the sign-in state machine
+	// this exercises is not platform-specific.
+	t.Setenv("WUPHF_FAKE_BOX_MARKER", filepath.Join(dir, "signed-in"))
+	t.Setenv("WUPHF_FAKE_BOX_REVOKED", filepath.Join(dir, "revoked"))
+	return fakeCLIPath(t, "box")
 }
 
 func TestBoxSigninFlowMintsAndStoresAKey(t *testing.T) {
@@ -397,7 +387,7 @@ func TestBoxSigninFlowMintsAndStoresAKey(t *testing.T) {
 	if config.ResolveBoxAPIKey() != "" {
 		t.Fatalf("signout must forget the key")
 	}
-	revoked, _ := os.ReadFile(filepath.Join(filepath.Dir(os.Getenv("WUPHF_BOX_CLI")), "revoked"))
+	revoked, _ := os.ReadFile(os.Getenv("WUPHF_FAKE_BOX_REVOKED"))
 	if strings.TrimSpace(string(revoked)) != "k1" {
 		t.Fatalf("only the gawkbot key must be revoked, got %q", revoked)
 	}

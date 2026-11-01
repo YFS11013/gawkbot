@@ -18,55 +18,12 @@ import (
 
 func writeFakeOperationOne(t *testing.T) string {
 	t.Helper()
-	dir := t.TempDir()
-	path := filepath.Join(dir, "one")
-	script := `#!/bin/sh
-if [ "$1" = "--agent" ]; then
-  shift
-fi
-
-cmd3="$1 $2 $3"
-if [ "$cmd3" = "flow create sponsor-outreach-dry-run" ]; then
-  echo '{"created":true,"key":"sponsor-outreach-dry-run","path":"/tmp/.one/flows/sponsor-outreach-dry-run.flow.json"}'
-elif [ "$cmd3" = "flow execute sponsor-outreach-dry-run" ]; then
-  echo '{"event":"step:start","stepId":"compose-email"}'
-  echo '{"event":"workflow:result","runId":"run-123","logFile":"/tmp/run.log","status":"success","steps":{"gmail-preview":{"status":"success"}}}'
-else
-  echo "unexpected args: $*" >&2
-  exit 1
-fi
-`
-	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	return path
+	return fakeCLIPath(t, "one-dry-run")
 }
 
 func writeRateLimitedOperationOne(t *testing.T) string {
 	t.Helper()
-	dir := t.TempDir()
-	path := filepath.Join(dir, "one")
-	script := `#!/bin/sh
-if [ "$1" = "--agent" ]; then
-  shift
-fi
-
-cmd3="$1 $2 $3"
-if [ "$cmd3" = "flow create consulting-live-gmail-read" ]; then
-  echo '{"created":true,"key":"consulting-live-gmail-read","path":"/tmp/.one/flows/consulting-live-gmail-read.flow.json"}'
-elif [ "$cmd3" = "flow execute consulting-live-gmail-read" ]; then
-  echo '{"event":"flow:start","runId":"run-live-1"}'
-  echo '{"event":"step:error","stepId":"fetchEmails","error":"429 User-rate limit exceeded. Retry after 2026-04-14T22:55:02.178Z"}' >&2
-  exit 1
-else
-  echo "unexpected args: $*" >&2
-  exit 1
-fi
-`
-	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	return path
+	return fakeCLIPath(t, "one-rate-limited")
 }
 
 func TestDecodeStudioGeneratedPackageHandlesFencedJSON(t *testing.T) {

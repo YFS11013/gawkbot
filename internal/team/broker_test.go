@@ -21,6 +21,11 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	// When the test binary is executed as a fake external command (one, box),
+	// answer as that command and leave: no test runs in that process.
+	if handled, code := runFakeCLIHelper(); handled {
+		os.Exit(code)
+	}
 	// Globals that leaked background goroutines can write to after a test
 	// returns need a process-lifetime home so cleanup doesn't race the
 	// leaked writes. We pre-seed two (token file, headless log dir).
