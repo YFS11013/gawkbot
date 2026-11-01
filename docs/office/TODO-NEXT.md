@@ -40,7 +40,10 @@
   - **日志按进程截断**：`Start-Process -RedirectStandardError` 是覆盖不是追加，重启后文件里只剩新进程的输出。所以重启后 10 分钟内没有 heartbeat 属正常；进程在跑而超过 15 分钟仍无 `loop started` 之后的任何行，才是真断流。
   - 换二进制必须照 watchdog 的启动参数（`-RedirectStandardOutput logs\broker.log -RedirectStandardError logs\broker.err.log` + `WUPHF_OPENCODE_MODEL`）。2026-11-01 手工换二进制时漏了重定向，进程健康但日志 45 分钟全静默，心跳巡检当场失明。
 - 每日巡检动作：`tail -3 ~/.wuphf/logs/watchdog.log`（无文件=健康）+ 上面那条心跳 grep。
-- 未验证：看门狗的 kill/restart 分支。首次真实触发时优先核对 `broker.log` 是否重新出现 `Loop started`。
+- ✅ 看门狗 kill/restart 分支已实测（2026-11-01 16:36）：`watchdog.log` 记 `broker unreachable → restarting → restart issued`，3 秒后新进程起来，22 秒后 `scheduler: loop started`，`/health` 200。
+- **部署坑（2026-11-01 16:30 实测，会打挂办公室）**：在一次性 bash 调用里 `Stop-Process` + `Move-Item` + `Start-Process`，若该调用在 300s 上限被回收，Windows Job Object 会连**刚启动的 broker** 一起杀掉 → 服务空窗，直到看门狗下一轮（实测空窗 3 分 25 秒）。安全做法二选一：
+  1. 只杀不启：`Stop-Process -Id <pid> -Force`，让看门狗按它自己的参数重启（最稳，实测 3 分钟自愈）；
+  2. 启动单独一次短调用，确认返回，不与 build/移动混在同一条命令里。
 - 判据：human 消息 2 分钟内日志无 `stage=started`，且消息已在 `broker-state.json` ⇒ 唤醒掉线。
 - 处置：重启 broker（命令见附录），重读 token，重发。
 - 复发记录：2026-10-30 05:11（空闲 16 小时后首次唤醒失败）。
