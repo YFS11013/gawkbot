@@ -16,6 +16,7 @@
 | G | P0 #1 forex-watch 16:30 自动简报 | **等时间** | `next_run=2026-11-02T08:30:00Z`（周一 16:30 北京），现在无法验 |
 | I | P3 7g 空壳完成链的 ① 入口分流 / ③ 同题合并 | **人拍板** | ② 已做（done 且无 artifact → `hollow_completion=true`）；①③ 改用户可见流程 |
 | H | ~~P0 #0 基金周报（11-07）会被 `wiki_artifact` 校验打回~~ ✅ 已修（`b7231a0`） | — | 校验器现在把 `ra_<16 hex>`（含 `.html` 形式）解析成 `visual-artifacts/<id>.html` 再 stat（`task_verification.go` wiki_artifact 分支，`rich_artifact.go` 新增 `visualArtifactWikiRelPath`/`visualArtifactIDRef`）；测试 `TestRunTaskVerification_WikiArtifact` 增加 3 例。端到端待 11-07 首次触发确认 |
+| J | 外部调研得出的候选场景（独立审阅回合 / 广度研究拆只读子代理 / 数值断言检查单 / 按技能路由模型） | **人挑 1–2 个排期** | 证据与判据见 `DESIGN-DECISIONS.md` §10；其中"干净上下文审阅者"是有数据支持的最高性价比项，本仓库尚无此环节 |
 
 已完成、只在正文留档的：P0 #2 停用门禁、P2 #6 `/notebook/*`、P3 #7 测试包编译、P3 7d/7e 两个根因。
 

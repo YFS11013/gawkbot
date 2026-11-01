@@ -291,3 +291,24 @@ digest ──► render_artifacts()（脚本，0 LLM）
 - **处置**：重启 broker（PID 44800 → 44636）后重发，`stage=started` 立即出现，18.5 秒完成并逐字贴出 headline。
 - **判断口径**：human 消息发出 2 分钟内，日志无 `stage=started` ⇒ 视为唤醒链路掉线，重启 broker 恢复；重启后 token 轮换，需重读 `%TEMP%\wuphf-broker-token-7892`。
 - **根因**：未定位（疑似 notify/dispatch 循环在长时间空闲后退出）。这是已知间歇故障，重启是恢复手段，不是修复。
+
+## 10. 外部调研：多智能体能跑到哪（2026-11-01）
+
+调研目的是回答"这套办公室适合干什么"，来源为三篇一手工程文与一组行业数据。结论与我们当天演练的观察一致，因此不入待办，只作设计判据。
+
+| 来源 | 关键数字 | 判据 |
+|---|---|---|
+| [Anthropic — multi-agent research system](https://www.anthropic.com/engineering/built-multi-agent-research-system) | 多智能体比单 agent 在广度研究上高 **90.2%**；单 agent 耗 token 为聊天的 4x，**多智能体 15x** | 适合：可并行铺开、信息超出单上下文、工具多。不适合：编码（"可并行部分少"） |
+| [Cognition — Don't Build Multi-Agents](https://cognition.com/blog/dont-build-multi-agents)（2025-06） | — | 并行写手各自做隐性决策（风格/边界），结果碎片化 |
+| [Cognition — What's Actually Working](https://cognition.com/blog/multi-agents-working)（2026-04） | 干净上下文的 reviewer 平均每 PR 抓 **2 个 bug**，其中 **58% 属严重**（逻辑错、缺边界、安全） | 能落地的形态是"**写单线程，其他 agent 只贡献智能**"；无结构 swarm 是干扰项；实用形状是 map-reduce-and-manage |
+| IDC（经 [行业汇总](https://www.ayautomate.com/blog/ai-pilot-stuck-deployment-infrastructure) 转述） | **88%** 的企业 AI pilot 进不了生产 | 成功案例的共同点是**成功判据简单且可验证**；死因不是模型能力，是没人敢放开不可验证的写操作 |
+| 金融研究产品线（Brightwave / AlphaSense / Hebbia / Rogo） | — | 卖的是"成品研究报告/投资产品"，不是聊天框——研究简报是 agent 落地最扎实的一类 |
+
+由上述证据固化四条设计判据（都是本办公室已经在做的事，记录下来免得被"看起来更酷的架构"带偏）：
+
+1. **一个任务一个写手**。任何并行都必须发生在写操作之外（只读子代理、审阅者）。`owner` 语义不是官僚主义，是防碎片化。
+2. **干净上下文的审阅回合是 15x token 最划算的用法**。写手自审几乎无效（context rot）；换一个只拿到 artifact + 验收标准的 bot 去挑问题，才是外部验证过的收益点。本仓库目前**缺这一环**（见 TODO-NEXT 开放项 J）。
+3. **子代理把产出写文件、只回传引用**，避免传话失真。`artifact_path` + `wiki_artifact`（含新鲜度）就是这条的实现；不要为了"汇总方便"让子代理把全文塞回主 agent。
+4. **能写死的判据优先**：`command` > `wiki_artifact` > 人眼。判据写不死的任务，进不了无人值守，只该有人在场跑。
+
+反面清单（有证据支持"别做"）：并行写同一份 wiki/同一条任务；无结构 swarm 协商；无人值守放开外发与 canonical 写入；用多 agent 硬啃长程编码。
