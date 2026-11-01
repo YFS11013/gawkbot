@@ -34,6 +34,11 @@ DEFAULT_OWNER = "data-keeper"
 GATE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "check_prep_pack.py"
 )
+# The spec resolves `python` through PATH, where a Windows box often has the
+# WindowsApps stub ahead of the real interpreter; the stub answers with a
+# store prompt (or exit 9009) and the gate reads that as a failed deliverable.
+# Pin the interpreter that is running this script instead.
+INTERPRETER = sys.executable or "python"
 
 
 def slugify(who):
@@ -127,7 +132,7 @@ def main(argv):
         "created_by": "human",
         "definition": definition,
         "verification_kind": "command",
-        "verification_spec": 'python "%s" "%s"' % (GATE, path),
+        "verification_spec": '"%s" "%s" "%s"' % (INTERPRETER, GATE, path),
         "verification_required": True,
     }
 

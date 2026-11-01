@@ -187,6 +187,12 @@ GOOD_WITH_PLACEHOLDER = GOOD.replace(
     "- 2026-10 月报显示净流入转负（来源: team/forex-brief-2026-10-31.md）\n- 未收录：持仓明细与组合净值，不推断",
 )
 # ...but a section made only of them is a pack that learned nothing.
+# A bullet that merely CONTAINS a placeholder word is still a claim: the
+# exemption is anchored at the start, so this one must fail.
+BAD_MID_PLACEHOLDER = GOOD.replace(
+    "- 2026-10 月报显示净流入转负（来源: team/forex-brief-2026-10-31.md）",
+    "- 他说需求待确认",
+)
 ALL_PLACEHOLDER = GOOD.replace(
     "- 2026-10-28 在会议上说要对冲成本上升（出处: https://example.com/x-1028.html）\n"
     "- 2026-10 月报显示净流入转负（来源: team/forex-brief-2026-10-31.md）",
@@ -203,6 +209,7 @@ def self_test():
         ("no-branch-map", BAD_NO_BRANCH, ["if X then Y"]),
         ("placeholder-ok", GOOD_WITH_PLACEHOLDER, []),
         ("all-placeholder", ALL_PLACEHOLDER, ["all placeholders"]),
+        ("placeholder-midword", BAD_MID_PLACEHOLDER, ["no date"]),
         ("empty", "", ["missing section"]),
     ]
     bad = 0

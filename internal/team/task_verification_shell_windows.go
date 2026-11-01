@@ -22,6 +22,10 @@ import (
 // "Invalid argument" (exit 2) — the script never executed, so a correct
 // deliverable could not complete. CmdLine keeps the text cmd parses
 // byte-identical to the spec the task declared.
+//
+// The spec is still a cmd command line, not a literal: %VAR% expands, and
+// & | ^ stay redirection/chaining to cmd. That is unchanged from before —
+// this only stops Go from re-quoting the text on the way in.
 func verificationShellCommand(ctx context.Context, spec string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, "cmd")
 	cmd.SysProcAttr = &syscall.SysProcAttr{CmdLine: "cmd /C " + spec}

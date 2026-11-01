@@ -45,6 +45,12 @@ const scanWalkRoot = "team"
 var scanSkippedDirs = []string{
 	"team/skills/", // already-compiled skills + .system/ prompt + .rejected.md tombstone
 	"team/playbooks/.compiled/",
+	// team/prep/ holds dated one-off deliverables (one meeting, one packet).
+	// Without this the 30-minute skill-compile cron reads each prep pack as a
+	// reusable method and registers a skill per meeting: the first two packets
+	// produced `fund-invest-2026-11-02` and `forex-watch-2026-11-03` in
+	// /skills, which is noise every bot then has to filter out.
+	"team/prep/",
 }
 
 // scanBotNotebookSegment is the path segment that identifies per-bot
