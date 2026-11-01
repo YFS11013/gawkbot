@@ -193,6 +193,11 @@ type headlessCodexTurn struct {
 	// not model-self-reported — and stamped onto the task ledger entry
 	// when the turn settles (B4 context transparency).
 	ContextUsed []string
+	// FromRerun marks a turn replayed from an active turn's Rerun slot. A
+	// replay is enqueued at most one level deep: if it lands while the same
+	// task is active again it is dropped rather than stored, so a busy lane
+	// cannot ping-pong replays forever.
+	FromRerun bool
 }
 
 type headlessCodexActiveTurn struct {
@@ -202,6 +207,15 @@ type headlessCodexActiveTurn struct {
 	Cancel            context.CancelFunc
 	WorkspaceDir      string
 	WorkspaceSnapshot string
+	// Rerun holds the newest same-task wake this active turn swallowed (see
+	// the queue-drop branch in enqueueHeadlessCodexTurnRecord). Dropping is
+	// still the right call for the running turn, which already built its
+	// prompt from the pre-change state — but the dropped wake's prompt was
+	// rendered AFTER the transition it announces. Replaying it when this turn
+	// finishes is what lets an approved plan start work instead of sitting in
+	// running until the next scheduled follow-up (60 minutes by default);
+	// before this slot existed the approval wake was simply lost.
+	Rerun *headlessCodexTurn
 }
 
 // headlessLane identifies one serialized dispatch lane. A bot used to have

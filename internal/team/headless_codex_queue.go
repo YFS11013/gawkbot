@@ -168,6 +168,17 @@ func (l *Launcher) enqueueHeadlessCodexTurnRecord(slug string, turn headlessCode
 			if !humanPriority && !turn.FromRoutine && !(isLead && urgentLeadTurn) &&
 				turn.Attempts <= active.Turn.Attempts &&
 				turn.TransientRetries <= active.Turn.TransientRetries {
+				// The running turn is dropped, but its prompt was rendered
+				// BEFORE the state change this wake announces (an approved
+				// plan still looked like "planning" to it). Keep the newest
+				// swallowed wake on the active turn so finishHeadlessTurn can
+				// replay it against the post-change task instead of leaving
+				// the task idle until the next scheduled follow-up.
+				if !turn.FromRerun {
+					replay := turn
+					replay.FromRerun = true
+					active.Rerun = &replay
+				}
 				// Release before logging/returning: every other early exit in
 				// this function unlocks explicitly (no defer), and returning
 				// with the mutex held deadlocked the next
@@ -614,8 +625,12 @@ func (l *Launcher) runHeadlessCodexQueue(lane headlessLane, stop <-chan struct{}
 func (l *Launcher) finishHeadlessTurn(lane headlessLane) {
 	slug := lane.slug
 	l.headless.mu.Lock()
-	if active := l.headless.active[lane]; active != nil && active.Cancel != nil {
-		active.Cancel()
+	var rerun *headlessCodexTurn
+	if active := l.headless.active[lane]; active != nil {
+		if active.Cancel != nil {
+			active.Cancel()
+		}
+		rerun = active.Rerun
 	}
 	delete(l.headless.active, lane)
 	lead := l.targeter().LeadSlug()
@@ -711,6 +726,15 @@ func (l *Launcher) finishHeadlessTurn(lane headlessLane) {
 		l.spawnHeadlessWorker(parked)
 	}
 
+	// Replay the wake this turn swallowed (see the queue-drop branch). Its
+	// prompt was rendered after the transition it announces, so it is the
+	// freshest view of the task — run it now that the lane is free. Skipped
+	// when the turn that just ended closed the task, since then the replay
+	// would only buy a redundant turn against finished work.
+	if rerun != nil && l.rerunStillWanted(rerun) {
+		l.enqueueHeadlessCodexTurnRecord(lane.slug, *rerun)
+	}
+
 	if deferredLead != nil {
 		l.enqueueHeadlessCodexTurn(lead, deferredLead.Prompt, deferredLead.Channel)
 		return
@@ -725,6 +749,29 @@ func (l *Launcher) finishHeadlessTurn(lane headlessLane) {
 			l.wakeLeadAfterSpecialist(slug)
 		}
 	}
+}
+
+// rerunStillWanted keeps a swallowed wake from replaying against work that is
+// already finished: the in-flight turn may have closed the task the wake was
+// announcing. Unknown tasks (or no broker in unit tests) replay — the wake is
+// the only signal that state changed.
+func (l *Launcher) rerunStillWanted(turn *headlessCodexTurn) bool {
+	if turn == nil {
+		return false
+	}
+	taskID := strings.TrimSpace(turn.TaskID)
+	if taskID == "" || l.broker == nil {
+		return true
+	}
+	task := l.broker.TaskByID(taskID)
+	if task == nil {
+		return true
+	}
+	switch strings.ToLower(strings.TrimSpace(task.status)) {
+	case "done", "canceled", "cancelled", "archived", "rejected":
+		return false
+	}
+	return true
 }
 
 // wakeLeadAfterSpecialist re-queues the lead (CEO) with the most recent message

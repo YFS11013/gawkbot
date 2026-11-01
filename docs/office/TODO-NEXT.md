@@ -49,6 +49,8 @@
 - 复发记录：2026-10-30 05:11（空闲 16 小时后首次唤醒失败）。
 - ~~待办：定位 notify/dispatch 循环退出的原因（上游级）~~ —— 已定性并修掉（见 P3 7d，`enqueueHeadlessCodexTurnRecord` 丢弃分支漏解锁）；不是上游通知机制问题。
 - ✅ 2026-10-30 22:31：找到并修掉代码级根因（入队丢弃分支漏解锁，见 P3 7d），新二进制已部署；重启后 cos turn 12s/62s 正常完成。
+- ✅ 2026-11-01 17:34：**核心循环演练跑通**（ACMER-2795，人工建单→define→approve→wiki 工件→机器校验→learning）。四段证据：`definition.defined_at=09:17:59Z`、`verification.pass=true`（2090 字节）、wiki 提交 `learning: pattern/core-loop-drill-2026-11-01`、`scheduler` 里该 follow-up job `status=done` + `closed_at` 已盖章。
+- ✅ 2026-11-01 17:58：演练暴露的**同任务中途唤醒被丢弃**已修（见 `DESIGN-DECISIONS.md` 8.8）：approve 落在 planning turn 运行中时唤醒被 `queue-drop` 吞掉，任务空转 60 分钟等 follow-up。现改为挂到活动 turn 的 `Rerun` 槽、回合结束时重放一次；线上 ACMER-2809 无人工催办自启执行并通过校验。
 
 ## P0 — 明早必须盯的两次自动运行
 

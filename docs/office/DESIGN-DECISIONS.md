@@ -198,6 +198,20 @@ digest ──► render_artifacts()（脚本，0 LLM）
 - **收尾（2026-10-31）**：skill `daily-opencode-model-snapshot` 已 archive（workflow 路径退役，真写入方仍是计划任务脚本）；scheduler job **没有 DELETE 端点**（`/scheduler/{slug}` 只支持 PATCH），所以只能 disabled，并由 `expected-scheduler.json` 的 `requires_file` 把关 —— 谁重新启用它，drift 检查立刻变红直到补上定义文件。
 - **教训**：①「有产出」≠「那条 routine 在产出」，先对时间戳与 actor 再改 prompt；②`workflow_provider` 类 routine 失败是静默的，只在 skill 的 `last_execution_status` 留一行，巡检必看；③可编辑的 prompt ≠ 生效的 prompt，同一产出最多只有一条链路在真写。
 
+### 8.8 同任务中途到达的唤醒被丢弃（2026-11-01 演练发现并修复）
+
+- **现象**：ACMER-2795 演练。人工 `action=approve` 后任务停在 `running`，cos 却又在频道里出了一份计划（`msg-2799`）而非开工；直到人工在 `#cos__human` 催一次才继续执行。
+- **日志证据**：`17:19:08 queue-drop: lead already handling same task`，此后 8 分钟没有任何 `stage=started`，而该任务的 `task_follow_up` 下一次在 60 分钟后（`WUPHF_TASK_FOLLOWUP_MINUTES` 默认 60）。
+- **机制**：`enqueueHeadlessCodexTurnRecord` 的同任务去重分支在"该任务已有活动 turn"时直接 `return`，丢掉的正是 approve 产生的那次唤醒；活动 turn 的 prompt 是状态变化**之前**渲染的（它还看到 `lifecycle=planning`），所以它照旧出计划。等它结束，没有任何东西把新状态重新投递。
+- **决策**：不并发跑同一任务这条保留；把被吞的唤醒挂到活动 turn 的 `Rerun` 槽（`headlessCodexActiveTurn.Rerun`），`finishHeadlessTurn` 结束时重放一次。
+  - 只保留最新一条（后到的覆盖先到的），因为唤醒的 prompt 是在入队时渲染的，最新的那条就是最新状态。
+  - 只重放一层：重放本身若再被吞就丢弃（`headlessCodexTurn.FromRerun`），否则 busy lane 会自我唤醒成环。
+  - 重放前任务已终态（`done`/`canceled`/`archived`/`rejected`）则不重放，免得多跑一轮打已完成的工作。
+- **验证**：
+  - 单测 `TestEnqueueHeadlessCodexTurnRecordReplaysDroppedWakeAfterTurnFinishes`、`TestReplayedWakeIsNotHeldForAnotherReplay`（`internal/team/headless_codex_test.go`）。
+  - 线上 ACMER-2809：17:55:26 连续两条 `queue-drop`，17:56:46 在**没有人工消息**的情况下自启回合，17:58:45 `status=done`、`verification pass=true`（`ra_79401b5e356910e9`，8157 字节），`hollow_completion` 未置位。
+- **附带观察**：该回合第一次 `complete` 带的是**预判**的 artifact id，文件尚不存在，被 `wiki_artifact` 校验打回（`pass=false`），下一回合真正创建后才通过——门禁按设计挡住了"先声明后交付"。
+
 ## 9. 与作者 core loop 的对齐度（2026-10-29 21:00 评估）
 
 依据：`docs/specs/core-loop.md` 九步循环、`ARCHITECTURE.md` 三条承重设计、`internal/bot/packs.go` 团队组合、`docs/specs/operator-agent-routines.md`。

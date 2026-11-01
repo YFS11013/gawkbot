@@ -1101,6 +1101,70 @@ func TestEnqueueHeadlessCodexTurnRecordDropsDuplicateLeadTaskWhileActive(t *test
 	}
 }
 
+// A wake that arrives while the same task is mid-turn used to be dropped
+// outright, so a state change announced mid-turn (the human approving a plan)
+// never reached the bot: ACMER-2795 sat in running for the full 60-minute
+// follow-up window until a human poked the channel. The wake is still not run
+// concurrently, but it must survive the turn that swallowed it.
+func TestEnqueueHeadlessCodexTurnRecordReplaysDroppedWakeAfterTurnFinishes(t *testing.T) {
+	l := newHeadlessLauncherForTest(t)
+	leadLane := headlessLane{slug: "cos"}
+	l.headless.active[leadLane] = &headlessCodexActiveTurn{
+		Turn:      headlessCodexTurn{Prompt: "first prompt about #task-3", TaskID: "task-3"},
+		StartedAt: time.Now(),
+	}
+	// Keep the lane's worker registered so the replayed wake lands on the
+	// queue for this test to inspect instead of spawning a real turn.
+	l.headless.workers[leadLane] = true
+
+	l.enqueueHeadlessCodexTurnRecord("cos", headlessCodexTurn{
+		Prompt:     "second prompt about #task-3",
+		TaskID:     "task-3",
+		EnqueuedAt: time.Now(),
+	})
+
+	if got := len(l.headless.queues[leadLane]); got != 0 {
+		t.Fatalf("expected the duplicate wake to stay off the queue while the task is active, got %d", got)
+	}
+	held := l.headless.active[leadLane].Rerun
+	if held == nil || held.Prompt != "second prompt about #task-3" {
+		t.Fatalf("expected the dropped wake to be held for replay, got %+v", held)
+	}
+
+	l.finishHeadlessTurn(leadLane)
+
+	queue := l.headless.queues[leadLane]
+	if len(queue) != 1 || queue[0].Prompt != "second prompt about #task-3" {
+		t.Fatalf("expected the held wake to replay once the turn finished, got %+v", queue)
+	}
+	if !queue[0].FromRerun {
+		t.Fatalf("expected the replayed turn to be marked FromRerun, got %+v", queue[0])
+	}
+}
+
+// A replayed wake that lands on a still-busy lane is dropped, not held again:
+// one level of replay is enough, and chaining them would let a busy lane
+// re-wake itself indefinitely.
+func TestReplayedWakeIsNotHeldForAnotherReplay(t *testing.T) {
+	l := newHeadlessLauncherForTest(t)
+	leadLane := headlessLane{slug: "cos"}
+	l.headless.active[leadLane] = &headlessCodexActiveTurn{
+		Turn:      headlessCodexTurn{Prompt: "first prompt about #task-3", TaskID: "task-3"},
+		StartedAt: time.Now(),
+	}
+
+	l.enqueueHeadlessCodexTurnRecord("cos", headlessCodexTurn{
+		Prompt:     "replayed prompt about #task-3",
+		TaskID:     "task-3",
+		FromRerun:  true,
+		EnqueuedAt: time.Now(),
+	})
+
+	if held := l.headless.active[leadLane].Rerun; held != nil {
+		t.Fatalf("expected a replay to be dropped without being held again, got %+v", held)
+	}
+}
+
 func TestEnqueueHeadlessCodexTurnRecordQueuesUrgentLeadWakeForSameTask(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 
@@ -1217,8 +1281,8 @@ func TestEnqueueHeadlessCodexTurnRecordRoutineNotReplaced(t *testing.T) {
 
 	l.enqueueHeadlessCodexTurnRecord("eng", headlessCodexTurn{
 		Prompt:      "routine fire about #task-11",
-		Channel:    "youtube-factory",
-		TaskID:     "task-11",
+		Channel:     "youtube-factory",
+		TaskID:      "task-11",
 		FromRoutine: true,
 		EnqueuedAt:  time.Now(),
 	})
