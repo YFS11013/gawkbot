@@ -258,6 +258,8 @@ python: can't open file 'C:\Users\...\agent-scratch\data-keeper\"C:\...\check_pr
 | 交付 | `ACMER-2920` 产出 `team/prep/fund-invest-2026-11-02.md`（6224 B，四节齐全，「对方近况」6 条真实条目各带日期+出处、1 条「未收录」豁免、5 问、5 分支） |
 | 判据（修复前） | `verification_result`: `exit: exit status 2 / python: can't open file '<cwd>\"C:\...\"'` |
 | 判据（修复后） | 同一 spec 重跑：`prep ok: 4/4 sections; counterparty 6 dated+sourced (+1 stated-absent); questions 5; branches 5`，`pass: true` |
+| bot 的诚实停下 | 交付前 data-keeper 停下来问口径（「判断是否被行情证伪」没有可比记录），把方向层证伪标「未收录」而不是补一个数字——playbook 的反幻觉规则真的生效了，这比产物通过更值钱 |
+| 副作用（已修） | 30 分钟一次的 skill-compile cron 把两份准备包当可复用方法，注册成 `fund-invest-2026-11-02` / `forex-watch-2026-11-03` 两个 skill；`team/prep/` 已加进 `scanSkippedDirs`，两个 skill 已 archive（frontmatter `status: archived`，重启不复活），`/skills` 从 11 回到 9 |
 | 自动审阅 | done 后生成 `OFFICE-2968`（owner `cos`，标题「审阅：准备包：与 fund-invest 的周度对齐」） |
 | 判定为拒（第二份） | `OFFICE-2943`（forex-watch）第一次 complete 被拒：`prep check failed (1): counterparty bullet 6 has no source`——它引用了 `forex_bridge.json`，而判据当时只认 `.md`。同时暴露失败文本在 cp936 控制台被转成乱码，bot 读不到该改哪里 |
 | 修正后 | 放宽 `.json` 也算可追溯出处 + stdout 强制 UTF-8；同一交付物重跑 `prep ok: 4/4 sections; counterparty 6 dated+sourced (+1 stated-absent); questions 6; branches 7`，`pass: true`，并生成审阅任务 `OFFICE-2991` |
