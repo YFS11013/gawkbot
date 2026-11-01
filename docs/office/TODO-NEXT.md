@@ -3,6 +3,22 @@
 > 与 `DESIGN-DECISIONS.md` 配套。每条都有验收标准，不用“看起来正常”结案。
 > 时区：**UTC 为主，括号内为北京时间**。
 
+## 开放项汇总（2026-11-01 11:00 核对）
+
+所有未关闭条目，逐条给"谁卡着"。凡是需要人拍板的，先列在这里，不要凭印象挑一个做。
+
+| # | 条目 | 需要什么 | 卡在哪 |
+|---|---|---|---|
+| A | P1 #4 `market-analyst` 去留（删成员 / 保留静默 / 只读 headline 做技术位） | **人拍板** | 三个选项都会改变组织边界，且删了难回滚 |
+| B | P2 #5 digest 的 `actual` 实际值来源 | **人拍板来源** | 一手（央行/统计局）/ FF 发布后页面 / 新闻标题，成本与准确性成反比 |
+| C | P2 #5b 简报挂到 `team_task`（打通蒸馏） | 无，纯工程 | 可随时开工：routine 只触发，由引擎建 task，artifact 作交付物 |
+| D | P3 #7c Windows 包级测试 ~21 条红 | **人拍板**「Windows 是否一等公民」 | 不拍板就只能继续用定向 `-run` |
+| E | P3 #7e 后续：Windows 用 Job Object 收口 | 无，纯工程 | 现在只能杀进程树，工具自派生的进程仍可能逃逸 |
+| F | P3 #8 清理：空仓库 `YFS11013/gawkbot-office`、3 个 exe 备份 | 前者需 `gh auth refresh -s delete_repo` | 备份 ~88 MB/个，删前确认不需要回滚点 |
+| G | P0 #1 forex-watch 16:30 自动简报 | **等时间** | `next_run=2026-11-02T08:30:00Z`（周一 16:30 北京），现在无法验 |
+
+已完成、只在正文留档的：P0 #2 停用门禁、P2 #6 `/notebook/*`、P3 #7 测试包编译、P3 7d/7e 两个根因。
+
 ## 已完成 — 工作树回归修复（2026-10-30 22:05）
 - `/apps/integrations/call` 路由被误删 → 恢复注册；新增的 `/apps/fetch` 独立注册并带 `requireAuth`。
 - `web/package.json` 误删 `remark-gfm`（8+ 文件仍 import）→ 恢复，与 `remark-breaks` 并存。
@@ -26,7 +42,7 @@
 - 判据：human 消息 2 分钟内日志无 `stage=started`，且消息已在 `broker-state.json` ⇒ 唤醒掉线。
 - 处置：重启 broker（命令见附录），重读 token，重发。
 - 复发记录：2026-10-30 05:11（空闲 16 小时后首次唤醒失败）。
-- 待办：定位 notify/dispatch 循环退出的原因（上游级）。
+- ~~待办：定位 notify/dispatch 循环退出的原因（上游级）~~ —— 已定性并修掉（见 P3 7d，`enqueueHeadlessCodexTurnRecord` 丢弃分支漏解锁）；不是上游通知机制问题。
 - ✅ 2026-10-30 22:31：找到并修掉代码级根因（入队丢弃分支漏解锁，见 P3 7d），新二进制已部署；重启后 cos turn 12s/62s 正常完成。
 
 ## P0 — 明早必须盯的两次自动运行
@@ -48,10 +64,9 @@
   - 对比同一时刻 `forex-watch__human` 的最后一条消息
 - **失败时**：抓当轮 opencode 原始 stdout（`~/.wuphf/logs/headless-codex-forex-watch.log` 的 `opencode_result` / `error` 行），不要先杀进程。
 
-### 2. market-analyst 07:30 UTC（15:30 北京）是否被停用门禁拦住
-- 该 routine 已 `enabled=false`，但 10-29 07:30 仍点火（`schedulerJobDue` 不看 Enabled）。
-- **验收**：`GET /scheduler/market-analyst-daily-direction-rating-after-forex-brief/runs` 最新一条不是 `2026-10-30T07:30`。
-- 若仍触发：查 `kind` 是否被规范化成别的值（门禁只对 `agent_routine` 生效）。
+### 2. ~~market-analyst 07:30 UTC 是否被停用门禁拦住~~ ✅ 已验证（2026-11-01）
+- 事实：`GET /scheduler` 中 `market-analyst-daily-direction-rating-after-forex-brief` 为 `enabled=false`，`last_run=2026-10-29T07:30:17Z`，**10-30 与之后没有再点火**。
+- 注：`next_run` 仍显示 `2026-10-30T07:30:00Z` —— 停用的 job 不推进 `next_run`，这个字段不能当"将要运行"读，只能看 `last_run` 判断是否真跑过。
 
 ## P1 — 需要决定的两件事
 
