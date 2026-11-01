@@ -571,11 +571,12 @@ func TestScannerSafeFilename(t *testing.T) {
 
 func TestScannerHasRootMatchesSubpaths(t *testing.T) {
 	m := emptyManifest()
-	m.Files["/users/x/notes/a.md"] = ScanManifestEntry{Mtime: 1, Size: 1}
-	if !m.HasRoot("/users/x/notes") {
+	root := filepath.Join("users", "x", "notes")
+	m.Files[filepath.Join(root, "a.md")] = ScanManifestEntry{Mtime: 1, Size: 1}
+	if !m.HasRoot(root) {
 		t.Fatalf("HasRoot should match parent of an indexed file")
 	}
-	if m.HasRoot("/users/y") {
+	if m.HasRoot(filepath.Join("users", "y")) {
 		t.Fatalf("HasRoot should not match unrelated roots")
 	}
 }

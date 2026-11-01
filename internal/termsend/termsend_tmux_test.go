@@ -50,7 +50,11 @@ func TestSendReachesARealProgramThroughTmux(t *testing.T) {
 		t.Skip("cat is not installed")
 	}
 	if err := os.Symlink(cat, agent); err != nil {
-		t.Fatal(err)
+		// Windows needs developer mode or an elevated process for a file
+		// link; without one the stand-in agent cannot be created, and the
+		// identity check this test covers needs the name to differ from the
+		// target binary.
+		t.Skipf("file symlinks are unavailable here: %v", err)
 	}
 	got := filepath.Join(t.TempDir(), "got.txt")
 	// exec, so the reader is the pane's own process and its foreground job.

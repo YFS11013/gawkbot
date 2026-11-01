@@ -29,6 +29,7 @@ func testRepoRoot(t *testing.T) string {
 
 func TestLoadManifestFallsBackToDefault(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
 	manifest, err := LoadManifest()
 	if err != nil {
 		t.Fatalf("LoadManifest: %v", err)
@@ -122,6 +123,7 @@ func TestSaveAndLoadManifestRoundTrips(t *testing.T) {
 
 func TestLoadManifestBackfillsBlueprintRefsFromConfigPack(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
 	if err := config.Save(config.Config{Pack: "coding-team"}); err != nil {
 		t.Fatalf("config.Save: %v", err)
 	}
@@ -223,6 +225,7 @@ func TestManifestSurfaceSpecRoundTrips(t *testing.T) {
 
 func TestDefaultManifestHasNoSurface(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
 	manifest := DefaultManifest()
 	if strings.Contains(strings.ToLower(manifest.Description), "founding team") {
 		t.Fatalf("default manifest should not reference founding team in description: %q", manifest.Description)
@@ -277,6 +280,7 @@ func TestLoadRuntimeManifestMaterializesEveryOperationFixture(t *testing.T) {
 	for _, id := range operationIDs {
 		t.Run(id, func(t *testing.T) {
 			t.Setenv("HOME", t.TempDir())
+			t.Setenv("USERPROFILE", t.TempDir())
 			path := filepath.Join(t.TempDir(), "company.json")
 			t.Setenv("WUPHF_COMPANY_FILE", path)
 
@@ -531,6 +535,7 @@ func operationFixtureIDs(t *testing.T, repoRoot string) []string {
 // in the file.
 func TestUpdateManifestSerializesAppends(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
 	t.Setenv("WUPHF_RUNTIME_HOME", t.TempDir())
 	path := filepath.Join(t.TempDir(), "company.json")
 	t.Setenv("WUPHF_COMPANY_FILE", path)
@@ -592,6 +597,7 @@ func keys(m map[string]struct{}) []string {
 // Asserts the panic surfaces as an error instead.
 func TestUpdateManifestRecoversFromMutatePanic(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
 	t.Setenv("WUPHF_RUNTIME_HOME", t.TempDir())
 	path := filepath.Join(t.TempDir(), "company.json")
 	t.Setenv("WUPHF_COMPANY_FILE", path)

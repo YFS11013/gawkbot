@@ -14,6 +14,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/nex-crm/wuphf/internal/team"
+	"path/filepath"
 )
 
 func ensureBrokerMembers(t *testing.T, ctx context.Context, slugs ...string) {
@@ -748,7 +749,7 @@ func TestHandleTeamTaskStatusReportsWorktreeIsolation(t *testing.T) {
 	if !strings.Contains(text, "branch wuphf-") {
 		t.Fatalf("expected worktree branch in %q", text)
 	}
-	if !strings.Contains(text, ".wuphf/task-worktrees/") {
+	if !strings.Contains(text, filepath.Join(".wuphf", "task-worktrees")) {
 		t.Fatalf("expected worktree path in %q", text)
 	}
 	if !strings.Contains(text, "working_directory") {
@@ -769,7 +770,7 @@ func TestHandleTeamTaskStatusReportsWorktreeIsolation(t *testing.T) {
 	if !strings.Contains(tasksText, "branch wuphf-") {
 		t.Fatalf("expected worktree branch in task listing %q", tasksText)
 	}
-	if !strings.Contains(tasksText, "working_directory ") || !strings.Contains(tasksText, ".wuphf/task-worktrees/") {
+	if !strings.Contains(tasksText, "working_directory ") || !strings.Contains(tasksText, filepath.Join(".wuphf", "task-worktrees")) {
 		t.Fatalf("expected working_directory path in task listing %q", tasksText)
 	}
 }
@@ -839,7 +840,7 @@ func TestHandleTeamTaskReturnsWorktreeGuidance(t *testing.T) {
 	if !strings.Contains(text, "branch wuphf-") {
 		t.Fatalf("expected worktree branch in %q", text)
 	}
-	if !strings.Contains(text, "working_directory ") || !strings.Contains(text, ".wuphf/task-worktrees/") {
+	if !strings.Contains(text, "working_directory ") || !strings.Contains(text, filepath.Join(".wuphf", "task-worktrees")) {
 		t.Fatalf("expected working_directory guidance in %q", text)
 	}
 }
@@ -940,6 +941,9 @@ func TestHandleTeamTaskCreateDefaultsOwnerToCaller(t *testing.T) {
 }
 
 func TestHandleTeamRuntimeStateIncludesRecoveryAndCapabilities(t *testing.T) {
+	// Markdown fallback, not whatever this machine has installed: the
+	// assertions below describe the wiki-backed runtime state.
+	t.Setenv("WUPHF_GBRAIN_COMMAND", filepath.Join(t.TempDir(), "no-gbrain-installed"))
 	t.Setenv("HOME", t.TempDir())
 	ctx := context.Background()
 
@@ -1043,7 +1047,7 @@ func TestHandleTeamRuntimeStateIncludesRecoveryAndCapabilities(t *testing.T) {
 	if snapshot.Channel != taskChannel {
 		t.Fatalf("expected %q channel, got %q", taskChannel, snapshot.Channel)
 	}
-	if len(snapshot.Tasks) != 1 || !strings.Contains(snapshot.Tasks[0].WorktreePath, ".wuphf/task-worktrees/") {
+	if len(snapshot.Tasks) != 1 || !strings.Contains(snapshot.Tasks[0].WorktreePath, filepath.Join(".wuphf", "task-worktrees")) {
 		t.Fatalf("unexpected runtime tasks: %+v", snapshot.Tasks)
 	}
 	if len(snapshot.Requests) == 0 || snapshot.Requests[0].Title != "Approve release" {

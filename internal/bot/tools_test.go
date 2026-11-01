@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/nex-crm/wuphf/internal/bot"
+	"runtime"
 )
 
 func makeTestTool(name string) bot.BotTool {
@@ -243,7 +244,7 @@ func TestWriteFileAndGlobTools(t *testing.T) {
 	}
 	result := decodeToolResult(t, raw)
 	files, ok := result["files"].([]any)
-	if !ok || len(files) != 1 || files[0] != "nested/report.txt" {
+	if !ok || len(files) != 1 || files[0] != filepath.Join("nested", "report.txt") {
 		t.Fatalf("unexpected glob files %#v", result["files"])
 	}
 }
@@ -277,19 +278,27 @@ func TestGrepSearchTool(t *testing.T) {
 
 func TestBashToolCapturesStdoutAndStderr(t *testing.T) {
 	dir := t.TempDir()
+	// The tool runs the platform shell; cmd.exe has no printf.
+	command := "printf 'out'; printf 'err' >&2"
+	if runtime.GOOS == "windows" {
+		command = "echo out& echo err 1>&2"
+	}
 	tool := builtinTool(t, "bash")
 	raw, err := tool.Execute(map[string]any{
-		"command":           "printf 'out'; printf 'err' >&2",
+		"command":           command,
 		"working_directory": dir,
 	}, context.Background(), func(string) {})
 	if err != nil {
 		t.Fatalf("bash: %v", err)
 	}
 	result := decodeToolResult(t, raw)
-	if result["stdout"] != "out" {
+	// cmd.exe terminates echo lines with \r\n; compare the content.
+	stdout, _ := result["stdout"].(string)
+	stderr, _ := result["stderr"].(string)
+	if strings.TrimSpace(stdout) != "out" {
 		t.Fatalf("expected stdout 'out', got %#v", result["stdout"])
 	}
-	if result["stderr"] != "err" {
+	if strings.TrimSpace(stderr) != "err" {
 		t.Fatalf("expected stderr 'err', got %#v", result["stderr"])
 	}
 	if got := int(result["exit_code"].(float64)); got != 0 {
@@ -300,6 +309,7 @@ func TestBashToolCapturesStdoutAndStderr(t *testing.T) {
 func TestSendMessageToolWritesOutbox(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 
 	tool := builtinTool(t, "send_message")
 	raw, err := tool.Execute(map[string]any{

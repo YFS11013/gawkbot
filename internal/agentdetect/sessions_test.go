@@ -747,6 +747,7 @@ func TestOpenSessionsIsKnownOnlyFromALiveEntryOrNoClaudeCodeAtAll(t *testing.T) 
 // A log is read only when it is a plain file, and a Claude Code log's folder
 // is believed only when the log sits in that folder's own project folder.
 func TestSessionLogsMustBePlainFilesInTheirOwnProjectFolder(t *testing.T) {
+	requireFileSymlinks(t)
 	home := t.TempDir()
 	now := time.Date(2026, 10, 9, 12, 0, 0, 0, time.UTC)
 	projects := filepath.Join(home, ".claude", "projects")
@@ -799,6 +800,7 @@ func TestSessionLogsMustBePlainFilesInTheirOwnProjectFolder(t *testing.T) {
 
 // A Codex log that is a link is not read either.
 func TestCodexSessionLogMustBeAPlainFile(t *testing.T) {
+	requireFileSymlinks(t)
 	home := t.TempDir()
 	now := time.Date(2026, 10, 9, 12, 0, 0, 0, time.UTC)
 	day := filepath.Join(home, ".codex", "sessions", "2026", "10", "09")

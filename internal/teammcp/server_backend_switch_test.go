@@ -138,6 +138,18 @@ func TestConfigureServerToolsBackendMatrix(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Arrange
 			t.Setenv("WUPHF_MEMORY_BACKEND", tc.backend)
+			// The backend also probes the on-disk wiki; without an isolated home
+			// the developer's real ~/.wuphf decides the result.
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+			if tc.backend == "" {
+				// The default case asserts the markdown fallback, which only holds
+				// when gbrain is not installed. Pin that instead of depending on the
+				// machine: a developer with gbrain and an OpenAI key would otherwise
+				// see the default resolve to gbrain.
+				t.Setenv("WUPHF_GBRAIN_COMMAND", filepath.Join(home, "no-gbrain-installed"))
+			}
 			t.Setenv("WUPHF_ENABLE_AGENT_WIKI_WRITE", "")
 			t.Setenv("WUPHF_CONFIG_PATH", filepath.Join(t.TempDir(), "config.json"))
 

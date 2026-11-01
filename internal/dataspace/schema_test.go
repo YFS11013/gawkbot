@@ -3,6 +3,7 @@ package dataspace
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -616,7 +617,8 @@ func TestFilePermissions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stat dir: %v", err)
 	}
-	if info.Mode().Perm() != dirMode {
+	// Windows has no POSIX mode bits; access comes from the inherited DACL.
+	if runtime.GOOS != "windows" && info.Mode().Perm() != dirMode {
 		t.Fatalf("directory mode = %v, want %v", info.Mode().Perm(), dirMode)
 	}
 	for _, name := range []string{indexFile, k.spaceID + ".db"} {
@@ -624,7 +626,7 @@ func TestFilePermissions(t *testing.T) {
 		if statErr != nil {
 			t.Fatalf("stat %s: %v", name, statErr)
 		}
-		if stat.Mode().Perm() != fileMode {
+		if runtime.GOOS != "windows" && stat.Mode().Perm() != fileMode {
 			t.Fatalf("%s mode = %v, want %v", name, stat.Mode().Perm(), fileMode)
 		}
 	}

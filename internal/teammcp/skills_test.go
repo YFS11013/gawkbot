@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/nex-crm/wuphf/internal/bot"
+	"path/filepath"
+	"github.com/nex-crm/wuphf/internal/team"
 )
 
 // TestBotSkillCreationToolsNotRegistered pins core-loop R5: bots have
@@ -47,6 +49,9 @@ func TestBotSkillCreationToolsNotRegistered(t *testing.T) {
 // UsageCount and a skill_invocation message lands in the channel attributed
 // to the calling bot (not "you").
 func TestHandleTeamSkillRunBumpsUsageAndLogsInvocation(t *testing.T) {
+	// Markdown fallback, not whatever this machine has installed: the
+	// assertions below describe the wiki-backed runtime state.
+	t.Setenv("WUPHF_GBRAIN_COMMAND", filepath.Join(t.TempDir(), "no-gbrain-installed"))
 	t.Setenv("HOME", t.TempDir())
 	b := newTestBroker(t)
 	if err := b.StartOnPort(0); err != nil {
@@ -129,6 +134,18 @@ func TestHandleTeamSkillRunBumpsUsageAndLogsInvocation(t *testing.T) {
 	}
 	if !sawInvocation {
 		t.Fatalf("expected a skill_invocation message in broker; messages=%+v", b.Messages())
+	}
+
+	// The broker keeps at most one live skill-run task per skill, so a second
+	// invocation is deduplicated until the first task is finished. Close it,
+	// then ask again: the usage counter has to move on a real repeat call.
+	for _, task := range b.AllTasks() {
+		if task.TaskType != "skill_run" {
+			continue
+		}
+		if _, err := b.MutateTask(team.TaskPostRequest{Action: "complete", ID: task.ID}); err != nil {
+			t.Fatalf("complete skill-run task %s: %v", task.ID, err)
+		}
 	}
 
 	// Second invocation should bump UsageCount to 2, proving the tool is

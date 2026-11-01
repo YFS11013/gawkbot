@@ -500,7 +500,9 @@ func TestBuildActionApprovalSpecMatchesCanonicalFixture(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read canonical fixture: %v", err)
 	}
-	expected := strings.TrimRight(string(want), "\n")
+	// Git may have checked the fixture out with CRLF on Windows; the spec is
+	// built with \n, so compare line endings-normalised text.
+	expected := strings.TrimRight(strings.ReplaceAll(string(want), "\r\n", "\n"), "\n")
 	if spec.Context != expected {
 		t.Fatalf("context mismatch — fixture drift would break web parser.\n--- want ---\n%s\n--- got ---\n%s", expected, spec.Context)
 	}
