@@ -61,6 +61,14 @@ const (
 	taskVerificationKindArtifact = "artifact"
 	taskVerificationKindURL      = "url"
 	taskVerificationKindNone     = "none"
+	// taskVerificationKindWikiArtifact checks the artifact the completion
+	// DECLARES (artifact_path) is a real non-empty file inside the wiki.
+	// The routine-as-task path uses it: an engine-created routine task has no
+	// worktree and no path convention the engine could guess, so the only
+	// honest check is "the deliverable you named exists". Without a machine
+	// check the completion is unverified, and unverified completions are
+	// deliberately not distilled (task_distill.go).
+	taskVerificationKindWikiArtifact = "wiki_artifact"
 
 	taskVerificationTimeout   = 5 * time.Minute
 	taskVerificationOutputCap = 4000
@@ -78,12 +86,19 @@ func normalizeTaskVerification(kind, spec string, required bool) (*TaskVerificat
 		if spec == "" {
 			return nil, fmt.Errorf("verification kind %q requires a non-empty spec", kind)
 		}
+	case taskVerificationKindWikiArtifact:
+		// The spec is informational (the path comes from artifact_path at
+		// completion), so an empty one is legal — but the text must not be
+		// mistaken for a glob.
+		if spec == "" {
+			spec = "artifact_path declared on complete"
+		}
 	case taskVerificationKindURL:
 		if !strings.HasPrefix(spec, "http://") && !strings.HasPrefix(spec, "https://") {
 			return nil, fmt.Errorf("verification kind url requires an http(s) spec; got %q", spec)
 		}
 	default:
-		return nil, fmt.Errorf("unknown verification kind %q (want command|artifact|url|none)", kind)
+		return nil, fmt.Errorf("unknown verification kind %q (want command|artifact|wiki_artifact|url|none)", kind)
 	}
 	return &TaskVerification{Kind: kind, Spec: spec, Required: required}, nil
 }
@@ -95,6 +110,20 @@ func normalizeTaskVerification(kind, spec string, required bool) (*TaskVerificat
 // `test -f` probe against the host launch directory can false-pass on
 // stale host files (V3-N5) and never sees the bot's real deliverable.
 func runTaskVerification(v TaskVerification, workDir string) TaskVerificationResult {
+	return runTaskVerificationIn(v, taskVerificationEnv{WorkDir: workDir})
+}
+
+// taskVerificationEnv is everything a check may need beyond the spec. The
+// command/artifact/url kinds read WorkDir; wiki_artifact reads WikiRoot plus
+// the Artifact the completing mutation declared.
+type taskVerificationEnv struct {
+	WorkDir  string
+	WikiRoot string
+	Artifact string
+}
+
+func runTaskVerificationIn(v TaskVerification, env taskVerificationEnv) TaskVerificationResult {
+	workDir := env.WorkDir
 	now := time.Now().UTC().Format(time.RFC3339)
 	res := TaskVerificationResult{Kind: v.Kind, CheckedAt: now}
 	switch v.Kind {
@@ -163,6 +192,40 @@ func runTaskVerification(v TaskVerification, workDir string) TaskVerificationRes
 		}
 		res.Pass = true
 		res.Detail = fmt.Sprintf("GET %s: HTTP %d", v.Spec, resp.StatusCode)
+	case taskVerificationKindWikiArtifact:
+		artifact := strings.TrimSpace(env.Artifact)
+		if artifact == "" {
+			res.Detail = "no artifact_path on the completion: pass the wiki-relative path of the deliverable (e.g. artifacts/forex/<date>.md)"
+			return res
+		}
+		root := strings.TrimSpace(env.WikiRoot)
+		if root == "" {
+			res.Detail = "wiki root is not configured on this broker, so a wiki artifact cannot be checked"
+			return res
+		}
+		// Containment first: the artifact path arrives from a bot, and
+		// "../../etc/passwd" must not be able to satisfy a definition of done.
+		rel := filepath.Clean(filepath.FromSlash(strings.TrimPrefix(filepath.ToSlash(artifact), "/")))
+		if rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || filepath.IsAbs(rel) {
+			res.Detail = fmt.Sprintf("artifact_path %q escapes the wiki root", artifact)
+			return res
+		}
+		path := filepath.Join(root, rel)
+		info, err := os.Stat(path)
+		if err != nil {
+			res.Detail = fmt.Sprintf("artifact %q is not in the wiki (%v)", artifact, err)
+			return res
+		}
+		if info.IsDir() {
+			res.Detail = fmt.Sprintf("artifact %q is a directory, not a deliverable", artifact)
+			return res
+		}
+		if info.Size() == 0 {
+			res.Detail = fmt.Sprintf("artifact %q is empty", artifact)
+			return res
+		}
+		res.Pass = true
+		res.Detail = fmt.Sprintf("wiki artifact %s (%d bytes)", rel, info.Size())
 	default:
 		// Unknown kinds never pass — fail closed, mirroring the
 		// deterministic-integrations gate posture.
@@ -243,7 +306,18 @@ func (b *Broker) gateTaskCompletionVerification(body TaskPostRequest) error {
 	}
 
 	// Execute phase: no lock held.
-	res := runTaskVerification(v, workDir)
+	env := taskVerificationEnv{WorkDir: workDir}
+	if v.Kind == taskVerificationKindWikiArtifact {
+		// The declaring artifact rides on the SAME request (artifact_path);
+		// the task field still holds the pre-completion value here because
+		// this gate runs before the mutation applies the body.
+		env = taskVerificationEnv{
+			WorkDir:  workDir,
+			WikiRoot: WikiRootDir(),
+			Artifact: strings.TrimSpace(body.ArtifactPath),
+		}
+	}
+	res := runTaskVerificationIn(v, env)
 
 	// Stamp phase: re-find by ID (the task may have been mutated while the
 	// check ran) and persist the result. Specs are immutable after create

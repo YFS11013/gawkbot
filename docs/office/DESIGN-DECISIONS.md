@@ -204,13 +204,13 @@ digest ──► render_artifacts()（脚本，0 LLM）
 
 | 作者的设计 | 当前实现 | 判定 |
 |---|---|---|
-| 1 建任务 | 简报走 routine（定时 prompt），不建 task；人类问答也不建 | 部分（routine 是官方支持面，但绕过了 task） |
+| 1 建任务 | `agent_routine` 到点由引擎建 task（`created_by=system`），task 分发即唤醒；人类问答仍不建 | ✅（routine 不再绕开 task） |
 | 2 结构化定义（goal/deliverables/success criteria） | routine prompt 是固定模板，无逐次定义 | 未实现 |
 | 3 取上下文 + 工具 | MCP 修复后 cos 可见 42 个 team_* 工具 | ✅ |
 | 4 单一 owner | analyst 停用，forex 唯一外汇 owner | ✅ |
 | 5 执行 + 私有 KG / notebook | 四个 `/notebook/*` 路由已注册（2026-11-01）：`context_capture` 写 `agents/<slug>/notebook/*.md` 并 git 提交、`context_lookup` 可跨书架检索、`context_promote` 起 human 审批卡 | ✅（晋升仍需人工点头，符合原设计） |
 | 6 交付 wiki artifact | `wiki/artifacts/forex/<date>.md` 已生成、已进 git，并新增 `team/forex-brief-<date>.md` 摘要进入索引 | ✅ |
-| 7 确定性 learning hook（蒸馏） | 对 task 生效（wiki 有 `learning: pitfall/...`、`archivist: entity article` 提交）；对 routine 简报不生效（无 task 可蒸馏） | 部分 |
+| 7 确定性 learning hook（蒸馏） | 对 task 生效（wiki 有 `learning: pitfall/...`、`archivist: entity article` 提交）；routine 简报经 `wiki_artifact` 机器校验后同样进蒸馏 | ✅（2026-11-01） |
 | 8 skills / policies 激活 | 两条 policy 已注入并实测（CoS 贴出原文、派活带 `msg-1794` 回执）；存在 `team/skills/daily-opencode-model-snapshot.md` | ✅ |
 | 9 检索 + 去重 | 摘要文章 `team/forex-brief-<date>.md` 已进 `index/all.md`（`grep` 命中）；完整表格仍在 `artifacts/`，需按链接打开 | 部分 → 可用 |
 
@@ -224,12 +224,12 @@ digest ──► render_artifacts()（脚本，0 LLM）
 
 ### 9.3 结论
 
-执行层与规则层已对齐作者（artifact、确定性渲染、policy 注入、单一 owner）；**知识层 2026-11-01 起补上了第一块**——私有 notebook 路由已通（写入/检索/晋升卡），artifact 也已进索引；仍缺的是 routine 不产生 task，导致“蒸馏→skill”只对人工任务生效、对每日简报空转。
+执行层与规则层已对齐作者（artifact、确定性渲染、policy 注入、单一 owner）；**知识层 2026-11-01 起补上了第一块**——私有 notebook 路由已通（写入/检索/晋升卡），artifact 也已进索引；routine 现已产生 task 并带机器校验，“蒸馏→skill”对每日简报不再空转（证据见 `TODO-NEXT.md` P2 #5b）。
 
 ### 9.4 收敛路径（按性价比）
 
 1. ~~修 `/notebook/catalog`（或先关 `context_capture`，别让“记住了”是假的）——打通第 5 步。~~ **已做（2026-11-01）**：见 §5 第 5 步与 `RUNTIME-API.md` §6。
-2. 把简报挂到 `team_task` 上（routine 只负责触发），让第 7 步有输入。
+2. ~~把简报挂到 `team_task` 上（routine 只负责触发），让第 7 步有输入。~~ **已做（2026-11-01）**：见 §5 第 1、7 步与 `RUNTIME-API.md` §2。
 3. artifact 写完后触发 wiki index 重建，让第 9 步可检索。
 4. 按角色恢复 `bash` 白名单（第 3 步的最小权限版）。
 

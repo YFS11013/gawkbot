@@ -66,6 +66,11 @@ type schedulerBroker interface {
 	RecordAction(kind, source, channel, actor, summary, related string, signalIDs []string, decisionID string) error
 	ResumeTask(id, by, note string) (teamTask, bool, error)
 	PostAutomationMessage(from, channel, title, body, alertID, source, displayName string, ccSlugs []string, replyTo string) (channelMessage, bool, error)
+	// CreateRoutineTask lands an agent routine as a real task so the run has an
+	// artifact carrier; RoutineTaskForSignal dedupes a replayed scheduler tick.
+	// Both are only ever called from the routine fire path.
+	CreateRoutineTask(TaskPostRequest) (TaskResponse, error)
+	RoutineTaskForSignal(signal string) (string, bool)
 	UpdateSkillExecutionByWorkflowKey(key, status string, when time.Time) error
 	SetSchedulerJob(job schedulerJob) error
 	// PR 8 Lane G additions for cron registry support.
@@ -619,6 +624,22 @@ func (w *watchdogScheduler) processBotJob(job schedulerJob) {
 	if body == "" {
 		body = fmt.Sprintf("Routine %s scheduled run", job.Slug)
 	}
+	title := strings.TrimSpace(job.Label)
+	if title == "" {
+		title = job.Slug
+	}
+
+	// An agent routine now runs AS a task: the engine creates the task and the
+	// task dispatch wakes the owner, so the artifact has something to attach to
+	// and distillation has a task to distil. This returns before the message
+	// post below on purpose — posting both would wake the owner twice, and the
+	// extra turn would carry no task.
+	if strings.EqualFold(strings.TrimSpace(job.Kind), "agent_routine") {
+		_ = w.broker.CompleteSchedulerRun(job.Slug, nextRun, "scheduled",
+			w.fireRoutineAsTask(job, botSlug, channel, body, title, job.NextRun, startedAt))
+		return
+	}
+
 	// In a DM there's nobody else to disambiguate against, so an
 	// @mention is just noise. In a shared channel we prefix with the
 	// owner's slug so the assignment is obvious AND any downstream
@@ -630,10 +651,6 @@ func (w *watchdogScheduler) processBotJob(job schedulerJob) {
 		if !strings.Contains(body, mention) {
 			body = mention + " " + body
 		}
-	}
-	title := strings.TrimSpace(job.Label)
-	if title == "" {
-		title = job.Slug
 	}
 
 	events := []string{

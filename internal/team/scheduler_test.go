@@ -490,6 +490,9 @@ type schedulerFixtureBroker struct {
 	automationPosts  []automationCall
 	deliveredActions []string
 	skillUpdates     []skillUpdateCall
+	routineTasks     []TaskPostRequest
+	routineSignals   map[string]string
+	routineCreatErr  error
 }
 
 type skillUpdateCall struct {
@@ -584,6 +587,19 @@ func (b *schedulerFixtureBroker) UpdateSkillExecutionByWorkflowKey(key, status s
 	return nil
 }
 
+func (b *schedulerFixtureBroker) CreateRoutineTask(req TaskPostRequest) (TaskResponse, error) {
+	if b.routineCreatErr != nil {
+		return TaskResponse{}, b.routineCreatErr
+	}
+	b.routineTasks = append(b.routineTasks, req)
+	return TaskResponse{Task: teamTask{ID: "task-routine-" + req.Owner, Channel: req.Channel, Title: req.Title, Owner: req.Owner}}, nil
+}
+
+func (b *schedulerFixtureBroker) RoutineTaskForSignal(signal string) (string, bool) {
+	id, ok := b.routineSignals[signal]
+	return id, ok
+}
+
 func (b *schedulerFixtureBroker) SetSchedulerJob(_ schedulerJob) error { return nil }
 func (b *schedulerFixtureBroker) SchedulerJobControl(_ string, defaultInterval time.Duration) (bool, time.Duration) {
 	return true, defaultInterval
@@ -636,7 +652,11 @@ func (b *recordingLedgerBroker) PostAutomationMessage(string, string, string, st
 func (b *recordingLedgerBroker) UpdateSkillExecutionByWorkflowKey(string, string, time.Time) error {
 	return nil
 }
-func (b *recordingLedgerBroker) SetSchedulerJob(schedulerJob) error { return nil }
+func (b *recordingLedgerBroker) CreateRoutineTask(TaskPostRequest) (TaskResponse, error) {
+	return TaskResponse{}, nil
+}
+func (b *recordingLedgerBroker) RoutineTaskForSignal(string) (string, bool) { return "", false }
+func (b *recordingLedgerBroker) SetSchedulerJob(schedulerJob) error         { return nil }
 func (b *recordingLedgerBroker) SchedulerJobControl(_ string, defaultInterval time.Duration) (bool, time.Duration) {
 	return true, defaultInterval
 }

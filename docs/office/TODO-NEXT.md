@@ -9,9 +9,7 @@
 
 | # | 条目 | 需要什么 | 卡在哪 |
 |---|---|---|---|
-| A | P1 #4 `market-analyst` 去留（删成员 / 保留静默 / 只读 headline 做技术位） | **人拍板** | 三个选项都会改变组织边界，且删了难回滚 |
 | B | P2 #5 digest 的 `actual` 实际值来源 | **人拍板来源** | 一手（央行/统计局）/ FF 发布后页面 / 新闻标题，成本与准确性成反比 |
-| C | P2 #5b 简报挂到 `team_task`（打通蒸馏） | 无，纯工程 | 可随时开工：routine 只触发，由引擎建 task，artifact 作交付物 |
 | D | P3 #7c Windows 包级测试 ~21 条红 | **人拍板**「Windows 是否一等公民」 | 不拍板就只能继续用定向 `-run` |
 | E | P3 #7e 后续：Windows 用 Job Object 收口 | 无，纯工程 | 现在只能杀进程树，工具自派生的进程仍可能逃逸 |
 | F | P3 #8 清理：空仓库 `YFS11013/gawkbot-office`、3 个 exe 备份 | 前者需 `gh auth refresh -s delete_repo` | 备份 ~88 MB/个，删前确认不需要回滚点 |
@@ -82,13 +80,10 @@
 - policy 2 已写入（scope: forex-watch / market-analyst）：只许转述当日 artifact，缺数据写「digest 未收录」。
 - 残留：forex 复述时把 Core PCE 的前值/预期漏成「未单独列出」（digest 里其实有 0.2% → 0.3%），属保守方向的错误，暂不处理。
 
-### 4. market-analyst 的去留
-- 现状：routine 已停用；今天 07:30 那份含三处编造（Cook 反对票 / RBA 今日升息 4.85% / Warsh GDP 表态）。
-- 三个选项：
-  - A：删成员（最干净，forex 已覆盖事件层）
-  - B：保留成员、彻底不产出（人工点名才跑）
-  - C：改成“只读 headline + 只写技术位，不做方向判断”（改动最大，收益最小）
-- 建议 A 或 B。
+### 4. ~~market-analyst 的去留~~ ✅ 选 A，已删成员（2026-11-01）
+- 背景：routine 已停用；10-30 07:30 那份简报含三处编造（Cook 反对票 / RBA 今日升息 4.85% / Warsh GDP 表态）。
+- 处置：选 A（删除成员，forex 已覆盖事件层）——`POST /office-members {"action":"remove","slug":"market-analyst"}` 返 200，成员现为 `cos,fund-invest,forex-watch,data-keeper`；`market-analyst-daily-direction-rating-after-forex-brief` 早已 `enabled=false`，不再点火。
+- 遗留：该成员留下的 routine / DM 频道 slug 仍在调度表与消息历史里（只是不再有 owner），属正常历史数据，不清理。
 
 ## P2 — 数据缺口（决定“预期差”能不能恢复）
 
@@ -100,10 +95,15 @@
   3. 新闻标题里的数字（当前模型就用这个拼，正是单位混用的来源）
 - **验收**：digest 里出现 `actual` 字段，且与一手来源逐条对齐 ≥ 3 个事件。
 
-### 5b. 简报挂到 team_task（打通蒸馏）
-- 现状：routine 直接产出 artifact，无 task → core loop 第 7 步（蒸馏→skill）对简报空转。
-- 做法：routine 只负责触发，由 CoS 或引擎建 task（owner=forex-watch），artifact 作为交付物挂回 task。
-- **验收**：一次运行后 `git -C ~/.wuphf/wiki log` 出现该 task 的 learning/archivist 提交。
+### 5b. ~~简报挂到 team_task（打通蒸馏）~~ ✅ 已完成（2026-11-01）
+- 做法（引擎侧，不依赖 CoS）：
+  - `internal/team/broker_routine_tasks.go`：`kind=agent_routine` 到点后建 task（`created_by=system`，owner/title/details/channel 取自 job），`task_created` 的分发就是唤醒，**不再发 routine 消息**；`source_signal_id=routine:<slug>:<next_run>` 防重放；建单失败回落旧消息路径并在 Runs 记 `failed`。
+  - 同一处给 task 挂 `verification_kind=wiki_artifact`（required）：判定 complete 自报的 `artifact_path` 是 wiki 内非空文件。没有机器校验就没有蒸馏（`task_distill.go` 只蒸馏 verified-done），这一条是"打通"的另一半。
+- **验收（实测，两次真跑 forex routine "5"）**：
+  - `ACMER-2774`（无校验版）：`done`，`artifact=artifacts/forex/2026-11-01-headline.md`，Runs 记 `Dispatched as task #ACMER-2774`，DM 里没有 `from=routine` 的 routine 消息。
+  - `ACMER-2779`（带校验版）：`verification_result={pass:true, detail:"wiki artifact artifacts\forex\2026-11-01.md (2337 bytes)"}`，`git -C ~/.wuphf/wiki log` 出现 `learning: operational/5`（40f046d，作者 forex-watch，task_id=ACMER-2779），`team/learnings/index.jsonl` 新增一条 `source=execution trusted=true`。
+  - 该次运行没有 `archivist:` 提交——中文简报标题/正文没有命中已知实体，属数据事实，不是链路断。
+- 备注：`learningKeyFromTitle` 把中文标题压成 `5`（ASCII 数字），所以同一条 routine 的每日 learning 在渲染页按 (scope,type,key) 去重成一行，JSONL 每次追加一行。要按天区分得另给 key，当前不做。
 
 ### 5c. ~~artifact 进索引~~ ✅ 已完成（10-30 05:10）
 - 做法：bridge 增加 `git_commit()`；额外输出 `team/forex-brief-<date>.md` 摘要（索引只扫 `team/`）。

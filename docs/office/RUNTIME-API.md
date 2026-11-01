@@ -35,6 +35,23 @@
 
 `/routines` 是 bot service 内部端点，不是这里的东西，别混。
 
+**`kind=agent_routine` 的 job 到点后建 task，不再发 routine 消息**（2026-11-01，`internal/team/broker_routine_tasks.go`）。
+以前 routine 只 post 一条 `Kind=automation` 消息，工作做完没有 task 承接 artifact，core-loop 第 7 步（蒸馏）对每日简报永远空转。现在：
+
+- 引擎用 `created_by=system` 建一张 task（`title`=job.label，`details`=job.payload，`owner`=job.target_id，`channel`=解析出的 DM/频道），`task_created` 的分发就是唤醒——**不再额外发 routine 消息**（发了就是双唤醒，第二趟没有 task）。
+- 去重键是 `source_signal_id = routine:<slug>:<job.next_run>`：同一班次重放（重启补跑）不会叠第二张 task。
+- 建 task 失败时回落到旧的消息路径，并在 Runs 里记一条 `failed`（`Message` 带原因）。所以 Routines 里出现 `failed` + 消息照常落地 = task 层坏了，不是 routine 坏了。
+- `POST /scheduler/{slug}/run` 只把 `last_run` 标记为 triggered；**agent routine 的手动触发不会立刻执行**（它的 `next_run` 不动）。要立即跑，临时 `PATCH schedule_expr` 到两分钟后，跑完改回来。
+- 非 `agent_routine`（`task_follow_up` / `request_follow_up` / `recheck` / workflow / operator）仍走原路径。
+
+**routine task 自带 `verification_kind=wiki_artifact`（required）**，这是"打通蒸馏"的另一半。
+蒸馏（`internal/team/task_distill.go`）只在 **done + 机器校验通过** 时才写 learning 记录；只建 task 不校验，简报照旧不进记忆。该 kind 的判定：
+
+- 判定对象是**complete 时自报的 `artifact_path`**（wiki 相对路径，如 `artifacts/forex/2026-11-02.md`）。
+- 必须落在 `WikiRootDir()` 内且是非空文件：没传 `artifact_path`、文件不存在、空文件、`../` 越界，一律 fail 并把原因写进 `verification_result.detail`。
+- `complete` 没有 artifact 会被这条挡住（`verification_kind` required），bot 的修法是把交付物写进 wiki 再 complete——这正是我们想要的：简报必须落盘才算交付。
+- 校验通过 → `distillCompletedTask` 记录的 learning 进 `team/learnings.jsonl` 并生成 `learning: <type>/<key>` 提交；实体抽取另有 `archivist:` 提交（无实体命中时不会有）。
+
 **`workflow_provider` 两种解析路径**（决定一个 workflow job 是真跑还是每天失败）：
 
 - `composio`：定义 JSON 存本地 `~/.wuphf/workflows/composio/<key>.json`
