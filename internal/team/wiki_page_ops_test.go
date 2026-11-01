@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -392,6 +393,14 @@ func TestUndoRewritesLocked_RestoresMovedSelfLinkedArticle(t *testing.T) {
 // We force the failure by making the git object store unwritable after seeding,
 // so the rewrite + on-disk move happen but the commit step fails.
 func TestWikiPageMove_CommitFailureRestoresSelfLinkBody(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		// Chmod on a directory does not deny writes on Windows (it only sets
+		// the read-only attribute on files), so the commit this test needs to
+		// fail succeeds and the rollback path is never exercised. There is no
+		// portable way to make git's object write fail, so this stays Unix-only
+		// rather than asserting something Windows cannot produce.
+		t.Skip("directory write permissions are not enforced on Windows")
+	}
 	repo := initPageRepo(t)
 	ctx := context.Background()
 	const preBody = "# A\nself [[people/a]] sibling [[people/b]]"
