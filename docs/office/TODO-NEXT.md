@@ -17,7 +17,7 @@
 | I | P3 7g 空壳完成链的 ① 入口分流 / ③ 同题合并 | **人拍板** | ② 已做（done 且无 artifact → `hollow_completion=true`）；①③ 改用户可见流程 |
 | H | ~~P0 #0 基金周报（11-07）会被 `wiki_artifact` 校验打回~~ ✅ 已修（`b7231a0`） | — | 校验器现在把 `ra_<16 hex>`（含 `.html` 形式）解析成 `visual-artifacts/<id>.html` 再 stat（`task_verification.go` wiki_artifact 分支，`rich_artifact.go` 新增 `visualArtifactWikiRelPath`/`visualArtifactIDRef`）；测试 `TestRunTaskVerification_WikiArtifact` 增加 3 例。端到端待 11-07 首次触发确认 |
 | J | ~~候选场景（独立审阅回合 / 广度研究拆只读子代理 / 数值断言检查单 / 按技能路由模型）~~ 
-**✅ 审阅回合已落地（2026-11-01）**；其余三项仍待人挑 | — | 判据见 `DESIGN-DECISIONS.md` §10 判据 2；来源与推导链见 `RESEARCH-2026-11-01-multi-agent.md`（S3 的「每 PR 2 bug、58% 严重」）。实现与接口见 `RUNTIME-API.md` §1.2：done + 机检通过 → 自动开审阅任务（非作者，`review:<任务ID>` 幂等），交付 `team/reviews/<任务ID>.md`；写授权走 `POST /wiki/write-task`（任务声明的 `artifact_path` 即范围）。实测 `ACMER-2847`→`ACMER-2852`（0/3 通过、2 阻断）、`ACMER-2893`→`ACMER-2899`（新写入口落盘 5551 字节、`verification.pass=true`）。关闭开关 `WUPHF_TASK_REVIEWER=off` |
+**✅ 审阅回合已落地（2026-11-01）**；其余三项仍待人挑 | — | 判据见 `DESIGN-DECISIONS.md` §10 判据 2；来源与推导链见 `RESEARCH-2026-11-01-multi-agent.md`（S3 的「每 PR 2 bug、58% 严重」）。实现与接口见 `RUNTIME-API.md` §1.2：done + 机检通过 → 自动开审阅任务（非作者，`review:<任务ID>` 幂等），交付 `team/reviews/<任务ID>.md`；写授权走 `POST /wiki/write-task`（任务声明的 `artifact_path` 即范围）。实测 `ACMER-2847`→`ACMER-2852`（0/3 通过、2 阻断）、`ACMER-2893`→`ACMER-2899`（新写入口落盘 5551 字节、`verification.pass=true`）。关闭开关 `WUPHF_TASK_REVIEWER=off`。其余候选场景的展开（画面/证据/卡点/优先级）见 `USE-CASES-2026-11-01.md` |
 
 已完成、只在正文留档的：P0 #2 停用门禁、P2 #6 `/notebook/*`、P3 #7 测试包编译、P3 7d/7e 两个根因。
 
