@@ -1,6 +1,26 @@
 package team
 
-import "testing"
+import (
+	"path/filepath"
+	"testing"
+)
+
+// newComposioStateBroker builds the smallest broker `startComposioSignin`
+// needs. The paths under test return before any state mutation that touches
+// the rest of the broker (no action log, no HTTP), so starting a listener
+// would only add load to a package whose other tests are timing-sensitive.
+// PATH points at an empty dir so a real `composio` on the dev box cannot make
+// these pass by accident.
+func newComposioStateBroker(t *testing.T) *Broker {
+	t.Helper()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("COMPOSIO_CACHE_DIR", "")
+	t.Setenv("COMPOSIO_INSTALL_DIR", "")
+	t.Setenv("WUPHF_CONFIG_PATH", filepath.Join(home, "config.json"))
+	t.Setenv("PATH", t.TempDir())
+	return &Broker{}
+}
 
 // A missing CLI on a platform that cannot install one must never enter
 // "installing": that phase ends in install_failed, whose only remedy is "try
@@ -11,7 +31,7 @@ func TestComposioSigninUnsupportedPlatformSkipsInstall(t *testing.T) {
 	if composioAutoInstallSupported {
 		t.Skip("this platform has an installer to run")
 	}
-	b := newComposioSigninBroker(t, t.TempDir()) // empty PATH: no CLI anywhere
+	b := newComposioStateBroker(t)
 
 	state := b.startComposioSignin("human", composioSigninStartOptions{Auto: false})
 	if state.Status != composioSigninStatusCLIMissing {
@@ -38,7 +58,7 @@ func TestComposioSigninUnsupportedPlatformSkipsInstall(t *testing.T) {
 // The prompt that asks permission to install must say whether installing is
 // possible here, or the UI offers a button that cannot succeed.
 func TestComposioSigninInstallRequiredAdvertisesCapability(t *testing.T) {
-	b := newComposioSigninBroker(t, t.TempDir())
+	b := newComposioStateBroker(t)
 
 	state := b.startComposioSignin("human", composioSigninStartOptions{Auto: true})
 	if state.Status != composioSigninStatusInstallRequired {
