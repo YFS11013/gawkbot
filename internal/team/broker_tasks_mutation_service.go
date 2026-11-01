@@ -1478,6 +1478,11 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		// releases (same hazard class that killed the old auto-notebook-writer).
 		if reachedDone {
 			b.queueTaskDistillation(task.ID)
+			// Clean-context review (task_review.go): a bot that is not the
+			// author reads the delivered artifact against the task's success
+			// criteria and files findings. Internal quality lane — it never
+			// edits the artifact and never reopens this task.
+			b.queueTaskReview(task.ID)
 			// Post-task App discovery: a deterministic, broker-actuated judge that
 			// proposes an App only when the completed work looks repeatable. No-op
 			// unless enabled (production web path).

@@ -17,6 +17,46 @@
 
 `complete` 走 `MutateTask`（`internal/team/broker_tasks_mutation_service.go`，done 转换处理在 `reachedDone` 分支）。
 
+### 1.2 干净上下文审阅回合（`internal/team/task_review.go`）
+
+任务**通过机器校验并转到 done** 后，broker 自动开一张审阅任务，交给**非作者**的 bot：
+
+| 字段 | 值 |
+|---|---|
+| `task_type` / `pipeline_id` | `research` / `review` |
+| `source_signal_id` | `review:<被审阅任务ID>`（幂等键，重复触发不会开第二张） |
+| `depends_on` | `[<被审阅任务ID>]` |
+| `owner` | `WUPHF_TASK_REVIEWER` → 办公室 lead → 按 slug 排序首个非作者成员 |
+| `definition.artifact_path` | `team/reviews/<被审阅任务ID>.md` |
+| `verification` | `wiki_artifact` + `required`（审阅自己也要过机检，不能空手关单） |
+
+审阅者拿到的 `details` 只有：被审阅任务 ID/作者、原始 goal、原始成功标准、交付物路径。**不含**作者的聊天、计划、推理——这就是"干净上下文"。
+
+跳过条件：任务没有 `Definition`、没有 `artifact`、`verification.pass=false`、父任务本身是审阅、非 done 状态、办公室没有第二个 bot、`WUPHF_TASK_REVIEWER=off|none|disabled`。审阅**不改**被审阅任务、不重开、不 veto —— 结论只给人/CoS 决策。
+
+**写授权**：审阅者不需要人类逐次批准就能写那份文件。`definition.artifact_path` 就是它被授权的唯一路径，写入口是 `POST /wiki/write-task`
+（`{slug, task_id, path, content, mode, commit_message}`，`internal/team/wiki_handlers.go`）：
+
+| 情况 | 结果 |
+|---|---|
+| task 不存在 | 404 |
+| 调用方不是该任务 owner | 403 |
+| 任务已 done/failed/cancelled/archived | 409 |
+| 路径 ≠ 任务声明的 `artifact_path` | 403（`declares artifact_path "…", not "…"`） |
+| 通过 | 200 + `{path, commit_sha, bytes_written}`，并在 `broker.err.log` 记 `wiki write-task: task=… slug=… path=… bytes=…` |
+
+MCP 侧：`team_wiki_write` 增加 `task_id` 参数；给了 `task_id` 就不再要求 `human_request`。
+**路径必须在 `team/` 下**——`wiki_fs.go:164` / `wiki_git.go:1321` 只接受 `team/` 根，`reviews/…` 会被 wiki 层拒绝。
+
+巡检证据（2026-11-01 实跑）：
+
+```bash
+grep "wiki write-task" ~/.wuphf/logs/broker.err.log | tail -3
+ls -l ~/.wuphf/wiki/team/reviews/
+curl -s -H "Authorization: Bearer $TOKEN" "127.0.0.1:7892/tasks?all_channels=true&include_done=true" \
+  | python -c "import sys,json;print([t for t in json.load(sys.stdin)['tasks'] if t.get('source_signal_id')])"
+```
+
 ### 1.1 「Bot stuck on」求救单
 
 `[@bot] Bot stuck on: <原任务>` 是 error-recovery 自动建的止血单（details 末尾带 `Original work: … · ACMER-NNNN`）。
@@ -163,6 +203,7 @@ curl -s http://127.0.0.1:7892/health   # 不需要 token
 |---|---|---|
 | 模型是否进了进程 | `provider_model` | 回显 `WUPHF_OPENCODE_MODEL`，正常值 `opencode-go/beam-free`。**响应里没有 `model` 字段**，按 `model` 取只会得到 `null`，别据此判定"模型没传进去" |
 | 进程号 | — | **响应里没有 `pid`**；查进程用 `Get-CimInstance Win32_Process -Filter 'ProcessId=<n>'` 看 `CommandLine` |
+| 审阅者 | — | 环境变量 `WUPHF_TASK_REVIEWER`（bot slug，或 `off|none|disabled` 关闭审阅回合）；不设则走 lead → 首个非作者成员。**不回显在 `/health`** |
 | 其余 | `status` / `provider` / `focus_mode` / `dispatch` / `memory_backend*` / `build` / `session_mode` / `one_on_one_agent` | `build.version=dev` 表示这是本地 `go build` 产物 |
 
 日志重定向是否生效，不看 `/health`：看 `~/.wuphf/logs/broker.err.log` 里有没有**本次启动之后**的新行（`Start-Process` 的重定向是覆盖不是追加，重启后文件会缩到几行）。

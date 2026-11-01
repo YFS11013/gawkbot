@@ -8,8 +8,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -58,6 +60,126 @@ func (b *Broker) handleWikiWrite(w http.ResponseWriter, r *http.Request) {
 		"commit_sha":    sha,
 		"bytes_written": n,
 	})
+}
+
+// handleWikiWriteTask is the task-scoped write: a bot may write the one
+// artifact path its own open task declares in Definition.ArtifactPath without
+// a per-write human message. This is what lets a review task produce its
+// findings file — the broker created the task and pinned the path, so the
+// authorization already happened upstream and the path is not free-form.
+//
+// POST /wiki/write-task with {slug, task_id, path, content, mode,
+// commit_message}. Responses: 200 {path, commit_sha, bytes_written}; 403 the
+// task is not yours or the path is not its declared artifact; 404 unknown
+// task; 409 the task is already closed; 429/500 as /wiki/write.
+func (b *Broker) handleWikiWriteTask(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	worker := b.WikiWorker()
+	if worker == nil {
+		http.Error(w, `{"error":"wiki backend is not active"}`, http.StatusServiceUnavailable)
+		return
+	}
+	var body struct {
+		Slug          string `json:"slug"`
+		TaskID        string `json:"task_id"`
+		Path          string `json:"path"`
+		Content       string `json:"content"`
+		Mode          string `json:"mode"`
+		CommitMessage string `json:"commit_message"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, `{"error":"invalid json"}`, http.StatusBadRequest)
+		return
+	}
+	slug := strings.TrimSpace(body.Slug)
+	taskID := strings.TrimSpace(body.TaskID)
+	path := strings.TrimSpace(body.Path)
+	if slug == "" || taskID == "" || path == "" {
+		http.Error(w, `{"error":"slug, task_id and path are required"}`, http.StatusBadRequest)
+		return
+	}
+	if err := b.authorizeTaskArtifactWrite(slug, taskID, path); err != nil {
+		status := http.StatusForbidden
+		switch {
+		case errors.Is(err, errTaskArtifactUnknownTask):
+			status = http.StatusNotFound
+		case errors.Is(err, errTaskArtifactTaskClosed):
+			status = http.StatusConflict
+		}
+		log.Printf("wiki write-task refused: task=%s slug=%s path=%s: %v", taskID, slug, path, err)
+		writeJSON(w, status, map[string]string{"error": err.Error()})
+		return
+	}
+	isNew := wikiArticleIsNew(worker.Repo(), path)
+	sha, n, err := worker.Enqueue(r.Context(), slug, path, body.Content, body.Mode, body.CommitMessage)
+	if err != nil {
+		if errors.Is(err, ErrQueueSaturated) {
+			writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	if isNew {
+		b.emitNewWikiArticleCard(path, body.Content, r.Header.Get(botRateLimitHeader))
+	}
+	log.Printf("wiki write-task: task=%s slug=%s path=%s bytes=%d", taskID, slug, path, n)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"path":          path,
+		"commit_sha":    sha,
+		"bytes_written": n,
+	})
+}
+
+var (
+	errTaskArtifactUnknownTask = errors.New("task not found")
+	errTaskArtifactTaskClosed  = errors.New("task is already closed")
+)
+
+// authorizeTaskArtifactWrite is the whole gate: the task exists, the caller
+// owns it, it is still open, and the path is exactly the artifact path its
+// definition declared. Anything else is refused — the point of the gate is
+// that a bot cannot name a path the broker did not already pin on its task.
+func (b *Broker) authorizeTaskArtifactWrite(slug, taskID, path string) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	task := b.taskByIDLocked(taskID)
+	if task == nil {
+		return fmt.Errorf("%w: %s", errTaskArtifactUnknownTask, taskID)
+	}
+	if owner := strings.TrimSpace(task.Owner); !strings.EqualFold(owner, slug) {
+		return fmt.Errorf("task %s is owned by %s, not %s", taskID, owner, slug)
+	}
+	switch strings.ToLower(strings.TrimSpace(task.status)) {
+	case "done", "failed", "cancelled", "canceled", "archived":
+		return fmt.Errorf("%w: %s is %s", errTaskArtifactTaskClosed, taskID, task.status)
+	}
+	declared := ""
+	if task.Definition != nil {
+		declared = strings.TrimSpace(task.Definition.ArtifactPath)
+	}
+	if declared == "" {
+		return fmt.Errorf("task %s declares no artifact_path; pass human_request instead", taskID)
+	}
+	if !sameWikiPath(declared, path) {
+		return fmt.Errorf("task %s declares artifact_path %q, not %q", taskID, declared, path)
+	}
+	return nil
+}
+
+// sameWikiPath compares two wiki paths the way a filesystem would here:
+// separators normalized, no leading "./" or "/", case-insensitive.
+func sameWikiPath(a, b string) bool {
+	canon := func(s string) string {
+		s = strings.ReplaceAll(strings.TrimSpace(s), "\\", "/")
+		s = strings.TrimPrefix(s, "./")
+		s = strings.TrimPrefix(s, "/")
+		return strings.ToLower(path.Clean(s))
+	}
+	return canon(a) == canon(b)
 }
 
 // sanitizeReader validates a ?reader= query param before writing it to

@@ -307,7 +307,10 @@ digest ──► render_artifacts()（脚本，0 LLM）
 由上述证据固化四条设计判据（都是本办公室已经在做的事，记录下来免得被"看起来更酷的架构"带偏）：
 
 1. **一个任务一个写手**。任何并行都必须发生在写操作之外（只读子代理、审阅者）。`owner` 语义不是官僚主义，是防碎片化。
-2. **干净上下文的审阅回合是 15x token 最划算的用法**。写手自审几乎无效（context rot）；换一个只拿到 artifact + 验收标准的 bot 去挑问题，才是外部验证过的收益点。本仓库目前**缺这一环**（见 TODO-NEXT 开放项 J）。
+2. **干净上下文的审阅回合是 15x token 最划算的用法**。写手自审几乎无效（context rot）；换一个只拿到 artifact + 验收标准的 bot 去挑问题，才是外部验证过的收益点。
+   **已落地（2026-11-01，`internal/team/task_review.go`）**：任务通过机器校验转 done 后自动开审阅任务，owner 取非作者（`WUPHF_TASK_REVIEWER` → lead → 首个非作者），交付 `team/reviews/<任务ID>.md`，审阅自己也要过 `wiki_artifact`。
+   判据落地方式见 `RUNTIME-API.md` §1.2；写授权走 `POST /wiki/write-task`（任务声明的 `artifact_path` 即授权范围），不引入人类逐次批准。
+   实测：`ACMER-2847`（fund-invest 交付 3 行速览）→ 审阅任务 `ACMER-2852`（cos）逐条判 0/3 通过、列 2 条阻断；`ACMER-2893` → `ACMER-2899` 通过新写入口落 `team/reviews/ACMER-2893.md`（5551 字节，`verification.pass=true`）。
 3. **子代理把产出写文件、只回传引用**，避免传话失真。`artifact_path` + `wiki_artifact`（含新鲜度）就是这条的实现；不要为了"汇总方便"让子代理把全文塞回主 agent。
 4. **能写死的判据优先**：`command` > `wiki_artifact` > 人眼。判据写不死的任务，进不了无人值守，只该有人在场跑。
 

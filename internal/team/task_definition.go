@@ -40,6 +40,12 @@ type TaskDefinition struct {
 	Deliverables    []TaskDeliverable `json:"deliverables,omitempty"`
 	SuccessCriteria []string          `json:"success_criteria,omitempty"`
 	AccessNeeded    []string          `json:"access_needed,omitempty"`
+	// ArtifactPath is the one wiki path this task may write for itself.
+	// /wiki/write-task accepts exactly this path from exactly this task's
+	// owner, which is how a broker-created task (a review, say) produces its
+	// deliverable without a per-write human go-ahead. Empty means the task
+	// has no self-authorized write and callers still need a human_request.
+	ArtifactPath string `json:"artifact_path,omitempty"`
 	// DefinedAt is the RFC3339 timestamp stamped by the broker when the
 	// definition was set/updated (callers cannot forge it).
 	DefinedAt string `json:"defined_at,omitempty"`
@@ -58,7 +64,7 @@ func normalizeTaskDefinition(in *TaskDefinition, now string) (*TaskDefinition, e
 	if goal == "" {
 		return nil, fmt.Errorf("definition goal is required")
 	}
-	out := &TaskDefinition{Goal: goal, DefinedAt: now}
+	out := &TaskDefinition{Goal: goal, ArtifactPath: strings.TrimSpace(in.ArtifactPath), DefinedAt: now}
 	for i, d := range in.Deliverables {
 		name := strings.TrimSpace(d.Name)
 		if name == "" {

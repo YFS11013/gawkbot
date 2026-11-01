@@ -1019,6 +1019,15 @@ func ResolveTaskRecheckInterval() int {
 	)
 }
 
+// ResolveTaskReviewer names the bot that reads a delivered artifact in a
+// clean context (internal/team/task_review.go). Empty means "pick one":
+// the office lead, then the first member that is not the author. The env is
+// the only switch — a review lane is a per-office preference, not a knob
+// worth a config-file field.
+func ResolveTaskReviewer() string {
+	return strings.ToLower(strings.TrimSpace(Getenv("WUPHF_TASK_REVIEWER")))
+}
+
 // resolveTaskInterval reads envKey through Getenv, which walks the prefix
 // generations itself, so a legacy-prefixed spelling of the same setting is
 // still honoured (and warns) without this function naming it.

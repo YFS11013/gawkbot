@@ -16,7 +16,8 @@
 | G | P0 #1 forex-watch 16:30 自动简报 | **等时间** | `next_run=2026-11-02T08:30:00Z`（周一 16:30 北京），现在无法验 |
 | I | P3 7g 空壳完成链的 ① 入口分流 / ③ 同题合并 | **人拍板** | ② 已做（done 且无 artifact → `hollow_completion=true`）；①③ 改用户可见流程 |
 | H | ~~P0 #0 基金周报（11-07）会被 `wiki_artifact` 校验打回~~ ✅ 已修（`b7231a0`） | — | 校验器现在把 `ra_<16 hex>`（含 `.html` 形式）解析成 `visual-artifacts/<id>.html` 再 stat（`task_verification.go` wiki_artifact 分支，`rich_artifact.go` 新增 `visualArtifactWikiRelPath`/`visualArtifactIDRef`）；测试 `TestRunTaskVerification_WikiArtifact` 增加 3 例。端到端待 11-07 首次触发确认 |
-| J | 外部调研得出的候选场景（独立审阅回合 / 广度研究拆只读子代理 / 数值断言检查单 / 按技能路由模型） | **人挑 1–2 个排期** | 证据与判据见 `DESIGN-DECISIONS.md` §10；其中"干净上下文审阅者"是有数据支持的最高性价比项，本仓库尚无此环节 |
+| J | ~~候选场景（独立审阅回合 / 广度研究拆只读子代理 / 数值断言检查单 / 按技能路由模型）~~ 
+**✅ 审阅回合已落地（2026-11-01）**；其余三项仍待人挑 | — | 判据见 `DESIGN-DECISIONS.md` §10 判据 2。实现与接口见 `RUNTIME-API.md` §1.2：done + 机检通过 → 自动开审阅任务（非作者，`review:<任务ID>` 幂等），交付 `team/reviews/<任务ID>.md`；写授权走 `POST /wiki/write-task`（任务声明的 `artifact_path` 即范围）。实测 `ACMER-2847`→`ACMER-2852`（0/3 通过、2 阻断）、`ACMER-2893`→`ACMER-2899`（新写入口落盘 5551 字节、`verification.pass=true`）。关闭开关 `WUPHF_TASK_REVIEWER=off` |
 
 已完成、只在正文留档的：P0 #2 停用门禁、P2 #6 `/notebook/*`、P3 #7 测试包编译、P3 7d/7e 两个根因。
 
@@ -45,6 +46,10 @@
 - **部署坑（2026-11-01 16:30 实测，会打挂办公室）**：在一次性 bash 调用里 `Stop-Process` + `Move-Item` + `Start-Process`，若该调用在 300s 上限被回收，Windows Job Object 会连**刚启动的 broker** 一起杀掉 → 服务空窗，直到看门狗下一轮（实测空窗 3 分 25 秒）。安全做法二选一：
   1. 只杀不启：`Stop-Process -Id <pid> -Force`，让看门狗按它自己的参数重启（最稳，实测 3 分钟自愈）；
   2. 启动单独一次短调用，确认返回，不与 build/移动混在同一条命令里。
+- **2026-11-01 19:00–19:21 全办公室停摆：`opencode-go/beam-free` 本身挂死（不是唤醒链路）**。所有 bot turn `stage=started` 后无任何输出，15 分钟超时后 `status=error detail="exit status 1"`；fund/data-keeper 另有 `database is locked`（同一时刻并发 spawn 的结果）。
+  - 定性证据：停掉 broker、清空全部 `opencode.exe` 后单跑 `opencode run --model opencode-go/beam-free "reply OK"` → **90 秒零输出被 KILL**；同一命令换 `--model bear/deepseek-chat` → **7 秒返回 JSON**。二进制 `opencode --version` 正常（1.19.3）。
+  - 处置：broker 以 `WUPHF_OPENCODE_MODEL=bear/deepseek-chat` 重启（PID 67688，19:35），turn 恢复（cos 55s/15s `status=ok`）。**beam-free 恢复后要换回来**，否则质量基线变了。
+  - 排查顺序教训：先单跑 provider，再怀疑唤醒/队列/DB。`database is locked` 是并发 spawn 的次生现象，不是根因（`~/.local/share/opencode/opencode.db` 已 6.4 GB，值得单独排一次瘦身）。
 - 判据：human 消息 2 分钟内日志无 `stage=started`，且消息已在 `broker-state.json` ⇒ 唤醒掉线。
 - 处置：重启 broker（命令见附录），重读 token，重发。
 - 复发记录：2026-10-30 05:11（空闲 16 小时后首次唤醒失败）。
@@ -188,6 +193,12 @@
 - 部署冒烟样例：`ACMER-2789`（`smoke: hollow_completion 验证`）是上线验证用的，不是第五次事故，数数时忽略它。二进制 16:30 构建、16:36 起由看门狗拉起（PID 39216，`provider_model=opencode-go/beam-free`）。
 - **待拍板**：① 疑问句不进 Issue（UI 入口分流或 `task_type=question`）；③ 同题窗口期内复述+引用旧任务而不是新建。两条都改用户可见流程，未动。
 
+### 7h. 有 shell 的 bot 可以直接写 wiki 文件，绕过所有写入门禁（2026-11-01 发现）
+- 现象：`/wiki/write-task` 明确拒绝了 `team/reviews/…` 以外的路径（`wiki write-task refused` 有日志），但 cos 仍把 `reviews/ACMER-2832.md`、`reviews/ACMER-2847.md` 写进了 `~/.wuphf/wiki/`，git 里以 `recover from crashed write` / `external edit` 形式出现。
+- 原因：bot 的 shell 工具能直接对 `~/.wuphf/wiki/` 落盘，`/notebook/*`、`/wiki/write*`、promote 审批这些门禁只在 API 层生效。
+- 影响面：任何 bot 都能改 `team/` 正文、伪造 learning；`wiki_artifact` 校验也因此可能被"先落盘再 complete"绕过（本轮的 `ACMER-2852` 就是先被忘接写成 `reviews/` 再由人把文件挪进 `team/reviews/` 才关单）。
+- 未做：给 wiki 目录加文件级监控并告警（`external edit` 提交已存在，可作为探针），或收紧 bot 的 shell 工作目录。属安全边界改造，需拍板。
+
 ### 8. 清理
 - ✅ **scheduler 死 job 已清（2026-11-01 16:55）**：`task_follow_up` / `request_follow_up` / `recheck` 这类一次性 job 在实体终结后只是被关掉（`status=done`、`next_run` 清空），从来没人删，一天就攒到 145 条，把 160 条里真正活着的 9 条埋掉。
   - 机制：boot 时 `pruneRetiredSchedulerJobs` 丢弃"已关闭 + 无 next_run + 关闭超过 10 分钟"的 job，并连同其 runs/activity/revisions 环形缓冲一起删（`scheduler_lifecycle.go`）。
@@ -205,7 +216,8 @@
 | 项 | 值 |
 |---|---|
 | 启动命令 | `gawkbot-fix.exe --broker-port 7892 --provider opencode --no-open` |
-| 模型 | `WUPHF_OPENCODE_MODEL=opencode-go/beam-free`（用户级环境变量，已 `setx` 持久化）；兜底 `bear/deepseek-chat` |
+| 模型 | `WUPHF_OPENCODE_MODEL=opencode-go/beam-free`（用户级环境变量，已 `setx` 持久化）；兜底 `bear/deepseek-chat`。
+**2026-11-01 19:35 起运行态是 `bear/deepseek-chat`**（beam-free 挂死，见 P0-0） |
 | broker token | `%TEMP%\wuphf-broker-token-7892`，**每次重启都变** |
 | 桥 | Windows 计划任务跑 `forex-bridge-run.vbs`，每 6 小时；健康时无 `wiki/team/alerts.md` |
 | 简报产物 | `~/.wuphf/wiki/artifacts/forex/<date>.md` + `<date>-headline.md` |

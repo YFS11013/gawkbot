@@ -41,7 +41,9 @@ func handleTeamWikiWrite(ctx context.Context, _ *mcp.CallToolRequest, args TeamW
 	// human-delegation gate that other bots need. Other bots still go
 	// through notebook_write -> notebook_promote -> @librarian review, or pass a
 	// human_request for a one-off direct write.
-	if !adminDirectWikiWriteBypassEnabled() && !strings.EqualFold(strings.TrimSpace(slug), team.LibrarianSlug) {
+	// A task-scoped write skips the human-delegation gate: the broker created	the task and pinned its Definition.ArtifactPath, so authorization already	happened upstream and /wiki/write-task enforces the path match.
+	taskID := strings.TrimSpace(args.TaskID)
+	if taskID == "" && !adminDirectWikiWriteBypassEnabled() && !strings.EqualFold(strings.TrimSpace(slug), team.LibrarianSlug) {
 		if err := verifyHumanWikiWriteDelegation(ctx, slug, args.HumanRequest); err != nil {
 			return toolError(err), nil, nil
 		}
@@ -67,13 +69,19 @@ func handleTeamWikiWrite(ctx context.Context, _ *mcp.CallToolRequest, args TeamW
 		CommitSHA    string `json:"commit_sha"`
 		BytesWritten int    `json:"bytes_written"`
 	}
-	err = brokerPostJSON(ctx, "/wiki/write", map[string]any{
+	endpoint := "/wiki/write"
+	body := map[string]any{
 		"slug":           slug,
 		"path":           path,
 		"mode":           mode,
 		"content":        args.Content,
 		"commit_message": args.CommitMsg,
-	}, &result)
+	}
+	if taskID != "" {
+		endpoint = "/wiki/write-task"
+		body["task_id"] = taskID
+	}
+	err = brokerPostJSON(ctx, endpoint, body, &result)
 	if err != nil {
 		return toolError(err), nil, nil
 	}

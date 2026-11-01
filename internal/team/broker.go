@@ -721,6 +721,7 @@ func (b *Broker) StartOnPort(port int) error {
 	mux.HandleFunc("/members", b.requireAuth(b.handleMembers))
 	mux.HandleFunc("/memory", b.requireAuth(b.handleMemory))
 	mux.HandleFunc("/wiki/write", b.requireAuth(b.handleWikiWrite))
+	mux.HandleFunc("/wiki/write-task", b.requireAuth(b.handleWikiWriteTask))
 	mux.HandleFunc("/wiki/write-human", b.requireAuth(b.handleWikiWriteHuman))
 	// Per-bot instruction files (SOUL/IDENTITY/OPERATIONS/TOOLS + office
 	// USER.md). Separate from /wiki/* so they use the strict bot-file path
