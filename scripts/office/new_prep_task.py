@@ -84,6 +84,22 @@ def main(argv):
     ap.add_argument("--topic", default="", help="optional theme")
     ap.add_argument("--port", type=int, default=DEFAULT_PORT)
     ap.add_argument("--approve", action="store_true", help="approve straight away")
+    ap.add_argument(
+        "--forbid",
+        action="append",
+        default=[],
+        help="literal phrase the pack must not contain (repeatable); for rewrites",
+    )
+    ap.add_argument(
+        "--details-file",
+        default=None,
+        help="read task details from this file (rewrite instructions live in a file, not argv)",
+    )
+    ap.add_argument(
+        "--rewrite",
+        action="store_true",
+        help="rewrite in place: same artifact path, title says so",
+    )
     ap.add_argument("--dry-run", action="store_true", help="print the payload only")
     a = ap.parse_args(argv)
 
@@ -106,6 +122,12 @@ def main(argv):
         "三个该问的问题，以及至少一条「如果他说 X → 说明 Y → 我们改 Z」的分支。"
         % (date, a.who, path)
     )
+    if a.details_file:
+        with open(a.details_file, encoding="utf-8") as f:
+            details = f.read()
+    criteria = list(criteria)
+    if a.forbid:
+        criteria.append("不得出现这些字面串：" + "、".join(a.forbid))
     definition = {
         "goal": goal,
         "deliverables": [
@@ -119,7 +141,8 @@ def main(argv):
     }
     create = {
         "action": "create",
-        "title": "准备包：与 %s 的会面（%s）" % (a.who, date),
+        "title": ("重写准备包：与 %s 的会面（%s）" if a.rewrite else "准备包：与 %s 的会面（%s）")
+        % (a.who, date),
         "details": details,
         "created_by": "human",
         "owner": a.owner,
@@ -132,7 +155,13 @@ def main(argv):
         "created_by": "human",
         "definition": definition,
         "verification_kind": "command",
-        "verification_spec": '"%s" "%s" "%s"' % (INTERPRETER, GATE, path),
+        "verification_spec": '"%s" "%s" "%s"%s'
+        % (
+            INTERPRETER,
+            GATE,
+            path,
+            "".join(' --forbid "%s"' % f for f in a.forbid),
+        ),
         "verification_required": True,
     }
 

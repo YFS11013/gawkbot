@@ -76,9 +76,18 @@ def bullets(lines):
     return out
 
 
-def check(text):
-    """Return a list of failure strings; empty means the pack passes."""
+def check(text, forbid=()):
+    """Return a list of failure strings; empty means the pack passes.
+
+    forbid is a list of literal phrases the pack must NOT contain. A rewrite
+    task needs a way to require that a named wrong sentence is gone: the
+    structural rules alone cannot tell a corrected pack from the identical
+    one a bot submitted again.
+    """
     fails = []
+    for phrase in forbid:
+        if phrase and phrase in text:
+            fails.append("forbidden phrase still present: %s" % clip(phrase, 60))
     sections = split_sections(text)
     by_key = {}
     for key, aliases in REQUIRED.items():
@@ -221,7 +230,15 @@ def self_test():
         print("%-14s %s %s" % (name, "PASS" if ok else "FAIL", "; ".join(got) or "clean"))
         if not ok:
             bad += 1
-    print("self-test: %d/%d" % (len(cases) - bad, len(cases)))
+    # forbid must both fire on a present phrase and stay quiet on an absent one
+    for phrase, want_hit in (("成本上升", True), ("不存在的句子", False)):
+        hit = any("forbidden phrase" in f for f in check(GOOD, [phrase]))
+        ok = hit == want_hit
+        print("%-14s %s %s" % ("forbid", "PASS" if ok else "FAIL", phrase))
+        if not ok:
+            bad += 1
+    total = len(cases) + 2
+    print("self-test: %d/%d" % (total - bad, total))
     return 0 if bad == 0 else 1
 
 
@@ -238,6 +255,12 @@ def main(argv):
     ap.add_argument("path", nargs="?")
     ap.add_argument("--wiki", default=default_wiki())
     ap.add_argument("--self-test", action="store_true")
+    ap.add_argument(
+        "--forbid",
+        action="append",
+        default=[],
+        help="literal phrase that must not appear (repeatable)",
+    )
     a = ap.parse_args(argv)
     if a.self_test:
         return self_test()
@@ -253,7 +276,7 @@ def main(argv):
     if not text.strip():
         print("prep check failed: file is empty")
         return 1
-    fails = check(text)
+    fails = check(text, a.forbid)
     if fails:
         print("prep check failed (%d):" % len(fails))
         for f_ in fails:
