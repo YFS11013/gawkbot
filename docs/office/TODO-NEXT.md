@@ -181,7 +181,8 @@
 - 链路：**问题被建成了 Issue**（`created_by=human`、`task_type=issue`、`title==details`，没有 Definition）→ 完成零门槛（`spec {}`）→ 一次 `team_task complete` 即 done → 完成 hook 广播 `delivered`，频道里没有正文 → 下一轮把它当「已答」的证据（`ses_e6aa388e4ffe65ZEW1dTv7z8qQ` 的推理原文：*"The answer was already posted in chat."*）。
 - 结构原因：artifact 门禁只对**有 Definition** 的任务生效（`broker_tasks_mutation_service.go` 的 artifact gate），人工/对话框建的 Issue 全是 `Definition=nil`；`wiki_artifact` 强制校验只挂在 agent_routine 生成的任务上。
 - **已做（②，`broker_types.go` + `broker_tasks_mutation_service.go`）**：任务转到 done 且 `artifact` 为空时，打 `hollow_completion=true` 上线（`teamTask.HollowCompletion`，wire 键 `hollow_completion`）。不改完成语义，只让这类完成可被计数。测试 `TestCompleteWithoutArtifactIsMarkedHollow`（空完成=true、带 artifact=false、字段上线）。
-- 巡检口径：`curl /tasks?all_channels=true&include_done=true` 里 `status=done && (hollow_completion || artifact 为空)` 的条数。历史任务没有该字段，等价于 `artifact` 为空——2026-11-01 实测 51 个 done 里 46 个如此。
+- 巡检口径：`curl /tasks?all_channels=true&include_done=true` 里 `status=done && (hollow_completion || artifact 为空)` 的条数。历史任务没有该字段，等价于 `artifact` 为空——2026-11-01 实测 52 个 done 里 47 个如此。
+- 部署冒烟样例：`ACMER-2789`（`smoke: hollow_completion 验证`）是上线验证用的，不是第五次事故，数数时忽略它。二进制 16:30 构建、16:36 起由看门狗拉起（PID 39216，`provider_model=opencode-go/beam-free`）。
 - **待拍板**：① 疑问句不进 Issue（UI 入口分流或 `task_type=question`）；③ 同题窗口期内复述+引用旧任务而不是新建。两条都改用户可见流程，未动。
 
 ### 8. 清理
