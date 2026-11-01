@@ -40,7 +40,7 @@ DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2}|\d{4}-\d{2}|\d{4}\s*年\s*\d{1,2}\s*�
 # can open. Deliberately generous: the gate is against claims with NO
 # provenance, not against a particular citation style.
 SOURCE_RE = re.compile(
-    r"(\[出处|出处[::]|\[src|来源[::]|\]\(http|https?://|team/|\.md\b|ACMER-\d+|src[::])",
+    r"(\[出处|出处[::]|\[src|来源[::]|\]\(http|https?://|team/|\.md\b|\.json\b|ACMER-\d+|src[::])",
     re.IGNORECASE,
 )
 PRIOR_ARTIFACT_RE = re.compile(r"(\.md\b|team/|ACMER-\d+|review|任务)", re.IGNORECASE)
@@ -219,6 +219,14 @@ def self_test():
 
 
 def main(argv):
+    # The spec runs under `cmd /C`, whose console encoding is cp936 on a
+    # zh-CN box. The broker reads the pipe as UTF-8, so Chinese failure text
+    # arrived mojibake and the writer could not act on it. Force UTF-8
+    # regardless of the console's code page.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
     ap = argparse.ArgumentParser(add_help=True)
     ap.add_argument("path", nargs="?")
     ap.add_argument("--wiki", default=default_wiki())
