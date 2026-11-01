@@ -3,6 +3,7 @@ package team
 import (
 	"errors"
 	"os/exec"
+	"runtime"
 	"syscall"
 	"testing"
 )
@@ -15,6 +16,13 @@ import (
 // is safe because the operation never ran.
 func TestIsTransientProcessKill(t *testing.T) {
 	t.Run("SIGKILL is transient", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			// Windows has no SIGKILL and no WaitStatus.Signaled(). A git-bash
+			// `sh` is on PATH here, so `kill -9 $$` runs but exits with MSYS's
+			// own code (2304), which is a plain non-zero exit — asserting it is
+			// transient would be testing a signature this OS cannot produce.
+			t.Skip("no SIGKILL semantics on Windows")
+		}
 		// `sh -c 'kill -9 $$'` reproduces the real signature: an ExitError
 		// whose WaitStatus reports Signaled() with SIGKILL.
 		err := exec.Command("sh", "-c", "kill -9 $$").Run()
