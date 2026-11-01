@@ -14,6 +14,7 @@
 | E | P3 #7e 后续：Windows 用 Job Object 收口 | 无，纯工程 | 现在只能杀进程树，工具自派生的进程仍可能逃逸 |
 | F | P3 #8 清理：空仓库 `YFS11013/gawkbot-office`、3 个 exe 备份 | 前者需 `gh auth refresh -s delete_repo` | 备份 ~88 MB/个，删前确认不需要回滚点 |
 | G | P0 #1 forex-watch 16:30 自动简报 | **等时间** | `next_run=2026-11-02T08:30:00Z`（周一 16:30 北京），现在无法验 |
+| I | P3 7g 空壳完成链的 ① 入口分流 / ③ 同题合并 | **人拍板** | ② 已做（done 且无 artifact → `hollow_completion=true`）；①③ 改用户可见流程 |
 | H | ~~P0 #0 基金周报（11-07）会被 `wiki_artifact` 校验打回~~ ✅ 已修（`b7231a0`） | — | 校验器现在把 `ra_<16 hex>`（含 `.html` 形式）解析成 `visual-artifacts/<id>.html` 再 stat（`task_verification.go` wiki_artifact 分支，`rich_artifact.go` 新增 `visualArtifactWikiRelPath`/`visualArtifactIDRef`）；测试 `TestRunTaskVerification_WikiArtifact` 增加 3 例。端到端待 11-07 首次触发确认 |
 
 已完成、只在正文留档的：P0 #2 停用门禁、P2 #6 `/notebook/*`、P3 #7 测试包编译、P3 7d/7e 两个根因。
@@ -171,6 +172,14 @@
   - C. 回答作为任务评论/线程写回任务所在频道（需要评论模型，不只是消息）。
 - 顺带：失败重投不降噪（审计建议 N 次后停），本轮未动。
 - 同类已修（2026-11-01）：app 提案审批后建 App Builder 任务也把空频道默认成 `#general`（`broker_apps_proposal.go`）。现在按「提案所在房间 → 建者（app-builder）的主场 → 记日志放弃」解析；提案房间在审批前退役（`#general` 退役、成员删除带走 DM）时不再把任务和错误消息塞进死房间。新增 `TestProposeAppApprovalSurvivesARetiredRoom`。
+
+### 7g. 空壳完成（2026-11-01 诊断；② 已落地，①/③ 待拍板）
+- 复发三次同款：`ACMER-2757`（10-31，跑满 10 分钟超时）→ `ACMER-2764`（stuck 重试，补答后关单）→ `ACMER-2785`（11-01，24 秒关单，正文只有一句「已完成」）。
+- 链路：**问题被建成了 Issue**（`created_by=human`、`task_type=issue`、`title==details`，没有 Definition）→ 完成零门槛（`spec {}`）→ 一次 `team_task complete` 即 done → 完成 hook 广播 `delivered`，频道里没有正文 → 下一轮把它当「已答」的证据（`ses_e6aa388e4ffe65ZEW1dTv7z8qQ` 的推理原文：*"The answer was already posted in chat."*）。
+- 结构原因：artifact 门禁只对**有 Definition** 的任务生效（`broker_tasks_mutation_service.go` 的 artifact gate），人工/对话框建的 Issue 全是 `Definition=nil`；`wiki_artifact` 强制校验只挂在 agent_routine 生成的任务上。
+- **已做（②，`broker_types.go` + `broker_tasks_mutation_service.go`）**：任务转到 done 且 `artifact` 为空时，打 `hollow_completion=true` 上线（`teamTask.HollowCompletion`，wire 键 `hollow_completion`）。不改完成语义，只让这类完成可被计数。测试 `TestCompleteWithoutArtifactIsMarkedHollow`（空完成=true、带 artifact=false、字段上线）。
+- 巡检口径：`curl /tasks?all_channels=true&include_done=true` 里 `status=done && (hollow_completion || artifact 为空)` 的条数。历史任务没有该字段，等价于 `artifact` 为空——2026-11-01 实测 51 个 done 里 46 个如此。
+- **待拍板**：① 疑问句不进 Issue（UI 入口分流或 `task_type=question`）；③ 同题窗口期内复述+引用旧任务而不是新建。两条都改用户可见流程，未动。
 
 ### 8. 清理
 - `YFS11013/gawkbot-office`（空仓库，创建后被 fork 方案取代）：删除需 `delete_repo` scope → `gh auth refresh -h github.com -s delete_repo && gh repo delete YFS11013/gawkbot-office --yes`，或网页删。

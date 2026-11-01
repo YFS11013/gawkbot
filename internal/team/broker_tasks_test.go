@@ -4107,3 +4107,56 @@ func TestBrokerTaskMemoryWorkflowAcceptsContextToolEventShape(t *testing.T) {
 		t.Fatalf("expected normalized gbrain citation ids, got %+v", citation)
 	}
 }
+
+// TestCompleteWithoutArtifactIsMarkedHollow pins the receipt that makes the
+// legacy "done with nothing to open" path countable: tasks WITHOUT a
+// Definition skip the artifact gate, so the only trace of an empty completion
+// used to be a done-post in chat (ACMER-2757/2764/2785).
+func TestCompleteWithoutArtifactIsMarkedHollow(t *testing.T) {
+	b := newTestBroker(t)
+
+	empty, err := b.MutateTask(TaskPostRequest{
+		Action: "create", Channel: testTeamRoom, Title: "今天有哪些新鲜事",
+		Details: "今天有哪些新鲜事", CreatedBy: "human",
+	})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	done, err := b.MutateTask(TaskPostRequest{
+		Action: "complete", ID: empty.Task.ID, Channel: empty.Task.Channel, CreatedBy: "human",
+	})
+	if err != nil {
+		t.Fatalf("complete: %v", err)
+	}
+	if !done.Task.HollowCompletion {
+		t.Fatalf("a done task with no artifact must be marked hollow; got %+v", done.Task)
+	}
+	wire, err := json.Marshal(done.Task)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if !strings.Contains(string(wire), `"hollow_completion":true`) {
+		t.Errorf("the flag must ride the wire so patrols can count it; got %s", wire)
+	}
+	if stored := b.TaskByID(done.Task.ID); stored == nil || !stored.HollowCompletion {
+		t.Errorf("the flag must survive the mutation itself; got %+v", stored)
+	}
+
+	shipped, err := b.MutateTask(TaskPostRequest{
+		Action: "create", Channel: testTeamRoom, Title: "Write the launch brief",
+		CreatedBy: "human",
+	})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	kept, err := b.MutateTask(TaskPostRequest{
+		Action: "complete", ID: shipped.Task.ID, Channel: shipped.Task.Channel,
+		CreatedBy: "human", ArtifactPath: "artifacts/forex/2026-11-01.md",
+	})
+	if err != nil {
+		t.Fatalf("complete with artifact: %v", err)
+	}
+	if kept.Task.HollowCompletion {
+		t.Errorf("a completion that names an artifact is not hollow; got %+v", kept.Task)
+	}
+}

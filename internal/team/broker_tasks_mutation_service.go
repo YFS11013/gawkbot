@@ -1332,6 +1332,14 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		syncTaskMemoryWorkflow(task, now)
 		reachedDone := strings.EqualFold(strings.TrimSpace(task.status), "done") &&
 			!strings.EqualFold(strings.TrimSpace(beforeStatus), "done")
+		// Receipt for the legacy path: a task WITHOUT a Definition may still
+		// reach done with nothing to open. Record that instead of pretending it
+		// shipped something, so patrols can count these rather than rediscover
+		// them one chat thread at a time (ACMER-2757/2764/2785 all had this
+		// shape: done, no artifact, the only "answer" was a done-post).
+		if reachedDone {
+			task.HollowCompletion = strings.TrimSpace(task.Artifact) == ""
+		}
 		// Artifact gate (core-loop B1): a task with a Definition cannot land
 		// in done without a delivered artifact on record. Tasks without a
 		// Definition keep legacy behavior — additive rollout.

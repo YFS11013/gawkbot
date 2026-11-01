@@ -259,17 +259,17 @@ type teamTask struct {
 	Provider         string `json:"provider,omitempty"`
 	Model            string `json:"model,omitempty"`
 	reviewState      string
-	SourceSignalID   string   `json:"source_signal_id,omitempty"`
-	SourceDecisionID string   `json:"source_decision_id,omitempty"`
+	SourceSignalID   string `json:"source_signal_id,omitempty"`
+	SourceDecisionID string `json:"source_decision_id,omitempty"`
 	// SkillID/SkillName identify the skill a skill_run task executes. The
 	// dispatch title ("Run skill: <title>") is display text and is NOT unique:
 	// two skills can share a title, and an empty Title falls back to Name.
 	// Dedupe must key on identity, so creation stamps these.
-	SkillID          string   `json:"skill_id,omitempty"`
-	SkillName        string   `json:"skill_name,omitempty"`
-	WorktreePath     string   `json:"worktree_path,omitempty"`
-	WorktreeBranch   string   `json:"worktree_branch,omitempty"`
-	DependsOn        []string `json:"depends_on,omitempty"`
+	SkillID        string   `json:"skill_id,omitempty"`
+	SkillName      string   `json:"skill_name,omitempty"`
+	WorktreePath   string   `json:"worktree_path,omitempty"`
+	WorktreeBranch string   `json:"worktree_branch,omitempty"`
+	DependsOn      []string `json:"depends_on,omitempty"`
 	// BlockedOn is the typed-blocker list that supersedes DependsOn for
 	// the multi-bot harness path (Lane A foundation). Entries are task IDs
 	// or PR identifiers that must resolve before the task can leave
@@ -347,6 +347,13 @@ type teamTask struct {
 	// WITH a Definition cannot reach done until this is set; tasks without
 	// one keep legacy behavior. Wire key "artifact" is additive.
 	Artifact string `json:"artifact,omitempty"`
+	// HollowCompletion marks a done task that shipped no artifact. Tasks WITH
+	// a Definition are blocked from reaching done empty (the artifact gate in
+	// the mutation service); tasks without one keep legacy behavior, and this
+	// flag is what makes that legacy path countable. A done task flagged here
+	// has nothing a later reader can open — whatever it answered lives in chat
+	// only, which is exactly the shape the core loop calls waste.
+	HollowCompletion bool `json:"hollow_completion,omitempty"`
 	// ChangesRequested is the LATEST request-changes verdict on this task
 	// (any reviewer — human or bot). Stored on the task itself so the
 	// feedback TEXT rides into the owner's next execution packet and wake
@@ -533,6 +540,7 @@ type teamTaskWire struct {
 	VerificationResult   *TaskVerificationResult `json:"verification_result,omitempty"`
 	Definition           *TaskDefinition         `json:"definition,omitempty"`
 	Artifact             string                  `json:"artifact,omitempty"`
+	HollowCompletion     bool                    `json:"hollow_completion,omitempty"`
 	ChangesRequested     *TaskReviewObjection    `json:"changes_requested,omitempty"`
 	HumanObjection       *TaskReviewObjection    `json:"human_objection,omitempty"`
 	HumanNotePending     *TaskHumanNote          `json:"human_note_pending,omitempty"`
@@ -592,6 +600,7 @@ func (t teamTask) MarshalJSON() ([]byte, error) {
 		VerificationResult:   t.VerificationResult,
 		Definition:           t.Definition,
 		Artifact:             t.Artifact,
+		HollowCompletion:     t.HollowCompletion,
 		ChangesRequested:     t.ChangesRequested,
 		HumanObjection:       t.HumanObjection,
 		HumanNotePending:     t.HumanNotePending,
@@ -653,6 +662,7 @@ func (t *teamTask) UnmarshalJSON(data []byte) error {
 	t.VerificationResult = w.VerificationResult
 	t.Definition = w.Definition
 	t.Artifact = w.Artifact
+	t.HollowCompletion = w.HollowCompletion
 	t.ChangesRequested = w.ChangesRequested
 	t.HumanObjection = w.HumanObjection
 	t.HumanNotePending = w.HumanNotePending
