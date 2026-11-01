@@ -10,7 +10,7 @@
 | # | 条目 | 需要什么 | 卡在哪 |
 |---|---|---|---|
 | B | P2 #5 digest 的 `actual` 实际值来源 | **人拍板来源** | 一手（央行/统计局）/ FF 发布后页面 / 新闻标题，成本与准确性成反比 |
-| D | P3 #7c Windows 包级测试 ~21 条红 | **人拍板**「Windows 是否一等公民」 | 不拍板就只能继续用定向 `-run` |
+| D | ~~P3 #7c Windows 包级测试红~~ | ✅ 2026-11-02 拍板「Windows 一等公民」，全包在 Windows 转绿（§7c 收口） | — |
 | E | P3 #7e 后续：Windows 用 Job Object 收口 | 无，纯工程 | 现在只能杀进程树，工具自派生的进程仍可能逃逸 |
 | F | P3 #8 清理：空仓库 `YFS11013/gawkbot-office`、3 个 exe 备份 | 前者需 `gh auth refresh -s delete_repo` | 备份 ~88 MB/个，删前确认不需要回滚点 |
 | G | P0 #1 forex-watch 16:30 自动简报 | **等时间** | `next_run=2026-11-02T08:30:00Z`（周一 16:30 北京），现在无法验 |
@@ -159,6 +159,21 @@
   - `TestWikiPageMove_CommitFailureRestoresSelfLinkBody`（靠 chmod 目录让 commit 失败，Windows 上目录仍可写）与 `TestIsTransientProcessKill/SIGKILL`（本机 git-bash 的 `sh` 会以 MSYS 退出码 2304 结束，不是 SIGKILL 签名）加 Windows skip，各自写明原因：`bff9c74`、`c2bc8f3`。
   - 清单里的两条 `TestObsidianWatcher_*` 属时序 flaky：单独跑 3 次全过，全包并发下红。
   - **教训**：把红项一律归因"OS 能力差"会漏掉真回归，而真回归会一直躲在 19 条噪声里。判据补一条——单独跑仍红、且失败断言描述的行为与代码当前契约不符时，先怀疑契约过时，再怀疑平台。
+- **2026-11-02 收口（Windows 一等公民）**：全包 `go test ./internal/team -count=1` → **424s，0 条红**；`cmd/office-eval` **147/147**。
+  - 产品修复两处（`1562556`）：
+    - **`replaceFile`**：Windows 上 `os.Rename` 只要目标被任何进程打开就报 `Access is denied`（索引器、杀软就是这样打开状态文件的），
+      而这是桌面上的常态。只对三种 sharing 错误重试约 0.1 秒，缺目录/权限问题不重试、原错误照常上抛；包内 11 处"写临时文件再改名"全改走它。
+      实测：32 个 broker 并发保存同一 state 路径，从 20 个错误到 0。
+    - **junction 解析**：`filepath.EvalSymlinks` 在 Windows **不跟随 junction**（实测返回原路径且 `err=nil`），
+      workspace 的 canonical 比较因此永远不等。改用 `GetFinalPathNameByHandle` 去掉 `\\?\` 前缀后再比。
+  - 测试修复（`12c5cd1`、`ce68b21`）：
+    - HOME 隔离 helper `setTestHome`（同时设 `USERPROFILE`；只设 HOME 的用例在 Windows 上会读到真实 `~/.config`、`~/.codex`）。
+    - 假 CLI 改成**测试二进制自身**（`WUPHF_FAKE_CLI`，`TestMain` 提前退出）：`/bin/sh` 脚本在 Windows 根本起不来。
+    - session 夹具去掉 `/Users/me/shop`；`TestChannelPaneLogPaths` 用 `filepath.Join` 精确比较并 pin 真正的 `WUPHF_RUNTIME_HOME`。
+    - 权限断言限定 POSIX；`chmod` 造写失败改为把临时目录指向不存在的路径（两边都失败）。
+    - onboarding 测试 pin `WUPHF_MEMORY_BACKEND=markdown`（gbrain 就绪时 worker 不启动），并在用户编辑前 `b.Stop()`（否则排队的骨架写回盖掉编辑）。
+    - 相对路径回退同时清 `USERPROFILE`；目录链接回退到 junction（不需要开发者模式/管理员）。
+  - 判据改写（见 `OFFICE-RULES.md` R8）：**Windows 上全包必须全绿**，不再维护"已知红项清单"。
 - **危险（已修）**：只 `t.Setenv("HOME")` 而不设 `WUPHF_RUNTIME_HOME` 的用例，在 Windows 上会读写真实 `~/.wuphf`。`TestIsDeterministicPhase2CEODM` 曾在 22:16 覆写 `~/.wuphf/onboarded.json` 的 `phase`/`completed_at`（已改指临时 home；真实文件已把 phase 恢复成 `complete`，`completed_at` 仍是测试夹具值 `2026-05-28`，日期不可考）。
 
 ### 7e. turn 超时不生效 → 8.5h 挂死（2026-10-31 修复）
