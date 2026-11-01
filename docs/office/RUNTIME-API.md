@@ -50,6 +50,7 @@
 
 - 判定对象是**complete 时自报的 `artifact_path`**（wiki 相对路径，如 `artifacts/forex/2026-11-02.md`）。
 - 必须落在 `WikiRootDir()` 内且是非空文件：没传 `artifact_path`、文件不存在、空文件、`../` 越界，一律 fail 并把原因写进 `verification_result.detail`。
+- **文件必须是这张 task 存在之后写的**（mtime ≥ task `created_at` − 5 分钟容差）：拿一份旧页面冒充交付会被打回，detail 写 `was last written <时间>, before this task existed`。这条挡的是"先声明后交付"——bot 用预判的 id/路径 complete，而文件还没落盘或根本是别人的活（2026-11-01 两个演练各命中一次）。
 - `complete` 没有 artifact 会被这条挡住（`verification_kind` required），bot 的修法是把交付物写进 wiki 再 complete——这正是我们想要的：简报必须落盘才算交付。
 - 校验通过 → `distillCompletedTask` 记录的 learning 进 `team/learnings.jsonl` 并生成 `learning: <type>/<key>` 提交；实体抽取另有 `archivist:` 提交（无实体命中时不会有）。
 

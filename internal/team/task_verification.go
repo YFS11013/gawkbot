@@ -72,6 +72,10 @@ const (
 
 	taskVerificationTimeout   = 5 * time.Minute
 	taskVerificationOutputCap = 4000
+	// taskVerificationFreshnessTolerance absorbs clock skew and coarse
+	// filesystem timestamp granularity when comparing a deliverable's mtime
+	// against the task's creation time.
+	taskVerificationFreshnessTolerance = 5 * time.Minute
 )
 
 // normalizeTaskVerification validates and canonicalizes a verification spec
@@ -120,6 +124,12 @@ type taskVerificationEnv struct {
 	WorkDir  string
 	WikiRoot string
 	Artifact string
+	// Since is the RFC3339 moment the work had to start by — the task's
+	// CreatedAt. wiki_artifact fails an artifact last written before it:
+	// a bot that points artifact_path at a page it never touched is
+	// claiming someone else's work, and "the file exists" cannot tell the
+	// difference. Empty disables the check (tests, callers with no task).
+	Since string
 }
 
 func runTaskVerificationIn(v TaskVerification, env taskVerificationEnv) TaskVerificationResult {
@@ -231,6 +241,25 @@ func runTaskVerificationIn(v TaskVerification, env taskVerificationEnv) TaskVeri
 			res.Detail = fmt.Sprintf("artifact %q is empty", artifact)
 			return res
 		}
+		// Freshness: the deliverable must have been written at or after the
+		// task existed. Without this a bot can satisfy its definition of done
+		// by naming a page it never touched — the "declares it before doing
+		// it" failure the existence check catches only when the file is
+		// missing outright. The tolerance absorbs clock skew and coarse
+		// filesystem timestamps; fail closed on an unparsable floor.
+		if since := strings.TrimSpace(env.Since); since != "" {
+			floor, parseErr := time.Parse(time.RFC3339, since)
+			if parseErr != nil {
+				res.Detail = fmt.Sprintf("cannot check artifact freshness: bad task start time %q: %v", since, parseErr)
+				return res
+			}
+			floor = floor.Add(-taskVerificationFreshnessTolerance)
+			if info.ModTime().UTC().Before(floor) {
+				res.Detail = fmt.Sprintf("artifact %q was last written %s, before this task existed (%s) — deliver the file as part of this task",
+					artifact, info.ModTime().UTC().Format(time.RFC3339), since)
+				return res
+			}
+		}
 		res.Pass = true
 		res.Detail = fmt.Sprintf("wiki artifact %s (%d bytes)", rel, info.Size())
 	default:
@@ -297,6 +326,7 @@ func (b *Broker) gateTaskCompletionVerification(body TaskPostRequest) error {
 	v := *task.Verification
 	workDir := strings.TrimSpace(task.WorktreePath)
 	owner := strings.TrimSpace(task.Owner)
+	since := strings.TrimSpace(task.CreatedAt)
 	b.mu.Unlock()
 
 	if v.Kind == taskVerificationKindNone {
@@ -322,6 +352,7 @@ func (b *Broker) gateTaskCompletionVerification(body TaskPostRequest) error {
 			WorkDir:  workDir,
 			WikiRoot: WikiRootDir(),
 			Artifact: strings.TrimSpace(body.ArtifactPath),
+			Since:    since,
 		}
 	}
 	res := runTaskVerificationIn(v, env)

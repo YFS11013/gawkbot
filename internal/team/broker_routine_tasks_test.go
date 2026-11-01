@@ -243,6 +243,56 @@ func TestRunTaskVerification_WikiArtifact(t *testing.T) {
 	}
 }
 
+// TestRunTaskVerification_WikiArtifactFreshness pins the second half of the
+// same gate: existence alone lets a bot satisfy its definition of done by
+// naming a page it never touched. The deliverable has to be written at or
+// after the task existed.
+func TestRunTaskVerification_WikiArtifactFreshness(t *testing.T) {
+	wiki := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(wiki, "artifacts", "forex"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	stale := filepath.Join(wiki, "artifacts", "forex", "old.md")
+	if err := os.WriteFile(stale, []byte("# last week's brief\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	taskStart := time.Now().UTC().Add(-30 * time.Minute)
+	old := taskStart.Add(-48 * time.Hour)
+	if err := os.Chtimes(stale, old, old); err != nil {
+		t.Fatal(err)
+	}
+	fresh := filepath.Join(wiki, "artifacts", "forex", "new.md")
+	if err := os.WriteFile(fresh, []byte("# today's brief\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	v := TaskVerification{Kind: taskVerificationKindWikiArtifact, Spec: "artifact_path declared on complete", Required: true}
+	since := taskStart.Format(time.RFC3339)
+
+	res := runTaskVerificationIn(v, taskVerificationEnv{WikiRoot: wiki, Artifact: "artifacts/forex/old.md", Since: since})
+	if res.Pass {
+		t.Fatalf("expected a page last written 48h before the task to fail, got %q", res.Detail)
+	}
+	if !strings.Contains(res.Detail, "before this task existed") {
+		t.Errorf("detail %q does not explain the staleness", res.Detail)
+	}
+
+	res = runTaskVerificationIn(v, taskVerificationEnv{WikiRoot: wiki, Artifact: "artifacts/forex/new.md", Since: since})
+	if !res.Pass {
+		t.Fatalf("expected a fresh deliverable to pass, got %q", res.Detail)
+	}
+
+	// A task created moments before the write must not be failed by clock
+	// skew or coarse filesystem timestamps.
+	res = runTaskVerificationIn(v, taskVerificationEnv{
+		WikiRoot: wiki,
+		Artifact: "artifacts/forex/new.md",
+		Since:    time.Now().UTC().Add(time.Minute).Format(time.RFC3339),
+	})
+	if !res.Pass {
+		t.Fatalf("expected skew inside the tolerance to pass, got %q", res.Detail)
+	}
+}
+
 // TestRoutineTaskCarriesVerifiedArtifactGate proves the scheduler asks for the
 // check, so a routine completion cannot land unverified and skip distillation.
 func TestRoutineTaskCarriesVerifiedArtifactGate(t *testing.T) {

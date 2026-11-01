@@ -211,6 +211,9 @@ digest ──► render_artifacts()（脚本，0 LLM）
   - 单测 `TestEnqueueHeadlessCodexTurnRecordReplaysDroppedWakeAfterTurnFinishes`、`TestReplayedWakeIsNotHeldForAnotherReplay`（`internal/team/headless_codex_test.go`）。
   - 线上 ACMER-2809：17:55:26 连续两条 `queue-drop`，17:56:46 在**没有人工消息**的情况下自启回合，17:58:45 `status=done`、`verification pass=true`（`ra_79401b5e356910e9`，8157 字节），`hollow_completion` 未置位。
 - **附带观察**：该回合第一次 `complete` 带的是**预判**的 artifact id，文件尚不存在，被 `wiki_artifact` 校验打回（`pass=false`），下一回合真正创建后才通过——门禁按设计挡住了"先声明后交付"。
+- **加固（同日 18:12）**：只查"文件存在且非空"仍然可以拿旧页面冒充交付。`wiki_artifact` 现在追加一条**新鲜度**判定：文件 mtime 必须 ≥ 该 task 的 `created_at`（5 分钟容差，吸收时钟偏差与粗粒度时间戳），否则 detail 写 `was last written …, before this task existed` 并 fail。env 用 `taskVerificationEnv.Since` 传入，空值关闭（单测与无 task 的调用方不受影响）。
+  - 单元测试 `TestRunTaskVerification_WikiArtifactFreshness`（旧文件 fail / 新文件 pass / 1 分钟偏差 pass）。
+  - 线上冒烟 ACMER-2816：旧页面 `team/drills/core-loop-2026-11-01.md`（09:33 写、task 10:12 建）→ HTTP 409 + 上述文案；随即写入 `team/drills/freshness-smoke.md` 再 complete → 200、`pass=true`（108 字节）。
 
 ## 9. 与作者 core loop 的对齐度（2026-10-29 21:00 评估）
 
