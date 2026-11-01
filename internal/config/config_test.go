@@ -13,10 +13,15 @@ import (
 func withTempConfig(t *testing.T, f func(dir string)) {
 	t.Helper()
 	dir := t.TempDir()
-	// Override UserHomeDir by pointing ConfigPath indirectly via HOME env var.
+	// Override UserHomeDir by pointing ConfigPath indirectly via the home env
+	// vars. os.UserHomeDir reads USERPROFILE on Windows and ignores HOME, so
+	// setting only HOME leaves the tests reading the developer's real config.
 	orig := os.Getenv("HOME")
+	origProfile := os.Getenv("USERPROFILE")
 	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
 	defer os.Setenv("HOME", orig)
+	defer os.Setenv("USERPROFILE", origProfile)
 	f(dir)
 }
 
@@ -546,6 +551,9 @@ func TestResolveOpenAIAPIKeyFallbackEnv(t *testing.T) {
 
 func TestResolveOpenAIAPIKeyConfig(t *testing.T) {
 	withTempConfig(t, func(_ string) {
+		// The config value only wins when no environment key is set; a developer
+		// machine with OPENAI_API_KEY would otherwise satisfy this by accident.
+		t.Setenv("OPENAI_API_KEY", "")
 		_ = Save(Config{OpenAIAPIKey: "cfg-openai"})
 		if got := ResolveOpenAIAPIKey(); got != "cfg-openai" {
 			t.Fatalf("expected config fallback, got %q", got)

@@ -14,6 +14,7 @@ func withTempHome(t *testing.T, f func(home string)) {
 	t.Helper()
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
 	f(dir)
 }
 

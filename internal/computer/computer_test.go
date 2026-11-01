@@ -46,9 +46,10 @@ func (s *scriptedRunner) run(_ context.Context, name string, args []string, _ ti
 }
 
 func TestTargetForIsDeterministicAndOpaque(t *testing.T) {
-	a := TargetFor("chief-of-staff", "/tmp/computers")
-	b := TargetFor("chief-of-staff", "/tmp/computers")
-	c := TargetFor("Chief of Staff!", "/tmp/computers")
+	root := filepath.Join("tmp", "computers")
+	a := TargetFor("chief-of-staff", root)
+	b := TargetFor("chief-of-staff", root)
+	c := TargetFor("Chief of Staff!", root)
 	if a != b {
 		t.Fatalf("same slug must derive the same target")
 	}
@@ -61,10 +62,10 @@ func TestTargetForIsDeterministicAndOpaque(t *testing.T) {
 	if !strings.HasPrefix(a.ContainerName, ContainerPrefix+"-") || len(a.ContainerName) != len(ContainerPrefix)+1+16 {
 		t.Fatalf("unexpected container name %q", a.ContainerName)
 	}
-	if filepath.Dir(a.WorkspaceDir) != "/tmp/computers" {
+	if filepath.Dir(a.WorkspaceDir) != root {
 		t.Fatalf("workspace must live under the computers root: %s", a.WorkspaceDir)
 	}
-	if TargetFor("chief-of-staff", "/tmp/other").ContainerName == a.ContainerName {
+	if TargetFor("chief-of-staff", filepath.Join("tmp", "other")).ContainerName == a.ContainerName {
 		t.Fatalf("the same slug in another runtime home must get its own container")
 	}
 }

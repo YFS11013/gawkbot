@@ -12,49 +12,7 @@ import (
 
 func writeFakeOne(t *testing.T) string {
 	t.Helper()
-	dir := t.TempDir()
-	path := filepath.Join(dir, "one")
-	script := `#!/bin/sh
-if [ "$1" = "--agent" ]; then
-  shift
-fi
-
-cmd1="$1"
-cmd2="$1 $2"
-cmd3="$1 $2 $3"
-
-if [ "$cmd1" = "list" ]; then
-  echo '{"total":1,"showing":1,"connections":[{"platform":"gmail","state":"operational","key":"live::gmail::default::abc123"}]}'
-elif [ "$cmd3" = "actions search gmail" ]; then
-  echo '{"actions":[{"actionId":"act-send","title":"Send Email","method":"POST","path":"/gmail/send"}]}'
-elif [ "$cmd3" = "actions knowledge gmail" ]; then
-  echo '{"knowledge":"Needs to, subject, body","method":"POST"}'
-elif [ "$cmd3" = "actions execute gmail" ]; then
-  echo '{"dryRun":true,"request":{"method":"POST","url":"https://api.withone.ai/send","headers":{"x-test":"1"},"data":{"to":"a@example.com"}}}'
-elif [ "$cmd2" = "flow create" ]; then
-  echo '{"created":true,"key":"'"$3"'","path":"/tmp/.one/flows/'"$3"'/flow.json"}'
-elif [ "$cmd2" = "flow execute" ]; then
-  echo '{"event":"step:start","stepId":"execute"}'
-  echo '{"event":"workflow:result","runId":"run-1","logFile":"/tmp/run.log","status":"success","steps":{"execute":{"status":"success","response":{"ok":true,"posted":true,"channel":"#ops"}}}}'
-elif [ "$cmd3" = "relay event-types gmail" ]; then
-  echo '{"platform":"gmail","eventTypes":["message.received"]}'
-elif [ "$cmd2" = "relay create" ]; then
-  echo '{"id":"relay-1","url":"https://relay.example","active":false,"description":"mail relay","eventFilters":["message.received"]}'
-elif [ "$cmd3" = "relay activate relay-1" ]; then
-  echo '{"id":"relay-1","active":true,"actions":[{"type":"passthrough"}]}'
-elif [ "$cmd2" = "relay events" ]; then
-  echo '{"total":1,"showing":1,"events":[{"id":"evt-1","platform":"gmail","eventType":"message.received","timestamp":"2026-03-29T10:00:00Z"}]}'
-elif [ "$cmd3" = "relay event evt-1" ]; then
-  echo '{"id":"evt-1","platform":"gmail","eventType":"message.received","timestamp":"2026-03-29T10:00:00Z","payload":{"from":"a@example.com"}}'
-else
-  echo "unexpected args: $*" >&2
-  exit 1
-fi
-`
-	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	return path
+	return fakeOneCLI(t, "default")
 }
 
 func TestOneCLIHappyPath(t *testing.T) {
@@ -172,6 +130,7 @@ func TestOneCLIHappyPath(t *testing.T) {
 
 func TestNewOneCLIFromEnvUsesConfiguredIdentity(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
 	if err := config.Save(config.Config{
 		OneAPIKey: "one-secret",
 		Email:     "cos@example.com",
@@ -194,6 +153,7 @@ func TestNewOneCLIFromEnvUsesConfiguredIdentity(t *testing.T) {
 
 func TestOneCLIRunsWithoutManagedProvisioning(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
 	oneBin := writeFakeOne(t)
 	client := &OneCLI{Bin: oneBin, WorkDir: t.TempDir()}
 	result, err := client.ListConnections(context.Background(), ListConnectionsOptions{})
@@ -207,25 +167,11 @@ func TestOneCLIRunsWithoutManagedProvisioning(t *testing.T) {
 
 func TestNewOneCLIFromEnvFallsBackToNpx(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
 	t.Setenv("WUPHF_ONE_BIN", "")
 	dir := t.TempDir()
-	npxPath := filepath.Join(dir, "npx")
-	script := `#!/bin/sh
-if [ "$1" != "-y" ] || [ "$2" != "@withone/cli" ] || [ "$3" != "--agent" ]; then
-  echo "unexpected prefix: $*" >&2
-  exit 1
-fi
-shift 3
-if [ "$1" = "list" ]; then
-  echo '{"total":1,"showing":1,"connections":[{"platform":"gmail","state":"operational","key":"live::gmail::default::abc123"}]}'
-  exit 0
-fi
-echo "unexpected args: $*" >&2
-exit 1
-`
-	if err := os.WriteFile(npxPath, []byte(script), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	t.Setenv(fakeOneEnv, "npx")
+	installFakeOne(t, dir, "npx")
 	t.Setenv("PATH", dir)
 
 	client := NewOneCLIFromEnv()
@@ -248,24 +194,12 @@ exit 1
 func TestOneCLIListConnectionsUsesSafeActionWorkDir(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
+	t.Setenv("USERPROFILE", homeDir)
 	workDir := t.TempDir()
 	traceFile := filepath.Join(t.TempDir(), "pwd.txt")
-	oneBin := filepath.Join(t.TempDir(), "one")
-	script := `#!/bin/sh
-if [ "$1" = "--agent" ]; then
-  shift
-fi
-pwd > "` + traceFile + `"
-if [ "$1" = "list" ]; then
-  echo '{"total":1,"showing":1,"connections":[{"platform":"notion","state":"operational","key":"live::notion::default::abc123"}]}'
-  exit 0
-fi
-echo "unexpected args: $*" >&2
-exit 1
-`
-	if err := os.WriteFile(oneBin, []byte(script), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	t.Setenv(fakeOneEnv, "trace")
+	t.Setenv(fakeOneTraceEnv, traceFile)
+	oneBin := installFakeOne(t, t.TempDir(), "one")
 	client := &OneCLI{Bin: oneBin, WorkDir: workDir}
 
 	result, err := client.ListConnections(context.Background(), ListConnectionsOptions{})
@@ -293,24 +227,12 @@ exit 1
 func TestOneCLIExecuteWorkflowKeepsFlowWorkDir(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
+	t.Setenv("USERPROFILE", homeDir)
 	workDir := t.TempDir()
 	traceFile := filepath.Join(t.TempDir(), "workflow-pwd.txt")
-	oneBin := filepath.Join(t.TempDir(), "one")
-	script := `#!/bin/sh
-if [ "$1" = "--agent" ]; then
-  shift
-fi
-pwd > "` + traceFile + `"
-if [ "$1 $2 $3" = "flow execute welcome-flow" ]; then
-  echo '{"event":"workflow:result","runId":"run-1","logFile":"/tmp/run.log","status":"success","steps":{"step-1":{"status":"success"}}}'
-  exit 0
-fi
-echo "unexpected args: $*" >&2
-exit 1
-`
-	if err := os.WriteFile(oneBin, []byte(script), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	t.Setenv(fakeOneEnv, "trace")
+	t.Setenv(fakeOneTraceEnv, traceFile)
+	oneBin := installFakeOne(t, t.TempDir(), "one")
 	client := &OneCLI{Bin: oneBin, WorkDir: workDir}
 
 	workflow, err := client.ExecuteWorkflow(context.Background(), WorkflowExecuteRequest{KeyOrPath: "welcome-flow"})
@@ -338,6 +260,7 @@ exit 1
 func TestOneCLIExecuteActionAutoResolvesConnectionViaTempFlow(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
+	t.Setenv("USERPROFILE", homeDir)
 	oneBin := writeFakeOne(t)
 	client := &OneCLI{Bin: oneBin, WorkDir: t.TempDir()}
 

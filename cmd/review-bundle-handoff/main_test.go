@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -97,8 +98,9 @@ func TestRenderHandoffArtifacts(t *testing.T) {
 }
 
 func TestResolveOutDir(t *testing.T) {
-	got := resolveOutDir("/tmp/script-packet-review-bundle")
-	want := "/tmp/script-packet-review-handoff"
+	bundleDir := filepath.Join("tmp", "script-packet-review-bundle")
+	got := resolveOutDir(bundleDir)
+	want := filepath.Join("tmp", "script-packet-review-handoff")
 	if got != want {
 		t.Fatalf("resolveOutDir() = %q, want %q", got, want)
 	}
@@ -156,7 +158,7 @@ func TestBuildApprovalGateBlocksContradictoryArtifacts(t *testing.T) {
 	mustWriteFile(t, filepath.Join(dir, "approval-packet.json"), `{
   "run_id": "client-intake-approval-dry-run",
   "approval_mode": "live_client_pilot",
-  "source_bundle": "`+dir+`",
+  "source_bundle": `+jsonString(t, dir)+`,
   "live_packet_path": "docs/youtube-factory/generated/live-client-pilot/script-packet-inbox-operator.json",
   "client": "Pilot Client Alpha",
   "engagement_slug": "ai-inbox-operator-5-person-business",
@@ -256,7 +258,7 @@ func writeFixtureBundle(t *testing.T, dir, status string, approvers []string, in
 		mustWriteFile(t, filepath.Join(dir, "approval-packet.json"), `{
   "run_id": "client-intake-approval-dry-run",
   "approval_mode": "live_client_pilot",
-  "source_bundle": "`+dir+`",
+  "source_bundle": `+jsonString(t, dir)+`,
   "live_packet_path": "docs/youtube-factory/generated/live-client-pilot/script-packet-inbox-operator.json",
   "client": "Pilot Client Alpha",
   "engagement_slug": "ai-inbox-operator-5-person-business",
@@ -315,3 +317,16 @@ func approverStatusAt(lines []string, idx int) string {
 	}
 	return status
 }
+
+// jsonString renders s as a JSON string literal, quotes included. The fixture
+// bundles embed a directory path, and a literal Windows path (C:\Users\...) is
+// not valid JSON: the parser rejects the \U escape.
+func jsonString(t *testing.T, s string) string {
+	t.Helper()
+	b, err := json.Marshal(s)
+	if err != nil {
+		t.Fatalf("marshal %q: %v", s, err)
+	}
+	return string(b)
+}
+

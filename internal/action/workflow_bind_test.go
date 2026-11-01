@@ -71,6 +71,7 @@ func TestBindWorkflowPlanRejectsBadBinding(t *testing.T) {
 // The bound definition runs through the real executor and run_if gates the step.
 func TestBindWorkflowPlanRunIfGatesAtRun(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
 	client := &ComposioREST{APIKey: "cmp_test", UserID: "najmuzzaman@nex.ai"}
 
 	plan := Plan{
@@ -111,6 +112,7 @@ func TestBindWorkflowPlanRunIfGatesAtRun(t *testing.T) {
 // (network-free) so the build->run loop can be wired before the real resolver.
 func TestStubWorkflowResolverProducesRunnableDefinition(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
 	client := &ComposioREST{APIKey: "cmp_test", UserID: "najmuzzaman@nex.ai"}
 
 	plan := Plan{

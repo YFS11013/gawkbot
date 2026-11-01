@@ -11,6 +11,7 @@ import (
 // Exists:false rather than erroring (so callers can show a "compile it" state).
 func TestGetWorkflowRoundTrip(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
 	client := &ComposioREST{APIKey: "cmp_test", UserID: "tester@example.com"}
 
 	definition, _ := json.Marshal(map[string]any{
@@ -59,6 +60,7 @@ func TestGetWorkflowRoundTrip(t *testing.T) {
 
 func TestGetWorkflowMissingIsNotAnError(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
 	client := &ComposioREST{APIKey: "cmp_test", UserID: "tester@example.com"}
 
 	got, err := client.GetWorkflow(context.Background(), "never-compiled")

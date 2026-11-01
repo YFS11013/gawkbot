@@ -131,8 +131,9 @@ func TestBuildScriptPacketAndReviewBundle(t *testing.T) {
 }
 
 func TestResolveBundleDirDefaultsNextToPacket(t *testing.T) {
-	got := resolveBundleDir("", "/tmp/output/script-packet.json")
-	want := "/tmp/output/script-packet-review-bundle"
+	packetPath := filepath.Join("output", "script-packet.json")
+	got := resolveBundleDir("", packetPath)
+	want := filepath.Join("output", "script-packet-review-bundle")
 	if got != want {
 		t.Fatalf("resolveBundleDir() = %q, want %q", got, want)
 	}

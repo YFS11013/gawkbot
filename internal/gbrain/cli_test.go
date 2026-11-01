@@ -3,6 +3,8 @@ package gbrain
 import (
 	"os"
 	"path/filepath"
+	"strings"
+	"runtime"
 	"testing"
 )
 
@@ -10,8 +12,12 @@ import (
 // path, so PATH-fallback behavior can be observed without a real install.
 func writeFakeGbrain(t *testing.T, dir string) string {
 	t.Helper()
-	fake := filepath.Join(dir, "gbrain")
-	if err := os.WriteFile(fake, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+	name, body := "gbrain", "#!/bin/sh\nexit 0\n"
+	if runtime.GOOS == "windows" {
+		name, body = "gbrain.cmd", "@exit /b 0"
+	}
+	fake := filepath.Join(dir, name)
+	if err := os.WriteFile(fake, []byte(body), 0o755); err != nil {
 		t.Fatalf("write fake gbrain: %v", err)
 	}
 	return fake
@@ -48,14 +54,18 @@ func TestBinaryPathExplicitCommandMissingDoesNotFallBack(t *testing.T) {
 
 func TestBinaryPathExplicitBareNameResolvesViaPath(t *testing.T) {
 	dir := t.TempDir()
-	wrapper := filepath.Join(dir, "gbrain-wrapper")
-	if err := os.WriteFile(wrapper, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+	name, body := "gbrain-wrapper", "#!/bin/sh\nexit 0\n"
+	if runtime.GOOS == "windows" {
+		name, body = "gbrain-wrapper.cmd", "@exit /b 0"
+	}
+	wrapper := filepath.Join(dir, name)
+	if err := os.WriteFile(wrapper, []byte(body), 0o755); err != nil {
 		t.Fatalf("write wrapper: %v", err)
 	}
 	t.Setenv("PATH", dir)
 	// A bare name (no path separator) is resolved through PATH by
 	// exec.LookPath — same authoritative semantics as an absolute path.
-	t.Setenv("WUPHF_GBRAIN_COMMAND", "gbrain-wrapper")
+	t.Setenv("WUPHF_GBRAIN_COMMAND", strings.TrimSuffix(name, ".cmd"))
 	if got := BinaryPath(); got != wrapper {
 		t.Fatalf("BinaryPath() = %q, want bare name resolved via PATH to %q", got, wrapper)
 	}

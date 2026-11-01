@@ -11,6 +11,7 @@ import (
 // skipped (recorded, never executed). Template steps keep this network-free.
 func TestExecuteWorkflowRunIfGatesSteps(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
 
 	client := &ComposioREST{
 		APIKey: "cmp_test",
@@ -72,6 +73,7 @@ func TestExecuteWorkflowRunIfGatesSteps(t *testing.T) {
 // A malformed run_if must be rejected at create time, before any run.
 func TestCreateWorkflowRejectsInvalidRunIf(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
 	client := &ComposioREST{APIKey: "cmp_test", UserID: "najmuzzaman@nex.ai"}
 
 	definition, _ := json.Marshal(map[string]any{

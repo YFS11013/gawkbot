@@ -273,6 +273,7 @@ func TestComposioRESTIntegrationLifecycle(t *testing.T) {
 
 func TestComposioRESTWorkflowDigestHappyPath(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
 	t.Setenv("WUPHF_API_KEY", "nex-test-key")
 
 	mux := http.NewServeMux()
@@ -529,6 +530,7 @@ func TestComposioRESTWorkflowNormalizesHandlebarsEachSyntax(t *testing.T) {
 
 func TestComposioRESTWorkflowAutoResolvesSingleConnection(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
 	t.Setenv("WUPHF_API_KEY", "nex-test-key")
 
 	mux := http.NewServeMux()
@@ -641,6 +643,7 @@ func TestDecodeJSONObjectHandlesJSONStringPayload(t *testing.T) {
 
 func TestWorkflowStepsExposeGenericResult(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
 	t.Setenv("WUPHF_API_KEY", "nex-test-key")
 
 	mux := http.NewServeMux()
