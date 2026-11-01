@@ -95,9 +95,14 @@
 - 验收：`git log` 有 `artifact: forex brief 2026-10-30`；`grep forex-brief ~/.wuphf/wiki/index/all.md` 命中。
 - 备注：完整表格仍在 `artifacts/`，索引指向摘要文章，双份不同用途。
 
-### 6. `/notebook/catalog` 404（上游 bug）
-- `internal/teammcp/context_tools.go:491` 调了 broker 未注册的路由，导致 bot 的 `context_capture` 写进去也读不回来——“记忆”是黑洞。
-- 处置：补路由（上游 PR）或先关闭 `context_capture`，避免制造“记住了”的假象。
+### 6. ~~`/notebook/catalog` 404（上游 bug）~~ ✅ 已完成（2026-11-01）
+- 定性：不是 fork 独有——上游 main 同样没有 `/notebook/*` 的 handler，是**上游 bug**。客户端 `internal/teammcp/context_tools.go` 调 4 个端点（write/catalog/search/promote），broker 一个都没注册。
+- 实测损失：`~/.wuphf/logs/headless-codex-*.log` 里 10-24 有 23 条 `/notebook/*` 404；fund-invest 的一条 turn 明确写「notebook capture (backend 404 for several turns)」后放弃，产物标成 "pending on the storage side"。
+- 修法（本 fork 自建，无法推上游）：
+  - `internal/team/broker_notebook_routes.go`：4 个 `requireAuth` 路由。写只许 `agents/<slug>/notebook/<file>.md`（复用 `validateNotebookWritePath`）；检索按书架隔离；promote 走既有 `requestKnowledgePromotion`，**只起 human 审批卡，从不直接写 team/**。
+  - `internal/team/notebook_git.go` + `WikiWorker.EnqueueNotebookNote`：走同一个 drain 循环（单写者不变式），git 提交作者=bot，**不重建 index、不发 `wiki:write`**（私有笔记不属于团队目录）。
+  - 顺带修掉一个静默谎言：客户端把 404/405 也标 `retryable:true`，现在归为 `notebook_endpoint_unavailable` 且不可重试。
+- 验收：`go test ./internal/team -run TestNotebook -count=1` 9 例全绿（含跨书架写入被拒、catalog 计数、检索不越界、promote 只建卡不落盘、重复 promote 复用同一张卡、无 token 401、错方法 405+Allow）；契约见 `RUNTIME-API.md` §6。
 
 ## P3 — 工程债
 

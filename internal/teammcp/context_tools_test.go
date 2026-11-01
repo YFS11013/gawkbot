@@ -3,7 +3,9 @@ package teammcp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
+	"net/http/httptest"
 	"slices"
 	"strings"
 	"testing"
@@ -352,5 +354,57 @@ func TestContextHealthIncludesTaskMemoryWorkflow(t *testing.T) {
 	workflow, ok := data.(ContextHealthResult).MemoryWorkflow.(map[string]any)
 	if !ok || workflow["lookup"] != "done" {
 		t.Fatalf("expected task memory workflow, got %+v", data.(ContextHealthResult).MemoryWorkflow)
+	}
+}
+
+// A missing notebook route used to surface as a retryable backend_error, which
+// is a lie the model acts on: it re-sent the same capture for several turns.
+// A permanent 4xx must be named and must not invite a retry.
+func TestNotebookErrorClassification(t *testing.T) {
+	cases := []struct {
+		name      string
+		err       error
+		wantCode  string
+		retryable bool
+	}{
+		{"missing route", errors.New("broker POST /notebook/write failed: 404 Not Found 404 page not found"), "notebook_endpoint_unavailable", false},
+		{"method not allowed", errors.New("broker POST /notebook/write failed: 405 Method Not Allowed"), "notebook_endpoint_unavailable", false},
+		{"caller mistake", errors.New("broker POST /notebook/write failed: 400 Bad Request notebook_path_not_author_owned"), "backend_error", true},
+		{"deadline", errors.New("broker GET /notebook/catalog failed: context deadline exceeded"), "timeout", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			code := notebookErrorCode(tc.err)
+			if code != tc.wantCode {
+				t.Fatalf("code: want %q, got %q", tc.wantCode, code)
+			}
+			if got := notebookErrorRetryable(code); got != tc.retryable {
+				t.Fatalf("retryable(%s): want %v, got %v", code, tc.retryable, got)
+			}
+		})
+	}
+}
+
+// The capture handler must report the classified status, not a hardcoded
+// retryable backend_error, when the broker answers 404.
+func TestContextCaptureReportsPermanentFailureAsNotRetryable(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "404 page not found", http.StatusNotFound)
+	}))
+	defer srv.Close()
+	withBrokerURL(t, srv.URL)
+	t.Setenv("WUPHF_AGENT_SLUG", "cos")
+	t.Setenv("WUPHF_MEMORY_BACKEND", config.MemoryBackendMarkdown)
+
+	_, data, err := handleContextCapture(context.Background(), nil, ContextCaptureArgs{Content: "remember this"})
+	if err != nil {
+		t.Fatalf("handler: %v", err)
+	}
+	result := data.(ContextCaptureResult)
+	if result.Status.OK || result.Status.Code != "notebook_endpoint_unavailable" {
+		t.Fatalf("want a named permanent failure, got %+v", result.Status)
+	}
+	if result.Status.Retryable {
+		t.Fatalf("a 404 must never be retryable: %+v", result.Status)
 	}
 }

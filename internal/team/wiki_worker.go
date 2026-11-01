@@ -131,6 +131,10 @@ type wikiWriteRequest struct {
 	// true. Entities are upserted BEFORE facts so fact rows always resolve
 	// against a known entity row.
 	IndexEntities []IndexEntity
+	// IsNotebookNote routes to Repo.CommitNotebookNote — one bot's private
+	// note at agents/{slug}/notebook/{file}.md. No team-wiki index regen, no
+	// SSE wiki:write event: a private note is not shared catalog content.
+	IsNotebookNote bool
 	// IsHuman routes the request to Repo.CommitHuman — optimistic
 	// concurrency via expected_sha, per-human git identity. Wikipedia-
 	// style Edit source flow. v1.5: identity is resolved from the
@@ -291,17 +295,37 @@ func (w *WikiWorker) Stop() {
 // wikiWriteTimeout) for the reply. Returns ErrQueueSaturated if the queue is
 // full — callers should surface this as a tool error with no hidden retry.
 func (w *WikiWorker) Enqueue(ctx context.Context, slug, path, content, mode, commitMsg string) (string, int, error) {
-	if !w.running.Load() {
-		return "", 0, ErrWorkerStopped
-	}
-	req := wikiWriteRequest{
+	return w.enqueue(ctx, wikiWriteRequest{
 		Slug:      slug,
 		Path:      path,
 		Content:   content,
 		Mode:      mode,
 		CommitMsg: commitMsg,
-		ReplyCh:   make(chan wikiWriteResult, 1),
+	})
+}
+
+// EnqueueNotebookNote submits a bot's private notebook write. Same drain loop
+// and timeout as Enqueue — the single-writer invariant covers agents/ writes
+// too, otherwise a notebook commit could race the wiki worker's git index.
+func (w *WikiWorker) EnqueueNotebookNote(ctx context.Context, slug, path, content, mode, commitMsg string) (string, int, error) {
+	return w.enqueue(ctx, wikiWriteRequest{
+		Slug:           slug,
+		Path:           path,
+		Content:        content,
+		Mode:           mode,
+		CommitMsg:      commitMsg,
+		IsNotebookNote: true,
+	})
+}
+
+// enqueue hands one built request to the drain goroutine and waits for its
+// reply. Returns ErrQueueSaturated if the queue is full — callers should
+// surface this as a tool error with no hidden retry.
+func (w *WikiWorker) enqueue(ctx context.Context, req wikiWriteRequest) (string, int, error) {
+	if !w.running.Load() {
+		return "", 0, ErrWorkerStopped
 	}
+	req.ReplyCh = make(chan wikiWriteResult, 1)
 	select {
 	case w.requests <- req:
 	default:
@@ -381,6 +405,8 @@ func (w *WikiWorker) process(ctx context.Context, req wikiWriteRequest) {
 		// attribution. Zero-value HumanIdentity falls back to the
 		// synthetic `human` author inside CommitHuman.
 		sha, n, err = w.repo.CommitHuman(writeCtx, req.Path, req.Content, req.ExpectedSHA, req.CommitMsg, req.HumanIdentity)
+	} else if req.IsNotebookNote {
+		sha, n, err = w.repo.CommitNotebookNote(writeCtx, req.Slug, req.Path, req.Content, req.Mode, req.CommitMsg)
 	} else if req.IsArtifact {
 		sha, n, err = w.repo.CommitArtifact(writeCtx, req.Slug, req.Path, req.Content, req.CommitMsg)
 	} else if req.IsRichArtifact || req.IsRichArtifactPromotion {
@@ -458,6 +484,9 @@ func (w *WikiWorker) process(ctx context.Context, req wikiWriteRequest) {
 		// failure lands in the DLQ — the commit itself is already durable.
 		w.maybeRunExtractor(ctx, req.Path)
 	case req.IsRichArtifact, req.IsEntityFact:
+	case req.IsNotebookNote:
+		// A private note is not shared catalog content: no wiki:write event,
+		// no sections refresh. The author already knows it wrote the note.
 	case req.IsEntityGraph:
 		// Graph log appends are internal bookkeeping triggered by fact
 		// writes — no dedicated SSE event. Subscribers that care hear

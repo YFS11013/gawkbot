@@ -83,3 +83,35 @@
 
 broker 里同名 routine（`one-workflow:…daily-opencode-model-snapshot`、`daily-0800-utc-…`）都不是写入方；
 前者因定义文件缺失每天 `failed`（2026-10-31 已 disable）。
+
+## 6. Bot 记忆（`/notebook/*`）
+
+**背景（2026-11-01 之前）**：MCP 的 `context_capture` / `context_lookup` / `context_promote`
+调用 `internal/teammcp/context_tools.go` 里的四个端点，而 broker **一个都没注册** → 恒 404。
+更糟的是客户端把 404 标成 `retryable`，bot 读到「可重试」就反复重发同一个笔记，有一条直接在
+turn 里放弃并把产物标成 "pending on the storage side"。日志证据：`~/.wuphf/logs/headless-codex-*.log`
+中 10-24 有 23 条 `/notebook/*` 404。
+
+| 端点 | 语义 | 边界 |
+|---|---|---|
+| `GET /notebook/catalog` | 列出有书架的 bot：`{"agents":[{agent_slug,path,file_count}]}` | 跨 bot 只读（`context_lookup` 需要知道谁有笔记）；按 slug 升序 |
+| `GET /notebook/search?slug=&q=` | 单 bot 书架内**字面量**检索（非正则），≤100 命中 | 只走 `agents/<slug>/notebook/`，绝不跨书架 |
+| `POST /notebook/write` | `{slug,path,mode,content,commit_message}` → `{path,commit_sha,bytes_written}` | 只允许 `agents/<slug>/notebook/<file>.md`（单层、无子目录）；`create` 撞已存在回 400，要追加用 `append_section` |
+| `POST /notebook/promote` | 起一张 **human 审批卡**（快照正文 + sha256），→ `{promotion_id,state:"pending",human_only:true}` | 从不直接写 `team/`；target 必须 `team/<section>/<slug>.md`；同内容重复请求复用同一张卡 |
+
+失败语义（`internal/teammcp/context_tools.go` 的 `notebookErrorCode`）：
+
+| 情况 | code | retryable |
+|---|---|---|
+| 404 / 405 | `notebook_endpoint_unavailable` | **否** |
+| 400（路径越权、已存在、参数缺失） | `backend_error` | 是（但重试无用，属调用方错误） |
+| deadline | `timeout` | 是 |
+
+私有笔记**不进** `index/all.md`，也不发 `wiki:write` SSE 事件 —— 它不是团队目录内容。
+
+自检（token 见 `%TEMP%\wuphf-broker-token-7892`）：
+
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" 127.0.0.1:7892/notebook/catalog
+curl -s -H "Authorization: Bearer $TOKEN" "127.0.0.1:7892/notebook/search?slug=cos&q=beet"
+```

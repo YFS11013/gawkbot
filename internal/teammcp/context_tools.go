@@ -341,8 +341,9 @@ func handleContextCapture(ctx context.Context, _ *mcp.CallToolRequest, args Cont
 		"content":        renderContextNotebookContent(args.Title, content),
 		"commit_message": firstNonEmptyString(strings.TrimSpace(args.Title), "Capture task context"),
 	}, &writeResult); err != nil {
-		result.Status = ContextToolStatus{OK: false, Code: "backend_error", Message: err.Error(), Retryable: true}
-		result.PartialErrors = append(result.PartialErrors, partialError("notebook", backend.ActiveKind, "backend_error", err, true))
+		code := notebookErrorCode(err)
+		result.Status = ContextToolStatus{OK: false, Code: code, Message: err.Error(), Retryable: notebookErrorRetryable(code)}
+		result.PartialErrors = append(result.PartialErrors, partialError("notebook", backend.ActiveKind, code, err, notebookErrorRetryable(code)))
 		result.ReadableText = formatContextCaptureText(result)
 		return textResult(result.ReadableText), result, nil
 	}
@@ -404,8 +405,9 @@ func handleContextPromote(ctx context.Context, _ *mcp.CallToolRequest, args Cont
 		"rationale":        rationale,
 		"reviewer_slug":    strings.TrimSpace(args.ReviewerSlug),
 	}, &promoteResult); err != nil {
-		result.Status = ContextToolStatus{OK: false, Code: "backend_error", Message: err.Error(), Retryable: true}
-		result.PartialErrors = append(result.PartialErrors, partialError("promotion", backend.ActiveKind, "backend_error", err, true))
+		code := notebookErrorCode(err)
+		result.Status = ContextToolStatus{OK: false, Code: code, Message: err.Error(), Retryable: notebookErrorRetryable(code)}
+		result.PartialErrors = append(result.PartialErrors, partialError("promotion", backend.ActiveKind, code, err, notebookErrorRetryable(code)))
 		result.ReadableText = formatContextPromoteText(result)
 		return textResult(result.ReadableText), result, nil
 	}
@@ -489,7 +491,8 @@ func lookupMarkdownNotebooks(ctx context.Context, query string, limit int) ([]Co
 		} `json:"agents"`
 	}
 	if err := brokerGetJSON(ctx, "/notebook/catalog", &catalog); err != nil {
-		return nil, []ContextPartialError{partialError("notebook", config.MemoryBackendMarkdown, contextErrorCode(err), err, true)}
+		code := notebookErrorCode(err)
+		return nil, []ContextPartialError{partialError("notebook", config.MemoryBackendMarkdown, code, err, notebookErrorRetryable(code))}
 	}
 	slugs := make([]string, 0, len(catalog.Bots))
 	seen := map[string]bool{}
@@ -520,7 +523,8 @@ func lookupMarkdownNotebooks(ctx context.Context, query string, limit int) ([]Co
 			} `json:"hits"`
 		}
 		if err := brokerGetJSON(ctx, "/notebook/search?"+values.Encode(), &search); err != nil {
-			partials = append(partials, partialError("notebook:"+slug, config.MemoryBackendMarkdown, contextErrorCode(err), err, true))
+			code := notebookErrorCode(err)
+			partials = append(partials, partialError("notebook:"+slug, config.MemoryBackendMarkdown, code, err, notebookErrorRetryable(code)))
 			if ctx.Err() != nil {
 				break
 			}
@@ -733,6 +737,31 @@ func contextErrorCode(err error) string {
 		return "timeout"
 	}
 	return "backend_error"
+}
+
+// notebookErrorCode classifies a /notebook/* broker failure.
+//
+// A missing route used to surface as a generic, RETRYABLE backend_error: bots
+// read "retryable" and kept re-sending the same note, and one of them burned
+// turns on a 404 that could never heal. A 4xx is a permanent answer, so it gets
+// its own code and is not retryable. The same string-matching approach as
+// workflowUpdateErrorCode — the broker client returns plain errors, not typed
+// status codes.
+func notebookErrorCode(err error) string {
+	msg := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(msg, "context deadline exceeded"):
+		return "timeout"
+	case strings.Contains(msg, "404"), strings.Contains(msg, "405"):
+		return "notebook_endpoint_unavailable"
+	}
+	return "backend_error"
+}
+
+// notebookErrorRetryable reports whether re-sending could ever succeed: only a
+// timeout or a transient/unknown failure may be retried. A 4xx never may.
+func notebookErrorRetryable(code string) bool {
+	return code == "timeout" || code == "backend_error"
 }
 
 func workflowUpdateErrorCode(err error) string {

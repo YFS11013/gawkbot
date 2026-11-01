@@ -104,7 +104,7 @@ digest ──► render_artifacts()（脚本，0 LLM）
 | 全脚本化、不留 LLM | 与作者 core loop 的“判断层”冲突；预期差与定价需要模型 |
 | 用免费模型跑生产 | 硬停；且作者明说 token 不再是设计约束 |
 | 用 reasoning 模型出简报 | `<think>` 会作为消息推到频道，污染 surface |
-| 把结论存进 bot 的 notebook 当“记忆” | `/notebook/catalog` 恒 404（`internal/teammcp/context_tools.go:491`），记忆层实际是死的 |
+| 把结论存进 bot 的 notebook 当“记忆” | 曾因 `/notebook/catalog` 恒 404 而失效（`internal/teammcp/context_tools.go:491` 调了 broker 未注册的路由）。**2026-11-01 已修**：四个 `/notebook/*` 路由已注册并实测，契约见 `RUNTIME-API.md` §6 |
 | 直接改 `broker-state.json` 改 prompt | broker 内存持有该文件，会被覆盖；必须走 `PATCH /scheduler/{slug}` |
 
 ## 5. 强制机制（不靠记忆）
@@ -121,7 +121,7 @@ digest ──► render_artifacts()（脚本，0 LLM）
 
 ## 6. 已知风险与开放问题
 
-1. **上游 bug**：`context_lookup` 调 `/notebook/catalog` 404 —— 要么补路由，要么关掉 `context_capture`，否则 bot 永远“记不住”。
+1. ~~**上游 bug**：`context_lookup` 调 `/notebook/catalog` 404~~ —— **已修（2026-11-01，本 fork）**：上游 main 同样没有这四个路由（`git grep '"/notebook' <upstream>/internal/team` 无 handler），所以是本 fork 自己补的：`internal/team/broker_notebook_routes.go` + `notebook_git.go` + worker 的 `IsNotebookNote` 分支。同时把客户端「404 也算 retryable」改成 `notebook_endpoint_unavailable` 且不可重试 —— 否则 bot 会继续在永不痊愈的 404 上烧 turn。
 2. **routine 无 artifact 输出**：`operator-agent-routines.md` 里 md artifact 标为 DONE，但本版本未见落盘；需在 prompt 里显式写路径，或补实现。
 3. **模型可用性单点**：`bear/*` 有 channel 级报错（gpt-5.4/kimi/deepseek-v4-flash 不可用），切换前必须探活。
 4. **未决**：是否订阅 OpenCode Go（保留原厂工具链）而非走 bear 代理。
@@ -208,7 +208,7 @@ digest ──► render_artifacts()（脚本，0 LLM）
 | 2 结构化定义（goal/deliverables/success criteria） | routine prompt 是固定模板，无逐次定义 | 未实现 |
 | 3 取上下文 + 工具 | MCP 修复后 cos 可见 42 个 team_* 工具 | ✅ |
 | 4 单一 owner | analyst 停用，forex 唯一外汇 owner | ✅ |
-| 5 执行 + 私有 KG / notebook | `context_capture` 写入，`/notebook/catalog` 恒 404 | 未实现 |
+| 5 执行 + 私有 KG / notebook | 四个 `/notebook/*` 路由已注册（2026-11-01）：`context_capture` 写 `agents/<slug>/notebook/*.md` 并 git 提交、`context_lookup` 可跨书架检索、`context_promote` 起 human 审批卡 | ✅（晋升仍需人工点头，符合原设计） |
 | 6 交付 wiki artifact | `wiki/artifacts/forex/<date>.md` 已生成、已进 git，并新增 `team/forex-brief-<date>.md` 摘要进入索引 | ✅ |
 | 7 确定性 learning hook（蒸馏） | 对 task 生效（wiki 有 `learning: pitfall/...`、`archivist: entity article` 提交）；对 routine 简报不生效（无 task 可蒸馏） | 部分 |
 | 8 skills / policies 激活 | 两条 policy 已注入并实测（CoS 贴出原文、派活带 `msg-1794` 回执）；存在 `team/skills/daily-opencode-model-snapshot.md` | ✅ |
@@ -224,11 +224,11 @@ digest ──► render_artifacts()（脚本，0 LLM）
 
 ### 9.3 结论
 
-执行层与规则层已对齐作者（artifact、确定性渲染、policy 注入、单一 owner）；**知识层没接上**——私有 KG 路由 404、artifact 未进索引、routine 不产生 task，导致“蒸馏→skill”只对人工任务生效，对每日简报空转。
+执行层与规则层已对齐作者（artifact、确定性渲染、policy 注入、单一 owner）；**知识层 2026-11-01 起补上了第一块**——私有 notebook 路由已通（写入/检索/晋升卡），artifact 也已进索引；仍缺的是 routine 不产生 task，导致“蒸馏→skill”只对人工任务生效、对每日简报空转。
 
 ### 9.4 收敛路径（按性价比）
 
-1. 修 `/notebook/catalog`（或先关 `context_capture`，别让“记住了”是假的）——打通第 5 步。
+1. ~~修 `/notebook/catalog`（或先关 `context_capture`，别让“记住了”是假的）——打通第 5 步。~~ **已做（2026-11-01）**：见 §5 第 5 步与 `RUNTIME-API.md` §6。
 2. 把简报挂到 `team_task` 上（routine 只负责触发），让第 7 步有输入。
 3. artifact 写完后触发 wiki index 重建，让第 9 步可检索。
 4. 按角色恢复 `bash` 白名单（第 3 步的最小权限版）。

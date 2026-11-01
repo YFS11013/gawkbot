@@ -36,6 +36,10 @@ func (b *Broker) registerKnowledgeRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/agent-knowledge", b.requireAuth(b.handleBotKnowledge))
 	mux.HandleFunc("/agent-knowledge/promote", b.requireAuth(b.handleBotKnowledgePromote))
 	mux.HandleFunc("/agent-knowledge/promotion-request", b.requireAuth(b.handleBotKnowledgePromotionRequest))
+	// /notebook/* is what the MCP context_* tools actually call. Registered
+	// inside the knowledge group because a notebook IS a bot's private
+	// knowledge and promotion is the bridge into the shared wiki.
+	b.registerNotebookRoutes(mux)
 	mux.HandleFunc("/requests", b.requireAuth(b.handleRequests))
 	mux.HandleFunc("/requests/answer", b.requireAuth(b.handleRequestAnswer))
 }
