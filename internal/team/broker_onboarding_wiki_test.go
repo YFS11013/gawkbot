@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 // TestOnboardingCompleteMaterializesWiki verifies the Lane B integration
@@ -20,6 +21,11 @@ func TestOnboardingCompleteMaterializesWiki(t *testing.T) {
 	// patterns) AND WUPHF_RUNTIME_HOME (post-Phase-0, materializeBlueprintWiki
 	// resolves through config.RuntimeHomeDir which checks WUPHF_RUNTIME_HOME first).
 	tmpHome := t.TempDir()
+	// The wiki worker only starts when the memory backend is markdown. Left to
+	// the ambient default it resolves to gbrain on a machine where gbrain is
+	// ready, the worker never starts, and no commit is ever made — the test then
+	// reports a missing git history that has nothing to do with onboarding.
+	t.Setenv("WUPHF_MEMORY_BACKEND", "markdown")
 	t.Setenv("HOME", tmpHome)
 	t.Setenv("WUPHF_RUNTIME_HOME", tmpHome)
 
@@ -46,12 +52,16 @@ func TestOnboardingCompleteMaterializesWiki(t *testing.T) {
 		t.Fatalf("wiki article %q is empty — skeleton bytes did not land", onboarding)
 	}
 	repo := NewRepoAt(wikiRoot, filepath.Join(tmpHome, ".wuphf", "wiki.bak"))
-	refs, err := repo.Log(context.Background(), "team/customers/onboarding.md")
-	if err != nil {
-		t.Fatalf("expected materialized article to have git history: %v", err)
-	}
-	if len(refs) == 0 {
-		t.Fatal("expected materialized article to have a bootstrap commit")
+	// The commit is made by the wiki worker, not by the onboarding call, so it
+	// can land after this function returns. Asking git for history on a repo
+	// with no commits yet is exit 128, which is the whole error here — wait for
+	// the row instead of racing it.
+	var refs []CommitRef
+	if !testTickUntil(t, 10*time.Second, func() bool {
+		refs, err = repo.Log(context.Background(), "team/customers/onboarding.md")
+		return err == nil && len(refs) > 0
+	}) {
+		t.Fatalf("expected materialized article to have git history: %v (refs=%d)", err, len(refs))
 	}
 	if refs[0].Author != "wuphf-bootstrap" {
 		t.Fatalf("expected bootstrap author, got %q", refs[0].Author)
@@ -77,6 +87,11 @@ func TestOnboardingCompleteWikiIsIdempotent(t *testing.T) {
 	ensureOperationsFallbackFS(t)
 
 	tmpHome := t.TempDir()
+	// The wiki worker only starts when the memory backend is markdown. Left to
+	// the ambient default it resolves to gbrain on a machine where gbrain is
+	// ready, the worker never starts, and no commit is ever made — the test then
+	// reports a missing git history that has nothing to do with onboarding.
+	t.Setenv("WUPHF_MEMORY_BACKEND", "markdown")
 	t.Setenv("HOME", tmpHome)
 	t.Setenv("WUPHF_RUNTIME_HOME", tmpHome)
 
@@ -91,6 +106,21 @@ func TestOnboardingCompleteWikiIsIdempotent(t *testing.T) {
 	}
 	wikiRoot := filepath.Join(tmpHome, ".wuphf", "wiki")
 	article := filepath.Join(wikiRoot, "team", "customers", "onboarding.md")
+
+	// The first run's article is written by the wiki worker, so it may not be
+	// on disk yet. Editing a file that is still queued lets the skeleton land
+	// on top of the user's text afterwards, which reads as a re-pick bug.
+	if !testTickUntil(t, 10*time.Second, func() bool {
+		_, statErr := os.Stat(article)
+		return statErr == nil
+	}) {
+		t.Fatalf("first run never materialized %q", article)
+	}
+
+	// Drain the first broker before editing: its wiki worker still has queued
+	// skeleton and getting-started writes, and whichever lands after the edit
+	// overwrites the user text — which then reads as a re-pick bug.
+	b.Stop()
 
 	// User edits an article between runs.
 	customBytes := []byte("# Onboarding\n\nOur team filled this in.\n")
@@ -128,6 +158,11 @@ func TestOnboardingCompleteSynthesizedBlueprintSeedsGettingStarted(t *testing.T)
 	ensureOperationsFallbackFS(t)
 
 	tmpHome := t.TempDir()
+	// The wiki worker only starts when the memory backend is markdown. Left to
+	// the ambient default it resolves to gbrain on a machine where gbrain is
+	// ready, the worker never starts, and no commit is ever made — the test then
+	// reports a missing git history that has nothing to do with onboarding.
+	t.Setenv("WUPHF_MEMORY_BACKEND", "markdown")
 	t.Setenv("HOME", tmpHome)
 	t.Setenv("WUPHF_RUNTIME_HOME", tmpHome)
 

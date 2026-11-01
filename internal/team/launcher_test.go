@@ -401,12 +401,17 @@ func TestIsNoSessionError(t *testing.T) {
 }
 
 func TestChannelPaneLogPaths(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
-	if got := channelStderrLogPath(); !strings.Contains(got, ".wuphf/logs/channel-stderr.log") {
-		t.Fatalf("unexpected stderr log path: %q", got)
+	// These paths come from config.RuntimeHomeDir, not HOME, so pinning HOME
+	// left the test reading whatever runtime home the process had — on a dev
+	// box, the real one. Pin the variable the code actually reads, and compare
+	// the whole path so a separator or segment change is caught.
+	home := t.TempDir()
+	t.Setenv("WUPHF_RUNTIME_HOME", home)
+	if got, want := channelStderrLogPath(), filepath.Join(home, ".wuphf", "logs", "channel-stderr.log"); got != want {
+		t.Fatalf("stderr log path = %q, want %q", got, want)
 	}
-	if got := channelPaneSnapshotPath(); !strings.Contains(got, ".wuphf/logs/channel-pane.log") {
-		t.Fatalf("unexpected pane log path: %q", got)
+	if got, want := channelPaneSnapshotPath(), filepath.Join(home, ".wuphf", "logs", "channel-pane.log"); got != want {
+		t.Fatalf("pane log path = %q, want %q", got, want)
 	}
 }
 

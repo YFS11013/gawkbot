@@ -283,9 +283,7 @@ func TestHandleWorkspacesList_MarksActiveWorkspaceWithCanonicalRuntimeHome(t *te
 	runtimeHome := t.TempDir()
 	parent := t.TempDir()
 	linkPath := filepath.Join(parent, "runtime-link")
-	if err := os.Symlink(runtimeHome, linkPath); err != nil {
-		t.Fatalf("symlink runtime home: %v", err)
-	}
+	linkDirForTest(t, runtimeHome, linkPath)
 	t.Setenv("WUPHF_RUNTIME_HOME", linkPath)
 
 	b, o, _ := newWorkspaceTestBroker(t)

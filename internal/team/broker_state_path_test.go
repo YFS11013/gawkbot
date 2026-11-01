@@ -62,7 +62,11 @@ func TestDefaultBrokerStatePath_RelativeFallbackWhenHomeMissing(t *testing.T) {
 	// than panicking.
 	t.Setenv("WUPHF_BROKER_STATE_PATH", "")
 	t.Setenv("WUPHF_RUNTIME_HOME", "")
+	// Windows never has a missing home: os.UserHomeDir reads USERPROFILE, so
+	// clearing HOME alone leaves the real profile in place and the fallback is
+	// never reached. Clear both.
 	t.Setenv("HOME", "")
+	t.Setenv("USERPROFILE", "")
 
 	got := defaultBrokerStatePath()
 	want := filepath.Join(".wuphf", "team", "broker-state.json")

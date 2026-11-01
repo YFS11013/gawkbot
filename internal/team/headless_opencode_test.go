@@ -52,7 +52,7 @@ func TestBuildHeadlessOpencodeArgsOmitsModelWhenUnset(t *testing.T) {
 // environment instead of racing to rewrite one shared opencode.json.
 func TestWriteHeadlessOpencodeMCPConfigConcurrent(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	// Pair WUPHF_RUNTIME_HOME with HOME so the post-Phase-0 opencode race fix
 	// (per-bot configs under <runtime_home>/.wuphf/opencode-configs/) lands
 	// in the test tempdir and not the worktree_guard_test process-wide pin.
@@ -155,7 +155,7 @@ func TestWriteHeadlessOpencodeMCPConfigConcurrent(t *testing.T) {
 // log instead of silently dropping the user's `model`/`provider` blocks. (#313)
 func TestWriteHeadlessOpencodeMCPConfigLogsBaseConfigParseFailure(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	logDir := t.TempDir()
 	prevLogDir := wuphfLogDirOverride.Load()
 	wuphfLogDirOverride.Store(&logDir)

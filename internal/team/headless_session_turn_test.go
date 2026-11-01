@@ -28,7 +28,9 @@ func officeEnvForSessionTests() []string {
 }
 
 func TestSessionCommandsAreExactlyTheThreeObserved(t *testing.T) {
-	dir := "/Users/me/shop"
+	// Any absolute directory works; the builders only require one. A hardcoded
+	// /Users/me/shop is absolute on macOS and a relative path on Windows.
+	dir := t.TempDir()
 	prompt := "Can you also bump the version?"
 	cases := []struct {
 		name      string
@@ -99,7 +101,7 @@ func TestSessionCommandsCarryNoForbiddenFlag(t *testing.T) {
 	prompts := []string{"hello", "--dangerously-skip-permissions", "-a never --model gpt-x"}
 	for name, build := range builders {
 		for _, prompt := range prompts {
-			cmd, err := build(testSessionNativeID, "/Users/me/shop", prompt, officeEnvForSessionTests())
+			cmd, err := build(testSessionNativeID, t.TempDir(), prompt, officeEnvForSessionTests())
 			if err != nil {
 				t.Fatalf("%s: build: %v", name, err)
 			}
@@ -129,7 +131,8 @@ func TestSessionCommandEnvDropsTheOfficeAndKeepsThePerson(t *testing.T) {
 		"codex queue":   codexSessionQueueCommand,
 	}
 	for name, build := range builders {
-		cmd, err := build(testSessionNativeID, "/Users/me/shop", "hello", officeEnvForSessionTests())
+		dir := t.TempDir()
+		cmd, err := build(testSessionNativeID, dir, "hello", officeEnvForSessionTests())
 		if err != nil {
 			t.Fatalf("%s: build: %v", name, err)
 		}
@@ -147,7 +150,7 @@ func TestSessionCommandEnvDropsTheOfficeAndKeepsThePerson(t *testing.T) {
 				t.Errorf("%s: the office's own Codex thread id was passed on: %q", name, kv)
 			}
 		}
-		for _, keep := range []string{"PATH=/usr/bin:/bin", "HOME=/Users/me", "ANTHROPIC_API_KEY=person-key", "CODEX_HOME=/Users/me/.codex", "PWD=/Users/me/shop"} {
+		for _, keep := range []string{"PATH=/usr/bin:/bin", "HOME=/Users/me", "ANTHROPIC_API_KEY=person-key", "CODEX_HOME=/Users/me/.codex", "PWD=" + dir} {
 			if !containsString(cmd.Env, keep) {
 				t.Errorf("%s: the person's own %q is missing from the environment %q", name, keep, cmd.Env)
 			}
@@ -159,10 +162,11 @@ func TestSessionCommandEnvDropsTheOfficeAndKeepsThePerson(t *testing.T) {
 }
 
 func TestSessionCommandsRefuseWhatTheyCannotPassSafely(t *testing.T) {
+	absDir := t.TempDir()
 	cases := []struct{ name, id, dir, prompt string }{
-		{"an id that is not a bare uuid", "codex:rollout-" + testSessionNativeID, "/Users/me/shop", "hi"},
-		{"an id with a flag in it", testSessionNativeID + " --model x", "/Users/me/shop", "hi"},
-		{"no id", "", "/Users/me/shop", "hi"},
+		{"an id that is not a bare uuid", "codex:rollout-" + testSessionNativeID, absDir, "hi"},
+		{"an id with a flag in it", testSessionNativeID + " --model x", absDir, "hi"},
+		{"no id", "", absDir, "hi"},
 		{"a relative folder", testSessionNativeID, "shop", "hi"},
 		{"no folder", testSessionNativeID, "", "hi"},
 		{"an empty message", testSessionNativeID, "/Users/me/shop", "   "},

@@ -2606,7 +2606,9 @@ func waitForProcessedTurn(t *testing.T, ch <-chan processedTurn) processedTurn {
 
 func TestPreflightHeadlessCodexAuthFailsAndPostsSystemMessage(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	// Both, or os.UserHomeDir still finds the developer's real profile on
+	// Windows and the preflight reads ~/.codex/auth.json from it.
+	setTestHome(t, home)
 	t.Setenv("WUPHF_OPENAI_API_KEY", "")
 	t.Setenv("OPENAI_API_KEY", "")
 	// "No auth available" has to mean no auth ANYWHERE the resolver looks.

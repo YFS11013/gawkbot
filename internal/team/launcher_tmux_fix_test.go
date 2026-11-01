@@ -2,6 +2,8 @@ package team
 
 import (
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -147,8 +149,13 @@ func TestClaudeCommand_WritesPromptFileWithCorrectContent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stat %q: %v", path, err)
 	}
-	if got := info.Mode().Perm(); got != 0o600 {
-		t.Errorf("prompt file perms = %v, want 0600", got)
+	// Windows has no POSIX mode bits: NTFS decides access through the DACL the
+	// file inherits, and Go reports 0666 for everything. The 0600 argument in
+	// prompts.go is still the right request everywhere it means something.
+	if runtime.GOOS != "windows" {
+		if got := info.Mode().Perm(); got != 0o600 {
+			t.Errorf("prompt file perms = %v, want 0600", got)
+		}
 	}
 }
 
@@ -170,13 +177,14 @@ func TestClaudeCommand_ErrorSurfaces(t *testing.T) {
 		t.Fatalf("NewLauncher: %v", err)
 	}
 
-	// Read-only temp dir forces os.WriteFile to fail.
-	ro := t.TempDir()
-	if err := os.Chmod(ro, 0o500); err != nil {
-		t.Fatalf("chmod: %v", err)
-	}
-	t.Cleanup(func() { _ = os.Chmod(ro, 0o700) })
-	t.Setenv("TMPDIR", ro)
+	// Point the temp directory at a path that does not exist: MkdirTemp then
+	// fails on every platform. A chmod-0500 directory only denies creation on
+	// POSIX — on Windows it just sets a read-only attribute and the write
+	// succeeds, so the test asserted nothing there.
+	missing := filepath.Join(t.TempDir(), "not-a-directory")
+	t.Setenv("TMPDIR", missing) // Unix
+	t.Setenv("TMP", missing)    // Windows (checked first)
+	t.Setenv("TEMP", missing)   // Windows
 
 	members := l.officeMembersSnapshot()
 	if len(members) == 0 {
