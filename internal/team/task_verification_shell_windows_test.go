@@ -22,6 +22,14 @@ func TestVerificationShellKeepsQuotedSpec(t *testing.T) {
 	}{
 		{`echo "a b"`, `"a b"`},
 		{`echo prefix "a b" suffix`, `prefix "a b" suffix`},
+		// A spec whose very first character is a quote: cmd strips the first
+		// and last quote of a /C string, so an unwrapped spec starting with
+		// `"C:\...\python.exe"` lost its opening quote and the rest of the
+		// line was parsed as a broken path — observed as "The filename,
+		// directory name, or volume label syntax is incorrect" with the
+		// interpreter never running (OFFICE-3012).
+		{`"cmd" /C echo quoted-exe`, `quoted-exe`},
+		{`"cmd" /C echo "a b"`, `"a b"`},
 	}
 	for _, c := range cases {
 		cmd := verificationShellCommand(context.Background(), c.spec)
