@@ -849,6 +849,12 @@ type schedulerJob struct {
 	IntervalOverride int    `json:"interval_override,omitempty"`
 	LastRunStatus    string `json:"last_run_status,omitempty"`
 	SystemManaged    bool   `json:"system_managed,omitempty"`
+	// ClosedAt is when this job was first closed (status done/canceled). LastRun
+	// cannot serve that purpose: boot reconciles every task, which re-stamps
+	// LastRun on already-closed jobs and makes a year-old tombstone look like it
+	// just ran. Pruning reads this (falling back to LastRun for rows written
+	// before the field existed).
+	ClosedAt string `json:"closed_at,omitempty"`
 }
 
 type teamSkill struct {

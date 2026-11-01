@@ -223,10 +223,14 @@ func (b *Broker) completeSchedulerJobsLocked(targetType, targetID, channel strin
 		if channel != "" && job.Channel != "" && normalizeChannelSlug(job.Channel) != normalizeChannelSlug(channel) {
 			continue
 		}
+		now := time.Now().UTC().Format(time.RFC3339)
+		if !isClosedSchedulerStatus(job.Status) || strings.TrimSpace(job.LastRun) == "" {
+			job.LastRun = now
+			job.ClosedAt = now
+		}
 		job.Status = "done"
 		job.DueAt = ""
 		job.NextRun = ""
-		job.LastRun = time.Now().UTC().Format(time.RFC3339)
 	}
 }
 
@@ -316,13 +320,14 @@ func (b *Broker) cancelSupersededTaskJobsLocked(taskID, channel, keepKind string
 		if job.Kind == keepKind {
 			continue
 		}
-		if strings.EqualFold(job.Status, "done") || strings.EqualFold(job.Status, "canceled") {
+		if isClosedSchedulerStatus(job.Status) {
 			continue
 		}
 		job.Status = "done"
 		job.DueAt = ""
 		job.NextRun = ""
 		job.LastRun = now
+		job.ClosedAt = now
 	}
 }
 

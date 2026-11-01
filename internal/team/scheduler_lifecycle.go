@@ -651,13 +651,22 @@ var retiredSchedulerJobFamilies = map[string]bool{
 	"watchdog_alert":    true,
 }
 
-// retiredSchedulerJobRetention keeps a closed job just long enough to answer
-// "did that follow-up fire?" during the same working session. These jobs are
-// one per task per state transition — a day of normal work closes a hundred of
-// them — so anything longer than this turns the scheduler list into a ledger of
-// finished tasks. The task's own ledger and the office event log remain the
-// durable record of what happened.
-const retiredSchedulerJobRetention = time.Hour
+// retiredSchedulerJobRetention is the grace period after a one-shot job closes.
+// Long enough to catch "did that follow-up fire?" while the task is still on
+// screen, short enough that a restart does not inherit a ledger of hundreds of
+// finished jobs — these are one per task per state transition, and a normal day
+// closes ~100 of them. The task's ledger and the office event log stay the
+// durable record.
+const retiredSchedulerJobRetention = 10 * time.Minute
+
+// isClosedSchedulerStatus reports whether a job can no longer fire on its own.
+func isClosedSchedulerStatus(status string) bool {
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "done", "canceled", "cancelled", "expired":
+		return true
+	}
+	return false
+}
 
 // pruneRetiredSchedulerJobs drops closed one-shot jobs past the retention
 // window. A job is only a candidate when it has no next run at all (so it
@@ -677,14 +686,16 @@ func pruneRetiredSchedulerJobs(jobs []schedulerJob, now time.Time) ([]schedulerJ
 			kept = append(kept, job)
 			continue
 		}
-		switch strings.ToLower(strings.TrimSpace(job.Status)) {
-		case "done", "canceled", "cancelled", "expired":
-		default:
+		if !isClosedSchedulerStatus(job.Status) {
 			kept = append(kept, job)
 			continue
 		}
-		last, err := time.Parse(time.RFC3339, strings.TrimSpace(job.LastRun))
-		if err != nil || now.Sub(last) < retiredSchedulerJobRetention {
+		closedAt := strings.TrimSpace(job.ClosedAt)
+		if closedAt == "" {
+			closedAt = strings.TrimSpace(job.LastRun)
+		}
+		closed, err := time.Parse(time.RFC3339, closedAt)
+		if err != nil || now.Sub(closed) < retiredSchedulerJobRetention {
 			kept = append(kept, job)
 			continue
 		}

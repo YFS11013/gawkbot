@@ -11,7 +11,7 @@ import (
 func TestPruneRetiredSchedulerJobs(t *testing.T) {
 	now := time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
 	stale := now.Add(-8 * 24 * time.Hour).Format(time.RFC3339)
-	fresh := now.Add(-30 * time.Minute).Format(time.RFC3339)
+	fresh := now.Add(-5 * time.Minute).Format(time.RFC3339)
 
 	jobs := []schedulerJob{
 		{Slug: "task-follow-up:cos--human:acmer-1", Kind: "task_follow_up", Status: "done", LastRun: stale},
@@ -19,6 +19,9 @@ func TestPruneRetiredSchedulerJobs(t *testing.T) {
 		{Slug: "request-follow-up:cos--human:request-9", Kind: "request_follow_up", Status: "canceled", LastRun: stale},
 		{Slug: "task-follow-up:cos--human:acmer-3", Kind: "task_follow_up", Status: "done", LastRun: fresh},
 		{Slug: "recheck:cos--human:task:acmer-6", Kind: "recheck", Status: "done", LastRun: now.Add(-2 * time.Hour).Format(time.RFC3339)},
+		// Boot reconciliation re-stamps LastRun on already-closed jobs; age must
+		// come from ClosedAt or every tombstone looks freshly closed.
+		{Slug: "task-follow-up:cos--human:acmer-7", Kind: "task_follow_up", Status: "done", LastRun: now.Format(time.RFC3339), ClosedAt: now.Add(-3 * time.Hour).Format(time.RFC3339)},
 		{Slug: "task-follow-up:cos--human:acmer-4", Kind: "task_follow_up", Status: "done", LastRun: stale, NextRun: now.Format(time.RFC3339)},
 		{Slug: "5", Kind: "agent_routine", Status: "done", LastRun: stale},
 		{Slug: "task_recheck", Kind: "system", Status: "scheduled", LastRun: stale},
@@ -31,6 +34,7 @@ func TestPruneRetiredSchedulerJobs(t *testing.T) {
 		"recheck:cos--human:task:acmer-2":        true,
 		"request-follow-up:cos--human:request-9": true,
 		"recheck:cos--human:task:acmer-6":        true,
+		"task-follow-up:cos--human:acmer-7":      true,
 	}
 	if len(dropped) != len(wantDropped) {
 		t.Fatalf("dropped %v, want %d entries", dropped, len(wantDropped))
