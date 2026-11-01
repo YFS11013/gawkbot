@@ -150,3 +150,17 @@ git -C ~/.wuphf/wiki log --oneline -1 -- team/skills/<name>.md
 （文件 mtime 仍停在 10-29、frontmatter 仍是 `active`）。broker 重启后 scanner 按文件
 重新导入 → skill 复活成 `active`，而 drift 检查只看 job 不看 skill 状态，所以没人发现。
 重做一次归档后 frontmatter 变为 `archived`、提交 `0062abe`，才是可重启的。
+
+## 8. `/health` 回显字段（巡检别猜字段名）
+
+```bash
+curl -s http://127.0.0.1:7892/health   # 不需要 token
+```
+
+| 想确认 | 字段 | 备注 |
+|---|---|---|
+| 模型是否进了进程 | `provider_model` | 回显 `WUPHF_OPENCODE_MODEL`，正常值 `opencode-go/beam-free`。**响应里没有 `model` 字段**，按 `model` 取只会得到 `null`，别据此判定"模型没传进去" |
+| 进程号 | — | **响应里没有 `pid`**；查进程用 `Get-CimInstance Win32_Process -Filter 'ProcessId=<n>'` 看 `CommandLine` |
+| 其余 | `status` / `provider` / `focus_mode` / `dispatch` / `memory_backend*` / `build` / `session_mode` / `one_on_one_agent` | `build.version=dev` 表示这是本地 `go build` 产物 |
+
+日志重定向是否生效，不看 `/health`：看 `~/.wuphf/logs/broker.err.log` 里有没有**本次启动之后**的新行（`Start-Process` 的重定向是覆盖不是追加，重启后文件会缩到几行）。
