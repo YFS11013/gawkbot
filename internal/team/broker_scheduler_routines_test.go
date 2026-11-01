@@ -352,8 +352,13 @@ func TestNormalizeRoutinePurpose(t *testing.T) {
 }
 
 // TestRegisterRoutine_FiresThroughScheduler pins that a registered
-// automation is wired to a REAL dispatcher: forced due, one watchdog
-// tick posts the prompt into the channel tagging the owner.
+// automation is wired to a REAL dispatcher: forced due, one watchdog tick
+// lands the prompt as a task owned by the target.
+//
+// It used to assert a routine MESSAGE in #general. Agent routines now fire as
+// tasks (broker_routine_tasks.go): the task's dispatch is the wake, and the
+// task is what carries the artifact into distillation. The message assertion
+// outlived the mechanism by a day.
 func TestRegisterRoutine_FiresThroughScheduler(t *testing.T) {
 	b := newTestBroker(t)
 	defer b.Stop()
@@ -386,17 +391,25 @@ func TestRegisterRoutine_FiresThroughScheduler(t *testing.T) {
 	w := &watchdogScheduler{broker: b, clock: realClock{}}
 	w.processOnce()
 
-	fired := false
-	for _, msg := range b.ChannelMessages("general") {
-		if strings.Contains(msg.Content, "@eng") && strings.Contains(msg.Content, "risk summary") {
-			fired = true
+	b.mu.Lock()
+	var fired *teamTask
+	for i := range b.tasks {
+		if b.tasks[i].Owner == "eng" {
+			fired = &b.tasks[i]
 		}
 	}
-	if !fired {
+	b.mu.Unlock()
+	if fired == nil {
 		var got []string
 		for _, msg := range b.ChannelMessages("general") {
 			got = append(got, fmt.Sprintf("%s: %s", msg.From, msg.Content))
 		}
-		t.Fatalf("due routine did not fire into #general; messages=%v", got)
+		t.Fatalf("due routine did not dispatch a task for @eng; messages=%v", got)
+	}
+	if normalizeChannelSlug(fired.Channel) != "general" {
+		t.Errorf("task channel = %q, want general", fired.Channel)
+	}
+	if !strings.Contains(fired.Details, "Pull renewals") {
+		t.Errorf("task must carry the routine prompt; got %q", fired.Details)
 	}
 }
