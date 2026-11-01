@@ -259,6 +259,8 @@ python: can't open file 'C:\Users\...\agent-scratch\data-keeper\"C:\...\check_pr
 | 判据（修复前） | `verification_result`: `exit: exit status 2 / python: can't open file '<cwd>\"C:\...\"'` |
 | 判据（修复后） | 同一 spec 重跑：`prep ok: 4/4 sections; counterparty 6 dated+sourced (+1 stated-absent); questions 5; branches 5`，`pass: true` |
 | 自动审阅 | done 后生成 `OFFICE-2968`（owner `cos`，标题「审阅：准备包：与 fund-invest 的周度对齐」） |
+| 判定为拒（第二份） | `OFFICE-2943`（forex-watch）第一次 complete 被拒：`prep check failed (1): counterparty bullet 6 has no source`——它引用了 `forex_bridge.json`，而判据当时只认 `.md`。同时暴露失败文本在 cp936 控制台被转成乱码，bot 读不到该改哪里 |
+| 修正后 | 放宽 `.json` 也算可追溯出处 + stdout 强制 UTF-8；同一交付物重跑 `prep ok: 4/4 sections; counterparty 6 dated+sourced (+1 stated-absent); questions 6; branches 7`，`pass: true`，并生成审阅任务 `OFFICE-2991` |
 | 审阅结果 | `team/reviews/ACMER-2920.md`（10086 B）：4 条验收全部通过，但判出 1 条**阻断**——准备包把 `team/drills/review-target-*.md` 的 smoke 审阅结果写成了 fund-invest 的业绩评价，会面时据此发问会跑偏 |
 | 结论 | 机检只管结构与可追溯性，**语义正确性由审阅回合兜底**；两者都过才叫交付过关 |
 
