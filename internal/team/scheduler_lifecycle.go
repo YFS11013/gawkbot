@@ -692,7 +692,12 @@ func pruneRetiredSchedulerJobs(jobs []schedulerJob, now time.Time) ([]schedulerJ
 		}
 		closedAt := strings.TrimSpace(job.ClosedAt)
 		if closedAt == "" {
-			closedAt = strings.TrimSpace(job.LastRun)
+			// Written before ClosedAt existed, and LastRun on those rows was
+			// re-stamped by every boot reconcile, so it dates nothing. Closed is
+			// closed: drop it once, and every close from here on carries a
+			// trustworthy timestamp that the grace period applies to.
+			dropped = append(dropped, job.Slug)
+			continue
 		}
 		closed, err := time.Parse(time.RFC3339, closedAt)
 		if err != nil || now.Sub(closed) < retiredSchedulerJobRetention {

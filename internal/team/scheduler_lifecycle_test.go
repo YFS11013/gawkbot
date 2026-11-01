@@ -14,18 +14,18 @@ func TestPruneRetiredSchedulerJobs(t *testing.T) {
 	fresh := now.Add(-5 * time.Minute).Format(time.RFC3339)
 
 	jobs := []schedulerJob{
-		{Slug: "task-follow-up:cos--human:acmer-1", Kind: "task_follow_up", Status: "done", LastRun: stale},
-		{Slug: "recheck:cos--human:task:acmer-2", Kind: "recheck", Status: "done", LastRun: stale},
-		{Slug: "request-follow-up:cos--human:request-9", Kind: "request_follow_up", Status: "canceled", LastRun: stale},
-		{Slug: "task-follow-up:cos--human:acmer-3", Kind: "task_follow_up", Status: "done", LastRun: fresh},
-		{Slug: "recheck:cos--human:task:acmer-6", Kind: "recheck", Status: "done", LastRun: now.Add(-2 * time.Hour).Format(time.RFC3339)},
+		{Slug: "task-follow-up:cos--human:acmer-1", Kind: "task_follow_up", Status: "done", LastRun: stale, ClosedAt: stale},
+		{Slug: "recheck:cos--human:task:acmer-2", Kind: "recheck", Status: "done", LastRun: stale, ClosedAt: stale},
+		{Slug: "request-follow-up:cos--human:request-9", Kind: "request_follow_up", Status: "canceled", LastRun: stale, ClosedAt: stale},
+		{Slug: "task-follow-up:cos--human:acmer-3", Kind: "task_follow_up", Status: "done", LastRun: fresh, ClosedAt: fresh},
+		{Slug: "recheck:cos--human:task:acmer-6", Kind: "recheck", Status: "done", LastRun: now.Add(-2 * time.Hour).Format(time.RFC3339)}, // legacy: no ClosedAt
 		// Boot reconciliation re-stamps LastRun on already-closed jobs; age must
 		// come from ClosedAt or every tombstone looks freshly closed.
 		{Slug: "task-follow-up:cos--human:acmer-7", Kind: "task_follow_up", Status: "done", LastRun: now.Format(time.RFC3339), ClosedAt: now.Add(-3 * time.Hour).Format(time.RFC3339)},
-		{Slug: "task-follow-up:cos--human:acmer-4", Kind: "task_follow_up", Status: "done", LastRun: stale, NextRun: now.Format(time.RFC3339)},
+		{Slug: "task-follow-up:cos--human:acmer-4", Kind: "task_follow_up", Status: "done", LastRun: stale, ClosedAt: stale, NextRun: now.Format(time.RFC3339)},
 		{Slug: "5", Kind: "agent_routine", Status: "done", LastRun: stale},
 		{Slug: "task_recheck", Kind: "system", Status: "scheduled", LastRun: stale},
-		{Slug: "recheck:cos--human:task:acmer-5", Kind: "recheck", Status: "done", LastRun: "not-a-time"},
+		{Slug: "recheck:cos--human:task:acmer-5", Kind: "recheck", Status: "done", LastRun: "not-a-time", ClosedAt: "not-a-time"},
 	}
 	kept, dropped := pruneRetiredSchedulerJobs(jobs, now)
 
