@@ -17,6 +17,14 @@
 
 `complete` 走 `MutateTask`（`internal/team/broker_tasks_mutation_service.go`，done 转换处理在 `reachedDone` 分支）。
 
+### 1.1 「Bot stuck on」求救单
+
+`[@bot] Bot stuck on: <原任务>` 是 error-recovery 自动建的止血单（details 末尾带 `Original work: … · ACMER-NNNN`）。
+原任务已解决就**直接 complete**，不要派活给它。
+
+- 关掉一张**常会再生一张**（例：2710 → 2743）——关完必须再 `GET /tasks?all_channels=true&include_done=true` 复查。
+- 同一个求救单反复冒头（例：`task-skill-1882` 之后又出 2730）= 根因没修，关单只是止血，要在同轮指出根因。
+
 ### 1.2 干净上下文审阅回合（`internal/team/task_review.go`）
 
 任务**通过机器校验并转到 done** 后，broker 自动开一张审阅任务，交给**非作者**的 bot：
@@ -48,6 +56,9 @@
 MCP 侧：`team_wiki_write` 增加 `task_id` 参数；给了 `task_id` 就不再要求 `human_request`。
 **路径必须在 `team/` 下**——`wiki_fs.go:164` / `wiki_git.go:1321` 只接受 `team/` 根，`reviews/…` 会被 wiki 层拒绝。
 
+成本与收益怎么判断（依据 S3：干净上下文审阅者审同模型写的 PR，平均 2 bug/58% 严重）：见 `RESEARCH-2026-11-01-multi-agent.md` §6 的自测口径——
+"阻断"级发现数 ÷ 被审阅交付数低于 0.5 就该关掉或只对特定 pipeline 开。
+
 巡检证据（2026-11-01 实跑）：
 
 ```bash
@@ -56,14 +67,6 @@ ls -l ~/.wuphf/wiki/team/reviews/
 curl -s -H "Authorization: Bearer $TOKEN" "127.0.0.1:7892/tasks?all_channels=true&include_done=true" \
   | python -c "import sys,json;print([t for t in json.load(sys.stdin)['tasks'] if t.get('source_signal_id')])"
 ```
-
-### 1.1 「Bot stuck on」求救单
-
-`[@bot] Bot stuck on: <原任务>` 是 error-recovery 自动建的止血单（details 末尾带 `Original work: … · ACMER-NNNN`）。
-原任务已解决就**直接 complete**，不要派活给它。
-
-- 关掉一张**常会再生一张**（例：2710 → 2743）——关完必须再 `GET /tasks?all_channels=true&include_done=true` 复查。
-- 同一个求救单反复冒头（例：`task-skill-1882` 之后又出 2730）= 根因没修，关单只是止血，要在同轮指出根因。
 
 ## 2. 调度 / routine
 

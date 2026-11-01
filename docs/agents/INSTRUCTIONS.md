@@ -13,6 +13,7 @@
 | 动 `~/.wuphf` 运行时（broker、routine、任务、数据空间、app 元数据、巡检/排障） | `docs/office/OFFICE-RULES.md`（流程与硬规则）+ `docs/office/RUNTIME-API.md`（接口契约） |
 | 查某条链路**到底谁在写**、某个 routine 为何静默失败 | `docs/office/RUNTIME-API.md` §5、`docs/office/DESIGN-DECISIONS.md` §8 |
 | 当前待办 / 已定案 | `docs/office/TODO-NEXT.md` |
+| 评估"要不要上多 agent / 并行 / 审阅环节"（外部证据：Anthropic、Cognition、IDC） | `docs/office/RESEARCH-2026-11-01-multi-agent.md`（来源与局限）+ `docs/office/DESIGN-DECISIONS.md` §10（四条判据） |
 | 多 agent 同树并行（探针、文件归属、临时状态、批量编辑） | `docs/agents/shared-tree-lessons.md` §C 共享工作树与工具可信度 |
 | 派 sub-agent | `shared-tree-lessons.md` §Sub-agent dispatch contract（7 条必含项 + 模板） |
 | 改 `web/` 提 PR（截图）、写 Storybook | `shared-tree-lessons.md` §Screenshots、§Storybook |
