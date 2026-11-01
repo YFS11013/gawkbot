@@ -14,6 +14,7 @@
 | E | P3 #7e 后续：Windows 用 Job Object 收口 | 无，纯工程 | 现在只能杀进程树，工具自派生的进程仍可能逃逸 |
 | F | P3 #8 清理：空仓库 `YFS11013/gawkbot-office`、3 个 exe 备份 | 前者需 `gh auth refresh -s delete_repo` | 备份 ~88 MB/个，删前确认不需要回滚点 |
 | G | P0 #1 forex-watch 16:30 自动简报 | **等时间** | `next_run=2026-11-02T08:30:00Z`（周一 16:30 北京），现在无法验 |
+| H | ~~P0 #0 基金周报（11-07）会被 `wiki_artifact` 校验打回~~ ✅ 已修（`b7231a0`） | — | 校验器现在把 `ra_<16 hex>`（含 `.html` 形式）解析成 `visual-artifacts/<id>.html` 再 stat（`task_verification.go` wiki_artifact 分支，`rich_artifact.go` 新增 `visualArtifactWikiRelPath`/`visualArtifactIDRef`）；测试 `TestRunTaskVerification_WikiArtifact` 增加 3 例。端到端待 11-07 首次触发确认 |
 
 已完成、只在正文留档的：P0 #2 停用门禁、P2 #6 `/notebook/*`、P3 #7 测试包编译、P3 7d/7e 两个根因。
 
@@ -51,6 +52,9 @@
 - broker uptime 10h20m（22:31 重启后未再重启），`scheduler: heartbeat` 每 10 分钟连续，`watchdog.log` 无新记录 → 入队死锁修复后夜间未复发。
 - `weekly-saturday-fund-portfolio-ratio-analysis-report` 01:00:03Z 触发（=09:00 北京），fund-invest turn 79.7s `status=ok`，产物 msg-2257，next=11-07。
 - **缺口**：该周报只进聊天，无 artifact、无 task → 与 P2 5b 同一问题（routine 直接产出，蒸馏空转）。
+- **更新（2026-11-01）**：引擎侧 5b 已落地（`fireRoutineAsTask`），forex routine `5` 同日实测建单成功（`Dispatched as task #ACMER-2779`）；基金周报自 5b 之后**尚未触发**（`last_run=2026-10-31T01:00:03Z`，`next=2026-11-07T01:00:00Z`），所以它的链路仍是未验证状态。
+- **预测失败（11-07，见开放项 H）**：该 routine 的交付物是 `visual_artifact_create` 的 `ra_*`，而 5b 给每个 agent_routine 无条件挂 `wiki_artifact + required`，校验只做 `os.Stat(wikiRoot/<artifact_path>)`；payload 第 3 步传的是 `artifact_path=ra_xxx`（id，不是 wiki 相对路径）→ `complete` 会被打回。
+- **已修（`b7231a0`，2026-11-01 16:19 部署，PID 36236）**：`wiki_artifact` 校验先解析 `ra_<16 hex>` → `visual-artifacts/<id>.html`；11-07 那次要确认的变成"`complete` 通过且 learning 落库"，不再是"会不会被打回"。
 
 ### 1. forex-watch 08:30 UTC（16:30 北京）自动简报
 - **事实修正（2026-10-31 10:30）**：该 routine 是 `30 8 * * 1-5`（周一到周五），**周六不跑**；`last_run=2026-10-30T11:15:20Z`、`next_run=2026-11-02T08:30:00Z`。所以今天 16:30 没有自动简报，下一次是周一 11-02 16:30 北京。此前「今天 16:30 要盯」的假设作废。
@@ -108,6 +112,7 @@
   - `ACMER-2779`（带校验版）：`verification_result={pass:true, detail:"wiki artifact artifacts\forex\2026-11-01.md (2337 bytes)"}`，`git -C ~/.wuphf/wiki log` 出现 `learning: operational/5`（40f046d，作者 forex-watch，task_id=ACMER-2779），`team/learnings/index.jsonl` 新增一条 `source=execution trusted=true`。
   - 该次运行没有 `archivist:` 提交——中文简报标题/正文没有命中已知实体，属数据事实，不是链路断。
 - 备注：`learningKeyFromTitle` 把中文标题压成 `5`（ASCII 数字），所以同一条 routine 的每日 learning 在渲染页按 (scope,type,key) 去重成一行，JSONL 每次追加一行。要按天区分得另给 key，当前不做。
+- **已知不兼容（巡检 2026-11-01）**：校验器只认 wiki 相对路径（`task_verification.go:195-231` 用 `os.Stat(wikiRoot/<artifact_path>)`），但 `visual_artifact_create` 的交付物以 id `ra_xxx` 被引用（HTML 实际在 `wiki/visual-artifacts/ra_xxx.html`）。payload 里写 `artifact_path=ra_xxx` 的 routine 一律过不了校验。别处已有 `ra_` 解析（`wiki_task_attribution.go:51`），是这一处漏了。受影响：`weekly-saturday-fund-portfolio-ratio-analysis-report`（11-07 首次触发，见开放项 H）。
 - 已知失效模式（巡检 2026-11-01 实测）：routine 的 `channel` 已不存在时，建 task 直接 `404 channel not found`，回落的消息也照旧写进那个死房间（消息存储不校验频道注册），于是每天一条 `failed` 运行 + 一次无效唤醒。现在 `channel not found`（`TaskMutationNotFound`）不再回落：直接把本次 fire 记成 `failed` 并在 run 里写明原因，因为回落消息只会写进同一个不存在的房间，还会白唤醒一次负责人；其他建单失败仍保留回落消息。`#general` 已退役，实测 `POST /tasks {channel:"general"}` → 404；已把两条指向 `#general` 的 agent_routine（`check-scheduled-task-status-for-model-snapshot-daily-archive-verification`、`daily-model-snapshot-verification-routine`）停用（可逆，快照流水线已于 10-31 归档）。现存启用的 agent_routine 只剩 `5`（forex DM）与周报（fund DM），都指向活频道。
 
 ### 5c. ~~artifact 进索引~~ ✅ 已完成（10-30 05:10）
