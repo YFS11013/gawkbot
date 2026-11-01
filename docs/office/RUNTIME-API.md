@@ -13,8 +13,9 @@
 | 列表（含各 lane + 已关闭） | `GET /tasks?all_channels=true&include_done=true`（不带参数只回 general，会漏 DM-first 任务） |
 | 建单（绕开 CoS 的唯一可靠链路） | `POST /tasks {"action":"create","title","details","owner","created_by":"human"}`，**不带 channel** |
 | 关单 | `POST /tasks {"action":"complete","id":"ACMER-NNNN","created_by":"human"}` |
+| 数「空壳完成」 | 在 `GET /tasks?...` 的结果里筛 `status=done && artifact 为空`；2026-11-01 起新关的单还会带 `hollow_completion=true`（同一事实的显式标记，历史任务没有该字段） |
 
-`complete` 走 `internal/team/broker_tasks_mutation_service.go:503`。
+`complete` 走 `MutateTask`（`internal/team/broker_tasks_mutation_service.go`，done 转换处理在 `reachedDone` 分支）。
 
 ### 1.1 「Bot stuck on」求救单
 
