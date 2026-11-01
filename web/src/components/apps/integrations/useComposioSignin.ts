@@ -41,6 +41,12 @@ export interface UseComposioSigninResult {
   installCommand: string;
   /** Broker-supplied reason for a failed flow. Never a raw protocol error. */
   error: string;
+  /**
+   * Whether this computer can run the one-time setup by itself. False means
+   * the install command is the only way forward, so no surface may offer a
+   * button that starts an install.
+   */
+  autoInstall: boolean;
   /** True while the start request itself is in flight. */
   starting: boolean;
   /** Start the flow because the user asked for it. */
@@ -76,12 +82,16 @@ export function useComposioSignin({
   const [authUrl, setAuthUrl] = useState("");
   const [installCommand, setInstallCommand] = useState("");
   const [error, setError] = useState("");
+  // Defaults to true so a broker that predates the field keeps the button it
+  // has always shown; only an explicit false removes the affordance.
+  const [autoInstall, setAutoInstall] = useState(true);
   // Auto-open the login URL once per flow; re-renders and status polls must
   // not spawn extra tabs.
   const openedRef = useRef(false);
 
   const apply = useCallback(
     (state: ComposioSigninState) => {
+      setAutoInstall(state.auto_install !== false);
       switch (state.status) {
         case "installing":
           // The broker is installing the Composio CLI before it can mint a
@@ -189,6 +199,7 @@ export function useComposioSignin({
     authUrl,
     installCommand,
     error,
+    autoInstall,
     starting: mutation.isPending,
     start,
     // Saying yes to the one-time setup is an explicit start: that consent is

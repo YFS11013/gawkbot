@@ -96,6 +96,28 @@ digest ──► render_artifacts()（脚本，0 LLM）
 
 淘汰规则：一周后若脚本版在 ≥3 维不输，砍掉 bot 的写作职责；若 LLM 段每天被人手改，连这一段也不自动化。
 
+### D7 Composio 在 Windows 上不做自动安装（可恢复）
+
+决策：`composioAutoInstallSupported` 在 Windows 恒为 false，sign-in 流程**不进入 `installing`**，直接返回 `cli_missing` + 手动命令；
+`/integrations/composio/signin/status` 携带 `auto_install`，前端在没有安装器的平台上不渲染「Set it up」，也不说「setup did not finish」。
+
+原因（`OFFICE-3043` 期间实测）：Windows 的 `defaultComposioInstaller` 必然返回「不支持」（官方安装器是 `curl | bash`，无 Windows 等价），
+但旧流程仍会进 `installing`，耗完预算落到 `install_failed`，而它的按钮是 **Try again** —— 再失败，形成不收敛的循环；
+每次 broker 启动都会重放一次（`22:35` 之前那次在 `21:42:06`，boot 后 10 秒），并把一个阻塞对话框推给没有任何东西可装的人。
+
+| 请求 | 修复前 | 修复后（2026-11-01 22:55 新二进制实测） |
+|---|---|---|
+| `POST /integrations/composio/signin/start {"auto":false}` | `installing` → 超时 → `cli_missing` + "did not finish" | 立即 `cli_missing` + "cannot run the setup by itself"，`auto_install:false` |
+| 同上 `{"auto":true}` | 每次启动重放 | `idle`（latch 生效） |
+| broker 启动后的日志 | `composio signin: install: ... not supported` | 无新增 |
+
+**恢复路径**（以后真要接第三方 SaaS 时）：
+1. 装上 CLI：`npm install -g @composio/cli`，并配 `WUPHF_COMPOSIO_API_KEY` —— **装好后流程自动恢复正常登录，不需要改代码**（`composioBinary()` 命中即跳过整段安装分支）。
+2. 若 Windows 将来有了官方安装器：在 `broker_composio_signin_windows.go` 实现 `defaultComposioInstaller`，并把同文件的 `composioAutoInstallSupported` 改为 true。全仓只有这一处读它。
+3. 不需要这个能力时：不装即可，代价仅为「不能连接第三方 SaaS app」，office 的 wiki / 任务 / 审阅 / 准备包链路完全不经过它。
+
+判据：`go test ./internal/team -run TestComposioSignin`（Windows 上自动跳过两条安装路径用例）、`npx vitest run src/components/apps/integrations`。
+
 ## 4. 被否决的方案
 
 | 方案 | 否决理由 |

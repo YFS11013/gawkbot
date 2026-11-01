@@ -280,6 +280,21 @@ func TestComposioAutoSignin_MissingCLIAsksBeforeInstalling(t *testing.T) {
 	}
 
 	// Answering yes is an explicit start, which is allowed to install.
+	if !composioAutoInstallSupported {
+		// ...but only where there is an installer to run. Here the same yes
+		// must land on the manual command instead of an install that cannot
+		// finish, and the installer must still not run.
+		if state := composioSigninPost(t, b, "/integrations/composio/signin/start", nil); state.Status != composioSigninStatusCLIMissing {
+			t.Fatalf("confirmed start on a platform with no installer = %+v, want cli_missing", state)
+		}
+		mu.Lock()
+		ran = installs
+		mu.Unlock()
+		if ran != 0 {
+			t.Fatalf("installer ran %d times on a platform that cannot install", ran)
+		}
+		return
+	}
 	if state := composioSigninPost(t, b, "/integrations/composio/signin/start", nil); state.Status != composioSigninStatusInstalling {
 		t.Fatalf("expected the confirmed install to run, got %+v", state)
 	}

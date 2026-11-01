@@ -122,6 +122,12 @@ func pollComposioSigninUntil(t *testing.T, b *Broker, want string) composioSigni
 // `installing`. When the install fails, the flow falls back to cli_missing
 // carrying the manual install command (the UI renders it with a copy button).
 func TestComposioSigninStart_AutoInstallFailsFallsBackToCLIMissing(t *testing.T) {
+	if !composioAutoInstallSupported {
+		// The flow never enters installing here, so there is no failure to
+		// fall back from and no install deadline to bound. The unsupported
+		// path has its own test (broker_composio_install_support_test.go).
+		t.Skip("this platform has no installer")
+	}
 	dir := t.TempDir() // empty PATH dir — no composio
 	b := newComposioSigninBroker(t, dir)
 
@@ -153,6 +159,12 @@ func TestComposioSigninStart_AutoInstallFailsFallsBackToCLIMissing(t *testing.T)
 // stretched by the login window — otherwise a wedged install lingers in
 // "installing" for the whole install+login span before timing out.
 func TestComposioSigninStart_InstallDeadlineExcludesLoginWindow(t *testing.T) {
+	if !composioAutoInstallSupported {
+		// The flow never enters installing here, so there is no failure to
+		// fall back from and no install deadline to bound. The unsupported
+		// path has its own test (broker_composio_install_support_test.go).
+		t.Skip("this platform has no installer")
+	}
 	dir := t.TempDir() // empty PATH dir — no composio
 	b := newComposioSigninBroker(t, dir)
 

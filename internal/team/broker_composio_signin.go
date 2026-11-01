@@ -209,6 +209,12 @@ type composioSigninState struct {
 	AuthURL        string `json:"auth_url,omitempty"`
 	InstallCommand string `json:"install_command,omitempty"`
 	Reason         string `json:"reason,omitempty"`
+	// AutoInstall reports whether THIS computer can run the one-time setup
+	// itself. Windows cannot (the official installer is a curl|bash
+	// pipeline), so there the install_command is the only way forward and a
+	// "Set it up" button would be a button that cannot succeed. No omitempty:
+	// a missing field would read as false and hide the button on Unix.
+	AutoInstall bool `json:"auto_install"`
 }
 
 // composioSigninFlow holds the broker's in-memory sign-in state. Zero value is
@@ -321,6 +327,25 @@ func (b *Broker) startComposioSignin(actor string, opts composioSigninStartOptio
 			flow.state = composioSigninState{
 				Status:         composioSigninStatusInstallRequired,
 				InstallCommand: composioInstallCommand,
+				AutoInstall:    composioAutoInstallSupported,
+			}
+			state := flow.state
+			flow.mu.Unlock()
+			return state
+		}
+		if !composioAutoInstallSupported {
+			// Nobody can answer this on a platform without an installer. Going
+			// through "installing" would spend the install budget and land in
+			// install_failed, whose only remedy is to try again — so say the
+			// one thing that works and stop. autoBlocked latches as well: the
+			// next connect gets the button back instead of this branch.
+			flow.actor = actor
+			flow.autoBlocked = true
+			flow.state = composioSigninState{
+				Status:         composioSigninStatusCLIMissing,
+				InstallCommand: composioInstallCommand,
+				Reason:         composioInstallUnsupportedMessage,
+				AutoInstall:    false,
 			}
 			state := flow.state
 			flow.mu.Unlock()
@@ -336,6 +361,7 @@ func (b *Broker) startComposioSignin(actor string, opts composioSigninStartOptio
 		flow.state = composioSigninState{
 			Status:         composioSigninStatusInstalling,
 			InstallCommand: composioInstallCommand,
+			AutoInstall:    true,
 		}
 		// Backstop only the INSTALL phase (a small grace past the install
 		// context so the auto-install goroutine can transition state first).

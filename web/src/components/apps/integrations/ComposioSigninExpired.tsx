@@ -108,6 +108,7 @@ export function ComposioSigninExpired({
         phase={signin.phase}
         authUrl={signin.authUrl}
         installCommand={signin.installCommand}
+        autoInstall={signin.autoInstall}
         starting={signin.starting}
         onStart={signin.start}
         onConfirmInstall={signin.confirmInstall}

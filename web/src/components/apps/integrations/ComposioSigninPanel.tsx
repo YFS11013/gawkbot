@@ -17,6 +17,11 @@ export interface ComposioSigninPanelProps {
   phase: SigninPhase;
   authUrl: string;
   installCommand: string;
+  /**
+   * Whether this computer can run the one-time setup itself. False hides every
+   * affordance that would start an install, because none of them can finish.
+   */
+  autoInstall?: boolean;
   starting: boolean;
   onStart: () => void;
   /** Label for the idle-state button: "Connect integrations", "Sign in again". */
@@ -57,6 +62,7 @@ export function ComposioSigninPanel({
   phase,
   authUrl,
   installCommand,
+  autoInstall = true,
   starting,
   onStart,
   ctaLabel,
@@ -66,6 +72,24 @@ export function ComposioSigninPanel({
   if (phase === "install_required") {
     // The destructive-action carve-out: connecting an app does not authorise
     // putting software on someone's computer, so this one asks.
+    //
+    // Where no installer exists (Windows), asking is pointless: the button
+    // could only fail, and its failure screen offers "try again", which fails
+    // the same way. Show the command instead and skip the question.
+    if (!autoInstall) {
+      return (
+        <div className="composio-onb-panel" role="status">
+          <p className="composio-onb-panel-title">Setup runs from a terminal</p>
+          <p className="composio-onb-panel-note">
+            Connecting apps needs a small helper, and this computer cannot
+            install it by itself. Run the command below once, then come back
+            and sign in.
+          </p>
+          <InstallCommandDetails command={installCommand} />
+          {onCancel ? <CancelRow onCancel={onCancel} /> : null}
+        </div>
+      );
+    }
     return (
       <div className="composio-onb-panel" role="status">
         <p className="composio-onb-panel-title">One-time setup needed</p>
@@ -112,13 +136,18 @@ export function ComposioSigninPanel({
     );
   }
   if (phase === "cli_missing") {
+    // "Did not finish" describes an attempt that failed. Where no installer
+    // exists, nothing was attempted — saying otherwise sends people looking
+    // for a failure that never happened.
     return (
       <div className="composio-onb-panel" role="status">
-        <p className="composio-onb-panel-title">Setup did not finish</p>
+        <p className="composio-onb-panel-title">
+          {autoInstall ? "Setup did not finish" : "Setup runs from a terminal"}
+        </p>
         <p className="composio-onb-panel-note">
-          The one-time setup for integrations could not finish on this computer.
-          You can try again, or pass the step below to whoever set this computer
-          up.
+          {autoInstall
+            ? "The one-time setup for integrations could not finish on this computer. You can try again, or pass the step below to whoever set this computer up."
+            : "This computer cannot install the helper by itself. Run the command below once, then try again."}
         </p>
         <InstallCommandDetails command={installCommand} />
         <div className="composio-onb-actions">

@@ -12,6 +12,11 @@ import (
 // by the auto-install path.
 const composioInstallCommand = "curl -fsSL https://composio.dev/install | bash"
 
+// composioAutoInstallSupported is true here: defaultComposioInstaller below
+// has a real installer to run, so a missing CLI is worth one attempt before
+// falling back to the manual command.
+const composioAutoInstallSupported = true
+
 // defaultComposioInstaller runs the official Composio installer, which is a
 // `curl | bash` pipeline. This lives in a Unix-only file because it shells out
 // to bash, which does not exist on Windows — the Windows build supplies a stub

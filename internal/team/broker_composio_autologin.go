@@ -80,6 +80,13 @@ const (
 	// composioInstallStalledMessage: the setup step is still running well past
 	// its budget, which in practice means it is stuck.
 	composioInstallStalledMessage = "The one-time setup for integrations is taking longer than it should."
+
+	// composioInstallUnsupportedMessage: this platform has no installer the
+	// broker may run, so the setup never starts. Unlike the failed/stalled
+	// pair this is not a setback to retry — it names the one step that does
+	// work, and the command itself travels in InstallCommand, never in the
+	// sentence.
+	composioInstallUnsupportedMessage = "This computer cannot run the integrations setup by itself. Run the command below once, then try again."
 )
 
 // composioSignInRequiredCode is the machine-readable code for "no Composio

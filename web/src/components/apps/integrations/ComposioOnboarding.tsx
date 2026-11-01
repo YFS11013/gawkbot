@@ -82,6 +82,7 @@ export function ComposioOnboarding({ onConnected }: ComposioOnboardingProps) {
           phase={signin.phase}
           authUrl={signin.authUrl}
           installCommand={signin.installCommand}
+          autoInstall={signin.autoInstall}
           starting={signin.starting}
           onStart={signin.start}
           ctaLabel="Connect integrations"

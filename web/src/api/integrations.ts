@@ -199,6 +199,12 @@ export interface ComposioSigninState {
   auth_url?: string;
   install_command?: string;
   reason?: string;
+  /**
+   * Whether this computer can run the one-time setup itself. False means the
+   * install command is the only way forward: a "Set it up" button could not
+   * succeed, so the panel must not offer one.
+   */
+  auto_install: boolean;
 }
 
 /**
