@@ -637,6 +637,62 @@ func sortRevisionsByVersionDesc(revs []schedulerRevision) {
 
 // healStuckRoutines auto-recovers bot-targeted routines that ended up
 // in a terminal "done" status before this build's fix. Old code marked
+// retiredSchedulerJobFamilies are the per-entity jobs the task and request
+// lifecycles schedule one at a time. When the entity lands in a terminal state
+// the job is closed in place (status done, next_run cleared) and kept so the
+// Routines drawer can still show what fired. Nothing ever removes them, so a
+// busy office ends up with hundreds of tombstones that bury the handful of
+// schedules that are actually live. Boot prunes the ones closed longer than the
+// retention window; active jobs and routine crons are never touched.
+var retiredSchedulerJobFamilies = map[string]bool{
+	"task_follow_up":    true,
+	"request_follow_up": true,
+	"recheck":           true,
+	"watchdog_alert":    true,
+}
+
+// retiredSchedulerJobRetention keeps a closed job just long enough to answer
+// "did that follow-up fire?" during the same working session. These jobs are
+// one per task per state transition — a day of normal work closes a hundred of
+// them — so anything longer than this turns the scheduler list into a ledger of
+// finished tasks. The task's own ledger and the office event log remain the
+// durable record of what happened.
+const retiredSchedulerJobRetention = time.Hour
+
+// pruneRetiredSchedulerJobs drops closed one-shot jobs past the retention
+// window. A job is only a candidate when it has no next run at all (so it
+// cannot fire), carries a terminal status, and its last run is older than the
+// retention window. Anything ambiguous — unknown status, unparsable timestamp,
+// a schedule that is merely paused — is kept, because losing a live schedule is
+// worse than listing a dead one.
+func pruneRetiredSchedulerJobs(jobs []schedulerJob, now time.Time) ([]schedulerJob, []string) {
+	kept := make([]schedulerJob, 0, len(jobs))
+	var dropped []string
+	for _, job := range jobs {
+		if !retiredSchedulerJobFamilies[job.Kind] {
+			kept = append(kept, job)
+			continue
+		}
+		if strings.TrimSpace(job.NextRun) != "" || strings.TrimSpace(job.DueAt) != "" {
+			kept = append(kept, job)
+			continue
+		}
+		switch strings.ToLower(strings.TrimSpace(job.Status)) {
+		case "done", "canceled", "cancelled", "expired":
+		default:
+			kept = append(kept, job)
+			continue
+		}
+		last, err := time.Parse(time.RFC3339, strings.TrimSpace(job.LastRun))
+		if err != nil || now.Sub(last) < retiredSchedulerJobRetention {
+			kept = append(kept, job)
+			continue
+		}
+		dropped = append(dropped, job.Slug)
+	}
+	return kept, dropped
+}
+
 // every fire as "done" which broke schedulerJobDue; on restart we rewrite
 // those rows so the schedule resumes. One-shot routines (task / request
 // follow-ups) are left alone — they're meant to terminate.

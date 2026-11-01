@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/nex-crm/wuphf/internal/channel"
 	"github.com/nex-crm/wuphf/internal/config"
@@ -178,6 +179,17 @@ func (b *Broker) loadState() error {
 	b.schedulerActivity = cloneSchedulerActivity(state.SchedulerActivity)
 	b.schedulerRevisions = cloneSchedulerRevisions(state.SchedulerRevisions)
 	healStuckRoutines(b.scheduler)
+	// Closed one-shot jobs (task follow-ups, rechecks, request follow-ups) are
+	// tombstones: they cannot fire and they outnumber live schedules. Drop the
+	// ones past retention at boot, and forget their run buffers with them.
+	if pruned, dropped := pruneRetiredSchedulerJobs(b.scheduler, time.Now().UTC()); len(dropped) > 0 {
+		b.scheduler = pruned
+		for _, slug := range dropped {
+			delete(b.schedulerRuns, slug)
+			delete(b.schedulerActivity, slug)
+			delete(b.schedulerRevisions, slug)
+		}
+	}
 	b.skills = state.Skills
 	b.slackTaskCards = state.SlackTaskCards
 	b.slackSpawns = state.SlackSpawns
