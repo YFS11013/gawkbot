@@ -493,6 +493,7 @@ type schedulerFixtureBroker struct {
 	routineTasks     []TaskPostRequest
 	routineSignals   map[string]string
 	routineCreatErr  error
+	completedRuns    []schedulerRun
 }
 
 type skillUpdateCall struct {
@@ -546,8 +547,9 @@ func (b *schedulerFixtureBroker) UpdateSchedulerJobState(slug string, _ time.Tim
 func (b *schedulerFixtureBroker) livePlaybookPrompt(_ string) string                             { return "" }
 func (b *schedulerFixtureBroker) recordOperatorRoutineExecution(string, PlaybookOutcome, string) {}
 
-func (b *schedulerFixtureBroker) CompleteSchedulerRun(slug string, _ time.Time, statusForJob string, _ schedulerRun) error {
+func (b *schedulerFixtureBroker) CompleteSchedulerRun(slug string, _ time.Time, statusForJob string, run schedulerRun) error {
 	b.jobStateUpdates = append(b.jobStateUpdates, jobStateCall{slug: slug, status: statusForJob})
+	b.completedRuns = append(b.completedRuns, run)
 	return nil
 }
 

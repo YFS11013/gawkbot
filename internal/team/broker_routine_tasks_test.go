@@ -103,6 +103,37 @@ func TestProcessBotJob_AgentRoutineFallsBackToMessageOnCreateFailure(t *testing.
 	}
 }
 
+// A routine pointing at a room that no longer exists must fail loudly and NOT
+// post: the fallback would land in that same missing room, wake the owner for
+// nothing, and look like a delivered routine in the Runs tab.
+func TestProcessBotJob_AgentRoutineSkipsFallbackWhenChannelIsGone(t *testing.T) {
+	b := newSchedulerFixtureBroker(t)
+	job := agentRoutineJob()
+	job.Channel = "general"
+	b.dueJobs = []schedulerJob{job}
+	b.routineCreatErr = &TaskMutationError{Kind: TaskMutationNotFound, Message: "channel not found"}
+	sched := &watchdogScheduler{broker: b, clock: newManualClock(time.Date(2026, 11, 2, 8, 30, 0, 0, time.UTC))}
+
+	sched.processOnce()
+
+	if len(b.automationPosts) != 0 {
+		t.Fatalf("a missing channel must not get a fallback message; got %+v", b.automationPosts)
+	}
+	if len(b.completedRuns) != 1 {
+		t.Fatalf("expected the fire to record one run; got %+v", b.completedRuns)
+	}
+	run := b.completedRuns[0]
+	if run.Status != "failed" {
+		t.Errorf("a routine that could not be delivered must be a failed run; got %q", run.Status)
+	}
+	if !strings.Contains(run.Message, "channel not found") {
+		t.Errorf("the run must carry the create error; got %q", run.Message)
+	}
+	if last := b.jobStateUpdates[len(b.jobStateUpdates)-1]; last.status == "disabled" {
+		t.Errorf("a delivery failure must not silently disable the routine; got %+v", last)
+	}
+}
+
 func TestProcessBotJob_NonAgentRoutineStillPostsMessage(t *testing.T) {
 	b := newSchedulerFixtureBroker(t)
 	job := agentRoutineJob()

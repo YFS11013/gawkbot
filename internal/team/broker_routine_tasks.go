@@ -1,6 +1,7 @@
 package team
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -88,6 +89,22 @@ func (w *watchdogScheduler) fireRoutineAsTask(job schedulerJob, botSlug, channel
 		VerificationRequired: true,
 	})
 	if err != nil {
+		// A routine whose channel no longer exists (the room was retired, or a
+		// member was deleted) cannot be delivered anywhere: the fallback post
+		// would land in that same missing room, wake nobody useful, and hide
+		// the real fault behind a message that still "sends". Fail the run and
+		// say why, so the config gets fixed instead.
+		var mutationErr *TaskMutationError
+		if errors.As(err, &mutationErr) && mutationErr.Kind == TaskMutationNotFound {
+			run.Status = "failed"
+			run.Message = fmt.Sprintf("Could not create the routine task: %v", err)
+			run.ErrorDetail = err.Error()
+			run.Events = []string{
+				fmt.Sprintf("Task create failed at %s", startedAt),
+				fmt.Sprintf("Skipped the fallback message: #%s is the reason the create failed", channel),
+			}
+			return run
+		}
 		// Fall back to the message post so the routine still runs, and record
 		// WHY it fell back — a routine that quietly stops producing because the
 		// task path broke is the failure mode this whole change exists to end.
