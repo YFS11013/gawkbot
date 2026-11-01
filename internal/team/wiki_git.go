@@ -1119,7 +1119,7 @@ func (r *Repo) RestoreFromBackup(ctx context.Context) error {
 	ts := time.Now().UTC().Format("20060102T150405")
 	corruptTarget := r.root + ".corrupt-" + ts
 	if _, err := os.Stat(r.root); err == nil {
-		if err := os.Rename(r.root, corruptTarget); err != nil {
+		if err := replaceFile(r.root, corruptTarget); err != nil {
 			return fmt.Errorf("wiki: set aside corrupt repo: %w", err)
 		}
 	}

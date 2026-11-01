@@ -335,21 +335,6 @@ func writeOrchestratorError(w http.ResponseWriter, err error) {
 	writeWorkspaceError(w, errorToStatus(err), err.Error())
 }
 
-func canonicalWorkspaceRuntimeHome(raw string) (string, bool) {
-	path := strings.TrimSpace(raw)
-	if path == "" {
-		return "", false
-	}
-	abs, err := filepath.Abs(path)
-	if err != nil {
-		return filepath.Clean(path), true
-	}
-	resolved, err := filepath.EvalSymlinks(abs)
-	if err == nil {
-		return resolved, true
-	}
-	return filepath.Clean(abs), true
-}
 
 // requireMethod returns true and lets the handler proceed if r.Method matches
 // expected. Otherwise writes 405 and returns false.

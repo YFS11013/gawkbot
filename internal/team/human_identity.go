@@ -243,7 +243,7 @@ func (r *HumanIdentityRegistry) persist(id HumanIdentity) error {
 	if err := os.WriteFile(tmp, bytes, 0o600); err != nil {
 		return fmt.Errorf("human identity: write tmp: %w", err)
 	}
-	if err := os.Rename(tmp, path); err != nil {
+	if err := replaceFile(tmp, path); err != nil {
 		return fmt.Errorf("human identity: rename: %w", err)
 	}
 	return nil

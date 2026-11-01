@@ -73,7 +73,7 @@ func migrateLegacyLeadSlugDir(parent string) {
 	if _, err := os.Stat(newPath); err == nil {
 		return
 	}
-	if err := os.Rename(oldPath, newPath); err != nil {
+	if err := replaceFile(oldPath, newPath); err != nil {
 		log.Printf("lead slug migration: rename %s -> %s failed: %v", oldPath, newPath, err)
 		return
 	}
@@ -94,7 +94,7 @@ func migrateLegacyLeadSlugFile(dir, ext string) {
 	if _, err := os.Stat(newPath); err == nil {
 		return
 	}
-	if err := os.Rename(oldPath, newPath); err != nil {
+	if err := replaceFile(oldPath, newPath); err != nil {
 		log.Printf("lead slug migration: rename %s -> %s failed: %v", oldPath, newPath, err)
 	}
 }

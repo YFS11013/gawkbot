@@ -366,7 +366,7 @@ func (r *Repo) applyMovesLocked(moves []pageMove) ([]appliedMove, error) {
 		if err := os.MkdirAll(filepath.Dir(toAbs), 0o700); err != nil {
 			return done, fmt.Errorf("wiki page: mkdir %s: %w", filepath.Dir(toAbs), err)
 		}
-		if err := os.Rename(fromAbs, toAbs); err != nil {
+		if err := replaceFile(fromAbs, toAbs); err != nil {
 			return done, fmt.Errorf("wiki page: rename %s -> %s: %w", m.From, m.To, err)
 		}
 		done = append(done, appliedMove{fromAbs: fromAbs, toAbs: toAbs})
@@ -380,7 +380,7 @@ func (r *Repo) applyMovesLocked(moves []pageMove) ([]appliedMove, error) {
 func (r *Repo) undoMovesLocked(moved []appliedMove) {
 	for i := len(moved) - 1; i >= 0; i-- {
 		_ = os.MkdirAll(filepath.Dir(moved[i].fromAbs), 0o700)
-		_ = os.Rename(moved[i].toAbs, moved[i].fromAbs)
+		_ = replaceFile(moved[i].toAbs, moved[i].fromAbs)
 	}
 }
 

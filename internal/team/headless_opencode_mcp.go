@@ -146,7 +146,7 @@ func (l *Launcher) writeHeadlessOpencodeMCPConfig(slug string) (string, error) {
 		_ = os.Remove(tmpPath)
 		return "", fmt.Errorf("close temp opencode config: %w", err)
 	}
-	if err := os.Rename(tmpPath, configPath); err != nil {
+	if err := replaceFile(tmpPath, configPath); err != nil {
 		_ = os.Remove(tmpPath)
 		return "", fmt.Errorf("install opencode config: %w", err)
 	}

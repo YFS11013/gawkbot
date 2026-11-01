@@ -161,7 +161,7 @@ func (s *osDecisionPacketStore) Write(taskID string, packet DecisionPacket) erro
 	if err := os.WriteFile(tmpPath, body, 0o600); err != nil {
 		return fmt.Errorf("decision packet write tmp %s: %w", tmpPath, err)
 	}
-	if err := os.Rename(tmpPath, finalPath); err != nil {
+	if err := replaceFile(tmpPath, finalPath); err != nil {
 		_ = os.Remove(tmpPath)
 		return fmt.Errorf("decision packet rename %s -> %s: %w", tmpPath, finalPath, err)
 	}

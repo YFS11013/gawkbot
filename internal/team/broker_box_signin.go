@@ -187,7 +187,7 @@ func defaultBoxInstaller(ctx context.Context) error {
 		_ = os.Remove(tmp.Name())
 		return err
 	}
-	return os.Rename(tmp.Name(), filepath.Join(dir, "box"))
+	return replaceFile(tmp.Name(), filepath.Join(dir, "box"))
 }
 
 // boxCLILoggedIn asks the CLI whether this machine holds a session.

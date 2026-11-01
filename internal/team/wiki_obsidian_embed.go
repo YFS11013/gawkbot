@@ -86,7 +86,7 @@ func IngestImageEmbeds(repo *Repo, relPath, body string) (string, []string, erro
 			ingested = append(ingested, dstRel)
 			return "![[" + dstRel + alt + "]]"
 		}
-		if err := os.Rename(src, dst); err != nil {
+		if err := replaceFile(src, dst); err != nil {
 			firstErr = fmt.Errorf("wiki obsidian embed: move %s: %w", target, err)
 			return match
 		}

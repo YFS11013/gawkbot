@@ -91,7 +91,7 @@ func writeOfficeInfo(webURL, brokerURL string) error {
 		_ = os.Remove(tmpName)
 		return err
 	}
-	return os.Rename(tmpName, path)
+	return replaceFile(tmpName, path)
 }
 
 func clearOfficeInfo() error {

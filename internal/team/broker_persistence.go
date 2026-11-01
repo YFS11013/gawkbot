@@ -487,7 +487,7 @@ func atomicWriteFile(path string, data []byte) error {
 		cleanup()
 		return err
 	}
-	if err := os.Rename(tmpName, path); err != nil {
+	if err := replaceFile(tmpName, path); err != nil {
 		cleanup()
 		return err
 	}
