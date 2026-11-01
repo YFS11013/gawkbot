@@ -19,8 +19,8 @@
       { "slug": "market-analyst-daily-direction-rating-after-forex-brief", "enabled": false, "schedule_expr": "30 7 * * 1-5", "target_id": "market-analyst", "channel": "human__market-analyst" },
 
       { "slug": "daily-0800-utc-opencode-model-snapshot-to-data-space-space-7c90a37850d8b0a1", "enabled": false, "schedule_expr": "0 8 * * *", "target_id": "data-keeper", "channel": "cos__human", "note": "agent_routine 备用路径；真写入方是 WUPHF-ModelSnapshot 计划任务。payload 含「空值写空字符串」规则" },
-      { "slug": "daily-model-snapshot-verification-routine", "enabled": true, "schedule_expr": "0 8 * * *", "target_id": "cos", "channel": "general", "note": "cos 每日核对（payload 为空，只发 label 唤醒）" },
-      { "slug": "check-scheduled-task-status-for-model-snapshot-daily-archive-verification", "enabled": true, "schedule_expr": "daily", "target_id": "cos", "channel": "general" },
+      { "slug": "daily-model-snapshot-verification-routine", "enabled": false, "schedule_expr": "0 8 * * *", "target_id": "cos", "channel": "general", "note": "已停用：channel=general 已退役，建 task 直接 404；它核对的快照流水线于 10-31 归档" },
+      { "slug": "check-scheduled-task-status-for-model-snapshot-daily-archive-verification", "enabled": false, "schedule_expr": "daily", "target_id": "cos", "channel": "general", "note": "已停用：同上，channel=general 不存在" },
       {
         "slug": "one-workflow:cos__human:daily-opencode-model-snapshot",
         "enabled": false,
