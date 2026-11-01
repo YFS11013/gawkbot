@@ -130,20 +130,3 @@ func resolveBinary() (string, error) {
 
 // appendOrReplace returns a copy of env with key=val set. If key already
 // exists in env its value is replaced; otherwise the pair is appended.
-func appendOrReplace(env []string, key, val string) []string {
-	prefix := key + "="
-	out := make([]string, 0, len(env)+1)
-	found := false
-	for _, e := range env {
-		if len(e) >= len(prefix) && e[:len(prefix)] == prefix {
-			out = append(out, prefix+val)
-			found = true
-		} else {
-			out = append(out, e)
-		}
-	}
-	if !found {
-		out = append(out, prefix+val)
-	}
-	return out
-}

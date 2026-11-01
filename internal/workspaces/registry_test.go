@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -18,6 +19,7 @@ func withSpacesDir(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
 	t.Setenv("WUPHF_RUNTIME_HOME", dir)
 	return filepath.Join(dir, ".wuphf-spaces")
 }
@@ -260,15 +262,20 @@ func TestFileModes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stat registry.json: %v", err)
 	}
-	if perm := info.Mode().Perm(); perm != 0o600 {
-		t.Errorf("registry.json perm: want 0600, got %o", perm)
-	}
+	// Windows has no POSIX mode bits: NTFS access comes from the inherited
+	// DACL and Go reports 0666/0777 for everything, so these assertions only
+	// mean something where the mode is what enforces access.
+	if runtime.GOOS != "windows" {
+		if perm := info.Mode().Perm(); perm != 0o600 {
+			t.Errorf("registry.json perm: want 0600, got %o", perm)
+		}
 
-	dirInfo, err := os.Stat(dir)
-	if err != nil {
-		t.Fatalf("stat spaces dir: %v", err)
-	}
-	if perm := dirInfo.Mode().Perm(); perm != 0o700 {
-		t.Errorf("spaces dir perm: want 0700, got %o", perm)
+		dirInfo, err := os.Stat(dir)
+		if err != nil {
+			t.Fatalf("stat spaces dir: %v", err)
+		}
+		if perm := dirInfo.Mode().Perm(); perm != 0o700 {
+			t.Errorf("spaces dir perm: want 0700, got %o", perm)
+		}
 	}
 }

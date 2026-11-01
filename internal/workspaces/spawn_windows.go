@@ -13,10 +13,19 @@ var errSpawnNotSupportedOnWindows = errors.New(
 	"workspaces: multi-workspace broker spawning is not yet supported on Windows",
 )
 
-// Spawn returns an error on Windows. The package compiles cleanly so other
-// orchestrator paths (List, Switch, Pause, Doctor) remain available — but
-// Create/Resume that depend on spawning will fail fast with this message
-// rather than producing an unbound broker.
+// spawnFn is the function used to launch a broker subprocess. It exists on
+// every platform so the orchestrator tests compile and can exercise the
+// Create/Resume paths by substituting their own launcher — only the default
+// differs, because Windows has nothing to launch yet.
+var spawnFn = defaultSpawn
+
+// Spawn starts a sibling broker process for the workspace identified by name.
+// On Windows the default returns errSpawnNotSupportedOnWindows; the other
+// orchestrator paths (List, Switch, Pause, Doctor) stay available.
 func Spawn(name string, runtimeHome string, brokerPort, webPort int) error {
+	return spawnFn(name, runtimeHome, brokerPort, webPort)
+}
+
+func defaultSpawn(string, string, int, int) error {
 	return errSpawnNotSupportedOnWindows
 }

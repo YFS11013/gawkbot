@@ -45,7 +45,10 @@ func freePort(t *testing.T) int {
 func withOrchestratorHome(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
+	// USERPROFILE too: os.UserHomeDir ignores HOME on Windows, so without it
+	// these tests read and wrote the developer's real ~/.wuphf-spaces.
 	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
 	t.Setenv("WUPHF_RUNTIME_HOME", dir)
 	return dir
 }
@@ -632,6 +635,7 @@ func TestDoctorReconcilesToppedToStoppedToPaused(t *testing.T) {
 }
 
 func TestDoctorRecreatesSymlink(t *testing.T) {
+	requireDirectorySymlinks(t)
 	home := withOrchestratorHome(t)
 
 	sd, _ := spacesDir()
@@ -1237,6 +1241,7 @@ func TestDoctorDetectsPartialMigration(t *testing.T) {
 // ---- Doctor: wrong symlink target ------------------------------------------
 
 func TestDoctorDetectsWrongSymlinkTarget(t *testing.T) {
+	requireDirectorySymlinks(t)
 	home := withOrchestratorHome(t)
 
 	sd, _ := spacesDir()
@@ -1389,6 +1394,7 @@ func TestPauseReadsTokenFromRealHomeNotRuntimeHome(t *testing.T) {
 	realHome := t.TempDir()
 	runtimeHome := t.TempDir()
 	t.Setenv("HOME", realHome)
+	t.Setenv("USERPROFILE", realHome)
 	t.Setenv("WUPHF_RUNTIME_HOME", runtimeHome)
 
 	// Fake broker that records the Authorization header it receives.

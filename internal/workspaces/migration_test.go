@@ -13,6 +13,7 @@ func withMigrationHome(t *testing.T) string {
 	// Override HOME alongside WUPHF_RUNTIME_HOME so the migration writes inside
 	// the tempdir instead of leaking into the developer's real ~/.wuphf-spaces.
 	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
 	t.Setenv("WUPHF_RUNTIME_HOME", dir)
 	// Inject a no-op broker probe so tests don't fail when a real broker
 	// is running on port 7890 in the developer's environment.
@@ -23,6 +24,7 @@ func withMigrationHome(t *testing.T) string {
 }
 
 func TestMigrateToSymmetricHappyPath(t *testing.T) {
+	requireDirectorySymlinks(t)
 	home := withMigrationHome(t)
 
 	// Create a legacy ~/.wuphf directory with some content.
@@ -73,6 +75,7 @@ func TestMigrateToSymmetricHappyPath(t *testing.T) {
 }
 
 func TestMigrateToSymmetricIsIdempotent(t *testing.T) {
+	requireDirectorySymlinks(t)
 	home := withMigrationHome(t)
 
 	oldWuphf := filepath.Join(home, ".wuphf")
@@ -97,6 +100,7 @@ func TestMigrateToSymmetricIsIdempotent(t *testing.T) {
 }
 
 func TestMigrateToSymmetricFreshInstall(t *testing.T) {
+	requireDirectorySymlinks(t)
 	home := withMigrationHome(t)
 
 	// No legacy ~/.wuphf directory.
@@ -145,6 +149,7 @@ func TestMigrateToSymmetricAbortsWhenBrokerRunning(t *testing.T) {
 // listening on either that port or the legacy default, the probe must not
 // fire a false positive.
 func TestMigrateRespectsConfiguredBrokerPort(t *testing.T) {
+	requireDirectorySymlinks(t)
 	home := withMigrationHome(t)
 	t.Setenv("WUPHF_BROKER_PORT", "7901")
 
@@ -203,6 +208,7 @@ func TestMigrateProbesLegacyPortAsSafetyNet(t *testing.T) {
 }
 
 func TestMigrateDoesNotRenameSymlink(t *testing.T) {
+	requireDirectorySymlinks(t)
 	home := withMigrationHome(t)
 
 	oldWuphf := filepath.Join(home, ".wuphf")

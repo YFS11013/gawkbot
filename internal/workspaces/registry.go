@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/nex-crm/wuphf/internal/config"
+	"github.com/nex-crm/wuphf/internal/fsutil"
 )
 
 // Version is the current registry schema version.
@@ -207,19 +208,33 @@ func writeUnderLock(reg *Registry) error {
 	}
 	wantHash := contentHash(data)
 
-	tmp := rp + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o600); err != nil {
-		return fmt.Errorf("workspaces: write temp %s: %w", tmp, err)
+	// A unique temp name per writer: a fixed ".tmp" made two workspaces saving
+	// at the same time overwrite each other's bytes and fail the rename.
+	tmp, err := os.CreateTemp(dir, filepath.Base(rp)+".*.tmp")
+	if err != nil {
+		return fmt.Errorf("workspaces: create temp for %s: %w", rp, err)
+	}
+	tmpName := tmp.Name()
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("workspaces: write temp %s: %w", tmpName, err)
+	}
+	if err := tmp.Close(); err != nil {
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("workspaces: close temp %s: %w", tmpName, err)
 	}
 
 	// Rotate existing registry to .bak before rename.
 	if _, err := os.Stat(rp); err == nil {
-		if err := os.Rename(rp, rp+".bak"); err != nil {
+		if err := fsutil.ReplaceFile(rp, rp+".bak"); err != nil {
+			_ = os.Remove(tmpName)
 			return fmt.Errorf("workspaces: rotate bak: %w", err)
 		}
 	}
 
-	if err := os.Rename(tmp, rp); err != nil {
+	if err := fsutil.ReplaceFile(tmpName, rp); err != nil {
+		_ = os.Remove(tmpName)
 		return fmt.Errorf("workspaces: rename temp→registry: %w", err)
 	}
 

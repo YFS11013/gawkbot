@@ -10,6 +10,7 @@ import (
 func TestEnsureCacheBackupExclusionsDoesNotCreateMissingCaches(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	t.Setenv("WUPHF_RUNTIME_HOME", home)
 
 	cacheDir := filepath.Join(home, ".wuphf-spaces", "main", ".wuphf", "cache")
@@ -41,6 +42,7 @@ func TestEnsureCacheBackupExclusionsDoesNotCreateMissingCaches(t *testing.T) {
 func TestEnsureCacheBackupExclusionsAcceptsExistingCaches(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	t.Setenv("WUPHF_RUNTIME_HOME", home)
 
 	runtimeHome := filepath.Join(home, ".wuphf-spaces", "main")

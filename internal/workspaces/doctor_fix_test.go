@@ -396,6 +396,7 @@ func TestFixCorruptRegistryIsIdempotent(t *testing.T) {
 // ---- symlink:missing -------------------------------------------------------
 
 func TestFixSymlinkMissingCreatesSymlink(t *testing.T) {
+	requireDirectorySymlinks(t)
 	home := withOrchestratorHome(t)
 
 	sd, _ := spacesDir()
@@ -427,6 +428,7 @@ func TestFixSymlinkMissingCreatesSymlink(t *testing.T) {
 }
 
 func TestFixSymlinkMissingIsIdempotent(t *testing.T) {
+	requireDirectorySymlinks(t)
 	home := withOrchestratorHome(t)
 	sd, _ := spacesDir()
 	mainTarget := filepath.Join(sd, "main", ".wuphf")
@@ -455,6 +457,7 @@ func TestFixSymlinkMissingErrorsWhenTargetAbsent(t *testing.T) {
 // ---- symlink:wrong ---------------------------------------------------------
 
 func TestFixSymlinkWrongReplacesSymlink(t *testing.T) {
+	requireDirectorySymlinks(t)
 	home := withOrchestratorHome(t)
 	sd, _ := spacesDir()
 	mainTarget := filepath.Join(sd, "main", ".wuphf")
@@ -484,6 +487,7 @@ func TestFixSymlinkWrongReplacesSymlink(t *testing.T) {
 }
 
 func TestFixSymlinkWrongIsIdempotentOnCorrectLink(t *testing.T) {
+	requireDirectorySymlinks(t)
 	home := withOrchestratorHome(t)
 	sd, _ := spacesDir()
 	mainTarget := filepath.Join(sd, "main", ".wuphf")
