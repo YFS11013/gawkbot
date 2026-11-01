@@ -172,4 +172,6 @@
    - 顺带修掉一处规则冲突：旧入口写「commit to main 并直接 push origin」（原作者仓库规则），对本 fork 是错的（`push.default nothing` + origin 无写权限），改为对齐 `OFFICE-RULES.md` §6 的 `mine`-only 规则。
    - 路由表就是索引，没有另建 `docs/office/INDEX.md` —— 多一份要被记住的文件就多一处腐烂点。
 3. **policy 全文本**不入 git（每次 PATCH 生成新 revision + id）。repo 只记意图与 id，生效与否一律 `GET` 验证。
-4. ~~**空壳 workflow 收尾**~~ —— skill `daily-opencode-model-snapshot` 已 archive（2026-10-31）；scheduler job 无 DELETE 端点，保持 disabled + 清单 `requires_file` 把关。
+4. ~~**空壳 workflow 收尾**~~ —— scheduler job 无 DELETE 端点，保持 disabled + 清单 `requires_file` 把关。
+   skill `daily-opencode-model-snapshot` 于 **2026-11-01 重新 archive 并验证落盘**：10-31 那次归档只改了内存/state，wiki 文件没重写（mtime 停在 10-29、frontmatter 仍 `active`），broker 重启后被 scanner 按文件重新导入 → 复活成 active。重做后 `team/skills/daily-opencode-model-snapshot.md` 的 `metadata.wuphf.status: archived`（提交 `0062abe`），`/skills` 回到 3 个 active。验收命令见 `RUNTIME-API.md` §7。
+   **教训**：归档/禁用这类"看起来生效"的操作，必须读回落盘产物（frontmatter、文件 mtime、git log），否则重启就是一次回滚。

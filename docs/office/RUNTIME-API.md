@@ -115,3 +115,21 @@ turn 里放弃并把产物标成 "pending on the storage side"。日志证据：
 curl -s -H "Authorization: Bearer $TOKEN" 127.0.0.1:7892/notebook/catalog
 curl -s -H "Authorization: Bearer $TOKEN" "127.0.0.1:7892/notebook/search?slug=cos&q=beet"
 ```
+
+## 7. skill 归档（`POST /skills/{name}/archive`）
+
+**归档是文件级事实，不是内存态**：handler 会把 `wiki/team/skills/{name}.md` 的
+`metadata.wuphf.status` 重写成 `archived` 并提交 git；重启时 scanner 以该字段为准
+（`internal/team/skill_scanner.go:512`，空值按 `active`）。
+
+因此归档后必须验一次落盘：
+
+```bash
+grep -n "status:" ~/.wuphf/wiki/team/skills/<name>.md   # 必须是 archived
+git -C ~/.wuphf/wiki log --oneline -1 -- team/skills/<name>.md
+```
+
+**反面教材（2026-11-01）**：10-31 的归档只改了内存/state，wiki 重写没落地
+（文件 mtime 仍停在 10-29、frontmatter 仍是 `active`）。broker 重启后 scanner 按文件
+重新导入 → skill 复活成 `active`，而 drift 检查只看 job 不看 skill 状态，所以没人发现。
+重做一次归档后 frontmatter 变为 `archived`、提交 `0062abe`，才是可重启的。
