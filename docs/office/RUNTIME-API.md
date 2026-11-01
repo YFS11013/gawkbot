@@ -285,6 +285,23 @@ python: can't open file 'C:\Users\...\agent-scratch\data-keeper\"C:\...\check_pr
 重写任务与首次交付共用同一个 gate。可复制的做法：任何「删掉某句错误表述」的返工，
 都把要求锁进 spec，而不是写在 prompt 里靠自觉。
 
+### 9.3 spec 是 cmd 命令行，不是 argv：首字符是引号会塌
+
+`verification_kind=command` 的 spec 交给 `cmd` 解析。cmd 有条规则：`/C` 后面那串首尾都是引号时，
+两个都剥掉。于是这种 spec 在 `cmd /C <spec>` 下会丢开头的引号，剩下的半截被当路径：
+
+```
+"C:\...\python.exe" "C:\...\check_prep_pack.py" "team/prep/x.md" --forbid "..."
+```
+
+```
+The filename, directory name, or volume label syntax is incorrect.   (exit 1)
+```
+
+解释器根本没启动，但 bot 收到的是"判据失败"，会去改交付物——改不出结果。
+实现改为 `cmd /S /C "<spec>"`（`task_verification_shell_windows.go`）：`/S` 让 cmd 只剥最外层那一对，
+spec 原样到达子进程。首字符不是引号的 spec（`python "..."`）两种写法等效，所以这是纯加固。
+
 ## 10. 启动开关：`memory_backend` 必须是 markdown，否则 wiki 全挂
 
 `/health` 里的 `memory_backend` 不只是记忆层选择，它还决定 **wiki worker 是否创建**：
