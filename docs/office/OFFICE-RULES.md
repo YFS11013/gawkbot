@@ -69,8 +69,12 @@
 - **R8 Windows 是一等公民（2026-11-02 拍板）**：代码与测试都不得默认 POSIX 语义。新写盘用 `replaceFile`（不是 `os.Rename`）；
   新测试取 home 用 `setTestHome`（HOME 在 Windows 被忽略，读的是 `USERPROFILE`）；夹具里的路径用 `t.TempDir()`，不写 `/Users/...`；
   权限断言、`chmod` 造错误、`/bin/sh` 假 CLI 都要么平台中立、要么写明平台条件。
-  判据：`go test ./internal/team -count=1` 在 Windows 上必须全绿——红了就是回归，不允许再建"Windows 例外"清单。
-  踩过的六个坑与修法见 `TODO-NEXT.md` §7c。
+  判据：`go test ./... -count=1` 在 Windows 上必须全绿（2026-11-02 从 `./internal/team` 扩到全仓，当前 45 包 447s）——
+  红了就是回归，不允许再建"Windows 例外"清单。
+  **隔离**：新测试要换 home，必须同时换 `HOME`、`USERPROFILE`、`WUPHF_RUNTIME_HOME`、`WUPHF_CONFIG_PATH`；
+  只设 `HOME` 的用例在 Windows 上读写开发者的真实 `~/.wuphf`，会污染同包其它测试。
+  **假 CLI**：用测试二进制自身（`WUPHF_FAKE_*` + `TestMain` 提前退出），不要写 `#!/bin/sh` 脚本。
+  踩过的坑与修法见 `TODO-NEXT.md` §7c。
 
 ## 5. 运行时 API 契约
 

@@ -174,6 +174,12 @@
     - onboarding 测试 pin `WUPHF_MEMORY_BACKEND=markdown`（gbrain 就绪时 worker 不启动），并在用户编辑前 `b.Stop()`（否则排队的骨架写回盖掉编辑）。
     - 相对路径回退同时清 `USERPROFILE`；目录链接回退到 junction（不需要开发者模式/管理员）。
   - 判据改写（见 `OFFICE-RULES.md` R8）：**Windows 上全包必须全绿**，不再维护"已知红项清单"。
+  - **2026-11-02 全仓收口**：判据从 `./internal/team` 扩到 `go test ./... -count=1` → **447s，45 个包 ok，0 条红**（此前 16 个包共 65 条红）。
+    - 产品修复两处（`cm28`）：`internal/workspaces` 的 flock 在 Windows 是三个空函数，registry 又是 read-modify-write，两个 workspace 同时保存会互相改名失败、丢掉一次更新 —— 改用 `LockFileEx`；临时文件原来是固定 `.tmp`，改成 `os.CreateTemp` 并走 `fsutil.ReplaceFile`。
+    - `ReplaceFile`/`WriteFileAtomic` 收敛到 `internal/fsutil`，`internal/team` 的 `replaceFile` 变成一行委派、`atomicWriteFile` 直接调用（`cm27`）。
+    - 其余 63 条全部是测试假设，不是产品行为：HOME/`USERPROFILE` 隔离不完整（Windows 的 `os.UserHomeDir` 读 `USERPROFILE`，`config.Path` 另读 `WUPHF_RUNTIME_HOME`，只设 HOME 会让全包共享开发者的真实 `~/.wuphf`，一条测试存的 `Blueprint: "niche-crm"` 改了之后所有 roster 断言看的 manifest）；`/bin/sh` 假 CLI 在 Windows 起不来（改测试二进制自身）；`os.Symlink` 需开发者模式（改能力探测 skip）；NTFS 无 POSIX mode（断言限 POSIX）；JSON 里拼 Windows 路径未转义；`/tmp` 与 `/` 分隔符写死。
+    - 两条与平台无关的真错：`approval_context_canonical.txt` 被 git 按 CRLF 检出后与 `\n` 构建的 spec 比较（测试归一化行尾）；skill 使用计数测试要求第二次 +1，但 broker 的「每个 skill 同时只允许一个活跃 skill-run 任务」守卫正在（正确地）去重 —— 测试现在先完成该任务再调用。
+    - **遗留产品缺口（不是测试问题）**：`internal/workspaces` 在 Windows 上 `defaultSpawn` 仍返回 `errSpawnNotSupportedOnWindows`，多 workspace 的创建/恢复不可用；`go test ./internal/workspaces` 全绿只说明单 workspace 的注册表/布局/doctor 路径正确。按 R8 这是一等公民判据下的已知缺口，需要 Job Object + 进程组 spawn 才能补（与 §7e 的 P3 #7e 同一批）。
 - **危险（已修）**：只 `t.Setenv("HOME")` 而不设 `WUPHF_RUNTIME_HOME` 的用例，在 Windows 上会读写真实 `~/.wuphf`。`TestIsDeterministicPhase2CEODM` 曾在 22:16 覆写 `~/.wuphf/onboarded.json` 的 `phase`/`completed_at`（已改指临时 home；真实文件已把 phase 恢复成 `complete`，`completed_at` 仍是测试夹具值 `2026-05-28`，日期不可考）。
 
 ### 7e. turn 超时不生效 → 8.5h 挂死（2026-10-31 修复）
