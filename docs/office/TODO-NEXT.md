@@ -186,6 +186,12 @@
 - **待拍板**：① 疑问句不进 Issue（UI 入口分流或 `task_type=question`）；③ 同题窗口期内复述+引用旧任务而不是新建。两条都改用户可见流程，未动。
 
 ### 8. 清理
+- ✅ **scheduler 死 job 已清（2026-11-01 16:55）**：`task_follow_up` / `request_follow_up` / `recheck` 这类一次性 job 在实体终结后只是被关掉（`status=done`、`next_run` 清空），从来没人删，一天就攒到 145 条，把 160 条里真正活着的 9 条埋掉。
+  - 机制：boot 时 `pruneRetiredSchedulerJobs` 丢弃"已关闭 + 无 next_run + 关闭超过 10 分钟"的 job，并连同其 runs/activity/revisions 环形缓冲一起删（`scheduler_lifecycle.go`）。
+  - **坑一**：`LastRun` 不能当关闭时间——boot 会为每个任务重跑 `scheduleTaskLifecycleLocked`，把已关闭 job 的 `LastRun` 刷成当前时刻，于是"旧"永远变"新"。改为在**首次关闭时**打 `ClosedAt`，按它算年龄（`4ae3bbe`）。
+  - **坑二**：这次升级前写下的行没有 `ClosedAt`，`LastRun` 又不可信 → 视为 Legacy，一次性丢弃（`f98fa4b`）。
+  - 结果：**161 → 18**（7 个系统 cron + 8 个 `agent_routine` + 1 个 `one_workflow` + 2 条 market-analyst 的 recheck）；`/scheduler/5/runs` 仍保留 9 次历史，任务表 55 条未受影响。备份在 `~/.wuphf/backups/scheduler-20261101T164540.json` 与 `broker-state-…json`。
+  - 判据：`GET /scheduler` 的 job 数应稳定在"活着的调度 + 最近 10 分钟内关闭的一次性 job"，不再随任务数线性增长。
 - `YFS11013/gawkbot-office`（空仓库，创建后被 fork 方案取代）：删除需 `delete_repo` scope → `gh auth refresh -h github.com -s delete_repo && gh repo delete YFS11013/gawkbot-office --yes`，或网页删。
 - `C:\Users\ireke\code\gawkbot\gawkbot-fix.exe.bak-20261029`（回滚点，确认稳定后再删）
 - `C:\Users\ireke\code\gawkbot\gawkbot-fix.exe.old-20261030`（10-30 22:27 前的二进制，含入队死锁；仅在需要复现旧故障时保留）
