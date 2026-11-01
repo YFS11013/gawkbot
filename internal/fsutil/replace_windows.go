@@ -1,6 +1,6 @@
 //go:build windows
 
-package team
+package fsutil
 
 import (
 	"errors"

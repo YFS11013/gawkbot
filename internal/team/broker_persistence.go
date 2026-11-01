@@ -11,6 +11,7 @@ import (
 
 	"github.com/nex-crm/wuphf/internal/channel"
 	"github.com/nex-crm/wuphf/internal/config"
+	"github.com/nex-crm/wuphf/internal/fsutil"
 )
 
 // State persistence: the broker writes a JSON snapshot of every
@@ -469,27 +470,8 @@ func (b *Broker) isDefaultBrokerStateLocked() bool {
 // 0o600 is hard-coded because the only callers (broker state file +
 // snapshot) want exactly that mode; CreateTemp already produces it on the
 // platforms we support, so no os.Chmod is needed.
+// atomicWriteFile writes data through a unique sibling so a reader sees either
+// the old state or the new one, never a torn file.
 func atomicWriteFile(path string, data []byte) error {
-	dir := filepath.Dir(path)
-	base := filepath.Base(path)
-	tmpf, err := os.CreateTemp(dir, base+".*.tmp")
-	if err != nil {
-		return err
-	}
-	tmpName := tmpf.Name()
-	cleanup := func() { _ = os.Remove(tmpName) }
-	if _, err := tmpf.Write(data); err != nil {
-		_ = tmpf.Close()
-		cleanup()
-		return err
-	}
-	if err := tmpf.Close(); err != nil {
-		cleanup()
-		return err
-	}
-	if err := replaceFile(tmpName, path); err != nil {
-		cleanup()
-		return err
-	}
-	return nil
+	return fsutil.WriteFileAtomic(path, data, 0o600)
 }
