@@ -200,9 +200,11 @@ func evalJobSchedulerTruth(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		fmt.Sprintf("matching bot routines=%d (want 1)", matches), "")
 
 	// ── (c) the persistent path actually FIRES through the scheduler ──
-	// Force the job due and drive one watchdog tick: the routine must
-	// post into its channel tagging the owner — proof the registration
-	// is wired to a real dispatcher, not a row that never runs.
+	// Force the job due and drive one watchdog tick. An agent routine runs AS
+	// a task now (broker_routine_tasks.go): the task dispatch is the wake and
+	// the routine deliberately posts no channel message. So the proof that it
+	// fired is the task, not a message — asserting the old "@eng <prompt>"
+	// post would fail a dispatcher that is working exactly as designed.
 	fx.broker.mu.Lock()
 	for i := range fx.broker.scheduler {
 		if fx.broker.scheduler[i].Slug == created.Job.Slug {
@@ -214,13 +216,19 @@ func evalJobSchedulerTruth(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	w := &watchdogScheduler{broker: fx.broker, clock: realClock{}}
 	w.processOnce()
 	fired := false
-	for _, msg := range fx.broker.ChannelMessages("general") {
-		if strings.Contains(msg.Content, "@eng") && strings.Contains(msg.Content, "champion-stability") {
+	detail = "no task carries the routine prompt for @eng"
+	fx.broker.mu.Lock()
+	for i := range fx.broker.tasks {
+		task := fx.broker.tasks[i]
+		if task.Owner == "eng" && task.Channel == "general" &&
+			strings.Contains(task.Details, "champion-stability") {
 			fired = true
+			detail = fmt.Sprintf("task=%s owner=%s channel=%s", task.ID, task.Owner, task.Channel)
 			break
 		}
 	}
+	fx.broker.mu.Unlock()
 	r.add(job, "due automation fires through the team scheduler into its channel", fired,
-		"forced next_run into the past, ran one scheduler tick, expected the routine prompt tagged at @eng in #general", "")
+		"forced next_run into the past, ran one scheduler tick, expected the routine to become an @eng task in #general: "+detail, "")
 	return nil
 }
