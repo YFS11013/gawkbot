@@ -16,6 +16,7 @@ import (
 	"github.com/nex-crm/wuphf/internal/config"
 	"github.com/nex-crm/wuphf/internal/team"
 	"github.com/nex-crm/wuphf/internal/tui"
+	"path/filepath"
 )
 
 var ansiPattern = regexp.MustCompile(`\x1b\[[0-9;]*m`)
@@ -440,7 +441,7 @@ func TestProviderCommandOpensProviderPicker(t *testing.T) {
 }
 
 func TestProviderSelectionSavesCodexAndRequestsRestart(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	withTestHome(t)
 	if err := config.Save(config.Config{LLMProvider: "claude-code", Blueprint: "niche-crm"}); err != nil {
 		t.Fatalf("save config: %v", err)
 	}
@@ -1162,6 +1163,11 @@ func TestRenderThoughtBubbleDoesNotTruncateLongerAside(t *testing.T) {
 }
 
 func TestRenderSidebarUsesCompactRosterWhenSpaceIsTight(t *testing.T) {
+	// DisplayName consults a process-wide office directory that earlier
+	// tests populate from their own manifest; reset it so the fallback
+	// roster resolves the built-in names.
+	channelui.SetOfficeDirectory(nil)
+	t.Cleanup(func() { channelui.SetOfficeDirectory(nil) })
 	sidebar := stripANSI(renderSidebar(
 		[]channelui.ChannelInfo{{Slug: "general", Name: "general"}},
 		nil,
@@ -1199,6 +1205,11 @@ func TestClassifyActivityInvalidTimestampStaysIdle(t *testing.T) {
 }
 
 func TestRenderSidebarFallsBackToOfficeRosterWhenPeopleListIsEmpty(t *testing.T) {
+	// DisplayName consults a process-wide office directory that earlier
+	// tests populate from their own manifest; reset it so the fallback
+	// roster resolves the built-in names.
+	channelui.SetOfficeDirectory(nil)
+	t.Cleanup(func() { channelui.SetOfficeDirectory(nil) })
 	sidebar := stripANSI(renderSidebar(
 		[]channelui.ChannelInfo{{Slug: "general", Name: "general"}},
 		nil,
@@ -1391,12 +1402,17 @@ func TestInitCommandStartsSetupFlow(t *testing.T) {
 }
 
 func TestNewChannelModelAutoStartsInitForGBrainWithoutProviderKey(t *testing.T) {
-	origHome := os.Getenv("HOME")
-	t.Setenv("HOME", t.TempDir())
+	withTestHome(t)
 	t.Setenv("WUPHF_MEMORY_BACKEND", config.MemoryBackendGBrain)
+	// "gbrain is installed but has no provider key" is the case under test, so
+		// point the command at something that resolves on every machine.
+	t.Setenv("WUPHF_GBRAIN_COMMAND", os.Args[0])
 	t.Setenv("WUPHF_OPENAI_API_KEY", "")
 	t.Setenv("WUPHF_ANTHROPIC_API_KEY", "")
-	defer os.Setenv("HOME", origHome)
+	// The resolver falls back to the generic names, which a developer
+	// machine usually has set.
+	t.Setenv("OPENAI_API_KEY", "")
+	t.Setenv("ANTHROPIC_API_KEY", "")
 
 	m := newChannelModel(false)
 
@@ -1409,11 +1425,9 @@ func TestNewChannelModelAutoStartsInitForGBrainWithoutProviderKey(t *testing.T) 
 }
 
 func TestInitCommandRunsForGBrainBackend(t *testing.T) {
-	origHome := os.Getenv("HOME")
-	t.Setenv("HOME", t.TempDir())
+	withTestHome(t)
 	t.Setenv("WUPHF_MEMORY_BACKEND", config.MemoryBackendGBrain)
 	t.Setenv("WUPHF_API_KEY", "")
-	defer os.Setenv("HOME", origHome)
 
 	m := newChannelModel(false)
 	m.initFlow = tui.NewInitFlow()
@@ -2893,9 +2907,29 @@ func TestConnectOpenclawChainsFromURLToToken(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	// Use a temp home dir so tests don't read the real ~/.wuphf/config.json
+	// Use a temp home dir so tests don't read the real ~/.wuphf/config.json.
+	// Windows resolves the home directory from USERPROFILE, which HOME does
+	// not touch, so both are set; otherwise the developer's pack leaks into
+	// every roster and picker assertion.
 	tmp, _ := os.MkdirTemp("", "wuphf-test-*")
 	os.Setenv("HOME", tmp)
+	os.Setenv("USERPROFILE", tmp)
+	os.Setenv("WUPHF_RUNTIME_HOME", tmp)
 	os.Setenv("WUPHF_API_KEY", "test-key")
 	os.Exit(m.Run())
 }
+
+// withTestHome isolates every home-derived path a model constructor reads.
+// On Windows os.UserHomeDir uses USERPROFILE and the runtime home is a
+// separate variable, so setting HOME alone leaves the config file shared, and
+// one test saving a blueprint changes the manifest every later test sees.
+func withTestHome(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
+	t.Setenv("WUPHF_RUNTIME_HOME", dir)
+	t.Setenv("WUPHF_CONFIG_PATH", filepath.Join(dir, ".wuphf", "config.json"))
+	return dir
+}
+
