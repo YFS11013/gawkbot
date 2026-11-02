@@ -21,6 +21,9 @@ func TestShouldSkipDirPrepDeliverables(t *testing.T) {
 		{"team/styles", false}, // prefix must not match a sibling name
 		{"team/routines", true},
 		{"team/routines/scorecard-2026-11-02", true},
+		{"team/theses", true},
+		{"team/theses/week-2026-11-06", true},
+		{"team/thesis", false}, // prefix must not match a sibling name
 		{"team/skills", true},
 		{"team/skills/.system", true},
 		{"team/playbooks/.compiled", true},

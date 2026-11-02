@@ -518,3 +518,77 @@ routine ok: 36 jobs, 0 alerts, snapshot 2026-11-02T03:47:09Z
 
 同一类坑还有一处：**从未运行的任务把 `Last Run Time` 报成 `1999/11/30`**。当真日期读，会算出 1400 万分钟的周期，页面上写着"上次运行 1999 年"。判定以 `Last Result=267011` 为准，年份 ≤2000 作为兜底（结果码已丢时仍能识别）。
 
+## 13. 论点台账（A1）：把"我说过什么"变成可判死的数据
+
+简报的价值只在被证伪时兑现。这一节定义怎么把一句方向性判断变成一条能被脚本判分的记录，以及**判不了的时候会发生什么**。
+
+| 件 | 位置 | 作用 |
+|---|---|---|
+| 录入 | wiki `team/theses/intake.md` | 每条判断一个 ```` ```thesis ```` 围栏块（JSON）。**这是唯一真值**，因为它进 git：有作者、有时间、改一次留一次提交 |
+| 校验/判分 | `scripts/office/check_theses.py` | `--lint` 校验口径；`--score` 从价格序列算 verdict；`--report --emit` 发布周页 |
+| 派生 | `~/.wuphf/data/theses/ledger.jsonl`、`verdicts.jsonl`、`rejects.jsonl` | 每次运行**全量重建**，不是状态 |
+| 观测 | `~/.wuphf/data/forex/snapshots/<YYYY-MM-DD>.jsonl` | `forex-bridge.py` 每次运行追加；没有它就没有"上周收盘"这个事实 |
+| 周页 | wiki `team/theses/week-<date>.md` | 给人看的一页 |
+| 调度 | 计划任务 `WUPHF-ThesisReview`（周五 21:00 Asia/Shanghai） | `~/.wuphf/data/thesis-week.ps1` |
+
+### 13.1 为什么 md 是源、JSONL 是派生物
+
+本机每个 bot 的 permission 都是 `{bash: deny, edit: allow, external_directory: allow}`（`~/.config/opencode/opencode.*.json`）。把台账只放 `~/.wuphf/data/` 等于让任何 bot 把昨日 miss 改成 hit，而且**没有第二个见证者**——`~/.wuphf` 不是 git 仓库。md 在 wiki 里，改一行就多一次提交，作者与时间都在。
+
+派生物每次全量重建，因此不存在"忘了同步副本"这种故障。N9 今天正好留了个反例：`team/routines/history.jsonl` 在 wiki 树里有一份 11:40 就停止更新的副本，没人删；谁按路径直觉去找就会读到一份看起来完全正常、其实已经死掉的旧数据。
+
+### 13.2 `criterion` 只有一种 kind 能判
+
+```json
+{"kind":"level","series":"USDJPY","metric":"close",
+ "window":{"start":"2026-11-02","end":"2026-11-06"},
+ "agg":"any","op":"gt","value":157.5,
+ "require":{"min_obs":3,"stale_days":2}}
+```
+
+| 字段 | 作用 | 省略会怎样 |
+|---|---|---|
+| `agg=any` | 窗口内任一天满足即命中（存在性主张） | — |
+| `agg=all` | 每天都满足才命中；**一个反例立即判 miss** | 空子集上的全称命题恒真 → 假命中 |
+| `agg=last` | 取窗口末端的观测；离 `window.end` 超过 `stale_days` 判"数据不足" | 拿上周收盘当本周收盘 |
+| `require.min_obs` | 下结论前的最小观测数 | 1 天数据就能让 `all` 变成 hit |
+| `require.stale_days` | 窗口末端多久没新数据算覆盖不全 | 假期/上游停更被当成"没涨" |
+
+`relative`（A 跑赢 B）与 `event`（事件结果）**在 v1 被明确拒绝**，code 是 `kind_not_scored`，不是静默挂起。理由：一个永远 pending 的 kind 与一个能用的 kind 在页面上长得一样。
+
+### 13.3 判定顺序（先失效条件，再数据，最后覆盖）
+
+1. `today < review_date` → pending（不写盘，每次重算）
+2. 窗口未闭 → pending
+3. **先找决定性见证**：`any` 找到一真即 hit；`all` 找到一个假即 miss
+4. 没有决定性见证时才看覆盖：观测数不足或数据太旧 → 宽限期内 pending，过期 `void(no_data)`
+5. 仍无定论 → 按 `agg` 收口
+
+`void` 与 `miss` 必须分开：把"判不出来"记成"我错了"会让人再也不敢写可证伪的判断，那是这个台账的反向目标。
+
+### 13.4 三条红线（任一触发即 exit 1）
+
+1. **空台账**：`intake.md` 里一条都没有，且**首次 git 提交距今超过 14 天**（刚建当天不算）。为什么不用 mtime：wiki watcher 遇到外部编辑会重写并重新提交，mtime 被刷成"现在"，于是三周没动的空页看起来像今天刚建。
+2. **超期未判**：条目过了 `review_date + 2d` 仍是 pending。这条实际抓的是"判分脚本没跑"——`--score` 从没执行过时，verdicts 为空，全部显示 pending。
+3. **采集静默失败**：`intake.md` 里有 ```` ```thesis ```` 标记但解析出 0 个块。这与 §12.4 是同一个形状：过滤后为空却返回空集，比报错更危险。
+
+`--lint` 另有一条：任何被拒的录入都会 exit 1，且拒绝理由出现在周页的"被拒的录入"里。写不出 `series + op + value + window` 的判断不该进台账，但**它被拒这件事本身要留痕**。
+
+### 13.5 观测从哪来
+
+`forex-bridge.py` 每次运行把 `pivots` 的 `close/high/low` 与当时 `quotes` 的 bid/ask 写进 `~/.wuphf/data/forex/snapshots/<capture-date>.jsonl`，按 `(pair, as_of)` 去重——同一天重跑是覆盖，不是堆叠。
+
+**已知限制**：上游 `pivots.date` 今天是 `2026-10-30`（滞后 3 天），`quotes` 完全没有时间戳。所以在补齐序列之前，任何窗口落在最近三天的条目都会判 `void(no_data)`——这是正确的答案，不是 bug。要让"周内收于 X 上方"真的能判，上游必须先恢复日更。
+
+### 13.6 实测（2026-11-02）
+
+```
+python scripts/office/check_theses.py --self-test     # 23 checks, 0 failed
+python scripts/office/check_theses.py --score         # theses: 0 entries ... (0 day(s) old, inside the 14-day grace)
+python scripts/office/check_theses.py --report --emit # team/theses/week-2026-11-02.md 6c8f1bc
+```
+
+端到端（临时根 + 5 天收盘序列）：同窗口两条相反判断 → `hit=1 miss=1`。红例全部验证过：空台账且首次提交在 20 天前 → exit 1；条目超期未判 → exit 1；坏 JSON / 拼错键 / 字符串阈值 / `review_date` 早于窗口末端 / 重复口径 / `relative` → 各返回对应 code 且不入账。
+
+`scanSkippedDirs` 已加 `team/theses/`：一张周页是某一周的记录，不是可复用方法；不加就会给每周生成一个以日期命名的 skill（`team/prep/`、`team/routines/` 各踩过一次）。
+

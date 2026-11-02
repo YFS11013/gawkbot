@@ -63,6 +63,9 @@ var scanSkippedDirs = []string{
 	// a daily status page is evidence about one day, and the compile cron
 	// would otherwise mint a skill named after the date.
 	"team/routines/",
+	// team/theses/ holds the intake page and one dated scorecard per week.
+	// A weekly verdict page is a record of one week, not a reusable method.
+	"team/theses/",
 }
 
 // scanBotNotebookSegment is the path segment that identifies per-bot
