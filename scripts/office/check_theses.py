@@ -472,6 +472,8 @@ def fold_ledger(entries, verdicts):
                 "detail": (v or {}).get("detail", ""),
                 "checked_at": (v or {}).get("checked_at", ""),
                 "criterion_hash": e["criterion_hash"],
+                "agg": e["criterion"]["agg"],
+                "min_obs": e["criterion"]["require"]["min_obs"],
                 "where": e.get("where", ""),
             }
         )
@@ -502,8 +504,18 @@ def render_week(folded, rejects, today):
     if not folded:
         lines.append("（台账为空。空台账不是好消息：说明本周没有写出一条可判定的判断。）")
     for r in folded:
+        w = r["window"]
+        span = ((parse_date(w["end"]) - parse_date(w["start"])).days + 1) if parse_date(w["start"]) and parse_date(w["end"]) else 0
+        # `agg=all` is a universal claim, and min_obs only bounds the count, not
+        # the coverage: three observations in a five-day window can satisfy it
+        # while two days were never checked. Printing the span next to the
+        # count keeps that gap visible instead of letting "all matched" imply
+        # more than it verified.
+        cover = ""
+        if r.get("agg") == "all":
+            cover = "（`all`：窗口 %d 天，`min_obs` %d —— 缺口不会被 `min_obs` 发现）" % (span, r.get("min_obs", 0))
         lines.append(
-            "- `%s` %s — **%s**%s  \n  `%s %s %s`, 窗口 %s..%s, 复核 %s"
+            "- `%s` %s — **%s**%s  \n  `%s %s %s`, 窗口 %s..%s, 复核 %s%s"
             % (
                 r["id"],
                 r["claim"],
@@ -515,6 +527,7 @@ def render_week(folded, rejects, today):
                 r["window"]["start"],
                 r["window"]["end"],
                 r["review_date"],
+                cover,
             )
         )
     if rejects:
