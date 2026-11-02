@@ -162,6 +162,37 @@ foreach ($j in $live) {
     }
 }
 
+# 9. enabled 的 job，next_run 是否已经过期。
+#
+# last_run_status 和 next_run 各自都能撒谎，合起来才是证词。2026-11-02 实测：
+# 四个 routine 的 next_run 停在 2026-10-29/30，而 last_run_status 一直是 ok ——
+# 每个字段单独看都"正常"，合起来是"一周没动过"。整张排班表 18 行看起来健康，
+# 实际只有一个业务 routine 在 fire。
+#
+# churn job 不算：它们的 next_run 由任务生命周期驱动，任务进终态就该消失。
+# 没有 next_run 的也不查：系统 cron 由 broker 自己的 goroutine 驱动，不走这个字段。
+$nowUtc = (Get-Date).ToUniversalTime()
+foreach ($j in $live) {
+    if ($j.slug -match $ChurnPattern) { continue }
+    if ($j.enabled -eq $false) { continue }
+    if (-not $j.next_run) { continue }
+    $nextUtc = [datetime]::MinValue
+    $parsed = [datetime]::TryParse(
+        [string]$j.next_run,
+        [System.Globalization.CultureInfo]::InvariantCulture,
+        [System.Globalization.DateTimeStyles]::AdjustToUniversal -bor [System.Globalization.DateTimeStyles]::AssumeUniversal,
+        [ref]$nextUtc)
+    if (-not $parsed) {
+        Add-Violation "next_run 无法解析: $($j.slug) → $($j.next_run)"
+        continue
+    }
+    $overdueHours = ($nowUtc - $nextUtc).TotalHours
+    if ($overdueHours -gt 2) {
+        Add-Violation ("next_run 已过期 {0:N1}h: {1}（last_run={2} last_run_status={3}）—— 排班表上活着，实际没在跑" -f `
+            $overdueHours, $j.slug, $j.last_run, $j.last_run_status)
+    }
+}
+
 foreach ($t in $manifest.scheduled_tasks) {
     if ($t.requires_file -and -not (Test-Path -LiteralPath $t.requires_file)) {
         Add-Violation "计划任务脚本缺失: $($t.name) → $($t.requires_file)"
