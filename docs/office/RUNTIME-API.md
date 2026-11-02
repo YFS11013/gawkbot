@@ -578,9 +578,18 @@ routine ok: 36 jobs, 0 alerts, snapshot 2026-11-02T03:47:09Z
 
 ### 13.5 观测从哪来
 
-`forex-bridge.py` 每次运行把 `pivots` 的 `close/high/low` 与当时 `quotes` 的 bid/ask 写进 `~/.wuphf/data/forex/snapshots/<capture-date>.jsonl`，按 `(pair, as_of)` 去重——同一天重跑是覆盖，不是堆叠。
+`forex-bridge.py` 每次运行把日线写进 `~/.wuphf/data/forex/snapshots/history.jsonl`，按 `(pair, as_of)` 去重后全量重写。
 
-**已知限制**：上游 `pivots.date` 今天是 `2026-10-30`（滞后 3 天），`quotes` 完全没有时间戳。所以在补齐序列之前，任何窗口落在最近三天的条目都会判 `void(no_data)`——这是正确的答案，不是 bug。要让"周内收于 X 上方"真的能判，上游必须先恢复日更。
+**桥能回补**：`GET_HISTORICAL_DATA:{pair},1440,{n}` 一次返回任意根数，所以第一次运行就写了 **300 行 = 5 个货币对 × 60 个交易日**（2026-08-11 起），不需要一天天积累。实测三类聚合都能判：
+
+```
+窗口 2026-10-26..2026-10-30
+  agg=all  gt 155  → hit  （5 条收盘 157.487/157.943/157.831/157.703/157.561 全满足）
+  agg=any  gt 160  → miss （无一日上破）
+  agg=last gt 157  → hit  （末日 157.561）
+```
+
+**一个会让人误判的语义**：`pivots.<pair>.date` 取的是 `bars[-2]`，即上**一个完整**交易日的 HLC。周一早上它显示上周五的日期，这不是桥停了，是枢轴本来的含义。判断桥是否活着要看 `history.jsonl` 的 `captured_at`，别看 pivot 日期。
 
 ### 13.6 实测（2026-11-02）
 
