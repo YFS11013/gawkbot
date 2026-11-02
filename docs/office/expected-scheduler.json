@@ -50,10 +50,11 @@
    },
    {
     "slug": "weekly-saturday-fund-portfolio-ratio-analysis-report",
-    "enabled": true,
+    "enabled": false,
     "schedule_expr": "0 1 * * 6",
     "target_id": "fund-invest",
-    "channel": "fund-invest__human"
+    "channel": "fund-invest__human",
+    "note": " | 2026-11-02 最小配置试验停用，见 MINIMAL-CONFIG.md"
    },
    {
     "slug": "forex-bridge-refresh-daily-data-pull",
@@ -121,7 +122,8 @@
    "requires_file": "C:\\Users\\ireke\\.wuphf\\data\\model-snapshot.ps1",
    "log": "C:\\Users\\ireke\\.wuphf\\logs\\model-snapshot.log",
    "max_age_hours": 26,
-   "note": "模型快照真写入方：写 wiki/team/opencode-models-YYYY-MM-DD.md + upsert 数据空间 models_snapshot（空值写 ''）"
+   "note": "模型快照真写入方：写 wiki/team/opencode-models-YYYY-MM-DD.md + upsert 数据空间 models_snapshot（空值写 ''） | 2026-11-02 最小配置试验停用（Enable-ScheduledTask 可恢复）",
+   "enabled": false
   },
   {
    "name": "WUPHF-BrokerWatchdog",
@@ -136,8 +138,9 @@
    "schedule_utc": "daily 01:05",
    "requires_file": "C:\\Users\\ireke\\.wuphf\\data\\routine-scorecard.ps1",
    "log": "C:\\Users\\ireke\\.wuphf\\logs\\routine-scorecard.log",
-   "max_age_hours": 26,
-   "note": "每天 09:05 北京时间；日志停更 >26h 说明记分卡自己挂了"
+   "max_age_hours": null,
+   "note": "每天 09:05 北京时间；日志停更 >26h 说明记分卡自己挂了 | 2026-11-02 最小配置试验停用（Enable-ScheduledTask 可恢复）",
+   "enabled": false
   },
   {
    "name": "WUPHF-ThesisReview",
