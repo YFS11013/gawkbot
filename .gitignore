@@ -113,6 +113,12 @@ wuphf-dev
 /orchestrator/
 /spikes/
 runner/__pycache__/
+# Any Python helper under scripts/ writes bytecode next to itself the moment
+# something imports it (check_prep_pack.py was imported during a smoke run and
+# left scripts/office/__pycache__/ in `git status`). Ignore it tree-wide rather
+# than for one directory at a time.
+__pycache__/
+*.pyc
 
 # Local test-instance logs (see gawkbot-testdrive.log)
 gawkbot-testdrive.log
