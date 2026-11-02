@@ -92,7 +92,12 @@ function Get-DeployLag($run, [string]$repoRoot) {
     # skew, which silently swept in the whole day's commits and made a
     # just-rebuilt binary look stale.
     $since = $info.LastWriteTimeUtc.ToString('yyyy-MM-ddTHH:mm:ss') + 'Z'
-    $hashes = & git -C $repoRoot log "--since=$since" --format=%h -- '*.go' 2>$null
+    # Exclude _test.go: a commit that only touches tests cannot change what the
+    # running binary does, so it must not read as an undeployed fix. Without
+    # this, a green test run "proves" nothing is stale while the script insists
+    # the build is behind -- and the honest fix is not to rebuild, it is to ask
+    # the right question.
+    $hashes = & git -C $repoRoot log "--since=$since" --format=%h -- '*.go' ':!*_test.go' 2>$null
     if ($LASTEXITCODE -eq 0) {
         $behind = @($hashes | Where-Object { $_ })
         if ($behind.Count -gt 0) {
