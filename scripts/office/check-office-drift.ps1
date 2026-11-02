@@ -193,7 +193,19 @@ if ($violations.Count -eq 0) {
     } else {
         Write-Output 'DRIFT: none'
     }
-    Write-Output '期望态与运行时一致'
+    # Coverage, not just a verdict. "DRIFT: none" answers "did anything I looked
+    # at fail" and stays silent on "what did I look at" -- which is how four
+    # broker routines sat at next_run = 2026-10-29 for a week with
+    # last_run_status = ok, and how the 2026-11-02 count looked healthy at 18
+    # jobs while one business routine actually fired. A checker that cannot
+    # report its own scope cannot distinguish "clean" from "barely looked".
+    #
+    # The first line stays exactly `DRIFT: none|cleared|<n>` because the
+    # watchdog parses it; the counts ride on the second line.
+    $jobCount   = @($manifest.broker.expected_jobs).Count
+    $taskCount  = @($manifest.scheduled_tasks).Count
+    $binarySeen = if (Get-RunningBrokerBinary) { 1 } else { 0 }
+    Write-Output ('期望态与运行时一致（比对 {0} 个 job、{1} 个计划任务、{2} 个运行中二进制）' -f $jobCount, $taskCount, $binarySeen)
     exit 0
 }
 
