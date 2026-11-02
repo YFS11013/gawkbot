@@ -401,6 +401,36 @@ def intake_age_days(root):
     return max(0, int((now_utc() - dt.datetime.fromtimestamp(os.path.getmtime(path))).total_seconds() // 86400))
 
 
+def gate_fails(folded, rejects, today, intake_age=None, grace_days=GRACE_DAYS):
+    """Every reason the ledger is not doing its job. Empty list = pass.
+
+    `intake_age` is passed in rather than read here so the self-test exercises
+    this function instead of a lookalike: a test that reimplements the rule it
+    is checking proves nothing about the rule that actually runs.
+    """
+    fails = []
+    if not folded and not rejects:
+        # "nothing to score" and "nothing was ever written" look identical in
+        # an empty table. The grace period separates a page created minutes ago
+        # from a page nobody has adopted.
+        if intake_age is None:
+            fails.append("empty ledger and the intake page is missing")
+        elif intake_age > 14:
+            fails.append("empty ledger -- the intake page is %d days old and still has no entry" % intake_age)
+        return fails
+    for r in folded:
+        rd = parse_date(r.get("review_date"))
+        if r.get("verdict") != "pending" or not rd:
+            continue
+        late = (today - rd).days
+        if late > grace_days:
+            # In practice this means the scorer never ran: verdicts live in
+            # memory until written, so an unrun score leaves every row pending.
+            fails.append("%s review_date=%s reason=%s -- still pending %d days after review"
+                         % (r["id"], r["review_date"], r.get("reason") or "not scored", late))
+    return fails
+
+
 def fmt_reject(r):
     """One line for a reject, without printing the location twice.
 
@@ -658,18 +688,21 @@ def self_test():
     es, rs = lint("```thesis\n" + json.dumps(rel) + "\n```")
     eq("unscored-kind-rejected", len(es), 0)
 
-    # ---------------------------------------------------------- the gate
-    def gate(folded, rejects):
-        fails = []
-        if not folded and not rejects:
-            fails.append("empty ledger: nothing was ever recorded")
-        for r in folded:
-            if r["verdict"] == "pending" and r["checked_at"] == "":
-                fails.append("gated-pending %s reason=%s" % (r["id"], r["reason"]))
-        return fails
+    # ---------------------------------------------------------- the real gate
+    t = dt.date(2026, 11, 9)
 
-    eq("gate-empty", len(gate([], [])), 1)
-    eq("gate-clean", len(gate([{"id": "a", "verdict": "hit", "checked_at": "x", "reason": ""}], [])), 0)
+    def g(folded, rejects=(), age=0):
+        return gate_fails(list(folded), list(rejects), t, age)
+
+    ok("gate-empty-new", g([], [], age=3) == [], str(g([], [], age=3)))
+    ok("gate-empty-stale", len(g([], [], age=20)) == 1, str(g([], [], age=20)))
+    ok("gate-empty-no-page", len(g([], [], age=None)) == 1, str(g([], [], age=None)))
+    ok("gate-rejects-only", g([], [("schema", "x")], age=99) == [], str(g([], [("schema", "x")], age=99)))
+    ok("gate-clean", g([{"id": "a", "verdict": "hit", "review_date": "2026-11-09", "reason": ""}]) == [])
+    ok("gate-pending-in-grace",
+       g([{"id": "a", "verdict": "pending", "review_date": "2026-11-08", "reason": "no_data"}]) == [])
+    ok("gate-pending-past-grace",
+       len(g([{"id": "a", "verdict": "pending", "review_date": "2026-11-05", "reason": "not scored"}])) == 1)
 
     print("self-test: %d checks, %d failed" % (checks, bad))
     return 0 if bad == 0 else 1
@@ -764,21 +797,14 @@ def main(argv):
         % (len(folded), len(rejects), counts.get("hit", 0), counts.get("miss", 0), counts.get("void", 0), counts.get("pending", 0))
     )
 
-    # The gate. An empty ledger passes only when there were rejects to look at;
-    # otherwise "nothing to score" and "nothing was ever written" look alike.
-    if not folded and not rejects:
-        age = intake_age_days(a.root)
-        if age is not None and age <= 14:
-            print("theses: ledger is empty (%d day(s) old, inside the 14-day grace)" % age)
-            return 0
-        print("thesis check failed: empty ledger -- the intake page is %s days old and still has no entry"
-              % ("?" if age is None else age))
-        return 1
-    stuck = [r for r in folded if r["verdict"] == "pending" and (today - parse_date(r["review_date"])).days > GRACE_DAYS]
-    if stuck:
-        print("thesis check failed: %d entr(ies) past review_date+%dd without a verdict" % (len(stuck), GRACE_DAYS))
-        for r in stuck:
-            print("  - %s review_date=%s reason=%s" % (r["id"], r["review_date"], r["reason"] or "not scored"))
+    age = intake_age_days(a.root)
+    fails = gate_fails(folded, rejects, today, age)
+    if not folded and not rejects and not fails:
+        print("theses: ledger is empty (%d day(s) old, inside the 14-day grace)" % age)
+    if fails:
+        print("thesis check failed:")
+        for f in fails:
+            print("  - " + f)
         return 1
     return 0
 
