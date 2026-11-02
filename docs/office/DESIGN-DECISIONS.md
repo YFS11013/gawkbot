@@ -344,3 +344,58 @@ digest ──► render_artifacts()（脚本，0 LLM）
 4. **能写死的判据优先**：`command` > `wiki_artifact` > 人眼。判据写不死的任务，进不了无人值守，只该有人在场跑。
 
 反面清单（有证据支持"别做"）：并行写同一份 wiki/同一条任务；无结构 swarm 协商；无人值守放开外发与 canonical 写入；用多 agent 硬啃长程编码。
+
+## 11. 外部调研：产物形态决定能不能自证（2026-11-02）
+
+调研对象是上游产品：gawkbot 是 Grok Bot 的开源实现，官方有 56 个用例，社区有一个 32 帖、1588 次浏览的 bug 线程。结论直接改了我们选场景的判据。
+
+**来源**：[x.ai/bot/use-cases](https://x.ai/bot/use-cases)（56 个用例）、[x.ai/bot/guides/grok-bot-101](https://x.ai/bot/guides/grok-bot-101)（xAI DevRel 的 Matt Palmer）、[forum.cursor.com/t/.../170358](https://forum.cursor.com/t/grok-bot-routines-dont-auto-run-on-schedule/170358)（32 帖，含 xAI 工程师的根因说明）。
+
+### 11.1 一条外部证据，抵得上十次内部推理
+
+xAI 工程师在原帖的解释，把「跑没跑」这个问题拆成了两种完全不同的观感：
+
+> Your 15:00 routine looks healthy by comparison because **it writes to a file instead of messaging you**, so there is nothing missing to notice there.
+
+同一套调度器、同样的延迟，**写文件的看起来健康，发消息的看起来失败**。不是执行差异，是「没有消息」这个信号无法区分「没跑」「跑了没事」「发了没看」。
+
+### 11.2 由此固化的判据
+
+**产物必须能在引擎静默时被独立验证。**
+
+| 产物形态 | 引擎静默时能否判断 | 处置 |
+|---|---|---|
+| 写文件（含「无事」也落一份空文件） | 能：文件在/不在、行数、日期连续性 | 允许无人值守 |
+| 内部状态（可通过 API 查询） | 能：`GET` 一次即知 | 允许无人值守 |
+| 发消息 | 不能：三种情况观测相同 | 只能作附产物，不能作唯一产物 |
+
+推论：一个任务如果**只有消息**没有文件，就不该进调度。
+
+### 11.3 社区实测出来的参数，与我们的取值一致
+
+同一线程里 Parag Chhibber 用探针实测后给的口径：
+
+> We now treat daily jobs as "started on time" if they begin within ~1 hour of the slot, and only worry after ~2 hours. **Tight @every Nm intervals amplify the jitter and are a poor health check.**
+
+我们在 2026-11-02 给 drift 定的过期阈值同样是 2 小时（`scripts/office/check-office-drift.ps1` 第 9 项）。两条独立路径得出同一个数，说明这个数量级不是拍脑袋。
+
+同一帖里还有一条与我们「md 是源，JSONL 是派生物」同构的判断：
+
+> When the UI history is empty we treat `automations/*/runs.json` as source of truth.
+
+### 11.4 官方用例的两条设计约束
+
+1. **"own a repeatable outcome, not a loose category of questions"** —— 判死了「每天看一眼」型任务。
+2. 每个 starter prompt 都以**禁止外发**结尾（`Return a review list; don't send.` / `Don't change budgets.` / `Don't contact anyone.`）——产出必须是**待人处置的东西**，不是供人阅读的汇报。
+
+56 个用例里唯一同型于我们简报的是 `Daily Briefing Writer`，被放在 General 类边缘位置，没有 starter prompt 细节。信息型产物在这套系统里是边角，不是主线。
+
+### 11.5 对现有系统的审查结论（2026-11-02）
+
+最小配置下 8 个 enabled job：7 个系统 job 的产物是内部状态（API 可查），1 个业务 routine（`5`）的产物是 `wiki/team/forex-brief-YYYY-MM-DD.md` **加**一条聊天消息。
+
+**文件那一半让它可以被验证**——这是它比「纯消息型」安全的地方。但「有没有人读」是另一个问题，判据管不了，只能靠 2026-11-09 的试验结论。
+
+### 11.6 与 §10 的关系
+
+§10 回答「多智能体能跑到哪」（架构层面），本节回答「什么样的产物值得交给它」（选型层面）。两者不冲突：§10 说审阅回合要换干净上下文，本节说审阅的**产物**必须落盘。
