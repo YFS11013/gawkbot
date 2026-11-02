@@ -93,6 +93,26 @@ foreach ($n in @('WUPHF-ModelSnapshot','WUPHF-RoutineScorecard','\Gawkbot\WUPHFM
 
 slug 里的 `:` 直接写，**不要**做 URL 编码（`%3A` 会让 curl 连不上）。
 
+## 试验有效性的前提
+
+**「没觉得少了什么」只有在系统确实在被调度的前提下才算证据。**
+
+2026-11-02 的实测：`broker-state.json.pre-cos-close`（10-29 07:46 快照）里有 6 个 `enabled=true` 的 job，`next_run` 已经过期 61–103 小时，`last_run_status` 仍是 `ok`——那是停摆前最后一次运行留下的。调度器循环停了一整周，没有任何东西报警。
+
+如果这 7 天里它再停一次，结论会是假的：不是「团队层没用」，是「它根本没在跑」。
+
+所以每天（或至少在 11-09 判定的当天）必须确认调度器是活的：
+
+```powershell
+pwsh -NoProfile -File scripts/office/check-office-drift.ps1
+```
+
+- 首行 `DRIFT: none` 且 exit 0；
+- 第二行给出比对范围（`比对 N 个 job、N 个计划任务、N 个运行中二进制`）——数字不对就是没查全；
+- `next_run 已过期` 这条是 2026-11-02 新加的，专门抓「排班表上活着，实际没在跑」。
+
+另有一条不在这个脚本覆盖范围内，但要写清楚因果：**那次一周停摆发生在 `WUPHF-BrokerWatchdog` 上线之前**。它最早的日志是 `2026-10-30T20:36:02`，一上线就抓到 5 个 overdue job 并执行了重启（`restart issued`）。所以「有 watchdog」和「watchdog 在起作用」是两件事，但这一件已经验证过了，不需要在试验期间再杀一遍进程去证明——那会断掉 bot 连接和正在跑的 turn。
+
 ## 7 天后怎么判
 
 | 观察 | 结论 |
