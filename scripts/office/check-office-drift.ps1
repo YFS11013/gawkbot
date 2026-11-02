@@ -12,6 +12,11 @@
     5. 期望启用的 workflow job，其 skill 的 last_execution_status 是否 failed
     6. 出现清单外的新 standing job（per-task follow-up / recheck 类 churn job 不比对）
     7. scheduled task 的脚本是否存在，日志是否新鲜（max_age_hours）
+    8. 监听 7892 的进程跑的是不是当前代码 —— 两个方向都要查：
+         · 进程启动时间 < 二进制 mtime  → 重建了没重启
+         · 二进制 mtime < 最近的 Go 提交 → 改了没重建
+       2 和 3 常被当成同一件事。2026-11-02：修复提交、测试全绿、二进制重建，
+       而 broker 又继续用旧构建服务了几个小时，因为没有任何东西比对过这两者。
 
   权威仍是运行时：本脚本只读、只报，不 apply。要改期望态就改 JSON 并提交，然后按 RUNTIME-API.md 走 HTTP。
 
@@ -44,6 +49,61 @@ function Get-BrokerToken {
     return (Invoke-RestMethod -Uri $TokenUrl -TimeoutSec 15).token
 }
 
+# The running broker may be built under any file name (gawkbot-fix.exe,
+# wuphf.exe, ...), so ask the listening port which process owns it instead of
+# guessing. Returns the executable path, or $null when nothing is listening —
+# which is itself drift worth reporting: the scheduler checks below cannot mean
+# anything if no broker is serving them.
+function Get-RunningBrokerBinary {
+    $conn = Get-NetTCPConnection -LocalPort 7892 -State Listen -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if (-not $conn) { return $null }
+    $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$($conn.OwningProcess)" -ErrorAction SilentlyContinue
+    if (-not $proc -or -not $proc.ExecutablePath) { return $null }
+    return [pscustomobject]@{
+        Path       = $proc.ExecutablePath
+        StartedUtc = $proc.CreationDate.ToUniversalTime()
+    }
+}
+
+# A green test run says the code is correct; it says nothing about whether that
+# code is what is answering requests. On 2026-11-02 a fix landed, tests passed,
+# the binary was rebuilt — and the broker went on serving the previous build for
+# hours, because nothing compared the two.
+#
+# Two separate gaps, and checking only one of them lies:
+#   rebuilt but not restarted  -> process start < binary mtime
+#   restarted but not rebuilt  -> binary mtime  < last Go commit
+# The first is the one an operator actually forgets, and it is invisible to any
+# check that looks only at files on disk.
+function Get-DeployLag($run, [string]$repoRoot) {
+    $notes = @()
+    if (-not $run) { return @('找不到监听 7892 的 broker 进程——无法确认被测版本就是运行版本') }
+    $info = Get-Item -LiteralPath $run.Path -ErrorAction SilentlyContinue
+    if (-not $info) { return @("运行中的可执行文件读不到: $($run.Path)") }
+
+    if ($run.StartedUtc -and $run.StartedUtc -lt $info.LastWriteTimeUtc) {
+        $notes += ("进程跑的是旧代码: {0} 启动于 {1:yyyy-MM-dd HH:mm} UTC，但该文件后来在 {2:yyyy-MM-dd HH:mm} UTC 被重新构建过——重建了没重启" -f `
+                (Split-Path -Leaf $run.Path), $run.StartedUtc, $info.LastWriteTimeUtc)
+    }
+
+    # The trailing Z is load-bearing. git parses a bare ISO 8601 date as LOCAL
+    # time, while LastWriteTimeUtc is UTC; on this machine that is an 8-hour
+    # skew, which silently swept in the whole day's commits and made a
+    # just-rebuilt binary look stale.
+    $since = $info.LastWriteTimeUtc.ToString('yyyy-MM-ddTHH:mm:ss') + 'Z'
+    $hashes = & git -C $repoRoot log "--since=$since" --format=%h -- '*.go' 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        $behind = @($hashes | Where-Object { $_ })
+        if ($behind.Count -gt 0) {
+            $recent = ($behind | Select-Object -First 5) -join ', '
+            $more = if ($behind.Count -gt 5) { ', …' } else { '' }
+            $notes += ("运行中的二进制落后于代码: 构建于 {0:yyyy-MM-dd HH:mm} UTC，之后有 {1} 个 Go 提交（{2}{3}）未部署——测试绿不代表这段代码在跑" -f `
+                    $info.LastWriteTimeUtc, $behind.Count, $recent, $more)
+        }
+    }
+    return $notes
+}
 $violations = [System.Collections.Generic.List[string]]::new()
 function Add-Violation([string]$msg) { $violations.Add($msg) }
 
@@ -112,6 +172,13 @@ foreach ($t in $manifest.scheduled_tasks) {
             }
         }
     }
+}
+
+# 8. 运行中的二进制是否落后于代码。
+#    这一项与调度无关，但它让上面 1-7 的绿有意义：所有检查都通过，可能只是
+#    因为跑的还是那个早就通过了检查的旧版本。
+foreach ($note in (Get-DeployLag (Get-RunningBrokerBinary) $RepoRoot)) {
+    Add-Violation $note
 }
 
 if ($violations.Count -eq 0) {
