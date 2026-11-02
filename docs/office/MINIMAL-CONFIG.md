@@ -113,6 +113,8 @@ pwsh -NoProfile -File scripts/office/check-office-drift.ps1
 
 另有一条不在这个脚本覆盖范围内，但要写清楚因果：**那次一周停摆发生在 `WUPHF-BrokerWatchdog` 上线之前**。它最早的日志是 `2026-10-30T20:36:02`，一上线就抓到 5 个 overdue job 并执行了重启（`restart issued`）。所以「有 watchdog」和「watchdog 在起作用」是两件事，但这一件已经验证过了，不需要在试验期间再杀一遍进程去证明——那会断掉 bot 连接和正在跑的 turn。
 
+**已知盲区（记录，本次不修）**：系统 cron（`wiki-archive-sweep` 等）的 `last_run` 是心跳时间而不是运行时间，`last_run_status` 常常为空。原因是 `updateSchedulerHeartbeat` 在真正执行前就调用了一次并写入 `LastRun`，而首次传入的 `runStatus` 是空串，所以状态字段留空；drift 的 `if ($job.last_run_status -and ...)` 遇到空值直接跳过。结果是**这几条 job 的失败对 drift 不可见**。它们都只做内部清扫，不影响简报，故列为已知而非待修——`updateSchedulerHeartbeat` 被所有系统 cron 共用，改动需要全量回归，与本周观察期的目标相悖。
+
 ## 7 天后怎么判
 
 | 观察 | 结论 |
