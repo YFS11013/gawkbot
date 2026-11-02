@@ -300,6 +300,13 @@ def win_obs(row, now, offset=None):
     enabled = not ("disabled" in task_state.lower() or "禁" in task_state)
     if offset is None:
         offset = local_offset()
+    # A task that has never run reports Last Run Time = 1999/11/30, which is a
+    # placeholder, not a date. Keeping it would compute a 14-million-minute
+    # period from NextRun-LastRun and, on the page, claim a task last ran in
+    # 1999. Result 267011 is the authoritative signal; the year check catches
+    # the case where the result was already lost.
+    if res == "never_run" or (last and last.year <= 2000):
+        last = None
     last_utc = last - offset if last else None
     last_run = iso(last_utc)
     # Period, in order of trustworthiness: the schedule's own repeat cell,
@@ -570,6 +577,23 @@ def self_test():
     eq("csv-interval", o["interval_minutes"], 360)
     eq("csv-result", o["last_result"], "ok")
     eq("csv-stale", stale_reason(o, dt.datetime(2026, 11, 2, 12, 0)), "")
+
+    # A task that never ran shows 1999/11/30 as its Last Run Time. Treated as
+    # a date it yields a 14-million-minute period and a page claiming 1999.
+    never = dict(
+        rows[0],
+        **{
+            "Last Run Time": "1999/11/30 0:00:00",
+            "Last Result": "267011",
+            "Next Run Time": "2026/11/3 9:05:00",
+            "Repeat": "已禁用",
+        }
+    )
+    n = win_obs(never, dt.datetime(2026, 11, 2, 12, 0), offset=dt.timedelta(0))
+    eq("never-run-last", n["last_run"], "")
+    eq("never-run-interval", n["interval_minutes"], 0)
+    eq("never-run-result", n["last_result"], "never_run")
+    eq("never-run-not-alert", scheduling_alert(n, dt.datetime(2026, 11, 2, 12, 0)), ("", ""))
 
     # 6h interval, now is 1h after the next_run -> the scheduler stopped
     # advancing it. Overdue needs no period to detect, which is why it is a
