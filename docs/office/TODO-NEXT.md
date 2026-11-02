@@ -278,6 +278,11 @@
    - 计划任务用的是 **Windows PowerShell 5.1**（`powershell -File`，不是 `pwsh`）。5.1 解码子进程的中文会变乱码，所以**告警与去重全在 repo 脚本里（PS7）**，watchdog 只读首行 ASCII 状态（`DRIFT: none|cleared|<n>`）与退出码。
    - **drift 从不重启 broker**（重启只属于 liveness）；新违规集按内容 SHA256 追加到 `wiki/team/alerts.md` 一次，恢复时删状态文件；`watchdog.log` 只在「首次检出」与「恢复」各写一行，持续期间静默。
    - 已实测（5.1 与 7 两个宿主）：干净静默、强制违规告警一次且中文正常、重复运行不重复告警、恢复后状态清除。
+   - **2026-11-02 发现 10-31 只接了一半**：`Invoke-DriftCheck` 定义了，但主流程从未调用它——只有 `-DriftOnly` 分支调用，而计划任务的命令不带该参数。`watchdog.log` 里 4 条 drift 记录全部来自 10-31 手工测试（`t-alerts.md`、`t51-alerts.md`），此后 15 分钟一次的定时运行只做 liveness。
+   - 已补：抽出 `Invoke-StateChecks`（drift + routine gate），在无 due job 分支与正常分支末尾调用；`Restart-Broker` 改为返回是否真的重启了，重启后跳过状态检查（broker 正在起，检查只会因错误原因失败）。
+   - 同时接入 N9 的 `check_routine_scorecard.py`（`Invoke-RoutineGate`）：快照超过 26h 即告警，按输出 SHA256 去重。**这是记分卡的自指闭环**——否则记分卡本身的调度挂了，没有任何东西会红。
+   - 实测（2026-11-02 12:15）：快照改到 10-01 → `routine gate FAILED: snapshot is 772.3h old (limit 26h)`；同故障再跑 → 0 行（去重）；恢复 → 一行 `routine gate: recovered` 且状态文件删除。
+   - 备份 `~/.wuphf/data/broker-watchdog.ps1.bak-20261102`。
 2. ~~**入口裁剪**~~ —— **已做（2026-10-31）**：`docs/agents/INSTRUCTIONS.md` 641 行 / 31.0 KB → **118 行 / 6.2 KB**，只留硬规则（Working Rules、Git/PR、Quality Bar、Wuphf Commands、Landing、Lint）+ 首屏「按任务读哪份」路由表。
    - 散文（Nex Context、Triangulation、Verification agents、When to use which、Screenshots、Storybook、Multi-round review、Sub-agent dispatch contract、共享树 12 节、Worktree parallelism、Demo+oracle）原样迁到 `docs/agents/shared-tree-lessons.md`（544 行 / 26.4 KB），分 A 基座 / B Wuphf 仪式 / C 共享工作树三组。
    - 校验：原文件 511 条非空行中，仅 21 行未出现在拆分后（全部属于被重写的 Landing Changes 段），其余逐行保留；29 个章节标题各自只落在一个文件里。
