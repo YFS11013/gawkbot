@@ -211,15 +211,25 @@ curl -s http://127.0.0.1:7892/health   # 不需要 token
 
 日志重定向是否生效，不看 `/health`：看 `~/.wuphf/logs/broker.err.log` 里有没有**本次启动之后**的新行（`Start-Process` 的重定向是覆盖不是追加，重启后文件会缩到几行）。
 
-## 9. 会议准备包（A4）：建单 → playbook → 机械判据
+## 9. 准备包（A4 会议 / N8 候选人）：建单 → playbook → 机械判据
 
-一件活拆成三件可替换的件，一条链串起来：
+一件活拆成三件可替换的件，一条链串起来。**两种用途共用同一条链与同一个判据脚本**，
+只有目录、四节标题与文案不同——第二个 checker 必然与第一个漂移，所以不建。
 
 | 件 | 位置 | 作用 |
 |---|---|---|
-| 建单脚本 | `scripts/office/new_prep_task.py` | `--who <对象> --date <YYYY-MM-DD> [--owner bot] [--topic 主题] [--approve]`。路径只算一次，同时用于 `artifact_path`、成功标准文字、校验 spec——手写三次就会漂 |
-| playbook 源 | wiki `team/playbooks/meeting-prep.md` | 四节写法与判据。标准 wiki 写入后自动编译成 `team/playbooks/.compiled/meeting-prep/SKILL.md`，`/skills` 里出现 `meeting-prep` |
-| 判据脚本 | `scripts/office/check_prep_pack.py` | `command` kind 的 spec；`--self-test` 内置 8 个正反样例 |
+| 建单脚本 | `scripts/office/new_prep_task.py` | `--who <对象> --date <YYYY-MM-DD> [--kind meeting\|candidate] [--owner bot] [--topic 主题] [--approve]`。路径只算一次，同时用于 `artifact_path`、成功标准文字、校验 spec——手写三次就会漂 |
+| playbook 源 | wiki `team/playbooks/meeting-prep.md`、`team/playbooks/candidate-prep.md` | 四节写法与判据。标准 wiki 写入后自动编译成 `team/playbooks/.compiled/<name>/SKILL.md`，`/skills` 里出现同名 skill |
+| 判据脚本 | `scripts/office/check_prep_pack.py` | `command` kind 的 spec；`--self-test` 内置 10 个正反样例（含候选人） |
+
+`--kind` 的差异只有四处：
+
+| | `meeting`（默认） | `candidate` |
+|---|---|---|
+| 产物目录 | `team/prep/` | `team/candidates/` |
+| 四节 | 对方近况 / 我方既有结论 / 要问的问题 / 如果他说… | 候选人背景 / 与岗位的匹配 / 要问的问题 / 如果他说… |
+| playbook | `meeting-prep` | `candidate-prep` |
+| 额外的写法约束 | 无语义约束（gate 只管结构） | 简历自述不算出处（写进 playbook 与任务 details） |
 
 **不要直接写 `team/skills/*.md`**：那是编译**输出**目录，`skill_scanner.go` 的 `scanSkippedDirs`
 明确跳过它。裸写既不会编译也不会 register，bot 拿不到可调用的 skill。
@@ -314,6 +324,35 @@ The filename, directory name, or volume label syntax is incorrect.   (exit 1)
 实现改为 `cmd /S /C "<spec>"`（`task_verification_shell_windows.go`）：`/S` 让 cmd 只剥最外层那一对，
 spec 原样到达子进程。首字符不是引号的 spec（`python "..."`）两种写法等效，所以这是纯加固。
 
+### 9.4 候选人简报（N8，2026-11-02 落地）
+
+同一条链的第二个用途：一场面试的简报。命令只多一个 `--kind`：
+
+```bash
+python scripts/office/new_prep_task.py --kind candidate --who "张三" --date 2026-11-05 --owner data-keeper
+```
+
+产物是 `team/candidates/<slug>-<面试日期>.md`，四节为
+`## 候选人背景` / `## 与岗位的匹配` / `## 要问的问题` / `## 如果他说…`。
+判据仍是 `check_prep_pack.py`——`REQUIRED` 里给 counterparty 加了「候选人/应聘者」、
+给 our_side 加了「岗位/匹配」两个别名，其余五条规则一字未改。
+
+实测（2026-11-02）：建单返回 `OFFICE-3162  team/candidates/entity-ced07fb4-2026-11-05.md`，
+`POST /tasks {"action":"cancel"}` 关掉（不 approve 就不会派活）。文件级判据：
+
+```
+prep ok: 4/4 sections; counterparty 2 dated+sourced (+0 stated-absent); questions 3; branches 1
+```
+
+去掉日期后同一份文件立刻变红（`counterparty bullet 1 has no date`），证明别名不是靠别的标题
+碰巧命中。反向验证：把「候选人」从 `REQUIRED` 里删掉，同一份样例变成
+`missing section: counterparty`——别名是承重的。
+
+**新的陷阱与其修法**：`team/candidates/` 与 `team/prep/` 形态相同（一次一份、带日期），
+不跳过就会被 30 分钟一次的 skill-compile cron 读成可复用方法。
+`scanSkippedDirs` 已同时加入 `team/candidates/` 与 `team/style/`，
+回归测试 `TestShouldSkipDirPrepDeliverables` 覆盖两者，并断言 `team/styles`（兄弟名）不被误伤。
+
 ## 10. 启动开关：`memory_backend` 必须是 markdown，否则 wiki 全挂
 
 `/health` 里的 `memory_backend` 不只是记忆层选择，它还决定 **wiki worker 是否创建**：
@@ -344,3 +383,89 @@ WUPHF_OPENCODE_MODEL=<model> ./gawkbot-fix.exe --broker-port 7892 --provider ope
 实测（2026-11-01）：未设该变量重启 → `/wiki/write` 503、`/wiki/read` 报
 `gbrain call get_page ... initialize: EOF`、`/wiki/list` 空；加 `WUPHF_MEMORY_BACKEND=markdown`
 重启后三个端点全部恢复，learnings 与 playbook 写入均返回 commit sha。
+
+## 11. 风格知识库（N1）：草稿差异 → 规则 → 判据
+
+人改 bot 的稿子这件事每天都在发生，但改动本身不留痕。这一节把它变成可累积的资产：
+记录差异 → 归纳成规则 → 用判据阻止"记了不归纳"。
+
+| 件 | 位置 | 作用 |
+|---|---|---|
+| 记录脚本 | `scripts/office/record_style_diff.py` | `--bot <b> --draft <文件> --final <文件> [--kind email\|prep\|brief\|review] [--publish]`。把 diff 追加到 `team/style/diffs/<bot>.jsonl` |
+| 判据脚本 | `scripts/office/check_style_digest.py` | `--bot <b> [--since 7d] [--min-diffs 1]`。`command` kind 的 spec |
+| playbook | wiki `team/playbooks/style-digest.md` | 归纳口径（什么该写成规则、什么不该）、格式契约、归并而非追加 |
+
+### 11.1 记录（机械部分）
+
+```bash
+python scripts/office/record_style_diff.py --bot henji \
+  --draft out/henji-draft.md --final out/henji-sent.md --kind email
+# new dedf6213f4ed4 bot=henji changed=2 added=3 removed=3 hunks=2 -> team/style/diffs/henji.jsonl
+```
+
+一条记录的形状（`sort_keys=True`，一行一条）：
+
+```json
+{"id":"dedf6213f4ed4","ts":"2026-11-02T04:00:00Z","bot":"henji","kind":"email",
+ "draft":"draft.md","final":"final.md","draft_sha256":"…","final_sha256":"…",
+ "changed":2,"added":3,"removed":3,"truncated":false,
+ "hunks":[{"op":"replace","at":1,"old":["感谢您的来信。"],"new":["这个问题我来处理。"]}]}
+```
+
+三个刻意的设计：
+
+- **`id` 由 bot + 两份内容的 sha 决定**，重复跑同一对文件只会得到 `duplicate`，不会制造第二条"人又改了"的假信号。
+- **两份完全相同也记一条 `changed: 0`**。丢掉它，周度视图就变成"从来没审过稿"；记下来，"这次一稿过"才是可见的证据。
+- **hunk 有上限**（25 段 / 每段 12 行 / 每行 400 字符，超出标 `truncated`）。整段重写不是措辞规律，原样存进去只会把该学的东西埋掉。
+
+`--publish` 用 `POST /wiki/write`（`mode: replace`）把整份 jsonl 提交进 git；不加就只写工作树，脚本会打印一行提示。
+
+### 11.2 规则文件（人的判断部分）
+
+`team/style/<bot>.md`：
+
+```markdown
+---
+bot: henji
+updated: 2026-11-02
+---
+
+# henji 的措辞库
+
+## rule: 开头直接回答，不写「感谢您的来信」
+evidence: dedf6213f4ed4
+
+为什么：客户读起来像自动回执。
+改法：第一句就回应对方问的那件事。
+```
+
+### 11.3 判据（五条，每条拒绝一种空转）
+
+1. `## rule:` 条目至少一条；其他标题直接拒（不是规则就别放进来）。
+2. 每条必须有 `evidence:` 行；token 全部要在 jsonl 的 `id` 集合里存在——**找不到就拒**，防止编造出处。
+3. 规则按"去掉标点空格后"归一化比较，重复即拒：重复说明在追加而不是归并，文件几周就不可读。
+4. frontmatter `bot` 与 `--bot` 不一致即拒（防止把 cos 的规则写进 henji 的库）。
+5. **新鲜度**：窗口内（`--since`）有 `changed>0` 的记录时，`updated:` 必须 ≥ 最后一条的日期。记了差异却不归纳，等于没做。
+   窗口内没有任何改动时不要求更新——空闲不是故障。
+
+### 11.4 实测（2026-11-02）
+
+| 环节 | 证据 |
+|---|---|
+| 记录 | `new dedf6213f4ed4 … changed=2 hunks=2`；同一对文件重跑 `duplicate dedf6213f4ed4`，jsonl 仍是 1 行 |
+| 相同 → 记录 | `identical <id> changed=0`，jsonl 变 2 行 |
+| 截断 | 40 处独立插入 → `changed=25 truncated=True`，`hunks` 不超过上限 |
+| 判据通过 | `style ok: bot=henji entries=2 evidence=2 diffs(total=1 window=1) updated=2026-11-02` |
+| 判据拒绝（stale） | `style file is stale: updated 2026-01-01 but a diff landed on 2026-11-02` |
+| 判据拒绝（假 evidence） | `rule 1 cites unknown diff id(s): d00000000000` |
+| 判据拒绝（重复规则） | `rule 3 duplicates rule 1: 开头直接回答，不写「感谢您的来信」` |
+| 判据拒绝（非规则标题） | `heading 1 is not a 'rule:' entry: …` |
+| 判据拒绝（串档） | `frontmatter bot is 'cos', expected 'henji'` |
+| self-test | `record_style_diff.py` 10/10；`check_style_digest.py` 10/10 |
+
+### 11.5 已知局限
+
+- **"什么该写成规则"仍是判断**：脚本只提供证据（同一类改动出现几次），归纳由 bot/人做。playbook 给的口径是"同类 ≥2 次，或单次会导致事实错误"，其余不写。
+- **`--publish` 是整份 replace**：两个人同时记录会丢一条。低频人工操作可接受；要并发就得改成 `append_section` 或加锁。
+- **draft/final 由人提供**：脚本不猜"哪份是终稿"。接邮箱/IM 抽终稿是下一步，本轮没做。
+

@@ -51,6 +51,14 @@ var scanSkippedDirs = []string{
 	// produced `fund-invest-2026-11-02` and `forex-watch-2026-11-03` in
 	// /skills, which is noise every bot then has to filter out.
 	"team/prep/",
+	// team/candidates/ is the same shape: one dated packet per interview.
+	// A candidate pack is evidence about one person, never a reusable method.
+	"team/candidates/",
+	// team/style/ is the wording knowledge base plus its diff evidence
+	// (JSONL). The reusable method here is the `style-digest` playbook; the
+	// rules themselves are data, and registering a skill per bot would put
+	// `henji`/`cos` into /skills where every bot then has to ignore them.
+	"team/style/",
 }
 
 // scanBotNotebookSegment is the path segment that identifies per-bot

@@ -40,6 +40,56 @@ GATE = os.path.join(
 # Pin the interpreter that is running this script instead.
 INTERPRETER = sys.executable or "python"
 
+# Both kinds run the same gate: the four-section shape is what makes a pack
+# usable, and it does not change when the counterparty is a candidate instead
+# of a customer. Only the directory, the section titles and the wording move.
+# Keeping one gate is the point -- a second checker would drift from this one.
+KINDS = {
+    "meeting": {
+        "dir": "team/prep",
+        "playbook": "meeting-prep",
+        "pack": "准备包",
+        "noun": "会面",
+        "sections": "## 对方近况 / ## 我方既有结论 / ## 要问的问题 / ## 如果他说…",
+        "title": "准备包：与 %s 的会面（%s）",
+        "title_rewrite": "重写准备包：与 %s 的会面（%s）",
+        "goal": "为 %s 与 %s 的会面产出一页纸准备包（%s）",
+        "criteria": (
+            "「对方近况」每条带日期与出处（wiki 路径/链接/任务号）",
+            "「我方既有结论」引用至少一个既有产物（wiki 路径或任务号）",
+            "问题至少 3 条，分别问事实、问判断、问下一步",
+            "至少 1 条 如果 X → 说明 Y → 我们改 Z 的分支",
+        ),
+        "details": (
+            "%s 要与 %s 会面。请按 meeting-prep playbook 产出一页纸准备包，路径 %s。"
+            "重点：对方最近说了什么（带日期与出处）、我们上次的结论是否仍成立、"
+            "三个该问的问题，以及至少一条「如果他说 X → 说明 Y → 我们改 Z」的分支。"
+        ),
+    },
+    "candidate": {
+        "dir": "team/candidates",
+        "playbook": "candidate-prep",
+        "pack": "候选人简报",
+        "noun": "面试",
+        "sections": "## 候选人背景 / ## 与岗位的匹配 / ## 要问的问题 / ## 如果他说…",
+        "title": "候选人简报：%s（%s）",
+        "title_rewrite": "重写候选人简报：%s（%s）",
+        "goal": "为 %s 与候选人 %s 的面试产出一页纸简报（%s）",
+        "criteria": (
+            "「候选人背景」每条带日期与出处（公开产出/简历/wiki 路径/链接）",
+            "「与岗位的匹配」引用岗位要求或既有面试记录（wiki 路径或任务号）",
+            "问题至少 3 条，分别问事实、问判断、问下一步",
+            "至少 1 条 如果他说 X → 说明 Y → 下一步 Z 的分支",
+        ),
+        "details": (
+            "%s 要面试 %s。请按 candidate-prep playbook 产出一页纸候选人简报，路径 %s。"
+            "重点：候选人公开可查的产出（带日期与出处）、与岗位要求逐条对得上/对不上、"
+            "三个该问的问题，以及至少一条「如果他答 X → 说明 Y → 下一步 Z」的分支。"
+            "简历上的自我陈述不算出处，必须指到能打开的材料。"
+        ),
+    },
+}
+
 
 def slugify(who):
     """ASCII slug for the file name; non-ASCII names get a stable hash."""
@@ -79,6 +129,12 @@ def post(port, tok, body):
 def main(argv):
     ap = argparse.ArgumentParser()
     ap.add_argument("--who", required=True, help="counterparty name")
+    ap.add_argument(
+        "--kind",
+        default="meeting",
+        choices=sorted(KINDS),
+        help="what kind of pack: a meeting with someone, or a candidate interview",
+    )
     ap.add_argument("--date", default=None, help="meeting date YYYY-MM-DD (default tomorrow)")
     ap.add_argument("--owner", default=DEFAULT_OWNER)
     ap.add_argument("--topic", default="", help="optional theme")
@@ -103,25 +159,16 @@ def main(argv):
     ap.add_argument("--dry-run", action="store_true", help="print the payload only")
     a = ap.parse_args(argv)
 
+    kind = KINDS[a.kind]
     date = a.date or (dt.date.today() + dt.timedelta(days=1)).isoformat()
     dt.date.fromisoformat(date)  # fail early on a malformed date
-    path = "team/prep/%s-%s.md" % (slugify(a.who), date)
+    path = "%s/%s-%s.md" % (kind["dir"], slugify(a.who), date)
 
-    criteria = [
-        "「对方近况」每条带日期与出处（wiki 路径/链接/任务号）",
-        "「我方既有结论」引用至少一个既有产物（wiki 路径或任务号）",
-        "问题至少 3 条，分别问事实、问判断、问下一步",
-        "至少 1 条 如果 X → 说明 Y → 我们改 Z 的分支",
-    ]
-    goal = "为 %s 与 %s 的会面产出一页纸准备包（%s）" % (date, a.who, path)
+    criteria = list(kind["criteria"])
+    goal = kind["goal"] % (date, a.who, path)
     if a.topic:
         goal += "；主题：%s" % a.topic
-    details = (
-        "%s 要与 %s 会面。请按 meeting-prep playbook 产出一页纸准备包，路径 %s。"
-        "重点：对方最近说了什么（带日期与出处）、我们上次的结论是否仍成立、"
-        "三个该问的问题，以及至少一条「如果他说 X → 说明 Y → 我们改 Z」的分支。"
-        % (date, a.who, path)
-    )
+    details = kind["details"] % (date, a.who, path)
     if a.details_file:
         with open(a.details_file, encoding="utf-8") as f:
             details = f.read()
@@ -132,8 +179,8 @@ def main(argv):
         "goal": goal,
         "deliverables": [
             {
-                "name": "准备包",
-                "format": "markdown，四个小节：## 对方近况 / ## 我方既有结论 / ## 要问的问题 / ## 如果他说…，路径 " + path,
+                "name": kind["pack"],
+                "format": "markdown，四个小节：%s，路径 %s" % (kind["sections"], path),
             }
         ],
         "success_criteria": criteria,
@@ -141,8 +188,7 @@ def main(argv):
     }
     create = {
         "action": "create",
-        "title": ("重写准备包：与 %s 的会面（%s）" if a.rewrite else "准备包：与 %s 的会面（%s）")
-        % (a.who, date),
+        "title": (kind["title_rewrite"] if a.rewrite else kind["title"]) % (a.who, date),
         "details": details,
         "created_by": "human",
         "owner": a.owner,

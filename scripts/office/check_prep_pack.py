@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Mechanical gate for a meeting-prep pack (team/prep/<slug>-<date>.md).
+"""Mechanical gate for a prep pack (team/prep/ or team/candidates/).
+
+One gate, two kinds: a meeting pack and a candidate pack have the same
+four-section shape, and both fail in the same four ways. Only the section
+titles differ (the candidate's are `## 候选人背景` / `## 与岗位的匹配`), which
+is why they are aliases here rather than a second checker that would drift.
 
 A prep pack is only worth writing if every claim about the counterparty can
 be traced and the pack actually gives the reader something to do. That is
@@ -29,8 +34,8 @@ import re
 import sys
 
 REQUIRED = {
-    "counterparty": ("对方", "对象", "对谈", "与会者", "counterparty"),
-    "our_side": ("我方", "既有结论", "既有论点", "我们的判断", "our side"),
+    "counterparty": ("对方", "对象", "对谈", "与会者", "候选人", "应聘者", "counterparty"),
+    "our_side": ("我方", "既有结论", "既有论点", "我们的判断", "岗位", "匹配", "our side"),
     "questions": ("问题", "要问", "questions", "question"),
     "branches": ("如果", "分支", "应对", "scenario", "branch"),
 }
@@ -208,6 +213,27 @@ ALL_PLACEHOLDER = GOOD.replace(
     "- 未收录：没有任何关于对方的记录",
 )
 
+# The candidate pack is the same four-section shape with different titles.
+# It runs the SAME gate on purpose: one checker, two use cases.
+CANDIDATE_GOOD = """# 候选人简报：张三
+
+## 候选人背景
+- 2026-09 在 KubeCon 讲过多租户隔离（出处: https://example.com/talk-0901）
+- 2025-11 在 GitHub 上维护了一个 2k star 的调度器（来源: https://github.com/example/sched）
+
+## 与岗位的匹配
+- 岗位要求「独立带过一次跨团队发布」→ 匹配：2025 年的调度器迁移（team/candidates/jd-platform-2026-10.md）
+- 岗位要求「有 on-call 经验」→ 未收录，面试时问
+
+## 要问的问题
+- 那次迁移里最难的一次回滚是因为什么？
+- 你如何判断一个告警值得半夜叫醒人？
+- 如果给你三个月，你会先动哪一块？
+
+## 如果他说没带过跨团队项目
+- 没带过 → 说明只能做执行不能做 owner → 下一轮加一道协作题
+"""
+
 
 def self_test():
     cases = [
@@ -219,6 +245,7 @@ def self_test():
         ("placeholder-ok", GOOD_WITH_PLACEHOLDER, []),
         ("all-placeholder", ALL_PLACEHOLDER, ["all placeholders"]),
         ("placeholder-midword", BAD_MID_PLACEHOLDER, ["no date"]),
+        ("candidate", CANDIDATE_GOOD, []),
         ("empty", "", ["missing section"]),
     ]
     bad = 0

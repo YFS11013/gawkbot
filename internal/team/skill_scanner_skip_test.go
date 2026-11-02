@@ -14,6 +14,11 @@ func TestShouldSkipDirPrepDeliverables(t *testing.T) {
 	}{
 		{"team/prep", true},
 		{"team/prep/fund-invest-2026-11-02", true},
+		{"team/candidates", true},
+		{"team/candidates/entity-ced07fb4-2026-11-05", true},
+		{"team/style", true},
+		{"team/style/diffs", true},
+		{"team/styles", false}, // prefix must not match a sibling name
 		{"team/skills", true},
 		{"team/skills/.system", true},
 		{"team/playbooks/.compiled", true},
