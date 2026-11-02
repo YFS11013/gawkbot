@@ -221,8 +221,11 @@
 - **没有操作员取消端点**：`/tasks/{id}` 只接受 GET，子路径只有 `block|resume|decision|comment|activity`。要停一个任务只能停 broker、手改 `broker-state.json` 的 `status`、再启动。本次即如此（备份 `broker-state.json.bak-cancel-2923`）。
 - **重启会把 blocked 改回 in_progress，`lifecycle_state` 仍是 `blocked`——根因已定位并修复**：`reconcileOrphanedBlockedTasksLocked`（`internal/team/broker_defaults.go:622`）本意是解开「依赖已全终态、但没收到 unblock 通知」的历史孤儿。它把「没有未解决依赖」当作症状，而一条**根本没有 `DependsOn`** 的任务同样满足这个条件——于是每次启动都被当成孤儿解开。`task-skill-2923` 就是这样回来的：手工 block、无依赖、重启后 `status=in_progress`，`follow_up_at` 重新排上，循环本会继续。修法是加一条守卫：`len(t.DependsOn) == 0` 直接跳过，没有依赖可「解决」就不是这个函数该管的。回归 `internal/team/broker_blocked_reconcile_test.go` 三个方向（手工 block 存活 / 真孤儿仍被解 / 依赖活跃仍 blocked），撤掉守卫必红。
 - **`blocked` 会主动重排 recheck 的说法成立但属设计**：`scheduleTaskLifecycleLocked` 对除 `in_progress` 外的所有非终态走 `default` 分支排 `recheck`。语义上 blocked 是「可恢复、等上游」，所以它会被再唤醒。改它会影响所有等待型任务，未动；若将来要「blocked 即真停」，应新增独立的暂停态而不是改这里。
-- 要补的：① `POST /tasks/{id}/cancel`（终态，清调度）；② 唤醒类 job 加次数上限（本次 42 轮、输入逐字相同）。启动 reconcile 的状态一致性已修（见上）。
+- **已修（2026-11-02）**：`POST /tasks/{id}/cancel`（`CancelTask`，`internal/team/broker_tasks_lifecycle.go`）。落终态 `canceled`，清空四个调度字段并把 scheduler job 置 `done`；幂等（已终态返回 `changed=false`）。为此新增 `LifecycleStateCanceled`——此前 `status=canceled` 反推成 `approved`，在按 `lifecycle_state` 渲染的看板上「停掉」和「完成」长得一样。回归 `broker_task_cancel_test.go`（终态且清调度 / 幂等 / 重启后仍派生为 canceled 且不可执行）。
+- 顺带修了 `normalizeTaskPlan` 的无条件覆盖：它最后一行 `task.pipelineStage = taskStageForStatus(task)` 会把 `applyLifecycleStateLocked` 刚按 forward map 写好的终态 stage 盖成模板的 open stage（`canceled`/`archived` 都变成 `triage`），导致反向映射回不到原状态。现在终态跳过重算。
+- 仍要补：唤醒类 job 加次数上限（本次 42 轮、输入逐字相同）。
 - 顺带：失败重投不降噪（审计建议 N 次后停），本轮未动。
+- **已知 flaky（2026-11-02，未修）**：`TestObsidianWatcher_NotifyWriteFiltersOwnEvents` 单跑 3/3 绿，`go test ./internal/team -count=1` 全量跑**稳定红**（两次分别 `490945f → bedcb3f`、`46692f1 → 65a8bbd`）。失败点是 `requireHEADStable` 的 500ms 窗口内 HEAD 被推进。已排除的方向：fixture 的 teardown 完整（`watcher.Stop` + `cancel` + `worker.Stop` + `<-worker.Done()`）、每个测试用独立 TempDir（不是跨测试泄漏）、`NotifyWrite` 与事件路径两侧都经 `filepath.ToSlash(filepath.Clean(...))` 因而规范化一致、`writeTTL` 默认远大于测试写入间隔。未闭合的部分：同一路径在 debounce 窗口内的多次 fsnotify 事件与 `fire` 的 `recent[rel]` 检查之间的真实时序。它挡住「全量测试必须绿」这条判据，需要单独一轮。
 - 同类已修（2026-11-01）：app 提案审批后建 App Builder 任务也把空频道默认成 `#general`（`broker_apps_proposal.go`）。现在按「提案所在房间 → 建者（app-builder）的主场 → 记日志放弃」解析；提案房间在审批前退役（`#general` 退役、成员删除带走 DM）时不再把任务和错误消息塞进死房间。新增 `TestProposeAppApprovalSurvivesARetiredRoom`。
 
 ### 7g. 空壳完成（2026-11-01 诊断；② 已落地，①/③ 待拍板）

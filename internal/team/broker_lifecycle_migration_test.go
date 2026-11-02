@@ -89,7 +89,7 @@ func TestLifecycleMigrationKnownTuplesResolveCanonical(t *testing.T) {
 		{"bare open", "", "", "open", false, LifecycleStateReady},
 		{"bare open blocked", "", "", "open", true, LifecycleStateQueuedBehindOwner},
 		{"bare done", "", "", "done", false, LifecycleStateApproved},
-		{"bare cancelled", "", "", "cancelled", false, LifecycleStateApproved},
+		{"bare cancelled", "", "", "cancelled", false, LifecycleStateCanceled},
 	}
 	for _, tc := range cases {
 		tc := tc

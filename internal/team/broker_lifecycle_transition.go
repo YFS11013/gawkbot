@@ -122,6 +122,13 @@ const (
 	// owner revises). Dependent tasks STAY blocked because the work
 	// did not land.
 	LifecycleStateRejected LifecycleState = "rejected"
+	// LifecycleStateCanceled marks a task an operator stopped on purpose.
+	// Distinct from Approved (the work landed) and from Archived (off the
+	// board after finishing) — neither describes "we decided this should not
+	// happen". Terminal, and NOT executable, so a canceled task is never
+	// re-dispatched. Before this existed, status="canceled" back-derived to
+	// Approved, which read as success in every board view.
+	LifecycleStateCanceled LifecycleState = "canceled"
 
 	// LifecycleStateDrafting marks a task the human EXPLICITLY parked
 	// (the composer's Backlog/park path, or a legacy persisted draft).
@@ -209,6 +216,7 @@ func CanonicalLifecycleStates() []LifecycleState {
 		LifecycleStateApproved,
 		LifecycleStateRejected,
 		LifecycleStateArchived,
+		LifecycleStateCanceled,
 	}
 }
 
@@ -271,6 +279,10 @@ var lifecycleDerivedFields = map[LifecycleState]lifecycleDerivedFieldsRow{
 	// on anything; it is simply off the active board. ReviewState="approved"
 	// mirrors the approved path (clean terminal, not a failure).
 	LifecycleStateArchived: {PipelineStage: "archived", ReviewState: "approved", Status: "archived", Blocked: false},
+	// Canceled: terminal, off-board, and deliberately NOT "approved". The
+	// ReviewState marker repeats the status so the reverse map can tell a
+	// cancel apart from a done.
+	LifecycleStateCanceled: {PipelineStage: "canceled", ReviewState: "canceled", Status: "canceled", Blocked: false},
 }
 
 // derivedFieldsFor returns the forward-map row for a state, plus a flag
@@ -325,7 +337,7 @@ func lifecycleStageFor(s LifecycleState) LifecycleStage {
 		return StageNeedsHuman
 	case LifecycleStateApproved:
 		return StageDone
-	case LifecycleStateArchived, LifecycleStateRejected:
+	case LifecycleStateArchived, LifecycleStateRejected, LifecycleStateCanceled:
 		return StageArchive
 	default:
 		return StageBacklog
@@ -389,11 +401,13 @@ var lifecycleMigrationMap = map[lifecycleMigrationKey]LifecycleState{
 	{PipelineStage: "", ReviewState: "", Status: "done", Blocked: false}:        LifecycleStateApproved,
 	{PipelineStage: "", ReviewState: "", Status: "completed", Blocked: false}:   LifecycleStateApproved,
 
-	// Cancelled/canceled — terminal but not "approved". Still mapped to
-	// approved for v1 to avoid an unbounded lifecycle; v1.1 may introduce a
-	// dedicated cancelled state.
-	{PipelineStage: "", ReviewState: "", Status: "canceled", Blocked: false}:  LifecycleStateApproved,
-	{PipelineStage: "", ReviewState: "", Status: "cancelled", Blocked: false}: LifecycleStateApproved,
+	// Cancelled/canceled — terminal but not "approved". These now resolve to
+	// the dedicated LifecycleStateCanceled; they used to fold into Approved
+	// for v1, which made a deliberate stop indistinguishable from a landed
+	// result on every board that reads lifecycle_state.
+	{PipelineStage: "", ReviewState: "", Status: "canceled", Blocked: false}:  LifecycleStateCanceled,
+	{PipelineStage: "", ReviewState: "", Status: "cancelled", Blocked: false}: LifecycleStateCanceled,
+	{PipelineStage: "canceled", ReviewState: "canceled", Status: "canceled", Blocked: false}: LifecycleStateCanceled,
 
 	// Archived — tasks stored on disk with status="archived" (bare or
 	// canonical tuple) resolve to LifecycleStateArchived so pre-existing

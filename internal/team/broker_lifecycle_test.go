@@ -51,6 +51,10 @@ func TestLifecycleForwardMapAllStates(t *testing.T) {
 		// Archived: terminal, off-board. Blocked=false (not waiting on
 		// anything), ReviewState="approved" (clean terminal).
 		{LifecycleStateArchived, "archived", "approved", "archived", false},
+		// Canceled: terminal and off-board, but deliberately NOT "approved" --
+		// a stop is not a landing. ReviewState repeats the status so the
+		// reverse map can tell the two apart.
+		{LifecycleStateCanceled, "canceled", "canceled", "canceled", false},
 	}
 
 	// The canonical state list and the forward-map must agree on which

@@ -39,9 +39,10 @@ func TestLifecycleStageForAllCanonicalStates(t *testing.T) {
 		{LifecycleStateDecision, StageNeedsHuman},
 		// done ← approved
 		{LifecycleStateApproved, StageDone},
-		// archive ← rejected, archived
+		// archive ← rejected, archived, canceled
 		{LifecycleStateRejected, StageArchive},
 		{LifecycleStateArchived, StageArchive},
+		{LifecycleStateCanceled, StageArchive},
 		// unknown defaults to backlog
 		{LifecycleStateUnknown, StageBacklog},
 	}

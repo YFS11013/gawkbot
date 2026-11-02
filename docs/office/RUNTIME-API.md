@@ -13,9 +13,14 @@
 | 列表（含各 lane + 已关闭） | `GET /tasks?all_channels=true&include_done=true`（不带参数只回 general，会漏 DM-first 任务） |
 | 建单（绕开 CoS 的唯一可靠链路） | `POST /tasks {"action":"create","title","details","owner","created_by":"human"}`，**不带 channel** |
 | 关单 | `POST /tasks {"action":"complete","id":"ACMER-NNNN","created_by":"human"}` |
+| 停单（终态，不会被再唤醒） | `POST /tasks/{id}/cancel {"reason":"..."}`，返回 `{"task":…,"changed":bool}`；已终态再调返回 `changed=false` |
 | 数「空壳完成」 | 在 `GET /tasks?...` 的结果里筛 `status=done && artifact 为空`；2026-11-01 起新关的单还会带 `hollow_completion=true`（同一事实的显式标记，历史任务没有该字段） |
 
 `complete` 走 `MutateTask`（`internal/team/broker_tasks_mutation_service.go`，done 转换处理在 `reachedDone` 分支）。
+
+**`cancel` 与 `block` 的区别是终态**：`block` 是「可恢复、等上游」，`scheduleTaskLifecycleLocked` 会立刻给它排一个 `recheck` job，所以 blocked 任务会被再唤醒——它停不住一个跑飞的任务。`cancel` 落到终态分支，清空 `follow_up_at`/`recheck_at`/`reminder_at`/`due_at` 并把 scheduler job 置 `done`，因此不会被再唤醒。实测 2026-11-02：`task-skill-2923` 手工 block 后又跑了 2 轮（42 轮累计），改 canceled 后才真正停。
+
+`cancel` 在 2026-11-02 之前不存在，停任务只能停 broker、手改 `broker-state.json` 的 `status`、再启动——而那套流程会因为 `Stop-Process` 后进程仍在优雅退出路径里 `saveLocked()` 而反复覆盖手工改动。
 
 ### 1.1 「Bot stuck on」求救单
 

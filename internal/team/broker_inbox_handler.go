@@ -109,6 +109,9 @@ func (b *Broker) handleTaskByID(w http.ResponseWriter, r *http.Request) {
 			case "resume":
 				b.handleTaskResume(w, r, actor, taskID)
 				return
+			case "cancel":
+				b.handleTaskCancel(w, r, actor, taskID)
+				return
 			case "decision":
 				b.handleTaskDecision(w, r, actor, taskID)
 				return
@@ -394,6 +397,74 @@ func (b *Broker) handleTaskResume(w http.ResponseWriter, r *http.Request, actor 
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"task":    resumed,
+		"changed": changed,
+	})
+}
+
+// handleTaskCancel serves POST /tasks/{id}/cancel. Body shape:
+//
+//	{"reason": "<optional note>"}
+//
+// Terminal. Unlike block (recoverable, re-arms a recheck) this clears every
+// lifecycle job and completes the scheduler entries, so the task cannot wake
+// itself again. Idempotent: canceling an already-terminal task returns 200 with
+// changed=false.
+func (b *Broker) handleTaskCancel(w http.ResponseWriter, r *http.Request, actor requestActor, id string) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", http.MethodPost)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if id == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "task id required"})
+		return
+	}
+	var body struct {
+		Reason string `json:"reason"`
+	}
+	// Body is optional; the UI may post with no payload. Accept EOF, reject
+	// anything else so malformed JSON cannot silently mutate state.
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json body"})
+		return
+	}
+
+	// Snapshot reviewers under the lock so the check races no reviewer write.
+	b.mu.Lock()
+	task := b.findTaskByIDLocked(id)
+	if task == nil {
+		b.mu.Unlock()
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "task not found"})
+		return
+	}
+	reviewers := append([]string(nil), task.Reviewers...)
+	b.mu.Unlock()
+	if !taskAccessAllowed(actor, reviewers) {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "forbidden"})
+		return
+	}
+
+	// Identity from the auth context only; never from the body, or any caller
+	// could spoof the audit trail on a task they can otherwise cancel.
+	actorSlug := strings.TrimSpace(actor.Slug)
+	if actor.Kind == requestActorKindBroker {
+		actorSlug = "owner"
+	}
+	if actorSlug == "" {
+		actorSlug = "human"
+	}
+	reason := strings.TrimSpace(body.Reason)
+	if reason == "" {
+		reason = "Canceled by operator."
+	}
+	canceled, changed, err := b.CancelTask(id, actorSlug, reason)
+	if err != nil {
+		log.Printf("broker: cancel task %q: %v", id, err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"task":    canceled,
 		"changed": changed,
 	})
 }

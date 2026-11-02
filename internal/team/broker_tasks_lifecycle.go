@@ -188,6 +188,78 @@ func (b *Broker) ResumeTask(taskID, actor, reason string) (teamTask, bool, error
 	return teamTask{}, false, fmt.Errorf("task not found")
 }
 
+// CancelTask moves a task to a terminal canceled state: an operator decided
+// this work should not happen.
+//
+// The difference from BlockTask is the whole reason this exists. Both clear
+// the current schedule, but blocked is a RECOVERABLE state, so
+// scheduleTaskLifecycleLocked's default branch immediately arms a recheck job
+// for it. Canceled is terminal, so it lands in the branch that clears
+// follow_up_at/recheck_at/reminder_at/due_at and completes the scheduler
+// entries. A canceled task therefore cannot wake itself up again, which is
+// what "stopped" needs to mean.
+//
+// Idempotent: canceling a task that is already terminal returns changed=false
+// and mutates nothing.
+func (b *Broker) CancelTask(taskID, actor, reason string) (teamTask, bool, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	id := strings.TrimSpace(taskID)
+	if id == "" {
+		return teamTask{}, false, fmt.Errorf("task id required")
+	}
+	actor = strings.TrimSpace(actor)
+	if actor == "" {
+		actor = "system"
+	}
+	reason = strings.TrimSpace(reason)
+	now := time.Now().UTC().Format(time.RFC3339)
+
+	for i := range b.tasks {
+		task := &b.tasks[i]
+		if task.ID != id {
+			continue
+		}
+		if isTerminalTeamTaskStatus(task.status) {
+			return *task, false, nil
+		}
+		beforeStatus := task.status
+		// Route through the transition layer so lifecycle_state, the indexed
+		// bucket, and the derived fields all move atomically. Writing
+		// task.status directly here would leave lifecycle_state pointing at
+		// whatever the task used to be -- the exact split that made a restart
+		// resurrect this task as in_progress while the lifecycle field still
+		// said blocked.
+		transitioned, err := b.transitionLifecycleLocked(task.ID, LifecycleStateCanceled, reason)
+		if err != nil {
+			return teamTask{}, false, err
+		}
+		task = transitioned
+		task.CompletedAt = now
+		if reason != "" && !strings.Contains(task.Details, reason) {
+			if existing := strings.TrimSpace(task.Details); existing != "" {
+				task.Details = existing + "\n\n" + reason
+			} else {
+				task.Details = reason
+			}
+		}
+		task.UpdatedAt = now
+		b.scheduleTaskLifecycleLocked(task)
+		if err := b.syncTaskWorktreeLocked(task); err != nil {
+			return teamTask{}, false, err
+		}
+		b.appendActionLocked("task_canceled", "office", normalizeChannelSlug(task.Channel), actor, truncateSummary(task.Title+" canceled", 140), task.ID)
+		if err := b.saveLocked(); err != nil {
+			return teamTask{}, false, err
+		}
+		b.emitTaskTransitionAutoNotebook(task, beforeStatus, actor)
+		return *task, true, nil
+	}
+
+	return teamTask{}, false, fmt.Errorf("task not found")
+}
+
 func (b *Broker) handleTaskAck(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)

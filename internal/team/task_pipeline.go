@@ -119,7 +119,19 @@ func normalizeTaskPlan(task *teamTask) {
 		(task.reviewState == "pending_review" || task.reviewState == "ready_for_review") {
 		task.reviewState = "approved"
 	}
-	task.pipelineStage = taskStageForStatus(task)
+	// Terminal statuses keep the stage their forward-map row assigned.
+	//
+	// taskStageForStatus derives from task status alone and falls back to the
+	// pipeline template's OpenStage for anything it does not recognise. That
+	// is right for live work, where the stage tracks where the task sits, and
+	// wrong for terminal states: applyLifecycleStateLocked has just written the
+	// row's own stage (archived, canceled, ship), and recomputing here silently
+	// overwrites it with the template's open stage. Measured on cancel: the
+	// row said stage=canceled, the stored task said stage=triage, so the
+	// reverse map could not round-trip and the task reloaded as unknown.
+	if !isTerminalTeamTaskStatus(task.status) {
+		task.pipelineStage = taskStageForStatus(task)
+	}
 }
 
 func requestIsResolvedLocked(requests []humanInterview, requestID string) bool {
