@@ -233,6 +233,12 @@
 - 影响面：任何 bot 都能改 `team/` 正文、伪造 learning；`wiki_artifact` 校验也因此可能被"先落盘再 complete"绕过（本轮的 `ACMER-2852` 就是先被忘接写成 `reviews/` 再由人把文件挪进 `team/reviews/` 才关单）。
 - 未做：给 wiki 目录加文件级监控并告警（`external edit` 提交已存在，可作为探针），或收紧 bot 的 shell 工作目录。属安全边界改造，需拍板。
 
+### 7i. broker 的 run 历史是 20 条环形缓冲，重启即空（2026-11-02，N9 过程中确认）
+- 现象：`/scheduler/{slug}/runs` 每个 job 最多留 20 条，broker 重启后全部清空。`last_run` 同理，7 个 `system_managed` system cron 全部为空。
+- 影响：任何"成功率/平均间隔/连续失败次数"指标都算不出来——环形缓冲里 20 条对一个日频 job 是 20 天，对一个分钟级 job 是 20 分钟，口径完全不同。N9 因此只报 `runs_seen` 这个**原始事实**，不算比率。
+- 已做的规避：记分卡每次运行把观测追加到 `~/.wuphf/data/routines/history.jsonl`，趋势靠这个文件而不是 broker。但它只在脚本跑的时候有数据点（现在每天一条）。
+- 未做：把 run 历史落 SQLite（`~/.wuphf/broker.db` 已有表），或至少让环形缓冲按时间而不是按条数保留——后者能保证"最近 7 天"这个查询永远有意义。属存储层改造，需要拍板。
+
 ### 8. 清理
 - ✅ **scheduler 死 job 已清（2026-11-01 16:55）**：`task_follow_up` / `request_follow_up` / `recheck` 这类一次性 job 在实体终结后只是被关掉（`status=done`、`next_run` 清空），从来没人删，一天就攒到 145 条，把 160 条里真正活着的 9 条埋掉。
   - 机制：boot 时 `pruneRetiredSchedulerJobs` 丢弃"已关闭 + 无 next_run + 关闭超过 10 分钟"的 job，并连同其 runs/activity/revisions 环形缓冲一起删（`scheduler_lifecycle.go`）。
@@ -254,6 +260,7 @@
 **2026-11-01 19:35 起运行态是 `bear/deepseek-chat`**（beam-free 挂死，见 P0-0） |
 | broker token | `%TEMP%\wuphf-broker-token-7892`，**每次重启都变** |
 | 桥 | Windows 计划任务跑 `forex-bridge-run.vbs`，每 6 小时；健康时无 `wiki/team/alerts.md` |
+| 记分卡 | 计划任务 `WUPHF-RoutineScorecard` 每天 09:05 跑 `~/.wuphf/data/routine-scorecard.ps1`（collector + `--publish`）；日志 `~/.wuphf/logs/routine-scorecard.log`；判据 `python scripts/office/check_routine_scorecard.py` |
 | 简报产物 | `~/.wuphf/wiki/artifacts/forex/<date>.md` + `<date>-headline.md` |
 | 常规检查 | `curl -s 127.0.0.1:7892/health`（含 model 与 members） |
 
