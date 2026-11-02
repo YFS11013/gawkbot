@@ -104,6 +104,46 @@ func requireHEADStable(t *testing.T, repo *Repo, prev string, window time.Durati
 	}
 }
 
+// waitWatcherIdle blocks until the watcher has no debounce timer pending and no
+// callback running, then re-reads HEAD.
+//
+// Waiting for HEAD to stop moving is not enough: a fire() that already passed
+// its self-write check goes on to run git, and git can take longer than any
+// quiet window. HEAD therefore looks stable while a commit is still in flight,
+// and that commit lands inside the next assertion's window.
+//
+// Measured: TestObsidianWatcher_NotifyWriteFiltersOwnEvents passes 3/3 alone,
+// fails in every full-suite run, and still failed 1/3 with a HEAD-quiet wait.
+// The self-write filter was never wrong -- the test was starting its second
+// write while the first write's callback was still committing.
+func waitWatcherIdle(t *testing.T, w *ObsidianWatcher, repo *Repo) string {
+	t.Helper()
+	deadline := time.Now().Add(obsidianWait)
+	for time.Now().Before(deadline) {
+		w.mu.Lock()
+		timers := len(w.timers)
+		w.mu.Unlock()
+		if timers == 0 {
+			w.pending.Wait()
+			// A timer can be added between the empty check and Wait; only
+			// trust the state when both are empty in sequence.
+			w.mu.Lock()
+			again := len(w.timers)
+			w.mu.Unlock()
+			if again == 0 {
+				sha, err := repo.HeadSHA(context.Background())
+				if err == nil {
+					return sha
+				}
+			}
+			continue
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("watcher did not settle within %s", obsidianWait)
+	return ""
+}
+
 func TestObsidianWatcher_StartStop(t *testing.T) {
 	_, _, _, teardown := newObsidianWatcherFixture(t)
 	defer teardown()
@@ -129,13 +169,16 @@ func TestObsidianWatcher_CreateMarkdownCommits(t *testing.T) {
 }
 
 func TestObsidianWatcher_ModifyExistingFileReplaces(t *testing.T) {
-	repo, _, _, teardown := newObsidianWatcherFixture(t)
+	repo, _, watcher, teardown := newObsidianWatcherFixture(t)
 	defer teardown()
 
 	rel := "team/people/sarah.md"
 	full := filepath.Join(repo.Root(), filepath.FromSlash(rel))
 	writeFile(t, full, "# Sarah\n\nv1\n")
 	first := waitForHEADChange(t, repo, "", obsidianWait)
+	// Let this write's callback finish committing before starting the next
+	// one; otherwise its late commit is read as the second write's.
+	first = waitWatcherIdle(t, watcher, repo)
 
 	writeFile(t, full, "# Sarah\n\nv2 with updated notes\n")
 	second := waitForHEADChange(t, repo, first, obsidianWait)
@@ -161,6 +204,11 @@ func TestObsidianWatcher_NotifyWriteFiltersOwnEvents(t *testing.T) {
 	full := filepath.Join(repo.Root(), filepath.FromSlash(rel))
 	writeFile(t, full, "# Sarah\n\ninitial\n")
 	first := waitForHEADChange(t, repo, "", obsidianWait)
+	// The callback from the write above must finish before the self-write half
+	// begins. It belongs to that write, not to the NotifyWrite below, and
+	// charging it to requireHEADStable is what made this test fail only when
+	// the suite was loaded.
+	first = waitWatcherIdle(t, watcher, repo)
 
 	// Pretend the worker is about to write to the same path. NotifyWrite
 	// records the path within the 5s TTL; the subsequent fsnotify event
