@@ -10,7 +10,7 @@
 | # | 条目 | 需要什么 | 卡在哪 |
 |---|---|---|---|
 | B | P2 #5 digest 的 `actual` 实际值来源 | **人拍板来源** | 一手（央行/统计局）/ FF 发布后页面 / 新闻标题，成本与准确性成反比 |
-| D | ~~P3 #7c Windows 包级测试红~~ | ✅ 2026-11-02 拍板「Windows 一等公民」；判据扩到全仓，`go test ./...` 45 包 0 红（§7c 收口）。遗留：多 workspace spawn 未实现，见 E | — |
+| D | ~~P3 #7c Windows 包级测试红~~ | ✅ 2026-11-02 拍板「Windows 一等公民」；判据扩到全仓，`go test ./...` 45 包 0 红（§7c 收口）。多 workspace spawn 已在 Windows 实现（`spawn_common.go` + `spawn_windows.go`，DETACHED_PROCESS 起子进程），见 §7c 收口条目 | — |
 | E | P3 #7e 后续：Windows 用 Job Object 收口 | 无，纯工程 | 现在只能杀进程树，工具自派生的进程仍可能逃逸 |
 | F | P3 #8 清理：空仓库 `YFS11013/gawkbot-office`、3 个 exe 备份 | 前者需 `gh auth refresh -s delete_repo` | 备份 ~88 MB/个，删前确认不需要回滚点 |
 | G | P0 #1 forex-watch 16:30 自动简报 | **等时间** | `next_run=2026-11-02T08:30:00Z`（周一 16:30 北京），现在无法验 |
@@ -179,7 +179,7 @@
     - `ReplaceFile`/`WriteFileAtomic` 收敛到 `internal/fsutil`，`internal/team` 的 `replaceFile` 变成一行委派、`atomicWriteFile` 直接调用（`cm27`）。
     - 其余 63 条全部是测试假设，不是产品行为：HOME/`USERPROFILE` 隔离不完整（Windows 的 `os.UserHomeDir` 读 `USERPROFILE`，`config.Path` 另读 `WUPHF_RUNTIME_HOME`，只设 HOME 会让全包共享开发者的真实 `~/.wuphf`，一条测试存的 `Blueprint: "niche-crm"` 改了之后所有 roster 断言看的 manifest）；`/bin/sh` 假 CLI 在 Windows 起不来（改测试二进制自身）；`os.Symlink` 需开发者模式（改能力探测 skip）；NTFS 无 POSIX mode（断言限 POSIX）；JSON 里拼 Windows 路径未转义；`/tmp` 与 `/` 分隔符写死。
     - 两条与平台无关的真错：`approval_context_canonical.txt` 被 git 按 CRLF 检出后与 `\n` 构建的 spec 比较（测试归一化行尾）；skill 使用计数测试要求第二次 +1，但 broker 的「每个 skill 同时只允许一个活跃 skill-run 任务」守卫正在（正确地）去重 —— 测试现在先完成该任务再调用。
-    - **遗留产品缺口（不是测试问题）**：`internal/workspaces` 在 Windows 上 `defaultSpawn` 仍返回 `errSpawnNotSupportedOnWindows`，多 workspace 的创建/恢复不可用；`go test ./internal/workspaces` 全绿只说明单 workspace 的注册表/布局/doctor 路径正确。按 R8 这是一等公民判据下的已知缺口，需要 Job Object + 进程组 spawn 才能补（与 §7e 的 P3 #7e 同一批）。
+    - **遗留产品缺口（2026-11-02 已补）**：`internal/workspaces` 在 Windows 上 `defaultSpawn` 曾返回「本平台不支持起 broker」的哨兵错误，多 workspace 的创建/恢复不可用。现在 Windows 走真实 spawn：平台无关部分（argv/env/日志/PID/就绪探测）在 `spawn_common.go`，Windows 侧用 `CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS` 起子进程，成功返回后 `Release` 掉进程句柄，子进程在父进程退出后存活；超时/写 PID 失败按 POSIX 语义 `Kill` 并 `Wait`。**没有用 Job Object**：`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` 会在父进程退出（最后一个句柄关闭）时杀掉子进程，正好和"父退出后子进程存活"冲突；不加该标志的 job 又会随父句柄关闭而消失、什么也换不来。代价是 pause/kill 只终止直接子进程，孙进程仍会逃逸（与 §7e 的 P3 #7e 同一批）。
 - **危险（2026-11-02 又发生一次，已修根因）**：`go test ./...` 把真实的 `~/.wuphf/config.json` 写成了 `{}`、`onboarded.json` 写成了空骨架，
   于是 UI 把已完成的办公室判成新装、直接弹引导页。数据本身没丢（`team/broker-state.json` 里 4 个成员、77 个任务、500 条消息都在，`.last-good` 同份），
   恢复方式是 `config.json.bak-claude-code-20261024` 合并当前字段 + `onboarded.json` 补 `phase/complete`、`completed_at`、`company_name`（备份在 `~/.wuphf/backups/test-damage-20261102/`）。

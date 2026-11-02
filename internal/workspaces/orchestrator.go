@@ -719,7 +719,7 @@ func postAdminPause(port int, token string) error {
 }
 
 func readPIDFile(runtimeHome string) int {
-	pidPath := filepath.Join(runtimeHome, ".wuphf", "broker.pid")
+	pidPath := filepath.Join(runtimeHome, ".wuphf", spawnPIDName)
 	data, err := os.ReadFile(pidPath)
 	if err != nil {
 		return 0
