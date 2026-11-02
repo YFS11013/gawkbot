@@ -469,3 +469,50 @@ evidence: dedf6213f4ed4
 - **`--publish` 是整份 replace**：两个人同时记录会丢一条。低频人工操作可接受；要并发就得改成 `append_section` 或加锁。
 - **draft/final 由人提供**：脚本不猜"哪份是终稿"。接邮箱/IM 抽终稿是下一步，本轮没做。
 
+## 12. Routine 记分卡（N9）：谁应该跑，谁真的跑了
+
+「每天在跑」和「看起来在跑」的区别只能靠数字。这一节给出数字，并说明哪些数字**根本不存在**。
+
+| 件 | 位置 | 作用 |
+|---|---|---|
+| 采集 | `scripts/office/routine_scorecard.py` | 读 broker `/scheduler` + 每个 slug 的 `/scheduler/{slug}/runs` + `/tasks`，再读 `schtasks /query /fo CSV /v`，写快照 |
+| 判据 | `scripts/office/check_routine_scorecard.py` | 快照新鲜度、采集完整性、告警必须为空 |
+| 页面 | wiki `team/routines/scorecard-<YYYY-MM-DD>.md` | 一页纸；`--publish` 走 `POST /wiki/write` 提交 |
+| 数据 | `~/.wuphf/data/routines/scorecard-<date>.json`、`history.jsonl` | 机读快照与累计观测；wiki 只收 `.md`（`validateArticlePath`），所以这两个不进 git |
+
+### 12.1 三个告警，不是两个
+
+| kind | 何时触发 | 为什么单独一类 |
+|---|---|---|
+| `overdue` | `next_run` 早于 now − 15 分钟 | **不需要周期**就能判：调度器没把下次时间往前推。cron 型 job（`schedule_expr`）也能判 |
+| `stale` | 已知周期，且 `now − last_run > 2×周期` | 需要周期；broker 系统 cron 用 `interval_minutes`，Windows 任务用 `重复: 每` |
+| `dormant` | `enabled=false` 且最后运行 ≥ 7 天前 | **不进告警**，单列一节。8 条"115 天前停用"混进告警，等于让两条真告警没人读 |
+| `failed` | Windows `Last Result` ∉ {0, 267011, 267009} 且任务 `enabled` | 停用任务的失败码是历史，不是当前问题 |
+
+`267011`（从未运行）与 `267009`（正在运行）不算失败；写成失败会让新装的计划任务第一天就红。
+
+### 12.2 两种"不知道"
+
+- **broker 的 run 历史是环形缓冲**（`schedulerRunHistoryLimit = 20`），重启即空。所以 `runs_seen` 不是窗口内次数，**不能拿来算成功率**；高频 job 会一直显示 20。
+- **`last_run` / `next_run` 在很多 job 上是空的**（实测 23 个 broker job 里 7 个系统 cron 全空）。这类 job 在页面上标 `*no data*`，判据不判它坏——第一版把它当 `never ran`，一次刷出 6 条假告警。
+
+### 12.3 实测（2026-11-02）
+
+```
+scorecard: 36 jobs, 0 alerts, pending=0 -> team/routines/scorecard-2026-11-02.md
+published team/routines/scorecard-2026-11-02.md aa9ccaf
+routine ok: 36 jobs, 0 alerts, snapshot 2026-11-02T03:47:09Z
+```
+
+36 = 23 个 broker job + 13 个 Windows 任务（`--match 'wuphf|gawkbot|forex'`，含 8 个 115 天前停用的 BlockCell 旧任务）。
+
+判据负例全部验证过：`alerts` 非空 → 逐条列出并退出 1；`generated_at` 改成一个月前 → `snapshot is 771.7h old (limit 26h)`；采集报错 → `collector error`；空快照 → `no observations`。
+
+### 12.4 踩到的坑：`schtasks` 表头是本地化的
+
+`schtasks /query /fo CSV /v` 的**列名随系统语言翻译**（zh-CN 是 `主机名/任务名/下次运行时间/…`），列顺序固定。按列名取值在中文机上得到 0 行，而且**不报错**——第一次运行报"23 jobs, 0 alerts"，看起来一切正常，其实是 13 个 Windows 任务全被静默丢掉。
+
+现在按位置读（`WIN_COL`），并顺手从第 24 列 `重复: 每` 取周期（`0 小时， 15 分钟` → 15），比 `Next Run − Last Run` 更接近真实计划。回归用 `parse_repeat_minutes` 的四个样例（英/中/天/N/A）守住。
+
+**这个坑的通用形状**：一个数据源解析失败却返回空集，比报错更危险。凡是"过滤后为空"的采集，都要能区分"确实没有"和"没解析出来"。
+

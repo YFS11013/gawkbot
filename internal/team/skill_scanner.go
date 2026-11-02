@@ -59,6 +59,10 @@ var scanSkippedDirs = []string{
 	// rules themselves are data, and registering a skill per bot would put
 	// `henji`/`cos` into /skills where every bot then has to ignore them.
 	"team/style/",
+	// team/routines/ holds one dated scorecard per day. Same trap as prep:
+	// a daily status page is evidence about one day, and the compile cron
+	// would otherwise mint a skill named after the date.
+	"team/routines/",
 }
 
 // scanBotNotebookSegment is the path segment that identifies per-bot
