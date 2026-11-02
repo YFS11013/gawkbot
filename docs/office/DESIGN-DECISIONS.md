@@ -150,6 +150,9 @@ digest ──► render_artifacts()（脚本，0 LLM）
 5. **未决**：`market-analyst` 是合并进 forex，还是改成“静默计算、只写 artifact 不发言”。
 6. ~~branch-tracer 工具缺文件~~ **已解决（19:39）**：该工具是 omp-evolve A/B harness 的脚手架，opencode 自动加载 `tools/*.ts`、无配置引用，已连同 stub 移至 `~/.config/opencode/tools.disabled-20261029/`。验证：19:41 cos turn 成功，无新增 `Cannot find module`。同族的 `tsc-analyzer.ts` 已一并移走（21:45）；`tools/probe-bg.ps1` 保留——`.ps1` 不被 opencode 当作 tool 加载，属惰性文件。
 7. **`internal/team` 测试包编不过**：`headless_session_typing_test.go` 缺 `sessionAnswer` / `pollUntil`，新增的回归用例无法执行；`go build` 正常，仅测试侧破损。
+8. **从未启动的任务不会被 `StalledTurns` 回收**（2026-11-02 发现，来自 `ACMER-3238`）。`StalledTurns` 的计数发生在 `AppendTaskLedgerEntry` 内，只有 bot 跑过至少一轮、且那一轮没有留下可验证产物时才 +1。任务创建后 bot 根本没开始（`pipeline_stage` 停在 `breakdown`），计数器就没有机会动，8 轮阈值永远到不了。这类任务只能靠 UI 的 `[task_stalled]` 通知发现，而通知需要人接——`ACMER-3238` 从 15:06 挂到 23:05，无人处理后才被手工取消。**判据缺口**：现有实现覆盖「跑了但没进展」，不覆盖「从未开始」。
+9. **`PATCH /scheduler/{slug} {"enabled":true}` 对已过期的 job 会立即点火**（2026-11-02 实测）。为验证 overdue 检测而启用一个 `next_run` 停在 2026-10-29 的 routine，调度器在同一秒执行了它并创建任务 `ACMER-3238`；紧接着用 `enabled:false` 关掉 job，任务不会被回收。**后果**：一次 20 秒的测试留下了挂了 8 小时的活跃任务。禁用只阻止未来的触发，不撤销已经创建的任务。
+10. **`WUPHF-BrokerWatchdog` 没有「同一 job 反复过期就停手」的闸**。`Restart-Broker` 只有 `restartFloorMinutes = 20` 的防抖，即两次重启至少间隔 20 分钟，但没有记录是哪个 job 导致的重启。如果某个 job 因前置条件不满足被跳过且 `next_run` 不推进，它会持续过期，watchdog 就会每 20 分钟重启一次 broker。2026-10-30 已出现两次连续重启（20:36 与 22:21），根因正是 `task-follow-up` 的 `next_run` 停在过去。当前最小配置下没有触发条件，但重启循环会破坏「7 天无异常」这个试验前提。
 
 ## 7. 实施状态（截至 2026-10-29 11:40 UTC）
 
