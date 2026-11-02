@@ -9,12 +9,23 @@ import (
 func withTempHome(t *testing.T) func() {
 	t.Helper()
 	tmp := t.TempDir()
-	old := os.Getenv("HOME")
-	os.Setenv("HOME", tmp)
+	// All four, because ConfigPath resolves through WUPHF_RUNTIME_HOME and
+	// os.UserHomeDir reads USERPROFILE on Windows: setting HOME alone made
+	// these tests save an empty Config over the developer's real
+	// ~/.wuphf/config.json.
+	for _, key := range []string{"HOME", "USERPROFILE", "WUPHF_RUNTIME_HOME"} {
+		key := key
+		old := os.Getenv(key)
+		t.Cleanup(func() { _ = os.Setenv(key, old) })
+	}
+	_ = os.Setenv("HOME", tmp)
+	_ = os.Setenv("USERPROFILE", tmp)
+	_ = os.Setenv("WUPHF_RUNTIME_HOME", tmp)
+	t.Setenv("WUPHF_CONFIG_PATH", filepath.Join(tmp, ".wuphf", "config.json"))
 	if err := os.MkdirAll(filepath.Join(tmp, ".wuphf"), 0o700); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	return func() { os.Setenv("HOME", old) }
+	return func() {}
 }
 
 func TestMigrateOpenclawBridges_Empty(t *testing.T) {

@@ -20,6 +20,11 @@ func withTempConfig(t *testing.T, f func(dir string)) {
 	origProfile := os.Getenv("USERPROFILE")
 	t.Setenv("HOME", dir)
 	t.Setenv("USERPROFILE", dir)
+	// ConfigPath resolves through these two before it ever looks at a home
+	// directory, so a test that leaves them alone can still reach the real
+	// ~/.wuphf/config.json.
+	t.Setenv("WUPHF_RUNTIME_HOME", dir)
+	t.Setenv("WUPHF_CONFIG_PATH", filepath.Join(dir, ".wuphf", "config.json"))
 	defer os.Setenv("HOME", orig)
 	defer os.Setenv("USERPROFILE", origProfile)
 	f(dir)

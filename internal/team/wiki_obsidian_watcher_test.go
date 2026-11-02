@@ -16,6 +16,14 @@ import (
 // fsnotify-backed ObsidianWatcher wired to a tempdir Repo + WikiWorker.
 // The returned debounce is short by default (50ms) so trailing-edge fires
 // finish well inside test timeouts.
+// obsidianWait is how long a test waits for fsnotify to deliver an event and
+// the watcher to commit. Three seconds is enough on an idle machine and not
+// enough during `go test ./...`, where a dozen other packages are competing
+// for the same cores: the two ModifyExistingFile/NotifyWrite tests failed only
+// in the full run. The assertion is unchanged — it still requires the commit,
+// it just stops racing the rest of the suite for it.
+const obsidianWait = 15 * time.Second
+
 func newObsidianWatcherFixture(t *testing.T) (*Repo, *WikiWorker, *ObsidianWatcher, context.CancelFunc) {
 	t.Helper()
 	t.Setenv("WUPHF_RUNTIME_HOME", t.TempDir())
@@ -114,7 +122,7 @@ func TestObsidianWatcher_CreateMarkdownCommits(t *testing.T) {
 	full := filepath.Join(repo.Root(), filepath.FromSlash(rel))
 	writeFile(t, full, "# Test person\n\nNotes.\n")
 
-	newSHA := waitForHEADChange(t, repo, prev, 3*time.Second)
+	newSHA := waitForHEADChange(t, repo, prev, obsidianWait)
 	if newSHA == prev {
 		t.Fatalf("expected commit; head unchanged")
 	}
@@ -127,10 +135,10 @@ func TestObsidianWatcher_ModifyExistingFileReplaces(t *testing.T) {
 	rel := "team/people/sarah.md"
 	full := filepath.Join(repo.Root(), filepath.FromSlash(rel))
 	writeFile(t, full, "# Sarah\n\nv1\n")
-	first := waitForHEADChange(t, repo, "", 3*time.Second)
+	first := waitForHEADChange(t, repo, "", obsidianWait)
 
 	writeFile(t, full, "# Sarah\n\nv2 with updated notes\n")
-	second := waitForHEADChange(t, repo, first, 3*time.Second)
+	second := waitForHEADChange(t, repo, first, obsidianWait)
 
 	got, err := os.ReadFile(full)
 	if err != nil {
@@ -152,7 +160,7 @@ func TestObsidianWatcher_NotifyWriteFiltersOwnEvents(t *testing.T) {
 	rel := "team/people/sarah.md"
 	full := filepath.Join(repo.Root(), filepath.FromSlash(rel))
 	writeFile(t, full, "# Sarah\n\ninitial\n")
-	first := waitForHEADChange(t, repo, "", 3*time.Second)
+	first := waitForHEADChange(t, repo, "", obsidianWait)
 
 	// Pretend the worker is about to write to the same path. NotifyWrite
 	// records the path within the 5s TTL; the subsequent fsnotify event
@@ -222,7 +230,7 @@ func TestObsidianWatcher_DebounceCoalescesRapidWrites(t *testing.T) {
 		<-time.After(40 * time.Millisecond)
 	}
 
-	newSHA := waitForHEADChange(t, repo, prev, 3*time.Second)
+	newSHA := waitForHEADChange(t, repo, prev, obsidianWait)
 
 	// Confirm content is the final version (latest write wins).
 	got, err := os.ReadFile(full)
