@@ -214,6 +214,13 @@
 - **已修（2026-11-02）：任务不该产生在别人的 DM 里。** `createSkillRunTaskLocked` 直接沿用调用方的频道，而 skill 多半从调用者自己的 `#<bot>__human` 触发，任务 owner 却是 office lead——另一个 bot。DM 只认两名参与者，所以 owner 既写不进去，也不能被 `ensureTaskOwnerChannelMembershipLocked` 拉进去（它对 `botSide != owner` 直接 return）。现在创建时就走 `preferredTaskChannelLocked`，它会 `reHomeTaskOutOfHumanDMLocked` 把任务搬到调用者⇄owner 的 pair DM，两人都能写。回归 `TestSkillRunTaskReHomedOutOfInvokerDM`（去掉 fix 必红）/ `TestSkillRunTaskKeepsWritableChannel`（可写频道不被搬动）。
 - 实证：`task-skill-2923` 卡了 38 轮——`channel=data-keeper__human`、`owner=cos`，每轮都正确因缺 `object_name`/`meeting_date` 中止，每轮都无法在任何它能命名的频道里报告，结论只落在自己的 notebook。已 `blocked` 止损。
 - **仍未修**：已存在的此类任务（含 `wake-lead` 把 cos 唤进别人 DM 的老任务）。上面 A/B/C 三选一仍然待拍板——修的是「新生」，不是「存量」。
+
+### 7j. `block` 停不住任务，且没有取消端点（2026-11-02 实测）
+- 第一次止损用 `POST /tasks/task-skill-2923/block`，返回 200、`status=blocked`，看起来停了。**实际没停**：`scheduleTaskLifecycleLocked` 对除 `in_progress` 之外的所有状态走 `default` 分支，主动排一个 `recheck` job 并重设 `follow_up_at`/`recheck_at`/`reminder_at`。blocked 在设计上就是「可恢复、等上游」，所以它必然被再唤醒——只是把 `task_follow_up` 换成了 `recheck`。实测 block 之后又跑了 2 轮（executions 39 → 41）。
+- 真正的终态只有 `done / completed / canceled / cancelled / archived`（`isTerminalTeamTaskStatus`），进入终态才清空调度并 `completeSchedulerJobsLocked`。
+- **没有操作员取消端点**：`/tasks/{id}` 只接受 GET，子路径只有 `block|resume|decision|comment|activity`。要停一个任务只能停 broker、手改 `broker-state.json` 的 `status`、再启动。本次即如此（备份 `broker-state.json.bak-cancel-2923`）。
+- **重启会把 blocked 改回 in_progress，而 `lifecycle_state` 仍是 `blocked`**：本次重启后 `task-skill-2923` 出现 `status=in_progress` + `lifecycle_state=blocked` + `pipeline_stage=act` 的组合，而 `broker_lifecycle_transition.go:259` 规定 blocked 应映射到 `Status:"blocked", PipelineStage:"review"`。两套字段不一致，且 status 那一侧会重新触发调度。未定位到是哪段启动逻辑覆盖的，暂以终态规避。
+- 要补的：① `POST /tasks/{id}/cancel`（终态，清调度）；② 启动 reconcile 时不得把 `lifecycle_state=blocked` 的 status 推导成 `in_progress`；③ 唤醒类 job 加次数上限（本次 42 轮、输入逐字相同）。
 - 顺带：失败重投不降噪（审计建议 N 次后停），本轮未动。
 - 同类已修（2026-11-01）：app 提案审批后建 App Builder 任务也把空频道默认成 `#general`（`broker_apps_proposal.go`）。现在按「提案所在房间 → 建者（app-builder）的主场 → 记日志放弃」解析；提案房间在审批前退役（`#general` 退役、成员删除带走 DM）时不再把任务和错误消息塞进死房间。新增 `TestProposeAppApprovalSurvivesARetiredRoom`。
 
