@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/nex-crm/wuphf/internal/config"
@@ -9,9 +9,14 @@ import (
 
 func withTempConfigHome(t *testing.T, f func()) {
 	t.Helper()
-	orig := os.Getenv("HOME")
-	t.Setenv("HOME", t.TempDir())
-	defer os.Setenv("HOME", orig)
+	// Windows resolves the home directory from USERPROFILE, and ConfigPath
+	// reads WUPHF_RUNTIME_HOME / WUPHF_CONFIG_PATH first: setting HOME alone
+	// let /config set write the developer's real ~/.wuphf/config.json.
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
+	t.Setenv("WUPHF_RUNTIME_HOME", dir)
+	t.Setenv("WUPHF_CONFIG_PATH", filepath.Join(dir, ".wuphf", "config.json"))
 	f()
 }
 

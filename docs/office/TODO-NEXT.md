@@ -180,6 +180,13 @@
     - 其余 63 条全部是测试假设，不是产品行为：HOME/`USERPROFILE` 隔离不完整（Windows 的 `os.UserHomeDir` 读 `USERPROFILE`，`config.Path` 另读 `WUPHF_RUNTIME_HOME`，只设 HOME 会让全包共享开发者的真实 `~/.wuphf`，一条测试存的 `Blueprint: "niche-crm"` 改了之后所有 roster 断言看的 manifest）；`/bin/sh` 假 CLI 在 Windows 起不来（改测试二进制自身）；`os.Symlink` 需开发者模式（改能力探测 skip）；NTFS 无 POSIX mode（断言限 POSIX）；JSON 里拼 Windows 路径未转义；`/tmp` 与 `/` 分隔符写死。
     - 两条与平台无关的真错：`approval_context_canonical.txt` 被 git 按 CRLF 检出后与 `\n` 构建的 spec 比较（测试归一化行尾）；skill 使用计数测试要求第二次 +1，但 broker 的「每个 skill 同时只允许一个活跃 skill-run 任务」守卫正在（正确地）去重 —— 测试现在先完成该任务再调用。
     - **遗留产品缺口（不是测试问题）**：`internal/workspaces` 在 Windows 上 `defaultSpawn` 仍返回 `errSpawnNotSupportedOnWindows`，多 workspace 的创建/恢复不可用；`go test ./internal/workspaces` 全绿只说明单 workspace 的注册表/布局/doctor 路径正确。按 R8 这是一等公民判据下的已知缺口，需要 Job Object + 进程组 spawn 才能补（与 §7e 的 P3 #7e 同一批）。
+- **危险（2026-11-02 又发生一次，已修根因）**：`go test ./...` 把真实的 `~/.wuphf/config.json` 写成了 `{}`、`onboarded.json` 写成了空骨架，
+  于是 UI 把已完成的办公室判成新装、直接弹引导页。数据本身没丢（`team/broker-state.json` 里 4 个成员、77 个任务、500 条消息都在，`.last-good` 同份），
+  恢复方式是 `config.json.bak-claude-code-20261024` 合并当前字段 + `onboarded.json` 补 `phase/complete`、`completed_at`、`company_name`（备份在 `~/.wuphf/backups/test-damage-20261102/`）。
+  三个写入点：`internal/config` 的 `withTempHome`/`withTempConfig`、`internal/commands` 的 `withTempConfigHome` —— 它们只设了 `HOME`，
+  而 `ConfigPath()` 先读 `WUPHF_CONFIG_PATH`、再读 `WUPHF_RUNTIME_HOME`，最后才是 `os.UserHomeDir()`（Windows 读 `USERPROFILE`）。
+  现在四个变量一起设。**巡检办法**：跑全仓前后对 `~/.wuphf/config.json`、`onboarded.json` 取 md5，不等就是又漏了隔离。
+
 - **危险（已修）**：只 `t.Setenv("HOME")` 而不设 `WUPHF_RUNTIME_HOME` 的用例，在 Windows 上会读写真实 `~/.wuphf`。`TestIsDeterministicPhase2CEODM` 曾在 22:16 覆写 `~/.wuphf/onboarded.json` 的 `phase`/`completed_at`（已改指临时 home；真实文件已把 phase 恢复成 `complete`，`completed_at` 仍是测试夹具值 `2026-05-28`，日期不可考）。
 
 ### 7e. turn 超时不生效 → 8.5h 挂死（2026-10-31 修复）
