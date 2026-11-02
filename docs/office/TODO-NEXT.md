@@ -219,8 +219,9 @@
 - 第一次止损用 `POST /tasks/task-skill-2923/block`，返回 200、`status=blocked`，看起来停了。**实际没停**：`scheduleTaskLifecycleLocked` 对除 `in_progress` 之外的所有状态走 `default` 分支，主动排一个 `recheck` job 并重设 `follow_up_at`/`recheck_at`/`reminder_at`。blocked 在设计上就是「可恢复、等上游」，所以它必然被再唤醒——只是把 `task_follow_up` 换成了 `recheck`。实测 block 之后又跑了 2 轮（executions 39 → 41）。
 - 真正的终态只有 `done / completed / canceled / cancelled / archived`（`isTerminalTeamTaskStatus`），进入终态才清空调度并 `completeSchedulerJobsLocked`。
 - **没有操作员取消端点**：`/tasks/{id}` 只接受 GET，子路径只有 `block|resume|decision|comment|activity`。要停一个任务只能停 broker、手改 `broker-state.json` 的 `status`、再启动。本次即如此（备份 `broker-state.json.bak-cancel-2923`）。
-- **重启会把 blocked 改回 in_progress，而 `lifecycle_state` 仍是 `blocked`**：本次重启后 `task-skill-2923` 出现 `status=in_progress` + `lifecycle_state=blocked` + `pipeline_stage=act` 的组合，而 `broker_lifecycle_transition.go:259` 规定 blocked 应映射到 `Status:"blocked", PipelineStage:"review"`。两套字段不一致，且 status 那一侧会重新触发调度。未定位到是哪段启动逻辑覆盖的，暂以终态规避。
-- 要补的：① `POST /tasks/{id}/cancel`（终态，清调度）；② 启动 reconcile 时不得把 `lifecycle_state=blocked` 的 status 推导成 `in_progress`；③ 唤醒类 job 加次数上限（本次 42 轮、输入逐字相同）。
+- **重启会把 blocked 改回 in_progress，`lifecycle_state` 仍是 `blocked`——根因已定位并修复**：`reconcileOrphanedBlockedTasksLocked`（`internal/team/broker_defaults.go:622`）本意是解开「依赖已全终态、但没收到 unblock 通知」的历史孤儿。它把「没有未解决依赖」当作症状，而一条**根本没有 `DependsOn`** 的任务同样满足这个条件——于是每次启动都被当成孤儿解开。`task-skill-2923` 就是这样回来的：手工 block、无依赖、重启后 `status=in_progress`，`follow_up_at` 重新排上，循环本会继续。修法是加一条守卫：`len(t.DependsOn) == 0` 直接跳过，没有依赖可「解决」就不是这个函数该管的。回归 `internal/team/broker_blocked_reconcile_test.go` 三个方向（手工 block 存活 / 真孤儿仍被解 / 依赖活跃仍 blocked），撤掉守卫必红。
+- **`blocked` 会主动重排 recheck 的说法成立但属设计**：`scheduleTaskLifecycleLocked` 对除 `in_progress` 外的所有非终态走 `default` 分支排 `recheck`。语义上 blocked 是「可恢复、等上游」，所以它会被再唤醒。改它会影响所有等待型任务，未动；若将来要「blocked 即真停」，应新增独立的暂停态而不是改这里。
+- 要补的：① `POST /tasks/{id}/cancel`（终态，清调度）；② 唤醒类 job 加次数上限（本次 42 轮、输入逐字相同）。启动 reconcile 的状态一致性已修（见上）。
 - 顺带：失败重投不降噪（审计建议 N 次后停），本轮未动。
 - 同类已修（2026-11-01）：app 提案审批后建 App Builder 任务也把空频道默认成 `#general`（`broker_apps_proposal.go`）。现在按「提案所在房间 → 建者（app-builder）的主场 → 记日志放弃」解析；提案房间在审批前退役（`#general` 退役、成员删除带走 DM）时不再把任务和错误消息塞进死房间。新增 `TestProposeAppApprovalSurvivesARetiredRoom`。
 

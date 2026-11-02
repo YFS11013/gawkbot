@@ -628,6 +628,22 @@ func (b *Broker) reconcileOrphanedBlockedTasksLocked() {
 		if !t.blocked || t.status != "blocked" {
 			continue
 		}
+		// NO DEPENDENCIES MEANS NOT ORPHANED.
+		//
+		// This function exists for one failure mode: a task blocked on a
+		// dependency that reached a terminal status before the unblock
+		// notification existed. "No unresolved dependencies" is the symptom.
+		//
+		// A task with no dependencies at all has the same symptom for a
+		// different reason — someone blocked it deliberately — so without this
+		// guard the reconciler cannot tell them apart and silently unblocks the
+		// deliberate one on every boot. Measured on task-skill-2923: blocked by
+		// hand (38 aborted wakeups, two required inputs nobody supplied), no
+		// DependsOn, and it came back as in_progress after the restart, which
+		// re-armed the follow_up schedule and would have resumed the loop.
+		if len(t.DependsOn) == 0 {
+			continue
+		}
 		if b.hasUnresolvedDepsLocked(t) {
 			continue
 		}
