@@ -809,6 +809,21 @@ func (b *Broker) createSkillRunTaskLocked(sk *teamSkill, channel, invoker, now s
 
 	taskTitle := skillRunTaskTitle(sk)
 
+	// The caller's channel is where the skill was invoked, which for a
+	// scheduled skill is the invoker's own #<bot>__human — a DM owned by the
+	// invoker. The task's owner is the office lead, i.e. a DIFFERENT bot, and a
+	// DM admits exactly its two participants: the lead can neither post there
+	// nor be promoted into it (ensureTaskOwnerChannelMembershipLocked returns
+	// early for exactly this case). Leaving the channel as-is produced
+	// task-skill-2923: 38 wakeups that each tried to report why they were
+	// aborting and got 403 from every channel it was allowed to name.
+	//
+	// preferredTaskChannelLocked is the one place that decides a task's home,
+	// and it already moves such a task to the invoker⇄owner pair DM, where
+	// both participants can write. Call it here too instead of trusting the
+	// invocation channel.
+	channel = b.preferredTaskChannelLocked(channel, invoker, owner, "", "")
+
 	header := fmt.Sprintf("Invoked by @%s on %s. Follow the steps below.\n\n", invoker, now)
 	details := header + strings.TrimSpace(sk.Content)
 

@@ -208,13 +208,12 @@
 - 无操作员取消端点；交给 CoS 关闭可能再触发循环，暂记录。
 - 若要清：让 CoS「取消 task-skill-1852/1857，无产出；1742 保留」并观察一轮。
 
-### 7f. 跨 DM 唤醒的回答投不出去（2026-11-01 巡检确认，待拍板）
+### 7f. 跨 DM 唤醒的回答投不出去（2026-11-01 巡检确认；2026-11-02 修了任务侧根因）
 - 现象：`wake-lead: re-delivering specialist completion from @forex-watch` 把 cos 唤到 `forex-watch__human` 里的任务上；cos 干完活要回帖时，`live-chat-relay-post` 与 `opencode_fallback-post` 双双 `channel access denied`（11:09:34、11:19:02 各一次），正文只留在 `headless-codex-cos.log`，人看不到。cos 自己也说了一句「@cos 在此 DM 频道无写入权限」。
 - 规则本身没错：DM 只认两名参与者（AUDIT-2026-10-31 §2.5 已记为既定规则），拒绝是预期；问题是**回答没有出口**，同时每次唤醒刷两条 error。
-- 要选一条：
-  - A. 唤醒改成落在负责人自己的 DM（`cos__human`），正文里带任务指针——最小改动，回答一定写得进；
-  - B. 内部 actor 允许以「转述」身份写入被唤起的 DM（消息带 `from=cos, relayed`），要动访问控制；
-  - C. 回答作为任务评论/线程写回任务所在频道（需要评论模型，不只是消息）。
+- **已修（2026-11-02）：任务不该产生在别人的 DM 里。** `createSkillRunTaskLocked` 直接沿用调用方的频道，而 skill 多半从调用者自己的 `#<bot>__human` 触发，任务 owner 却是 office lead——另一个 bot。DM 只认两名参与者，所以 owner 既写不进去，也不能被 `ensureTaskOwnerChannelMembershipLocked` 拉进去（它对 `botSide != owner` 直接 return）。现在创建时就走 `preferredTaskChannelLocked`，它会 `reHomeTaskOutOfHumanDMLocked` 把任务搬到调用者⇄owner 的 pair DM，两人都能写。回归 `TestSkillRunTaskReHomedOutOfInvokerDM`（去掉 fix 必红）/ `TestSkillRunTaskKeepsWritableChannel`（可写频道不被搬动）。
+- 实证：`task-skill-2923` 卡了 38 轮——`channel=data-keeper__human`、`owner=cos`，每轮都正确因缺 `object_name`/`meeting_date` 中止，每轮都无法在任何它能命名的频道里报告，结论只落在自己的 notebook。已 `blocked` 止损。
+- **仍未修**：已存在的此类任务（含 `wake-lead` 把 cos 唤进别人 DM 的老任务）。上面 A/B/C 三选一仍然待拍板——修的是「新生」，不是「存量」。
 - 顺带：失败重投不降噪（审计建议 N 次后停），本轮未动。
 - 同类已修（2026-11-01）：app 提案审批后建 App Builder 任务也把空频道默认成 `#general`（`broker_apps_proposal.go`）。现在按「提案所在房间 → 建者（app-builder）的主场 → 记日志放弃」解析；提案房间在审批前退役（`#general` 退役、成员删除带走 DM）时不再把任务和错误消息塞进死房间。新增 `TestProposeAppApprovalSurvivesARetiredRoom`。
 
