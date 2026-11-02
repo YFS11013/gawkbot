@@ -237,6 +237,19 @@ digest ──► render_artifacts()（脚本，0 LLM）
   - 单元测试 `TestRunTaskVerification_WikiArtifactFreshness`（旧文件 fail / 新文件 pass / 1 分钟偏差 pass）。
   - 线上冒烟 ACMER-2816：旧页面 `team/drills/core-loop-2026-11-01.md`（09:33 写、task 10:12 建）→ HTTP 409 + 上述文案；随即写入 `team/drills/freshness-smoke.md` 再 complete → 200、`pass=true`（108 字节）。
 
+### 8.9 停滞任务自动退出轮转（2026-11-02）
+
+- **现象**：`task-skill-2923`（meeting-prep）累计执行 **42 次，42 次 aborted**，输入逐字相同，全部卡在缺 `object_name`/`meeting_date`。cos 在第 25 轮的 notebook 里已经写了「需要的决策（人类，二选一）」，之后又烧了 17 轮——它写在自己的 notebook 里，而人不看 notebook。
+- **为什么之前没有闸门**：唤醒类 job（`task_follow_up` / `recheck`）每次触发都只做"再投递一次"，从不问"这件事已经试过几次了"。`task.Ledger` 本来能答，但它 `taskLedgerMaxEntries = 20` 封顶并轮转，第 42 轮看到的窗口和第 21 轮完全一样。
+- **判据不选"次数"，选"连续无产出"**：次数会误杀正常的长任务（一个持续产出改动的任务可以跑很多轮）。真正的信号是 `recordTaskLedgerEntry` 早就写下的那句 `ok (no durable trace: no message, no task mutation)`——它由 broker 可观测事实（Said/actions 皆空、无 error）拼出，不是模型自述。
+- **机制**：`teamTask.StalledTurns` 不封顶、不随 journal 轮转。每轮结束：`noDurableTraceOutcome` 则 +1，任何有产出的轮次归零；达到 `maxStalledTurns = 8` 时由 `recordTaskLedgerEntry` 调 `CancelTask`。
+  - **为什么是 8**：半小时一次的 follow-up 下等于两个工作日，小时级等于一天。门槛是「不会再有人补这个输入」，不是「bot 这轮发挥不好」。42 轮已经充分，8 已经宽松。
+  - **为什么用 canceled 而不是 blocked**：blocked 是可恢复态，`scheduleTaskLifecycleLocked` 会立刻给它排 `recheck`，等于换个名字继续跑（这正是 §7j 实测过的坑）。canceled 是终态，清空四个调度字段并把 scheduler job 置 `done`。
+  - 取消理由写进 `Details`，每个 packet 都会渲染，所以下一个读者不必翻 notebook 就知道为什么停。
+- **验证**：
+  - `TestEmptyTurnsAccumulateAndTripAfterThreshold`（1..7 不触发，第 8 次触发）、`TestProductiveTurnResetsTheStreak`（有产出归零，之后从 1 重新计）、`TestStallCounterSurvivesLedgerRotation`（跑 2× 上限，journal 轮转到 20 但计数保持 40）、`TestLauncherAutoCancelsAStalledTask`（走 launcher 真实路径，任务变 `canceled`、调度清空、原因可读）。
+  - 反向验证：把 escalation 短路后 `TestLauncherAutoCancelsAStalledTask` 变红，报 `status="in_progress" stalled=8`。
+
 ## 9. 与作者 core loop 的对齐度（2026-10-29 21:00 评估）
 
 依据：`docs/specs/core-loop.md` 九步循环、`ARCHITECTURE.md` 三条承重设计、`internal/bot/packs.go` 团队组合、`docs/specs/operator-agent-routines.md`。

@@ -388,6 +388,21 @@ type teamTask struct {
 	// how it ended. Rendered into every participant's packet as the living
 	// task brief. Bounded to taskLedgerMaxEntries.
 	Ledger []TaskLedgerEntry `json:"ledger,omitempty"`
+	// StalledTurns counts consecutive headless turns that left no durable
+	// trace (no message, no task mutation) — the exact pattern
+	// recordTaskLedgerEntry already detects and names. Any turn that DOES
+	// leave a trace resets it to zero.
+	//
+	// It exists because task-skill-2923 ran 42 times on byte-identical input,
+	// aborted on the same two missing fields every time, and said so only in
+	// its own notebook. Ledger cannot answer "how many in a row" — it is
+	// capped at taskLedgerMaxEntries (20) and rotated, so the 42nd run sees
+	// the same truncated window as the 21st. This counter is never truncated,
+	// so it can be compared against a threshold.
+	//
+	// Not a retry cap by itself: a task making real progress can turn forever.
+	// It only counts turns that changed nothing.
+	StalledTurns int `json:"stalled_turns,omitempty"`
 	// DonePostedFor is the CompletedAt timestamp the deterministic done-post
 	// (task_completion_hook.go postTaskDeliveredLocked) was emitted for.
 	// Exactly one task_delivered chat post + one Inbox notice per

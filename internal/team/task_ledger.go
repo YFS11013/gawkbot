@@ -17,6 +17,7 @@ package team
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 )
@@ -45,11 +46,32 @@ const (
 	taskLedgerSaidClip = 600
 )
 
+// noDurableTraceOutcome is what recordTaskLedgerEntry writes for a turn that
+// left nothing behind. Matching on this exact string is deliberate: it is
+// produced by broker-observable facts (empty Said, empty Actions, no error),
+// never self-reported, so it is the one honest "this turn accomplished
+// nothing" signal in the journal.
+const noDurableTraceOutcome = "ok (no durable trace: no message, no task mutation)"
+
+// maxStalledTurns is how many consecutive trace-free turns a task may have
+// before the broker takes it out of rotation.
+//
+// Eight is two working days' worth of half-hour follow-ups, or one day of
+// hourly ones. The bar is "nobody is going to supply what this task is waiting
+// for" -- not "the bot had a bad turn". task-skill-2923 spent 42 turns proving
+// the same point; eight is already generous.
+const maxStalledTurns = 8
+
 // AppendTaskLedgerEntry stamps a journal entry onto the task and persists.
-func (b *Broker) AppendTaskLedgerEntry(taskID string, entry TaskLedgerEntry) {
+//
+// Returns the task's new consecutive-stall count and whether this entry just
+// crossed maxStalledTurns. Callers that can take the task out of rotation
+// (recordTaskLedgerEntry) use the flag; callers that merely journal (eval
+// fixtures) ignore it.
+func (b *Broker) AppendTaskLedgerEntry(taskID string, entry TaskLedgerEntry) (stalledTurns int, crossedLimit bool) {
 	taskID = strings.TrimSpace(taskID)
 	if taskID == "" || strings.TrimSpace(entry.Bot) == "" {
-		return
+		return 0, false
 	}
 	if entry.At == "" {
 		entry.At = time.Now().UTC().Format(time.RFC3339)
@@ -58,7 +80,15 @@ func (b *Broker) AppendTaskLedgerEntry(taskID string, entry TaskLedgerEntry) {
 	defer b.mu.Unlock()
 	task := b.taskByIDLocked(taskID)
 	if task == nil {
-		return
+		return 0, false
+	}
+	// Progress resets the streak. A task that keeps producing messages or
+	// mutations may legitimately run for a long time; only "woke, changed
+	// nothing, again" accumulates.
+	if entry.Outcome == noDurableTraceOutcome {
+		task.StalledTurns++
+	} else {
+		task.StalledTurns = 0
 	}
 	task.Ledger = append(task.Ledger, entry)
 	if len(task.Ledger) > taskLedgerMaxEntries {
@@ -66,6 +96,10 @@ func (b *Broker) AppendTaskLedgerEntry(taskID string, entry TaskLedgerEntry) {
 	}
 	task.UpdatedAt = entry.At
 	_ = b.saveLocked()
+	// == not >= so a replayed entry cannot re-trigger the escalation after
+	// the task has already been canceled (canceling clears nothing here, but
+	// the caller must not act twice on one crossing).
+	return task.StalledTurns, task.StalledTurns == maxStalledTurns
 }
 
 // recordTaskLedgerEntry assembles the journal entry for a finished headless
@@ -116,9 +150,28 @@ func (l *Launcher) recordTaskLedgerEntry(slug string, turn headlessCodexTurn, st
 		// A turn that left no observable trace records only its outcome —
 		// still worth a line: "bot woke and produced nothing durable" is
 		// exactly the signal reviewers and the next turn need.
-		entry.Outcome = "ok (no durable trace: no message, no task mutation)"
+		entry.Outcome = noDurableTraceOutcome
 	}
-	l.broker.AppendTaskLedgerEntry(taskID, entry)
+	stalledTurns, crossedLimit := l.broker.AppendTaskLedgerEntry(taskID, entry)
+	if !crossedLimit {
+		return
+	}
+	// This turn was the Nth consecutive one that changed nothing. Take the
+	// task out of rotation instead of letting the schedule wake it again --
+	// the 42-turn lesson, applied before it can repeat.
+	//
+	// Canceled, not blocked: blocked is recoverable and re-arms a recheck, so
+	// it would resume the loop. The reason lands in Details, which every
+	// packet renders, so the next reader sees why without opening a notebook.
+	reason := fmt.Sprintf("Auto-canceled after %d consecutive turns with no durable trace "+
+		"(no message, no task mutation). The follow-up schedule was waking the owner "+
+		"with the same input and getting nothing back. If more input is needed, "+
+		"supply it and reopen.", stalledTurns)
+	if _, _, err := l.broker.CancelTask(taskID, "watchdog", reason); err != nil {
+		// Never fail the turn on bookkeeping: the ledger entry is already
+		// written, so the next run sees the counter and tries again.
+		log.Printf("broker: auto-cancel stalled task %q: %v", taskID, err)
+	}
 }
 
 // ActionsSince returns action-log records stamped at or after the RFC3339
