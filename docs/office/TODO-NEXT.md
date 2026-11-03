@@ -201,6 +201,10 @@
   - **行为变化（有意）**：turn 里被工具拉起的后台进程不再活过这一轮——过去它们持着 stdout 管道、sqlite 和调度队列，正是 8.5h 挂死与 `database is locked` 的来源。需要长期存活的东西必须起成 broker 管理的服务，不能是 turn 的子进程。
   - 已知窗口：`CreateProcess` 到 `AssignProcessToJobObject` 之间新生的进程不在 job 里，只能靠 `taskkill /T` 在父链还在时抓到；彻底消掉需要 `CREATE_SUSPENDED` + `ResumeThread`，而 os/exec 不暴露线程句柄，未做。
   - 失败静默：job 建不出来（受限于容器/父 job）时退回纯 `taskkill`，turn 截止语义不变。
+  - **已部署（2026-11-03 11:04 北京）**：`ce7221d` 构建后换二进制，broker 以 watchdog 同参数（`--broker-port 7892 --provider opencode --no-open` + 两条 `-RedirectStandard*`）重启；`/health` ok、`scheduler: loop started`、`DRIFT: none`。
+  - 线上验证（两次真 turn，`headless-codex-latency.log`）：`ACMER-3290` ok 14.8s、`ACMER-3295` ok 10.5s，两者都是 `created_by=system` 的部署冒烟（`hollow_completion=true`，数空壳完成时忽略）。`Get-CimInstance` 按创建时间比对：**11:04 之后没有任何 bun/node/opencode 进程留下**。
+  - **部署顺序的坑（本轮踩到）**：先 build 后 commit，drift 的「二进制落后于代码」立刻红（它只比二进制 mtime 与之后的非测试 Go 提交）。正确顺序是 commit → build → 部署；已经先 build 的，重建一次即可（两次构建的 sha256 不同，因为 `-buildvcs` 把 revision/working-tree 状态打进了二进制）。
+  - 现存历史遗留：10-28 至 11-03 10:21 的 bun/node 孤儿仍在（老版本 turn 的遗留），本 fix 只对未来生效；清不清由人决定，watchdog 重启时会顺带清 `opencode.exe`。
 
 ### 7d. 唤醒掉线的代码级根因（2026-10-30 修复）
 - `enqueueHeadlessCodexTurnRecord` 的同任务丢弃分支在 `headless.mu` 持有状态下 `return`（该函数无 defer，其余分支都显式 Unlock）。丢一次重复 lead 唤醒 → 锁永久泄漏 → 后续每次入队/`stopHeadlessWorkers` 阻塞，表现为「进程在、调度在、消息不进 turn」。
@@ -240,7 +244,7 @@
 - 结构原因：artifact 门禁只对**有 Definition** 的任务生效（`broker_tasks_mutation_service.go` 的 artifact gate），人工/对话框建的 Issue 全是 `Definition=nil`；`wiki_artifact` 强制校验只挂在 agent_routine 生成的任务上。
 - **已做（②，`broker_types.go` + `broker_tasks_mutation_service.go`）**：任务转到 done 且 `artifact` 为空时，打 `hollow_completion=true` 上线（`teamTask.HollowCompletion`，wire 键 `hollow_completion`）。不改完成语义，只让这类完成可被计数。测试 `TestCompleteWithoutArtifactIsMarkedHollow`（空完成=true、带 artifact=false、字段上线）。
 - 巡检口径：`curl /tasks?all_channels=true&include_done=true` 里 `status=done && (hollow_completion || artifact 为空)` 的条数。历史任务没有该字段，等价于 `artifact` 为空——2026-11-01 实测 52 个 done 里 47 个如此。
-- 部署冒烟样例：`ACMER-2789`（`smoke: hollow_completion 验证`）是上线验证用的，不是第五次事故，数数时忽略它。二进制 16:30 构建、16:36 起由看门狗拉起（PID 39216，`provider_model=opencode-go/beam-free`）。
+- 部署冒烟样例：`ACMER-2789`（`smoke: hollow_completion 验证`）是上线验证用的，不是第五次事故，数数时忽略它。二进制 16:30 构建、16:36 起由看门狗拉起（PID 39216，`provider_model=opencode-go/beam-free`）。**同类的部署冒烟还有 `ACMER-3290` / `ACMER-3295`**（2026-11-03 Job Object 上线验证，`created_by=system`），数空壳完成时一并忽略。
 - **待拍板**：① 疑问句不进 Issue（UI 入口分流或 `task_type=question`）；③ 同题窗口期内复述+引用旧任务而不是新建。两条都改用户可见流程，未动。
 
 ### 7h. 有 shell 的 bot 可以直接写 wiki 文件，绕过所有写入门禁（2026-11-01 发现）
