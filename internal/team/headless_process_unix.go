@@ -18,6 +18,13 @@ func configureHeadlessProcess(cmd *exec.Cmd) {
 	cmd.SysProcAttr.Setpgid = true
 }
 
+// startHeadlessProcess starts cmd as the leader of its own process group.
+// Windows adds a job object here; POSIX already has the group from
+// configureHeadlessProcess.
+func startHeadlessProcess(cmd *exec.Cmd) error {
+	return cmd.Start()
+}
+
 func terminateHeadlessProcess(cmd *exec.Cmd) {
 	if cmd == nil || cmd.Process == nil {
 		return

@@ -114,7 +114,7 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 
 	var stderr strings.Builder
 	cmd.Stderr = &stderr
-	if err := cmd.Start(); err != nil {
+	if err := startHeadlessProcess(cmd); err != nil {
 		return err
 	}
 	done := make(chan struct{})

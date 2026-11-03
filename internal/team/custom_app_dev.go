@@ -333,7 +333,7 @@ func (s *appDevServer) pipeAndWait(cmd *exec.Cmd, onChunk func([]byte)) error {
 	pr, pw := io.Pipe()
 	cmd.Stdout = pw
 	cmd.Stderr = pw
-	if err := cmd.Start(); err != nil {
+	if err := startHeadlessProcess(cmd); err != nil {
 		_ = pw.Close()
 		return err
 	}

@@ -240,7 +240,10 @@ func runAppBuildStep(ctx context.Context, srcDir string, args ...string) ([]byte
 	var buf cappedBuffer
 	cmd.Stdout = &buf
 	cmd.Stderr = &buf
-	err := cmd.Run()
+	err := startHeadlessProcess(cmd)
+	if err == nil {
+		err = cmd.Wait()
+	}
 	// On timeout, kill the whole process group (CommandContext only signals the
 	// immediate child); bun spawns workers that would otherwise linger.
 	if ctx.Err() != nil {

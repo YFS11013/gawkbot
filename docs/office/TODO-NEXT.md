@@ -11,7 +11,7 @@
 |---|---|---|---|
 | B | P2 #5 digest 的 `actual` 实际值来源 | **人拍板来源** | 一手（央行/统计局）/ FF 发布后页面 / 新闻标题，成本与准确性成反比 |
 | D | ~~P3 #7c Windows 包级测试红~~ | ✅ 2026-11-02 拍板「Windows 一等公民」；判据扩到全仓，`go test ./...` 45 包 0 红（§7c 收口）。多 workspace spawn 已在 Windows 实现（`spawn_common.go` + `spawn_windows.go`，DETACHED_PROCESS 起子进程），见 §7c 收口条目 | — |
-| E | P3 #7e 后续：Windows 用 Job Object 收口 | 无，纯工程 | 现在只能杀进程树，工具自派生的进程仍可能逃逸 |
+| E | ~~P3 #7e 后续：Windows 用 Job Object 收口~~ ✅ 2026-11-03 | — | 见 §7e「同类隐患已收口」：`startHeadlessProcess` 把每个 headless 子进程塞进 `KILL_ON_JOB_CLOSE` 的 job，`terminateHeadlessProcessPID` 先 `taskkill /T` 再 `TerminateJobObject` |
 | F | P3 #8 清理：空仓库 `YFS11013/gawkbot-office`、3 个 exe 备份 | 前者需 `gh auth refresh -s delete_repo` | 备份 ~88 MB/个，删前确认不需要回滚点 |
 | G | P0 #1 forex-watch 16:30 自动简报 | **等时间** | `next_run=2026-11-02T08:30:00Z`（周一 16:30 北京），现在无法验 |
 | I | P3 7g 空壳完成链的 ① 入口分流 / ③ 同题合并 | **人拍板** | ② 已做（done 且无 artifact → `hollow_completion=true`）；①③ 改用户可见流程 |
@@ -194,7 +194,13 @@
 - 根因：`opencode` 解析到 npm shim `opencode.cmd`，`TerminateProcess` 只杀 shim，真正的 Bun 子进程继续持有 stdout 管道，worker 的 `cmd.Wait` 一直等它，直到它自己写失败退出。
 - 修法：Windows 侧改 `taskkill /F /T /PID`（杀进程树）+ opencode/codex/claude 三个 runner 设 `cmd.WaitDelay=30s`（孤儿持管道也不能把 Wait 拖过 turn 截止）。
 - 回归测试 `TestTerminateHeadlessProcessPIDKillsGrandchild`：旧实现必红（实测 16s 后报 grandchild 存活），新实现 2.3s 通过。
-- 同类隐患：`configureHeadlessProcess` 在 Windows 仍是空操作（没有 Job Object），工具自身再派生的进程仍可能逃逸；后续可考虑 Job Object + `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`。
+- ✅ **同类隐患已收口（2026-11-03）**：`configureHeadlessProcess` 在 Windows 仍是空操作，边界改由 **Job Object** 提供——`startHeadlessProcess` 在 `cmd.Start()` 之后立刻把子进程塞进一个 `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` 的 job（`headless_process_windows.go`），进程句柄退出即关 job、连带清掉它派生的一切。
+  - `terminateHeadlessProcessPID` 现在两段杀：先 `taskkill /T`（覆盖 Start→Assign 之间那几微秒里新建、还没进 job 的进程），再 `TerminateJobObject`（覆盖树走不到的形状：中间父进程已退出的后代、pid 已无法解析的孙进程）。job 句柄按 pid 查，不重新遍历树，所以 pid 复用不会指错对象。
+  - 全部 headless 起进程点改走 `startHeadlessProcess`：claude / cli-agent / codex / opencode / session runner / `custom_app_dev.pipeAndWait` / `runAppBuildStep`（`cmd.Run()` 拆成 Start+Wait）。
+  - 回归测试 `TestHeadlessJobKillsLeftoversWhenTheToolExits`：shim 自己正常退出（不是被杀），它派生的 powershell 必须随之消失。反向验证：把 attach 短路掉，18.6s 后报 `leftover … outlived the tool that started it`；恢复后 2.5s 通过。
+  - **行为变化（有意）**：turn 里被工具拉起的后台进程不再活过这一轮——过去它们持着 stdout 管道、sqlite 和调度队列，正是 8.5h 挂死与 `database is locked` 的来源。需要长期存活的东西必须起成 broker 管理的服务，不能是 turn 的子进程。
+  - 已知窗口：`CreateProcess` 到 `AssignProcessToJobObject` 之间新生的进程不在 job 里，只能靠 `taskkill /T` 在父链还在时抓到；彻底消掉需要 `CREATE_SUSPENDED` + `ResumeThread`，而 os/exec 不暴露线程句柄，未做。
+  - 失败静默：job 建不出来（受限于容器/父 job）时退回纯 `taskkill`，turn 截止语义不变。
 
 ### 7d. 唤醒掉线的代码级根因（2026-10-30 修复）
 - `enqueueHeadlessCodexTurnRecord` 的同任务丢弃分支在 `headless.mu` 持有状态下 `return`（该函数无 defer，其余分支都显式 Unlock）。丢一次重复 lead 唤醒 → 锁永久泄漏 → 后续每次入队/`stopHeadlessWorkers` 阻塞，表现为「进程在、调度在、消息不进 turn」。

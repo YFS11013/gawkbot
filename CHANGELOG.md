@@ -137,6 +137,20 @@ All notable changes to WUPHF will be documented in this file.
 
 ### Fixed
 
+- **Windows turns now own their process tree through a kernel job object, so a
+  tool that exits cannot leave node/bun behind.** `terminateHeadlessProcessPID`
+  killed with `taskkill /F /T`, which walks parent→child links as they are at
+  kill time — a descendant whose intermediate parent already exited (the normal
+  shape of the `opencode.cmd` → node/bun shim) was in nobody's tree, and a turn
+  that ended normally killed nothing at all. Every headless spawn now goes
+  through `startHeadlessProcess`, which puts the child in a
+  `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` job: terminating the job reaches
+  reparented descendants, and closing it when the tool exits reaps whatever the
+  tool started. `taskkill` still runs first, for a process created in the
+  microseconds between `Start` and the job assignment. If the job cannot be
+  created (a restrictive parent job) the turn keeps its old kill semantics.
+  Regression: `TestHeadlessJobKillsLeftoversWhenTheToolExits` fails in 18s
+  without the attach and passes in 2.5s with it.
 - **Task/Issue ids are now personal to each workspace instead of always reading
   `OFFICE-N`.** The Linear-style prefix is minted from the workspace's company
   name, but that field is optional and stays blank unless the human picks a

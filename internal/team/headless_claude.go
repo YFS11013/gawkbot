@@ -158,7 +158,7 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 
 	var stderr strings.Builder
 	cmd.Stderr = &stderr
-	if err := cmd.Start(); err != nil {
+	if err := startHeadlessProcess(cmd); err != nil {
 		_ = pw.Close()
 		return err
 	}

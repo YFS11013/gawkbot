@@ -112,7 +112,7 @@ func (l *Launcher) runHeadlessCLIAgentTurn(ctx context.Context, slug string, not
 	target := firstNonEmpty(channel...)
 	turnID := newHeadlessTurnID()
 
-	if err := cmd.Start(); err != nil {
+	if err := startHeadlessProcess(cmd); err != nil {
 		return fmt.Errorf("start %s: %w", spec.Name, err)
 	}
 	done := make(chan struct{})

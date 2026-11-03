@@ -39,7 +39,7 @@ func TestTerminateHeadlessProcessPIDKillsGrandchild(t *testing.T) {
 	}
 
 	cmd := exec.Command("cmd", "/c", script)
-	if err := cmd.Start(); err != nil {
+	if err := startHeadlessProcess(cmd); err != nil {
 		t.Fatalf("start shim: %v", err)
 	}
 	defer func() {
@@ -75,4 +75,53 @@ func TestTerminateHeadlessProcessPIDKillsGrandchild(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	}
 	t.Fatalf("grandchild %s survived terminateHeadlessProcess: the shim was killed but the tree was not", grandchild)
+}
+
+// A turn ends when its tool exits, and nothing the tool started may outlive it.
+// That is not what taskkill buys: it only runs when someone calls it, and a
+// shim that exits on its own leaves node/bun holding the turn's stdout pipe,
+// its sqlite database, and a CPU. The job object owns that boundary, so the
+// leftovers are gone the moment the tool that started them exits.
+func TestHeadlessJobKillsLeftoversWhenTheToolExits(t *testing.T) {
+	dir := t.TempDir()
+	pidFile := filepath.Join(dir, "leftover.pid")
+	script := filepath.Join(dir, "spawn-and-exit.cmd")
+	content := "@echo off\r\n" +
+		"start \"\" /b powershell -NoProfile -Command \"$PID | Set-Content -Encoding ascii '" + pidFile + "'; Start-Sleep -Seconds 120\"\r\n" +
+		"for /l %%i in (1,1,200) do (\r\n" +
+		"  if exist \"" + pidFile + "\" goto out\r\n" +
+		"  ping -n 2 127.0.0.1 >nul\r\n" +
+		")\r\n" +
+		":out\r\n" +
+		"exit /b 0\r\n"
+	if err := os.WriteFile(script, []byte(content), 0o600); err != nil {
+		t.Fatalf("write shim: %v", err)
+	}
+
+	cmd := exec.Command("cmd", "/c", script)
+	if err := startHeadlessProcess(cmd); err != nil {
+		t.Fatalf("start shim: %v", err)
+	}
+	// The shim exits by itself: the ordinary end of a turn, no kill involved.
+	if err := cmd.Wait(); err != nil {
+		t.Fatalf("wait for shim: %v", err)
+	}
+
+	raw, err := os.ReadFile(pidFile)
+	if err != nil {
+		t.Fatalf("shim never recorded the leftover pid: %v", err)
+	}
+	leftover := strings.TrimSpace(string(raw))
+	if leftover == "" {
+		t.Fatalf("leftover pid file is empty")
+	}
+
+	deadline := time.Now().Add(15 * time.Second)
+	for time.Now().Before(deadline) {
+		if !processAlive(t, leftover) {
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	t.Fatalf("leftover %s outlived the tool that started it: the turn owned no boundary it could not leave", leftover)
 }

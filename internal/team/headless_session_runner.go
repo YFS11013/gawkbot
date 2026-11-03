@@ -651,7 +651,7 @@ func (l *Launcher) execSessionCommand(ctx context.Context, spec sessionTurnComma
 		return nil
 	}
 	cmd.WaitDelay = sessionWaitDelay
-	if err := cmd.Start(); err != nil {
+	if err := startHeadlessProcess(cmd); err != nil {
 		_ = pw.Close()
 		return sessionTurnOutcome{Err: fmt.Errorf("start %s: %w", spec.Name, err)}
 	}
