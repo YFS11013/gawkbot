@@ -2,6 +2,8 @@ package team
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"sync/atomic"
@@ -51,7 +53,7 @@ func newScannerCacheWiki(t *testing.T, articles map[string]string) (*Broker, str
 	return b, root
 }
 
-func runScanPass(t *testing.T, b *Broker, p *countingProvider) {
+func runScanPass(t *testing.T, b *Broker, p llmProvider) {
 	t.Helper()
 	scanner := NewSkillScanner(b, p, 100)
 	b.SetSkillScanner(scanner)
@@ -135,5 +137,54 @@ func TestSkillScanner_VerdictCacheRejectsWrongVersion(t *testing.T) {
 	s.loadSkillScanCache(path)
 	if len(s.mtimeCache) != 0 {
 		t.Fatalf("wrong-version cache must be ignored, got %d entries", len(s.mtimeCache))
+	}
+}
+
+// failingProvider stands in for a provider whose response cannot be read, e.g.
+// the `--format json` event stream that used to defeat the verdict decoder, or
+// a call that timed out.
+type failingProvider struct {
+	calls atomic.Int64
+}
+
+func (p *failingProvider) AskIsSkill(_ context.Context, _, _, _ string) (bool, SkillFrontmatter, string, string, error) {
+	p.calls.Add(1)
+	return false, SkillFrontmatter{}, "", "", errors.New("skill_scanner: parse llm json: invalid character '{' after top-level value")
+}
+
+// A failed judgement must not be stored as a "not a skill" verdict. Caching it
+// would freeze the article's classification until its content changed, which is
+// exactly what happened on 2026-11-06 when every response was an event stream.
+func TestSkillScanner_UnreadableVerdictIsNotCached(t *testing.T) {
+	t.Setenv("WUPHF_SKILL_COMPILE_COOLDOWN", "0s")
+	b, root := newScannerCacheWiki(t, map[string]string{
+		"team/alpha.md": "alpha procedure",
+	})
+
+	first := &failingProvider{}
+	runScanPass(t, b, first)
+	if got := first.calls.Load(); got != 1 {
+		t.Fatalf("first pass: want 1 attempt, got %d", got)
+	}
+
+	cachePath := filepath.Join(root, ".git", "skills-scan-cache.json")
+	data, err := os.ReadFile(cachePath)
+	if err != nil {
+		t.Fatalf("read cache: %v", err)
+	}
+	var cache struct {
+		Entries map[string]string `json:"entries"`
+	}
+	if err := json.Unmarshal(data, &cache); err != nil {
+		t.Fatalf("decode cache: %v", err)
+	}
+	if _, ok := cache.Entries["team/alpha.md"]; ok {
+		t.Fatalf("failed verdict must not be cached, got %v", cache.Entries)
+	}
+
+	second := &failingProvider{}
+	runScanPass(t, b, second)
+	if got := second.calls.Load(); got != 1 {
+		t.Fatalf("second pass: want the article retried (1 attempt), got %d", got)
 	}
 }

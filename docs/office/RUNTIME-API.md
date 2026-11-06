@@ -650,3 +650,35 @@ pwsh -File scripts/office/check-office-drift.ps1                  # DRIFT: none
 
 - 任何**新**的长期故障如果文本里带单调数字，仍会绕过规范化（正则只覆盖已知形状）。新增检查项时，先问「这行文字下个小时会不会不一样」。
 - `alerts.md` 已从 301 条合并为 1 条 + 说明（原文留在 `~/.wuphf/backups/alerts.md.pre-cleanup-20261106`）。合并是一次性清理，不是自动轮转 —— 没有上限，只是不再每 15 分钟增长。
+
+### 14.5 判定结果解码（2026-11-06，同日第二个修复）
+
+14.3 的验证通过之后，日志里仍然每篇一次 `parse llm json: invalid character '{' after top-level value`。查下去不是模型坏，是**读错了管子**：
+
+```
+opencode run --format json   # internal/provider/opencode.go:236 固定加这个 flag
+  → {"type":"step_start",...}
+  → {"type":"tool_use",...}          # 模型把「这是不是可复用技能」当成 agent 任务，去 glob/bash 翻仓库
+  → {"type":"text","part":{"type":"text","text":"{\"is_skill\": false}"}}
+  → {"type":"step_finish",...}
+```
+
+`runOpencodeCommand` 把这些行拼成一个字符串，`json.Unmarshal` 说「顶层值之后还有 `{`」。**自 `--format json` 引入起，一次判定都没解析成功过**：每个 pass 付 50 次调用，50 个结论全丢。
+
+真正的危害在缓存上线之后：解析失败返回 `(false, nil)`，与「模型说不是」不可区分，于是 79 篇文章的 `is_skill:false` 被当作结论写进缓存。文章不改内容就永远不会重判——编译功能看似健康，实际已死。
+
+修法（`internal/team/skill_scanner.go`）：
+
+1. `parseSkillJSONFull` 三级解码：整串直接解 → `skillAnswerFromEventStream`（逐行解事件、拼 `part.text`）→ `skillVerdictCandidates`（括号配平扫出所有候选，取**最后一个**且**顶层真有 `is_skill` 键**的）。
+2. `unmarshalSkillVerdict` 先解成 key map 再解结构体：缺 `is_skill` 键就报错。否则一个「内部引用了判定 JSON」的外层事件会被解成全零值，读成 `is_skill:false`，比解析失败更危险。
+3. **没有结论就不许缓存**：解析失败与调用超时都返回 error，`Scan` 因此删掉该路径的缓存条目，下一个 pass 重试。WARN 里带 `response_head`（200 字符），provider 再换形状时一眼能认出来。
+
+验证：
+
+```
+go test ./internal/team -run 'TestParseSkillJSON|TestLastSkillVerdictObject|TestSkillScanner'
+# 真实 CLI 输出（含 tool_use 步骤）喂给解码器 → is_skill=false，无 error
+# 只有 tool_use 没有 text 的那一类输出 → 报错，且缓存里没有该文章
+```
+
+剩下的坑（本次未修，属成本问题不属正确性）：`--pure` 只关插件，**不关工具**。判定请求跑在仓库 cwd 里，模型会自己 glob/bash 翻代码，单次从 7.7s/13k token 涨到 33s/25k，偶尔整轮没有任何 text 输出。opencode 没有 `--no-tools`；只能用自定义 agent（`agent.<name>.tools` 全 false + `--agent`），实测 0 次 tool_use、7.7s。要接的话得让运行时那边的 opencode 配置带上这个 agent，属于另一件事。

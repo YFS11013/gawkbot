@@ -141,7 +141,12 @@ type SkillScanner struct {
 
 // skillScanCacheVersion guards the on-disk verdict cache format. Bump it when
 // the cached value's meaning changes, not when the file layout does.
-const skillScanCacheVersion = 1
+//
+// v2: v1 entries were produced by a decoder that could not read the provider's
+// `--format json` event stream, so every one of them records "not a skill" for
+// a response that actually said something else (or said nothing). They must be
+// discarded, not trusted.
+const skillScanCacheVersion = 2
 
 // skillScanCacheFile is the persisted form of SkillScanner.mtimeCache.
 //
@@ -815,8 +820,13 @@ func (p *defaultLLMProvider) AskIsSkill(ctx context.Context, articlePath, articl
 	out, callErr := provider.RunConfiguredOneShotCtx(callCtx, sysPrompt, userPrompt, "")
 	if callErr != nil {
 		if callCtx.Err() != nil {
+			// No answer arrived. Returning (false, nil) here would be
+			// indistinguishable from "the model said no", and Scan would cache
+			// that non-answer as a verdict — the article would then never be
+			// re-judged until someone edits it. Return an error so the cache
+			// entry is dropped and the next pass retries.
 			slog.Warn("skill_scanner: LLM call timed out", "path", articlePath, "timeout", timeout)
-			return false, SkillFrontmatter{}, "", "", nil
+			return false, SkillFrontmatter{}, "", "", fmt.Errorf("skill_scanner: llm timeout after %s: %w", timeout, callErr)
 		}
 		// Only wrap with ErrLLMNotConfigured when the underlying error is a
 		// concrete unauthenticated/unconfigured signal (matched by the same
@@ -836,13 +846,18 @@ func (p *defaultLLMProvider) AskIsSkill(ctx context.Context, articlePath, articl
 	}
 	if callCtx.Err() != nil {
 		slog.Warn("skill_scanner: LLM call timed out", "path", articlePath, "timeout", timeout)
-		return false, SkillFrontmatter{}, "", "", nil
+		return false, SkillFrontmatter{}, "", "", fmt.Errorf("skill_scanner: llm timeout after %s", timeout)
 	}
 	result := parseSkillJSONFull(out)
 	if result.Err != nil {
-		slog.Warn("skill_scanner: LLM JSON parse failed, treating as not-a-skill",
-			"path", articlePath, "err", result.Err)
-		return false, SkillFrontmatter{}, "", "", nil
+		// Same reasoning as the timeout branch: we have no verdict, so we must
+		// not let Scan record one. The response head is logged because the
+		// shape of a malformed answer is the only clue to what the provider
+		// changed; a 200-char prefix is enough to tell an event stream from
+		// prose and costs nothing.
+		slog.Warn("skill_scanner: LLM response was not a readable verdict; article will be retried",
+			"path", articlePath, "err", result.Err, "response_head", clipPromptText(out, 200))
+		return false, SkillFrontmatter{}, "", "", result.Err
 	}
 	// Depth/bloat gate (compiler quality layer): new LLM-classified skills
 	// must carry real, compact procedure. Enhance responses are bounded
@@ -893,6 +908,16 @@ func parseSkillJSON(raw string) (bool, SkillFrontmatter, string, error) {
 // parseSkillJSONFull is the enhanced parser that also extracts the "enhance"
 // field. The legacy parseSkillJSON wrapper above preserves the existing
 // call-site contract; new callers use parseSkillJSONFull directly.
+//
+// The provider does NOT hand us the model's answer verbatim: `opencode run
+// --format json` (internal/provider/opencode.go buildOpencodeArgs) streams one
+// JSON event per line — step_start, text, step_finish. Concatenating those
+// lines yields `{...}\n{...}\n{...}`, which json.Unmarshal rejects with
+// "invalid character '{' after top-level value". Treating that as "the model
+// said no" silently disabled skill compilation: on 2026-11-06 every pass paid
+// for 50 calls and discarded all 50 verdicts, and the verdict cache then
+// persisted "not a skill" for every article, so the answer could never be
+// corrected without a content edit. Hence the two fallbacks below.
 func parseSkillJSONFull(raw string) skillJSONParseResult {
 	trimmed := strings.TrimSpace(raw)
 	// Tolerate ```json fences if a model adds them despite the prompt.
@@ -901,6 +926,29 @@ func parseSkillJSONFull(raw string) skillJSONParseResult {
 	trimmed = strings.TrimSuffix(trimmed, "```")
 	trimmed = strings.TrimSpace(trimmed)
 
+	res, err := unmarshalSkillVerdict(trimmed)
+	if err == nil {
+		return res
+	}
+	// Fallback 1: the caller gave us an event stream, not an answer. Pull the
+	// assistant's text parts out of the events and decode that.
+	if answer := skillAnswerFromEventStream(raw); answer != "" {
+		if res, innerErr := unmarshalSkillVerdict(answer); innerErr == nil {
+			return res
+		}
+	}
+	// Fallback 2: prose around the JSON, or two answers back to back. Take the
+	// last balanced object that carries an is_skill key.
+	if answer := lastSkillVerdictObject(raw); answer != "" {
+		if res, innerErr := unmarshalSkillVerdict(answer); innerErr == nil {
+			return res
+		}
+	}
+	return skillJSONParseResult{Err: fmt.Errorf("skill_scanner: parse llm json: %w", err)}
+}
+
+// unmarshalSkillVerdict decodes exactly one verdict object.
+func unmarshalSkillVerdict(trimmed string) (skillJSONParseResult, error) {
 	var parsed struct {
 		IsSkill     bool   `json:"is_skill"`
 		Enhance     string `json:"enhance,omitempty"`
@@ -908,17 +956,28 @@ func parseSkillJSONFull(raw string) skillJSONParseResult {
 		Description string `json:"description"`
 		Body        string `json:"body"`
 	}
+	// Decode into a key map first: a JSON object that merely *contains* a
+	// quoted verdict (an event wrapper, a tool envelope) unmarshals into the
+	// struct above without error, and every zero value then reads as
+	// "is_skill": false. Absence of the key is not a verdict.
+	var keys map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(trimmed), &keys); err != nil {
+		return skillJSONParseResult{}, err
+	}
+	if _, ok := keys["is_skill"]; !ok {
+		return skillJSONParseResult{}, errors.New("skill_scanner: llm json has no is_skill key")
+	}
 	if err := json.Unmarshal([]byte(trimmed), &parsed); err != nil {
-		return skillJSONParseResult{Err: fmt.Errorf("skill_scanner: parse llm json: %w", err)}
+		return skillJSONParseResult{}, err
 	}
 	if !parsed.IsSkill {
-		return skillJSONParseResult{}
+		return skillJSONParseResult{}, nil
 	}
 	if strings.TrimSpace(parsed.Name) == "" {
-		return skillJSONParseResult{Err: errors.New("skill_scanner: llm returned is_skill=true but no name")}
+		return skillJSONParseResult{}, errors.New("skill_scanner: llm returned is_skill=true but no name")
 	}
 	if strings.TrimSpace(parsed.Description) == "" {
-		return skillJSONParseResult{Err: errors.New("skill_scanner: llm returned is_skill=true but no description")}
+		return skillJSONParseResult{}, errors.New("skill_scanner: llm returned is_skill=true but no description")
 	}
 	fm := SkillFrontmatter{
 		Name:        skillSlug(parsed.Name),
@@ -931,7 +990,113 @@ func parseSkillJSONFull(raw string) skillJSONParseResult {
 		Enhance: strings.TrimSpace(parsed.Enhance),
 		FM:      fm,
 		Body:    parsed.Body,
+	}, nil
+}
+
+// skillAnswerFromEventStream reconstructs the assistant's text from a
+// `--format json` event stream. Returns "" when the payload is not a stream.
+func skillAnswerFromEventStream(raw string) string {
+	var b strings.Builder
+	found := false
+	for _, line := range strings.Split(raw, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "{") {
+			continue
+		}
+		var ev struct {
+			Type string `json:"type"`
+			Text string `json:"text"`
+			Part struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"part"`
+		}
+		if err := json.Unmarshal([]byte(line), &ev); err != nil {
+			continue
+		}
+		text := ev.Part.Text
+		if ev.Part.Type != "" && ev.Part.Type != "text" {
+			text = ""
+		}
+		if text == "" && ev.Type == "text" {
+			text = ev.Text
+		}
+		if strings.TrimSpace(text) == "" {
+			continue
+		}
+		found = true
+		b.WriteString(text)
+		b.WriteByte('\n')
 	}
+	if !found {
+		return ""
+	}
+	return strings.TrimSpace(b.String())
+}
+
+// skillVerdictCandidates returns every balanced {...} span in s that mentions
+// "is_skill", in source order. Callers pick the last one that actually carries
+// an is_skill key: a wrapper object (an event whose text field happens to quote
+// a verdict) also matches the substring test, but not the key test.
+func skillVerdictCandidates(s string) []string {
+	var out []string
+	depth := 0
+	start := -1
+	inString := false
+	escaped := false
+	for i := range len(s) {
+		c := s[i]
+		if inString {
+			if escaped {
+				escaped = false
+				continue
+			}
+			switch c {
+			case '\\':
+				escaped = true
+			case '"':
+				inString = false
+			}
+			continue
+		}
+		switch c {
+		case '"':
+			inString = true
+		case '{':
+			if depth == 0 {
+				start = i
+			}
+			depth++
+		case '}':
+			if depth == 0 {
+				continue
+			}
+			depth--
+			if depth == 0 && start >= 0 {
+				if span := s[start : i+1]; strings.Contains(span, `"is_skill"`) {
+					out = append(out, span)
+				}
+				start = -1
+			}
+		}
+	}
+	return out
+}
+
+// lastSkillVerdictObject returns the last candidate span that decodes as a JSON
+// object carrying a top-level is_skill key. Empty when nothing qualifies.
+func lastSkillVerdictObject(s string) string {
+	candidates := skillVerdictCandidates(s)
+	for i := len(candidates) - 1; i >= 0; i-- {
+		var probe map[string]json.RawMessage
+		if err := json.Unmarshal([]byte(candidates[i]), &probe); err != nil {
+			continue
+		}
+		if _, ok := probe["is_skill"]; ok {
+			return candidates[i]
+		}
+	}
+	return ""
 }
 
 // skillJSONParseResult bundles all outputs from parseSkillJSONFull.
