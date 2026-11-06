@@ -720,6 +720,39 @@ func skillLLMTimeout() time.Duration {
 	return defaultSkillLLMTimeout
 }
 
+// skillJudgeHTTPConfig resolves the HTTP endpoint used for skill verdicts.
+//
+// Two ways to point it somewhere, both optional:
+//
+//	WUPHF_SKILL_JUDGE_PROVIDER=<kind>   reuse a registered provider's
+//	                                    endpoint/model/key resolution
+//	WUPHF_SKILL_JUDGE_BASE_URL          arbitrary OpenAI-compatible endpoint
+//	WUPHF_SKILL_JUDGE_MODEL             (required with the URL)
+//	WUPHF_SKILL_JUDGE_API_KEY           bearer key for the arbitrary endpoint
+//
+// Empty config means "no judge endpoint", and the caller uses the active
+// provider's one-shot path instead.
+func skillJudgeHTTPConfig() provider.OneShotHTTPConfig {
+	if kind := strings.TrimSpace(os.Getenv("WUPHF_SKILL_JUDGE_PROVIDER")); kind != "" {
+		if cfg := provider.OneShotHTTPConfigFor(kind); cfg.Valid() {
+			return cfg
+		}
+	}
+	baseURL := strings.TrimSpace(os.Getenv("WUPHF_SKILL_JUDGE_BASE_URL"))
+	if baseURL == "" {
+		baseURL = strings.TrimSpace(os.Getenv("WUPHF_SKILL_JUDGE_URL"))
+	}
+	model := strings.TrimSpace(os.Getenv("WUPHF_SKILL_JUDGE_MODEL"))
+	if baseURL == "" || model == "" {
+		return provider.OneShotHTTPConfig{}
+	}
+	return provider.OneShotHTTPConfig{
+		BaseURL: baseURL,
+		Model:   model,
+		APIKey:  strings.TrimSpace(os.Getenv("WUPHF_SKILL_JUDGE_API_KEY")),
+	}
+}
+
 // defaultLLMProvider classifies wiki articles using the configured LLM
 // provider (via provider.RunConfiguredOneShot). It implements two strategies
 // in order:
@@ -817,7 +850,18 @@ func (p *defaultLLMProvider) AskIsSkill(ctx context.Context, articlePath, articl
 	callCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	userPrompt := buildSkillUserPrompt(articlePath, articleContent, existingSkillsSummary)
-	out, callErr := provider.RunConfiguredOneShotCtx(callCtx, sysPrompt, userPrompt, "")
+	// Over HTTP when a judge endpoint is configured: this is a 20-token
+	// classification, and routing it through a CLI agent starts a coding agent
+	// with repo tools (measured: 8-33s and 11k-25k input tokens versus 0.6-0.8s
+	// and ~1.6k over HTTP, plus agent turns that answer with tool calls and no
+	// text). Falls back to the configured provider's one-shot when unset.
+	var out string
+	var callErr error
+	if judgeCfg := skillJudgeHTTPConfig(); judgeCfg.Valid() {
+		out, callErr = provider.RunOneShotHTTPCtx(callCtx, judgeCfg, sysPrompt, userPrompt)
+	} else {
+		out, callErr = provider.RunConfiguredOneShotCtx(callCtx, sysPrompt, userPrompt, "")
+	}
 	if callErr != nil {
 		if callCtx.Err() != nil {
 			// No answer arrived. Returning (false, nil) here would be

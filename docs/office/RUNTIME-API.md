@@ -682,3 +682,37 @@ go test ./internal/team -run 'TestParseSkillJSON|TestLastSkillVerdictObject|Test
 ```
 
 剩下的坑（本次未修，属成本问题不属正确性）：`--pure` 只关插件，**不关工具**。判定请求跑在仓库 cwd 里，模型会自己 glob/bash 翻代码，单次从 7.7s/13k token 涨到 33s/25k，偶尔整轮没有任何 text 输出。opencode 没有 `--no-tools`；只能用自定义 agent（`agent.<name>.tools` 全 false + `--agent`），实测 0 次 tool_use、7.7s。要接的话得让运行时那边的 opencode 配置带上这个 agent，属于另一件事。
+
+### 14.6 判定改走 HTTP（2026-11-06 夜）
+
+14.5 之后判定能读懂了，但每次仍在起一个 **agent**：`opencode run --pure` 只关插件，不关工具，模型拿到 repo cwd 就会 `glob`/`bash`/`read` 自己找线索。实测同一条判定提示：
+
+| 路径 | 延迟 | input tokens | 稳定性 |
+|---|---|---|---|
+| opencode CLI（工具开） | 8–33 s，最长一次 8 min | 11k–25k | 有时整轮只有 tool_use、没有 text → 无结论 |
+| opencode CLI（自定义 agent 关掉全部工具） | 7.7 s | 13k | 稳定 |
+| **DeepSeek `/chat/completions`** | **0.6–0.8 s** | **1.6k** | 稳定（temperature 0） |
+
+根因在 `provider.RunConfiguredOneShotCtx`：它按**活动 provider** 派发，而只有 claude/codex/opencode 实现了 one-shot。活动 provider 是 HTTP 类（ollama/mlx-lm/exo/hermes/openclaw-http）时，一次「问一句话」会**静默退回 opencode CLI**，也就是起一个带工具的编码 agent。
+
+改法（两层）：
+
+1. `internal/provider/oneshot_http.go`：`RunOneShotHTTPCtx` —— 纯 `/chat/completions` POST，无 tools、无 stream、temperature 0；base URL 与完整 endpoint 都接受（不会拼出 `/chat/completions/chat/completions`）。`OneShotHTTPConfigFor(kind)` 复用既有的 env > config > 默认解析链。
+2. `skill_scanner.go`：有判定端点就走 HTTP，没有才回落到 provider one-shot。配置：
+   - `WUPHF_SKILL_JUDGE_PROVIDER=<kind>`（复用该 kind 的 base_url/model/api_key），或
+   - `WUPHF_SKILL_JUDGE_BASE_URL` + `WUPHF_SKILL_JUDGE_MODEL` + `WUPHF_SKILL_JUDGE_API_KEY`。
+
+本机落在 `~/.wuphf/data/broker-watchdog.ps1`（`WUPHF_SKILL_JUDGE_BASE_URL=https://api.deepseek.com/v1`、`MODEL=deepseek-chat`、`KEY=$env:DEEPSEEK_API_KEY`），备份 `broker-watchdog.ps1.bak-judge`。
+
+验证（新二进制、broker PID 67412）：
+
+```
+POST /skills/compile {"dry_run":true,"scope_path":"team/people"}
+→ {"scanned":5,...,"duration_ms":3403}      # 5 篇 3.4s, 每篇 ~0.68s
+→ 同期无 opencode.exe 进程被拉起（最近 10 分钟 0 个）
+→ 缓存 version 2, 条目 3 + 5 = 8，无任何 skill_scanner 告警
+```
+
+同一批文章走 CLI 是 13–33 s/篇（合计 66–165 s），且修复前每次都留一条解析失败告警。成本侧：每篇约 1.6k input + 7 output，50 篇的 pass 约 0.01 美元量级；相比 13k–25k 的 agent 输入，降低约一个数量级。
+
+未做：`RunConfiguredOneShotCtx` 本身仍保留「HTTP provider → 回落 opencode」的行为（这次只给判定加了显式端点）。要彻底修，需要给 HTTP 类 provider 注册 `SupportsOneShot: true` + `OneShotCtx`，会改变所有 one-shot 调用方的行为，单独一批改。
