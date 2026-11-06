@@ -103,3 +103,27 @@ func TestRunOneShotHTTPCtx_Errors(t *testing.T) {
 		t.Fatalf("invalid config must error")
 	}
 }
+
+// The gateway's stored key carries a trailing CR (opencode's auth.json is
+// CRLF); an untrimmed bearer token is rejected with HTTP 400. The transport
+// must not forward surrounding whitespace — and Go's header writer would
+// refuse the request outright.
+func TestRunOneShotHTTPCtx_TrimsAPIKey(t *testing.T) {
+	var gotAuth string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"ok"}}]}`))
+	}))
+	defer srv.Close()
+
+	if _, err := RunOneShotHTTPCtx(context.Background(), OneShotHTTPConfig{
+		BaseURL: srv.URL,
+		Model:   "m",
+		APIKey:  "sk-abc\r\n ",
+	}, "", "hi"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if gotAuth != "Bearer sk-abc" {
+		t.Fatalf("auth header not trimmed: %q", gotAuth)
+	}
+}

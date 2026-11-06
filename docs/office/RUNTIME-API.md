@@ -716,3 +716,32 @@ POST /skills/compile {"dry_run":true,"scope_path":"team/people"}
 同一批文章走 CLI 是 13–33 s/篇（合计 66–165 s），且修复前每次都留一条解析失败告警。成本侧：每篇约 1.6k input + 7 output，50 篇的 pass 约 0.01 美元量级；相比 13k–25k 的 agent 输入，降低约一个数量级。
 
 未做：`RunConfiguredOneShotCtx` 本身仍保留「HTTP provider → 回落 opencode」的行为（这次只给判定加了显式端点）。要彻底修，需要给 HTTP 类 provider 注册 `SupportsOneShot: true` + `OneShotCtx`，会改变所有 one-shot 调用方的行为，单独一批改。
+
+### 14.7 判定端点换到 8848 的 qwen（2026-11-06 深夜）
+
+14.6 先用公网 DeepSeek 验通了 HTTP 判定，随后按用户要求改到局域网 8848 网关（`bear` provider，`http://192.168.192.118:8848/v1`）。同一个真实判定提示的实测：
+
+| 模型 | 延迟 | input/out tokens | 输出 |
+|---|---|---|---|
+| **`qwen3.5-122b`** | **1.2–1.6 s** | 1687 / 7 | `{"is_skill": false}`，精确 |
+| `Qwen3-Instruct` | 1.24 s | 1687 / 7 | 同上 |
+| `qwen3.6` | 2.9 s | 1723 / 187 | 正确，但带 reasoning tokens |
+| `deepseek-flash` | 0.86 s | 20 / 8 | 同上（控制组，短提示） |
+
+`deepseek-v4-flash`、`gemini-3.1-flash-lite` 在该 token 的 group 下返回 `503 model_not_found`（没有可用渠道），`gpt-5.4` 返回 401 —— 网关按 token group 授权，不是所有列出的模型都能用。
+
+**踩到的坑**：`~/.local/share/opencode/auth.json` 里的 key 带尾随 CR（文件是 CRLF），直接塞进 `Authorization` 会被网关判 400 `Bad Request`（没有任何 error body，很容易误判成端点不通）。现在两处都处理：watchdog 里 `.Trim()`，`RunOneShotHTTPCtx` 里 `strings.TrimSpace`，并有测试锁住（`TestRunOneShotHTTPCtx_TrimsAPIKey`）。
+
+配置落在 `~/.wuphf/data/broker-watchdog.ps1`：`BASE_URL=http://192.168.192.118:8848/v1`、`MODEL=qwen3.5-122b`、`KEY` 从 auth.json 现读（读失败回落 `DEEPSEEK_API_KEY`），备份 `broker-watchdog.ps1.bak-judge`。
+
+验证（broker PID 12892）：
+
+```
+POST /skills/compile {"dry_run":true,"scope_path":"team/reviews"}
+→ {"scanned":7,...,"duration_ms":11076}      # 7 篇 11.1s, 每篇 ~1.6s
+→ 同期 opencode.exe 新进程 0 个
+→ 缓存 version 2, 条目 8 → 15
+→ skill_scanner 告警 0 条
+```
+
+代价：判定现在依赖 192.168.192.118:8848 可达。网关不通时判定报错、不写缓存，下个 pass 重试 —— 不会像旧的解析失败那样把结果记成「不是技能」。要双活的话得给 `skillJudgeHTTPConfig` 加一组备用端点，本次没做。
