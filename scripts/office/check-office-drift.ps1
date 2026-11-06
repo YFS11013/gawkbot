@@ -11,7 +11,9 @@
     4. 期望启用的 job 的 last_run_status 是否为 ok/空
     5. 期望启用的 workflow job，其 skill 的 last_execution_status 是否 failed
     6. 出现清单外的新 standing job（per-task follow-up / recheck 类 churn job 不比对）
-    7. scheduled task 的脚本是否存在，日志是否新鲜（max_age_hours）
+    7. scheduled task 的脚本是否存在，日志是否新鲜（max_age_hours）。
+       enabled=false 的任务整条跳过：停用的任务日志本来就不该再更新，对它查新鲜度
+       只会产生一条永远为真的告警。
     8. 监听 7892 的进程跑的是不是当前代码 —— 两个方向都要查：
          · 进程启动时间 < 二进制 mtime  → 重建了没重启
          · 二进制 mtime < 最近的 Go 提交 → 改了没重建
@@ -20,8 +22,10 @@
 
   权威仍是运行时：本脚本只读、只报，不 apply。要改期望态就改 JSON 并提交，然后按 RUNTIME-API.md 走 HTTP。
 
-  告警（可选）：传 -AlertsPath + -StatePath 时，违规集按内容哈希去重后追加到 alerts 文件，
-  恢复时输出 `DRIFT: cleared` 并删除状态文件。首行永远是 ASCII 的 `DRIFT: none|cleared|<n>`，
+  告警（可选）：传 -AlertsPath + -StatePath 时，违规集按**规范化后**的内容哈希去重后追加到 alerts 文件，
+  恢复时输出 `DRIFT: cleared` 并删除状态文件。规范化（ConvertTo-DedupeKey）剔除了会自己变的数字
+  —— 年龄、超时小时数、提交列表、时间戳、临时目录名 —— 否则同一个长期故障每跑一次都会算成新故障
+  （2026-11-03..06：一条故障写了 301 条告警）。首行永远是 ASCII 的 `DRIFT: none|cleared|<n>`，
   供 Windows PowerShell 5.1 的调用方（watchdog）解析 —— 5.1 解码子进程中文会变乱码，故勿依赖中文行。
 
 .EXAMPLE
@@ -109,8 +113,55 @@ function Get-DeployLag($run, [string]$repoRoot) {
     }
     return $notes
 }
+# ConvertTo-DedupeKey turns a violation line into the identity used for dedupe.
+#
+# A hash of the violation text is not a dedupe key when the text embeds numbers
+# that change on their own: `日志 26.1h 未更新` and `日志 100.1h 未更新` are the
+# same fault but hash differently. On 2026-11-03..06 that made one chronic fault
+# append 301 sections to wiki/team/alerts.md, 15 minutes apart, because the
+# reported age grew every run and the state hash never matched.
+#
+# What stays: which thing failed and how (task/job name, field, kind). What
+# goes: durations, hours-overdue, counts, timestamps, commit hashes, and any
+# path with a temp-directory segment (temp dirs get a fresh name every process,
+# so the same fault would otherwise look new every run).
+#
+# Deliberately NOT stripping names like broker.err.log: the file is part of the
+# fault's identity, and that name does not change between runs.
+function ConvertTo-DedupeKey([string]$msg) {
+    $s = $msg
+    # Order matters: dates and hashes must be masked BEFORE the bare-number pass,
+    # or that pass eats their digits first and the pattern never matches.
+    # ① UTC timestamps and bare dates
+    $s = [regex]::Replace($s, '\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2})?)?', '<ts>')
+    # ② commit short hashes; a commit LIST is also one identity — the number of
+    #    undeployed commits grows as work lands, but the fault is unchanged.
+    $s = [regex]::Replace($s, '\b[0-9a-f]{7,40}\b', '<sha>')
+    $s = [regex]::Replace($s, '<sha>(?:, <sha>)*(?:, …)?', '<sha>')
+    # ③ explicit durations (26.1h / 90m) and the parenthesized threshold form
+    $s = [regex]::Replace($s, '\b\d+(?:\.\d+)?\s*(?:h|m|s)\b', '<dur>')
+    $s = [regex]::Replace($s, '\(\d+(?:\.\d+)?\)', '(N)')
+    # ④ remaining bare numbers are counts ("3 个 Go 提交"). The lookbehind keeps
+    #    file extensions intact: thesis-week.ps1 must not become thesis-week.ps<n>.
+    #    The +N form is the binary-build stamp ("…+2026-11-02T08:37") whose time
+    #    advances whenever the file is touched, even when the fault is unchanged.
+    $s = [regex]::Replace($s, '\+\d+', '<n>')
+    $s = [regex]::Replace($s, '(?<![A-Za-z0-9])\d+(?:\.\d+)?', '<n>')
+    # ⑤ paths under a temp dir: the directory name is unique per process
+    $s = [regex]::Replace($s, '(?i)[A-Za-z]:[\\/][^\s]*[\\/]temp[\\/][^\s]+', '<tmp>')
+    $s = [regex]::Replace($s, '(?i)[\\/](?:tmp|Temp)[\\/][^\s]+', '<tmp>')
+    # ⑥ collapse whitespace so formatting noise cannot split one key into two
+    return ([regex]::Replace($s, '\s+', ' ')).Trim()
+}
+
 $violations = [System.Collections.Generic.List[string]]::new()
-function Add-Violation([string]$msg) { $violations.Add($msg) }
+# $violationKeys mirrors $violations, but with the numbers that drift every run
+# stripped out — that is what the state hash is taken over.
+$violationKeys = [System.Collections.Generic.List[string]]::new()
+function Add-Violation([string]$msg) {
+    $violations.Add($msg)
+    $violationKeys.Add((ConvertTo-DedupeKey $msg))
+}
 
 if (-not (Test-Path -LiteralPath $ManifestPath)) { throw "期望态清单缺失: $ManifestPath" }
 $manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
@@ -194,6 +245,13 @@ foreach ($j in $live) {
 }
 
 foreach ($t in $manifest.scheduled_tasks) {
+    # enabled=false 是期望态的一部分（2026-11-02 最小配置试验停用了三个任务）。
+    # 停用的任务日志当然不新鲜：不加这道门，`max_age_hours` 会对一个"有意不再更新"
+    # 的日志永远报警，且报警文本里嵌着不断增长的年龄数字（26.1h → 100.1h），
+    # 内容哈希每分钟都不同 —— 去重永不命中，alerts.md 每 15 分钟长一条。
+    # 2026-11-06 实测：301 条重复告警，把 wiki 里 33k 字符的日志喂给 30 分钟一次的
+    # skill-compile cron，单篇判定 input 从 15k 涨到 28.6k，占当天 skillify 消耗的 99%。
+    if ($t.enabled -eq $false) { continue }
     if ($t.requires_file -and -not (Test-Path -LiteralPath $t.requires_file)) {
         Add-Violation "计划任务脚本缺失: $($t.name) → $($t.requires_file)"
         continue
@@ -246,13 +304,21 @@ $violations | ForEach-Object { Write-Output "  - $_" }
 # Alerting lives HERE (PowerShell 7) and not in the caller: the watchdog runs
 # under Windows PowerShell 5.1, where Chinese text crossing a process boundary
 # gets decoded with the OEM code page and arrives as mojibake. The dedupe key is
-# the hash of the violation set, so the same fault alerts once, not every run.
+# the hash of the NORMALIZED violation set (see ConvertTo-DedupeKey), so the same
+# fault alerts once even when its reported magnitude keeps changing; a new fault
+# still changes the key set and still alerts.
 if ($AlertsPath -and $StatePath) {
-    $joined = ($violations -join "`n")
+    # Sort so the key set is order-independent: a scan that returns the same
+    # faults in a different order is the same state, not a new one. Ordinal
+    # (not culture) because the hash must not change when the host's UI culture
+    # does -- otherwise a locale change re-alerts every standing fault once.
+    $sortedKeys = [System.Collections.Generic.List[string]]::new($violationKeys)
+    $sortedKeys.Sort([System.StringComparer]::Ordinal)
+    $keySet = $sortedKeys -join "`n"
     $sha = [System.Security.Cryptography.SHA256]::Create()
     try {
         $hash = [System.BitConverter]::ToString(
-            $sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($joined))).Replace('-', '')
+            $sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($keySet))).Replace('-', '')
     } finally {
         $sha.Dispose()
     }

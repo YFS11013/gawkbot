@@ -608,3 +608,45 @@ python scripts/office/check_theses.py --report --emit # team/theses/week-2026-11
 
 `scanSkippedDirs` 已加 `team/theses/`：一张周页是某一周的记录，不是可复用方法；不加就会给每周生成一个以日期命名的 skill（`team/prep/`、`team/routines/` 各踩过一次）。
 
+
+## 14. skill-compile 的判定成本：为什么告警日志比告警本身贵
+
+30 分钟一次的 `skill-compile` cron（`internal/team/skill_compile.go`）把 `team/**/*.md` 逐篇送给 LLM 判「是不是可复用技能」。**每篇一次独立调用**，每篇输入 = `skill-creator.md` 系统提示 + 正文 + 现有技能清单（`buildSkillUserPrompt`，`skill_scanner.go:759`）。判否时输出只有 7–14 token，输入 13k–28k。
+
+去重靠内容 SHA（`SkillScanner.mtimeCache`）：正文不变就跳过。所以「判定成本」完全由**正文是否在变**决定。
+
+### 14.1 2026-11-06 实测：一篇日志吃掉当天 40% 的 input token
+
+| 指标 | 数值（opencode.db，本地 5790 个 session） |
+|---|---|
+| 全部 skillify 判定 | 1473 次，input 19.9M / output 37k / reasoning 201k |
+| `team/alerts.md` 单篇 | **152 次，input 3.13M**，每次判定结果 `{"is_skill": false}` |
+| 当天（11-06）全部 input | 2.73M，其中 skillify 1.08M，其中 alerts.md **1.084M（99.96%）** |
+| 单次 input 增长 | 13,052 → 28,631（+~110 token/次，正文 +180 字符/30 分钟） |
+
+原因链：`check-office-drift.ps1` 的 scheduled_tasks 循环没读 `enabled:false` → 对一份**有意停更**的日志每 15 分钟报「停更」→ 告警文本里的年龄数字每轮都变（26.1h → 100.1h）→ 内容哈希永不命中 → `alerts.md` 每 15 分钟长 90 字符 → 下一篇判定必然 cache miss，且正文越来越长。301 条告警、36KB，全部是同一句话。
+
+### 14.2 三处修复（2026-11-06）
+
+1. **enabled 门控**：`scheduled_tasks` 循环开头 `if ($t.enabled -eq $false) { continue }`。停用的任务日志本来就不该新鲜；对它查新鲜度只会产生一条永远为真的告警。broker 那半边的循环一直有这道门（`if ($e.enabled -and ...)`），scheduled task 这半边漏了。
+2. **去重键规范化**（`ConvertTo-DedupeKey`）：alerts 正文保留可读的全量信息（年龄、构建时间、几个提交），**哈希只取故障身份** —— 任务名/字段/类别。剔除：时长（`26.1h`）、超时小时数、提交列表（`bb3aedc, 1a2b3c4`）、时间戳、临时目录名（每次进程都不同）、`+N` 文件版本戳。排序用 `StringComparer::Ordinal`：文化排序会让哈希随系统区域设置变，区域一换所有存量故障重报一次。
+3. **判定缓存落盘**（`skill_scan_cache_file`，`skill_scanner.go`）：`mtimeCache` 原本只在内存，broker 重启（watchdog、重建）就把整棵树重判一遍，约 1.4M token/次。现在写到 `<wiki>/.git/skills-scan-cache.json`（跟着 wiki 走、不会被下一轮扫描当成文章），重启用内容哈希命中即可跳过。带 `version` 字段：格式变更时丢弃而不是误读。作用域扫描（`scope_path`）只覆盖自己的子树，其余条目原样带过，不会把全树缓存抹掉。
+
+### 14.3 验证
+
+```
+pwsh -File scripts/office/check-office-drift.ps1                  # DRIFT: none
+# 反向：清单里把 WUPHF-ModelSnapshot 改回 enabled:true
+  → DRIFT: 1  计划任务停更: WUPHF-ModelSnapshot 日志 100.4h 未更新（阈值 26h）
+# 去重：同一故障连跑两次（年龄不同）
+  第一次 ALERT: appended / 第二次 ALERT: unchanged since last run (deduped)
+# 新故障：同一次运行里加一条日志缺失
+  → ALERT: appended（键集变了，就该再报一次）
+```
+
+`go test ./internal/team -run TestSkillScanner_VerdictCache`：重启后 0 次 LLM 调用、改一篇文章只重判一篇。把 `loadSkillScanCache` 注释掉后该测试失败（`got 2`），证明它测的是缓存而不是「扫描本来就没跑」。
+
+### 14.4 剩下的坑
+
+- 任何**新**的长期故障如果文本里带单调数字，仍会绕过规范化（正则只覆盖已知形状）。新增检查项时，先问「这行文字下个小时会不会不一样」。
+- `alerts.md` 已从 301 条合并为 1 条 + 说明（原文留在 `~/.wuphf/backups/alerts.md.pre-cleanup-20261106`）。合并是一次性清理，不是自动轮转 —— 没有上限，只是不再每 15 分钟增长。

@@ -139,6 +139,96 @@ type SkillScanner struct {
 	mtimeCache map[string]string // wiki-relative path -> sha256 of content (hex)
 }
 
+// skillScanCacheVersion guards the on-disk verdict cache format. Bump it when
+// the cached value's meaning changes, not when the file layout does.
+const skillScanCacheVersion = 1
+
+// skillScanCacheFile is the persisted form of SkillScanner.mtimeCache.
+//
+// Why it exists: the cache was process-local, so every broker restart re-judged
+// the whole team/ tree — about 50 articles at ~28k input tokens each. The cron
+// then re-judged nothing at all until someone edited an article. Restarts are
+// routine here (watchdog, rebuilds), so the cache was paying full price several
+// times a day. Entries are content hashes: a restart cannot make a stale
+// verdict wrong, it can only make the first pass slower.
+type skillScanCacheFile struct {
+	Version int               `json:"version"`
+	Entries map[string]string `json:"entries"`
+}
+
+// skillScanCachePath resolves the verdict cache location. Empty disables
+// persistence, which is what tests that never touch disk get for free.
+func (s *SkillScanner) skillScanCachePath(wikiRoot string) string {
+	if p := strings.TrimSpace(os.Getenv("WUPHF_SKILL_SCAN_CACHE_PATH")); p != "" {
+		return p
+	}
+	if root := strings.TrimSpace(wikiRoot); root != "" {
+		// Under .git/ so it follows the wiki across runtime-home moves and
+		// never shows up as a wiki article to the next scan.
+		return filepath.Join(root, ".git", "skills-scan-cache.json")
+	}
+	if b := s.broker; b != nil {
+		return b.statePath + ".skills-scan-cache.json"
+	}
+	return ""
+}
+
+// loadSkillScanCache seeds mtimeCache from disk when this scanner has no
+// in-memory entries yet. A missing, unreadable, or wrong-version file is not an
+// error: the pass simply re-judges as it did before the cache existed.
+func (s *SkillScanner) loadSkillScanCache(path string) {
+	if path == "" {
+		return
+	}
+	s.mu.Lock()
+	warm := len(s.mtimeCache) > 0
+	s.mu.Unlock()
+	if warm {
+		return
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	var cache skillScanCacheFile
+	if err := json.Unmarshal(data, &cache); err != nil || cache.Version != skillScanCacheVersion {
+		return
+	}
+	entries := make(map[string]string, len(cache.Entries))
+	for k, v := range cache.Entries {
+		if strings.TrimSpace(k) != "" && strings.TrimSpace(v) != "" {
+			entries[k] = v
+		}
+	}
+	s.mu.Lock()
+	s.mtimeCache = entries
+	s.mu.Unlock()
+}
+
+// saveSkillScanCache writes the current verdict cache. Best-effort: a failed
+// write costs tokens on the next restart, never correctness of this pass.
+func (s *SkillScanner) saveSkillScanCache(path string) {
+	if path == "" {
+		return
+	}
+	s.mu.Lock()
+	entries := make(map[string]string, len(s.mtimeCache))
+	for k, v := range s.mtimeCache {
+		entries[k] = v
+	}
+	s.mu.Unlock()
+	data, err := json.Marshal(skillScanCacheFile{Version: skillScanCacheVersion, Entries: entries})
+	if err != nil {
+		return
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return
+	}
+	if err := atomicWriteFile(path, data); err != nil {
+		slog.Debug("skill_scanner: verdict cache write failed", "path", path, "err", err)
+	}
+}
+
 // NewSkillScanner constructs a scanner. budget is the maximum number of LLM
 // calls per pass — guards against runaway spend. Callers may pass 0 to use
 // a reasonable default (see defaultSkillCompileBudget).
@@ -192,6 +282,11 @@ func (s *SkillScanner) Scan(ctx context.Context, scopePath string, dryRun bool, 
 	// mutate the slice while we're iterating.
 	tombstoneSlugs, tombstoneSources := s.loadTombstone()
 
+	// Warm the verdict cache from the previous process. Do it after the walk
+	// root is known so the cache follows the wiki, not the process.
+	cachePath := s.skillScanCachePath(wikiRoot)
+	s.loadSkillScanCache(cachePath)
+
 	// Walk root: either the full team subtree or the requested scope.
 	walkRoot := filepath.Join(wikiRoot, scanWalkRoot)
 	if strings.TrimSpace(scopePath) != "" {
@@ -221,6 +316,16 @@ func (s *SkillScanner) Scan(ctx context.Context, scopePath string, dryRun bool, 
 	s.broker.mu.Unlock()
 
 	updatedCache := make(map[string]string, len(candidates))
+	// Scoped passes rewrite only their own subtree; carrying the other
+	// entries forward keeps a scope_path scan from wiping the full-tree cache
+	// (and paying for it all over again on the next unscoped pass).
+	if walkRootCoversAll := filepath.Clean(walkRoot) == filepath.Clean(filepath.Join(wikiRoot, scanWalkRoot)); !walkRootCoversAll {
+		s.mu.Lock()
+		for k, v := range s.mtimeCache {
+			updatedCache[k] = v
+		}
+		s.mu.Unlock()
+	}
 	llmCalls := 0
 	budgetExceeded := false
 
@@ -373,6 +478,10 @@ func (s *SkillScanner) Scan(ctx context.Context, scopePath string, dryRun bool, 
 	s.mu.Lock()
 	s.mtimeCache = updatedCache
 	s.mu.Unlock()
+	// Persist so a broker restart resumes instead of re-judging every article.
+	// Scoped passes still write the cache: updatedCache is seeded from the
+	// loaded file, so a scoped write preserves entries outside the scope.
+	s.saveSkillScanCache(cachePath)
 
 	res.DurationMs = time.Since(start).Milliseconds()
 	return res, nil
