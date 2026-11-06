@@ -745,3 +745,28 @@ POST /skills/compile {"dry_run":true,"scope_path":"team/reviews"}
 ```
 
 代价：判定现在依赖 192.168.192.118:8848 可达。网关不通时判定报错、不写缓存，下个 pass 重试 —— 不会像旧的解析失败那样把结果记成「不是技能」。要双活的话得给 `skillJudgeHTTPConfig` 加一组备用端点，本次没做。
+
+### 14.8 判定模型换成 8848 的 `openrouter/free`（2026-11-07 00:30）
+
+`bear` 网关（`192.168.192.118:8848/v1`）上 `openrouter/free` 可用，cost=0。同一个真实判定提示的实测：
+
+| 模型 | 延迟 | in/out | 判定 |
+|---|---|---|---|
+| `qwen3.5-122b` | 1.2 s | 1687 / 7 | `{"is_skill": false}` |
+| **`openrouter/free`** | **7–120 s**（同一提示方差极大） | 1479–2505 / 106–810（含 reasoning） | 同样精确，但会给出 `enhance` 建议 |
+
+关键差别不在速度，在**结论**：拿 7 篇 `team/reviews/` 复跑（带真实的 EXISTING SKILLS 块）：
+
+| 文章 | qwen3.5-122b | openrouter/free |
+|---|---|---|
+| ACMER-2847 | false | **true + enhance=`forex-watch-2026-11-03`** |
+| OFFICE-3012 | false | **true + enhance=`fund-invest-2026-11-02`**（这次调用 120 s） |
+| 其余 5 篇 | false | false |
+
+也就是说 qwen 把「这篇 review 里有对现有技能的改进意见」全判成了 false；`openrouter/free` 认出来了，走 enhance 路径。broker 自己的 dry-run pass 复现同一结果：`{"scanned":7,"matched":2,"proposed":2,"duration_ms":148123}`（唯一一次非零 matched）。
+
+配置（`~/.wuphf/data/broker-watchdog.ps1`）：`MODEL='openrouter/free'`，并把 `WUPHF_SKILL_LLM_TIMEOUT` 从默认 30 提到 **180** —— 观测到的长尾是 120 s，30 s 会瞬杀掉约三分之一的树，而超时等于「无结论」，会被每轮重试。
+
+**缓存现状**：`skills-scan-cache.json` 里 72 条是 qwen 时代的结论、7 条是 `openrouter/free`（v2 版本号不区分模型）。要拿到单一模型的基线就得整体重判（budget 50/轮 → 两轮，约 20–30 分钟）；但 cron 的 pass 不是 dry-run，重判会**真的**把 `forex-watch-2026-11-03`、`fund-invest-2026-11-02` 两篇技能改写（追加 “Quality checklist / Enhancements from OFFICE-3012” 段）。所以没有自动做，等操作者决定。
+
+另：`team/skills/` 下是**扁平的 `*.md`**，不是目录 —— 之前用 `ls -d */` 数出 0 是错的，实际有 14 个技能，`buildExistingSkillsSummary` 的 2 KB 上限基本用满（实测块 2,051 字节）。
