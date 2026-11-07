@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -125,5 +126,50 @@ func TestRunOneShotHTTPCtx_TrimsAPIKey(t *testing.T) {
 	}
 	if gotAuth != "Bearer sk-abc" {
 		t.Fatalf("auth header not trimmed: %q", gotAuth)
+	}
+}
+
+// opencode's inference API rejects a call without x-opencode-session and
+// routes on it, so the value has to be present and unique per request.
+func TestRunOneShotHTTPCtx_SendsHeadersAndSession(t *testing.T) {
+	var mu sync.Mutex
+	var seen []http.Header
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		seen = append(seen, r.Header.Clone())
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"choices":[{"message":{"content":"{\"is_skill\":false}"}}]}`)
+	}))
+	defer srv.Close()
+
+	cfg := OneShotHTTPConfig{
+		BaseURL:       srv.URL,
+		Model:         "crouton-alpha-free",
+		APIKey:        "k",
+		Headers:       map[string]string{"User-Agent": "wuphf-skill-judge/1.0"},
+		SessionHeader: "x-opencode-session",
+	}
+	for i := range 2 {
+		if _, err := RunOneShotHTTPCtx(context.Background(), cfg, "", "hi"); err != nil {
+			t.Fatalf("call %d: %v", i, err)
+		}
+	}
+	if len(seen) != 2 {
+		t.Fatalf("got %d requests", len(seen))
+	}
+	for i, h := range seen {
+		if got := h.Get("User-Agent"); got != "wuphf-skill-judge/1.0" {
+			t.Fatalf("call %d user-agent = %q", i, got)
+		}
+		if h.Get("Authorization") != "Bearer k" {
+			t.Fatalf("call %d lost the bearer token", i)
+		}
+		if len(h.Get("x-opencode-session")) < 16 {
+			t.Fatalf("call %d session header = %q", i, h.Get("x-opencode-session"))
+		}
+	}
+	if seen[0].Get("x-opencode-session") == seen[1].Get("x-opencode-session") {
+		t.Fatal("session header must differ per request")
 	}
 }

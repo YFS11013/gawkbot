@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/nex-crm/wuphf/internal/config"
 )
 
@@ -32,6 +34,14 @@ type OneShotHTTPConfig struct {
 	BaseURL string
 	APIKey  string
 	Model   string
+	// Headers are static extra request headers, for endpoints behind a proxy
+	// that rejects the default user agent.
+	Headers map[string]string
+	// SessionHeader names a header the endpoint requires on every request
+	// (opencode's inference API rejects a call without x-opencode-session).
+	// A fresh value is minted per call: sharing one session across unrelated
+	// questions invites server-side state to bleed between them.
+	SessionHeader string
 }
 
 // Valid reports whether the config can address a model.
@@ -77,6 +87,12 @@ func RunOneShotHTTPCtx(ctx context.Context, cfg OneShotHTTPConfig, systemPrompt,
 		return "", fmt.Errorf("provider: build one-shot request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	for name, value := range cfg.Headers {
+		req.Header.Set(name, value)
+	}
+	if h := strings.TrimSpace(cfg.SessionHeader); h != "" {
+		req.Header.Set(h, uuid.NewString())
+	}
 	if key := strings.TrimSpace(cfg.APIKey); key != "" {
 		req.Header.Set("Authorization", "Bearer "+key)
 	}

@@ -844,11 +844,20 @@ func skillJudgeHTTPConfig() provider.OneShotHTTPConfig {
 	if baseURL == "" || model == "" {
 		return provider.OneShotHTTPConfig{}
 	}
-	return provider.OneShotHTTPConfig{
+	cfg := provider.OneShotHTTPConfig{
 		BaseURL: baseURL,
 		Model:   model,
 		APIKey:  strings.TrimSpace(os.Getenv("WUPHF_SKILL_JUDGE_API_KEY")),
 	}
+	// opencode's inference API rejects requests from unknown user agents (its
+	// edge answers 1010) and requires an x-opencode-session header, so a judge
+	// pointed at it has to look like the CLI. The gateway hosts used before
+	// this accepted a bare POST, and still do.
+	if strings.Contains(baseURL, "opencode.ai") {
+		cfg.Headers = map[string]string{"User-Agent": "wuphf-skill-judge/1.0"}
+		cfg.SessionHeader = "x-opencode-session"
+	}
+	return cfg
 }
 
 // defaultLLMProvider classifies wiki articles using the configured LLM
