@@ -504,6 +504,19 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		doneArtifactRef, doneArtifactExists = b.peekTaskDoneArtifact(body)
 	}
 
+	// A canceled task must stop spending tokens at once: the turn already
+	// running on it and anything queued behind it are work nobody wants. The
+	// hook is registered BEFORE the unlock defer so LIFO ordering runs it
+	// after b.mu is released — the launcher takes its own lock and, on the
+	// wake path, reads broker state back, so calling it under b.mu would
+	// invert the lock order.
+	var canceledTaskID string
+	defer func() {
+		if canceledTaskID != "" {
+			b.cancelHeadlessTurnsForTask(canceledTaskID)
+		}
+	}()
+
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -1120,6 +1133,7 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 			task.blocked = false
 		case "cancel":
 			cancelPrevOwner = strings.TrimSpace(task.Owner)
+			canceledTaskID = task.ID
 			task.status = "canceled"
 			task.blocked = false
 			task.FollowUpAt = ""

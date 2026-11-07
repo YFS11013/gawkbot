@@ -37,6 +37,18 @@ func (b *Broker) SetHeadlessDispatchController(c headlessDispatchController) {
 	b.governor.setController(c)
 }
 
+// cancelHeadlessTurnsForTask stops the provider work a canceled task still has
+// in flight or queued. No-op until the launcher wires its controller (unit
+// tests, or before the launcher attaches).
+func (b *Broker) cancelHeadlessTurnsForTask(taskID string) {
+	if b == nil || b.governor == nil {
+		return
+	}
+	if ctl := b.governor.controller(); ctl != nil {
+		ctl.CancelHeadlessTurnsForTask(taskID)
+	}
+}
+
 // dispatchBotTurn enqueues a single bot turn directly — one bot, one job,
 // no CEO/lead orchestration hop. Returns false when no enqueuer is wired (unit
 // tests, or before the launcher attaches). This is the pi-skeleton dispatch the

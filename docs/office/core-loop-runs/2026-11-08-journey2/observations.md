@@ -48,7 +48,7 @@
 |---|---|---|
 | 17:17 | 首次人工清场：`POST /tasks` 取消 NEX-9/23/25/27/57 成功，但 `ai-revops-*` 与 `task-skill-32` 报 `404 channel not found` —— 它们的频道 `hygiene/outreach/review/pipeline` 从未被创建 | `/tasks` 响应 |
 | 17:19 | 只能改用 `/tasks/{id}/cancel` 才把 `ai-revops-1/3/4`、`task-skill-32` 关掉 | 四次 `{"changed":true}` |
-| 17:21–17:23 | 给 NEX-62 补两条 operator 提醒后，第二条约 2 分钟时触发 `human-priority: cancelling active turn after 2m5s`，随后 `error: headless codex turn cancelled so newer queued work can run`，但**没有新 worker 起来**（`opencode.exe` 子进程数为 0） | cos 日志 |
+| 17:21–17:23 | 给 NEX-62 补两条 operator 提醒后，第二条约 2 分钟时触发 `human-priority: cancelling active turn after 2m5s`，随后 `error: headless codex turn cancelled so newer queued work can run`。**更正**：我最初记为「没有新 worker 起来」，复查进程列表后错了——17:23:25 恰好有一个新的 `opencode.exe`（PID 28432），worker 正常重启，只是 opencode 本身卡住 | cos 日志 + `Get-CimInstance Win32_Process` |
 | 17:26 | 重启 broker 后首次真实报错：`opencode_stderr: Error: Unexpected error / database is locked`，`error-recovery: blocked NEX-62 after failed turn` | cos 日志 |
 | 17:30 | 我清掉残留的 7 个 `opencode.exe`，恰好杀掉了在跑的回合 → `exit status 0xffffffff` → 再次 `blocked NEX-62`（自伤，已记录） |
 | 17:34 | 又一次 `resume` 被当成 human-priority 消息，取消运行中回合（3m48s） | cos 日志 |
@@ -66,7 +66,8 @@
 1. **boot 顺序**：`workspace create` 先起 broker 再让人写 `config.json`，launcher 在启动瞬间就把 provider 定成默认的 `claude-code`；workspace 里的 `llm_provider: opencode` 要等下一次重启才生效。README/CLI 没有任何提示。
 2. **蓝图频道 vs 已退役频道**：`ai-revops` 蓝图仍声明 `hygiene/pipeline/outreach/review` 四个频道，安装时不创建，orientation 任务却按这些频道派活；结果是四个任务全部 `channel not found`、各空转 15 分钟（一次 `headless codex turn timed out after 15m0s`）。
 3. **取消不杀子进程**：`/tasks/{id}/cancel` 后 `opencode.exe` 子进程仍在（17:30 前观察到 7 个，对应 4 个已取消任务）。
-4. **human-priority 取消后不重启 worker**：17:23:25 与 17:34:10 两次 `cancelling active turn so the bot absorbs the human message`，之后既无新进程也无日志，直到 broker 重启。
+4. ~~**human-priority 取消后不重启 worker**~~ **推翻**：17:23:25 的进程列表里有一个同秒启动的 `opencode.exe`，worker 确实重启了。记录错误的原因是我在 17:24 数进程时把「7 个残留」当成了「全是旧的」。'
+3. **取消任务不会停掉它的回合**（已修，见 §9.9）：`/tasks/{id}/cancel` 只改任务状态，正在跑的 provider 子进程继续烧 token 到自己的超时；17:24 还能看到 17:06/17:15/17:16 启动、对应任务早已被取消的 `opencode.exe`。
 5. **办公室不是真的隔离**：所有 workspace 共用 `~/.local/share/opencode/opencode.db`（6.6 GB），并发即 `database is locked`；这与 `workspace` 宣称的「彼此不知道对方」冲突。
 
 ## 收尾

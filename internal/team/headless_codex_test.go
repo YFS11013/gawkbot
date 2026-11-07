@@ -2749,3 +2749,37 @@ func TestHeadlessCodexTurnTimeoutEnv(t *testing.T) {
 		})
 	}
 }
+
+// Canceling a task must stop paying for it: the turn already running on that
+// task is cancelled, its queued wake-ups are dropped, and work for other tasks
+// on the same and other lanes is untouched.
+func TestCancelHeadlessTurnsForTaskStopsOnlyThatTask(t *testing.T) {
+	l := newHeadlessLauncherForTest(t)
+
+	var canceledForTask, canceledOther int
+	l.headless.active[headlessLane{slug: "ae"}] = &headlessCodexActiveTurn{
+		Turn:   headlessCodexTurn{TaskID: "NEX-1"},
+		Cancel: func() { canceledForTask++ },
+	}
+	l.headless.active[headlessLane{slug: "cos"}] = &headlessCodexActiveTurn{
+		Turn:   headlessCodexTurn{TaskID: "NEX-2"},
+		Cancel: func() { canceledOther++ },
+	}
+	l.headless.queues[headlessLane{slug: "ae"}] = []headlessCodexTurn{
+		{TaskID: "NEX-1"},
+		{TaskID: "NEX-3"},
+	}
+
+	l.CancelHeadlessTurnsForTask("NEX-1")
+
+	if canceledForTask != 1 {
+		t.Fatalf("canceled the running turn %d times, want 1", canceledForTask)
+	}
+	if canceledOther != 0 {
+		t.Fatalf("canceled an unrelated task's turn %d times, want 0", canceledOther)
+	}
+	queued := l.headless.queues[headlessLane{slug: "ae"}]
+	if len(queued) != 1 || queued[0].TaskID != "NEX-3" {
+		t.Fatalf("queued turns after cancel = %+v, want only NEX-3", queued)
+	}
+}

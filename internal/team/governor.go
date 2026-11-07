@@ -38,6 +38,11 @@ import (
 type headlessDispatchController interface {
 	// CancelHeadlessTurns cancels in-flight turns. slug == "" cancels all.
 	CancelHeadlessTurns(slug string)
+	// CancelHeadlessTurnsForTask stops the work a task no longer needs: the
+	// in-flight turn that is still burning tokens on it and any queued turns
+	// waiting behind. Cancelling the task used to leave both running, so a
+	// canceled issue kept a provider process alive until its own timeout.
+	CancelHeadlessTurnsForTask(taskID string)
 }
 
 // pauseReason tags why dispatch is paused so the UI can explain it.

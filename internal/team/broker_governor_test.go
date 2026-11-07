@@ -13,8 +13,9 @@ import (
 )
 
 type fakeHeadlessController struct {
-	mu        chan string // buffered; receives the slug passed to Cancel
-	cancelled []string
+	mu               chan string // buffered; receives the slug passed to Cancel
+	cancelled        []string
+	cancelledForTask []string
 }
 
 func (f *fakeHeadlessController) CancelHeadlessTurns(slug string) {
@@ -23,6 +24,10 @@ func (f *fakeHeadlessController) CancelHeadlessTurns(slug string) {
 	case f.mu <- slug:
 	default:
 	}
+}
+
+func (f *fakeHeadlessController) CancelHeadlessTurnsForTask(taskID string) {
+	f.cancelledForTask = append(f.cancelledForTask, taskID)
 }
 
 func newGovernorTestBroker(t *testing.T) *Broker {
@@ -207,5 +212,41 @@ func TestGovernorResumeMoreRaisesBudget(t *testing.T) {
 	}
 	if got := b.GovernorStatus().MaxTokens; got != 6000 {
 		t.Fatalf("MaxTokens = %d, want 6000 after +5000", got)
+	}
+}
+
+// Both cancel paths (the HTTP mutation and the direct broker call) must tell
+// the launcher which task died, or the provider keeps running it.
+func TestCancelTaskStopsItsTurns(t *testing.T) {
+	b := brokerWithBots(t, appBuilderSlug)
+	ctl := &fakeHeadlessController{mu: make(chan string, 4)}
+	b.SetHeadlessDispatchController(ctl)
+
+	created, err := b.MutateTask(TaskPostRequest{
+		Action:    "create",
+		Title:     "Renewal sweep",
+		Owner:     appBuilderSlug,
+		CreatedBy: "human",
+		TaskType:  "issue",
+	})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	id := created.Task.ID
+
+	if _, err := b.MutateTask(TaskPostRequest{Action: "cancel", ID: id, CreatedBy: "human"}); err != nil {
+		t.Fatalf("cancel via mutation: %v", err)
+	}
+	if _, _, err := b.CancelTask(id, "human", "second path"); err != nil {
+		t.Fatalf("CancelTask: %v", err)
+	}
+
+	if len(ctl.cancelledForTask) != 2 {
+		t.Fatalf("controller saw %v, want the task twice (mutation + CancelTask)", ctl.cancelledForTask)
+	}
+	for _, got := range ctl.cancelledForTask {
+		if got != id {
+			t.Fatalf("controller canceled %q, want %q", got, id)
+		}
 	}
 }

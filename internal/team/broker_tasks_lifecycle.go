@@ -202,10 +202,19 @@ func (b *Broker) ResumeTask(taskID, actor, reason string) (teamTask, bool, error
 // Idempotent: canceling a task that is already terminal returns changed=false
 // and mutates nothing.
 func (b *Broker) CancelTask(taskID, actor, reason string) (teamTask, bool, error) {
+	id := strings.TrimSpace(taskID)
+	// Same contract as MutateTask's cancel path: registered before the unlock
+	// defer so it runs after b.mu is released, and it stops any provider
+	// process still working on the task that was just canceled.
+	defer func() {
+		if id != "" {
+			b.cancelHeadlessTurnsForTask(id)
+		}
+	}()
+
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	id := strings.TrimSpace(taskID)
 	if id == "" {
 		return teamTask{}, false, fmt.Errorf("task id required")
 	}

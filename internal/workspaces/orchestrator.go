@@ -151,6 +151,17 @@ func Create(ctx context.Context, name, blueprint string, opts CreateOptions) err
 	}
 	releaseLock(lf)
 
+	// Seed the workspace's config before the broker boots. Spawning first means
+	// the launcher resolves its provider at process start, so a user who writes
+	// config.json right after `workspace create` gets the DEFAULT provider for
+	// the whole first session (Journey 2: opencode was configured, claude-code
+	// ran, every turn returned 401). Inheritance from the office the user is
+	// standing in is the sane default; seeding is best-effort and never blocks
+	// creation.
+	if err := seedWorkspaceConfig(runtimeHome); err != nil {
+		fmt.Fprintf(os.Stderr, "workspace %s: config seed skipped: %v\n", name, err)
+	}
+
 	if err := Spawn(name, runtimeHome, brokerPort, webPort); err != nil {
 		_ = Update(name, func(w *Workspace) error {
 			w.State = StateError
@@ -163,6 +174,45 @@ func Create(ctx context.Context, name, blueprint string, opts CreateOptions) err
 		w.State = StateRunning
 		return nil
 	})
+}
+
+// seedWorkspaceConfig copies the provider/memory choices of the office the
+// caller is running in into a brand-new workspace, before its broker starts.
+// Only the keys that decide which runtime and store the office uses; company
+// identity, keys and analytics consent are the user's to set on the new one.
+//
+// Best-effort by design: an unreadable source config, an unwritable target, or
+// an already-seeded workspace all leave creation on its normal path.
+func seedWorkspaceConfig(runtimeHome string) error {
+	target := filepath.Join(runtimeHome, ".wuphf", "config.json")
+	if _, err := os.Stat(target); err == nil {
+		return nil
+	}
+	src, err := config.Load()
+	if err != nil {
+		return nil
+	}
+	seed := map[string]any{}
+	if v := strings.TrimSpace(src.LLMProvider); v != "" {
+		seed["llm_provider"] = v
+	}
+	if len(src.LLMProviderPriority) > 0 {
+		seed["llm_provider_priority"] = src.LLMProviderPriority
+	}
+	if v := strings.TrimSpace(src.MemoryBackend); v != "" {
+		seed["memory_backend"] = v
+	}
+	if len(seed) == 0 {
+		return nil
+	}
+	raw, err := json.MarshalIndent(seed, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
+		return err
+	}
+	return os.WriteFile(target, append(raw, '\n'), 0o600)
 }
 
 // Switch updates cli_current to name and returns the workspace's web URL.

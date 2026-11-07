@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -35,6 +36,62 @@ var headlessOpencodeSecretEnvVars = []string{
 	"WUPHF_OPENAI_API_KEY",
 	"NEX_API_KEY",
 	"ONE_SECRET",
+}
+
+// isolateOpencodeDataHome points opencode's session store at this office's own
+// runtime home instead of the user-wide ~/.local/share/opencode.
+//
+// Two offices running at the same time used to share one SQLite file
+// (opencode.db). Under concurrency that file reports "database is locked" and
+// kills turns; in Journey 2 it had grown to 6.6 GB of sessions belonging to
+// every workspace at once. The data dir also holds auth.json, so the office's
+// copy is hard-linked from the user's when the volume allows it (same file, no
+// second credential copy on disk) and copied when it does not.
+//
+// Fail-open: if the office's data dir cannot be prepared, the env is returned
+// untouched and opencode keeps using the shared store. A turned-off isolation
+// is better than an office that cannot authenticate.
+func (l *Launcher) isolateOpencodeDataHome(env []string, slug string) []string {
+	userHome, herr := os.UserHomeDir()
+	runtimeHome := strings.TrimSpace(config.RuntimeHomeDir())
+	if herr != nil || strings.TrimSpace(userHome) == "" || runtimeHome == "" {
+		return env
+	}
+	dataHome := filepath.Join(runtimeHome, ".local", "share")
+	if err := seedOpencodeAuth(filepath.Join(userHome, ".local", "share", "opencode", "auth.json"),
+		filepath.Join(dataHome, "opencode", "auth.json")); err != nil {
+		appendHeadlessCodexLog(slug, "opencode_datahome_shared: "+err.Error())
+		return env
+	}
+	return setEnvValue(env, "XDG_DATA_HOME", dataHome)
+}
+
+// seedOpencodeAuth makes sure dst exists, linking or copying src. A dst that
+// already exists is left alone — it is this office's own copy. A missing src
+// is not an error: opencode may be configured through environment keys, and
+// the caller still wants the isolated data dir.
+func seedOpencodeAuth(src, dst string) error {
+	if _, err := os.Stat(dst); err == nil {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		return fmt.Errorf("mkdir opencode data home: %w", err)
+	}
+	srcInfo, err := os.Stat(src)
+	if err != nil {
+		return nil
+	}
+	if err := os.Link(src, dst); err == nil {
+		return nil
+	}
+	raw, err := os.ReadFile(src)
+	if err != nil {
+		return fmt.Errorf("read opencode auth: %w", err)
+	}
+	if err := os.WriteFile(dst, raw, srcInfo.Mode().Perm()); err != nil {
+		return fmt.Errorf("copy opencode auth: %w", err)
+	}
+	return nil
 }
 
 // runHeadlessOpencodeTurn executes a single Opencode turn for slug, posting the
@@ -82,6 +139,7 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 	if home, err := os.UserHomeDir(); err == nil && strings.TrimSpace(home) != "" {
 		env = setEnvValue(env, "HOME", home)
 	}
+	env = l.isolateOpencodeDataHome(env, slug)
 	env = stripEnvKeys(env, []string{"CODEX_HOME"})
 	env = stripEnvKeys(env, headlessOpencodeSecretEnvVars)
 	env = setEnvValue(env, "NO_COLOR", "1")

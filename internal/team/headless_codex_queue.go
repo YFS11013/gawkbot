@@ -448,6 +448,49 @@ func (l *Launcher) stopHeadlessWorkers() {
 	}
 }
 
+// CancelHeadlessTurnsForTask cancels the turns that exist only because of
+// taskID: the one running right now and every queued one. A task that was just
+// canceled must not keep a provider subprocess alive — before this, canceling a
+// task left its in-flight turn running to completion, and the queue still held
+// wake-ups for a task nobody wants.
+//
+// Cancelling an active turn makes it exit with context.Canceled, which the
+// worker loop treats as a restart, so the lane immediately picks up whatever
+// remains queued (minus this task's turns).
+func (l *Launcher) CancelHeadlessTurnsForTask(taskID string) {
+	taskID = strings.TrimSpace(taskID)
+	if l == nil || taskID == "" {
+		return
+	}
+	l.headless.mu.Lock()
+	defer l.headless.mu.Unlock()
+	for _, active := range l.headless.active {
+		if active == nil || active.Cancel == nil {
+			continue
+		}
+		if strings.TrimSpace(active.Turn.TaskID) != taskID {
+			continue
+		}
+		active.Cancel()
+	}
+	for lane, queue := range l.headless.queues {
+		if len(queue) == 0 {
+			continue
+		}
+		kept := queue[:0]
+		for _, turn := range queue {
+			if strings.TrimSpace(turn.TaskID) != taskID {
+				kept = append(kept, turn)
+			}
+		}
+		if len(kept) == 0 {
+			delete(l.headless.queues, lane)
+			continue
+		}
+		l.headless.queues[lane] = kept
+	}
+}
+
 // CancelHeadlessTurns cancels in-flight headless turns so a governor Stop takes
 // effect immediately instead of waiting out the per-turn timeout. slug == ""
 // cancels every active turn; a specific slug cancels just that bot. Queued

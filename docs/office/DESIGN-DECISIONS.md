@@ -403,6 +403,30 @@ digest ──► render_artifacts()（脚本，0 LLM）
 
 **没改的两处**：`/wiki/write` 服务端仍不校验授权（信任 MCP 层）；`From: system` 的 composer 卡片照旧。前者是既有设计（写入口径在 prompt + MCP），后者若改成 human 会伪造授权，故不动。
 
+### 9.9 取消任务不停止它的回合（2026-11-07 18:2x，Journey 2 现场发现）
+
+Journey 2 的安装期任务把并发槽占满，我用 `POST /tasks` 取消它们时发现：任务状态变成 `canceled`，但对应的 `opencode.exe` 还在跑。17:24 的进程列表里有 17:06/17:15/17:16 启动、对应任务在 17:17 就被取消的进程，最长已经跑了 18 分钟——取消只是改状态，**没有停 provider**，token 照烧到它自己的超时。
+
+修法：给调度控制器加一个按任务粒度的取消入口 `CancelHeadlessTurnsForTask(taskID)`——取消该任务正在跑的回合，并把它还排着的唤醒从队列里摘掉（其他任务的队列不动）。两个取消入口都接上了：`MutateTask` 的 `cancel` 分支和 `Broker.CancelTask`。两处都用「先注册 defer、再 `defer b.mu.Unlock()`」的顺序，让取消动作在 broker 锁释放**之后**执行——launcher 会取自己的锁并在收尾时回读 broker 状态，在 `b.mu` 里调用就是锁序反转。
+
+测试：`TestCancelHeadlessTurnsForTaskStopsOnlyThatTask`（只杀目标任务、队列只摘它、别的 lane 不动）、`TestCancelTaskStopsItsTurns`（两条入口都把任务 id 交给控制器）。
+
+### 9.10 办公室不是真的隔离：provider 的会话库是全局的（2026-11-07 18:5x）
+
+`workspace` 承诺「两个办公室彼此不知道对方」，但它们都把 opencode 的会话库指向同一个 `~/.local/share/opencode/opencode.db`。Journey 2 现场：主办公室和 journey2 同时跑，两边都报 `database is locked`，回合直接失败；那个文件当时 **6.6 GB**，装的是所有工作区所有 bot 的会话。
+
+修法：headless opencode 回合把 `XDG_DATA_HOME` 指向本办公室自己的 runtime home（`<runtime>/.local/share`）。会话库因此按工作区分开，主办公室的历史不再拖慢一个新工作区。`auth.json` 是同一个目录里的凭证，用硬链接接过来（同一卷上不产生第二份副本，用户换 key 时办公室立刻看到），卷不支持硬链接时退回复制；两者都失败就**放弃隔离**继续用共享库，并在 bot 日志写一行 `opencode_datahome_shared:`——宁可隔离没生效，也不要办公室认证不了。
+
+测试：`TestSeedOpencodeAuthLinksWithoutSecondCopy`（硬链接跟随用户文件）、`TestSeedOpencodeAuthKeepsExistingOfficeCopy`（不覆盖办公室自己的副本）、`TestSeedOpencodeAuthWithoutUserFileIsNotAnError`（没有用户凭证不算错，隔离照做）。
+
+### 9.11 `workspace create` 先起 broker 再让人写配置（2026-11-07 18:5x）
+
+broker 在进程启动时就把 provider 定下来了，而 `workspace create` 一结束 broker 已经在跑。于是「创建工作区 → 写 `config.json` 想指定 opencode」这条路必输：第一个会话全部按默认的 `claude-code` 跑。Journey 2 里它表现为 cos 把 `Failed to authenticate. API Error: 401 Invalid API key` 当正文贴进 DM 六次。
+
+修法：`workspaces.Create` 在 `Spawn` 之前把当前办公室的 `llm_provider`、`llm_provider_priority`、`memory_backend` 种进新工作区的 `config.json`。只种这三个决定运行时的键——公司名、密钥、分析同意都是新办公室自己的事。文件已存在就一字不动；源配置读不到就跳过，创建照常。
+
+测试：`TestSeedWorkspaceConfigCopiesProviderAndMemory`、`TestSeedWorkspaceConfigLeavesAnExistingFileAlone`。
+
 ### 8.5 巡检发现：覆盖、索引、倒计时（2026-10-30 05:10 UTC）
 
 - **Medium 事件被静默丢弃**：`MEDIUM_KEEP` 只匹配央行类关键词，导致德国 10 月初值 CPI（07:29 UTC）、德国 GDP（09:00）、美国 ECI（12:30）、加拿大 GDP 全部从日历消失。修复后本周事件 24 → 30 条，当日未来事件从 1 条恢复为 4 条。
