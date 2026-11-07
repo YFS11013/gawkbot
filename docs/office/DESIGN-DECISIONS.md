@@ -352,11 +352,11 @@ digest ──► render_artifacts()（脚本，0 LLM）
 
 **未决（要人拍板）**：Journey 1 是否本周排（约 1–2 小时人工 + 新建 workspace 的 onboarding）；以及红队主张的「读侧信号」要不要先补（给 `/wiki/read*` 带调用方身份）。
 
-### 9.7 Journey 1 实测结论（2026-11-07 14:08，隔离办公室 `journey1`）
+### 9.7 Journey 1 实测结论（2026-11-07 14:08 初判 / 15:10 复核，隔离办公室 `journey1`）
 
-预注册 `core-loop-runs/2026-11-07/prereg.md`，原始观察同目录 `observations.md`，评分卡同目录 `scorecard.md`（独立判分代理按九步表打分）。隔离办公室：broker `:7910` / web `:7911`，5 个 bot（cos / revops / analyst / ae / reviewer），`memory_backend=markdown`。人从 composer 建任务 `JOURN-22`，cos 拆 `JOURN-24` 给 ae。
+预注册 `core-loop-runs/2026-11-07/prereg.md`，原始观察同目录 `observations.md`，评分卡同目录 `scorecard.md`（独立判分代理按九步表打分，含两个时点）。隔离办公室：broker `:7910` / web `:7911`，5 个 bot（cos / revops / analyst / ae / reviewer），`memory_backend=markdown`。人从 composer 建任务 `JOURN-22`，cos 拆 `JOURN-24` 给 ae。
 
-**总分 6 / 10**（v1 基线 5/10，升 1 分）；F2–F6 全部未命中（任务未 `done`，`Verified` 未翻绿，没有 fake-done）。
+**总分 6 / 10**（v1 基线 5/10，升 1 分）；F2–F6 全部未命中。14:54 的 `recheck_at` 触发后，办公室自己完成了 `JOURN-24` 的 QA 与收口（`done` / `approved` / `verification=not_required`），但同一段证据也暴露了两个新缺陷（跨频道 403、实体页极薄），分数持平。
 
 | 步骤 | 分 | 判 | 依据 |
 |---|---|---|---|
@@ -366,14 +366,17 @@ digest ──► render_artifacts()（脚本，0 LLM）
 | 4 拉起团队 | 4 | delivered | `JOURN-24 parent_issue_id=JOURN-22`、`owner=ae`、`members=5`；只拆 1 个子任务 |
 | 5 专注执行 | 3 | partially | `context_used` 有 `wiki:team/getting-started/*` + 1 条 learning；缺业务页检索 |
 | 6 交付物 | 3 | partially | 4 篇 wiki 落库可读（`cf96d59/78c00e8/328f6c3/9a7f6f6`）；3 封邮件仍 notebook-only；done-post 无链接 |
-| 7 学习钩子 | 2 | broken | playbook 编译（`d808541`）；**无实体页、无 `[[wikilink]]`、无 infobox**；`source_capture` 仍调 gbrain 报 EOF |
+| 7 学习钩子 | 3 | partially | playbook 编译（`d808541`）；实体页 14:58 生成（`e31ec4a/a6f36d7/86997ca/b07bd77`，含 `[[wikilink]]` + `References`），但仅模板摘要、缺 Brightline、`needs-confirmation` 被误实体化；`source_capture` 仍调 gbrain 报 EOF |
 | 8 技能与策略 | 3 | partially | 技能 `renewal-outreach` 编译并派给 5 个 bot（`0b2f18e`）；无 `policies` 落盘 |
-| 9 复用去重 | 2 | broken/unproven | 无第二个相似任务，更新路径未验证 |
+| 9 复用去重 | 2 | broken/unproven | 有接力（`JOURN-75` 06:54:13Z），但它 `no durable trace` 后 11 分钟被判 stalled；无第二个相似任务、无 `executions.jsonl` |
 
-**两个结构性问题（本轮最值钱的发现）**
+**三个结构性问题（本轮最值钱的发现）**
 
 1. **人给任务 → wiki 的授权往返。** `Definition` 有 goal/criteria，但 `artifact_path` 为空，`/wiki/write-task` 在 `13:44:23` 拒绝（`wiki_handlers.go:160`）；服务端 `/wiki/write` 无授权检查，而「必须引用人写消息」只在 prompt 层（`prompt_builder.go:466`）。composer 的任务消息是 `from: system`，不能当授权锚点，于是 bot 只能索要一句人话。人回 `save to wiki` 后 66 秒内 4 篇全部落库。**是设计摩擦，不是模型不作为。**
-2. **回合结束但任务未收口时无重投。** ae 在 13:49 的回合产出草稿后未收口，broker 不重派，两个任务以 `running` 空转到 14:58 的 `recheck_at`（56 分钟）。看门狗只把卡住的 bot 状态重置成 idle，不重投任务。
+2. **回合结束但任务未收口时没有短周期兜底。** ae 在 13:49 的回合产出草稿后未收口，broker 不重派；14:54 的 `recheck_at` 才把它唤醒，中间 **65 分钟空转**。看门狗只把卡住的 bot 状态重置成 idle，不重投任务。重投依赖定时器，不是事件。
+3. **子任务 bot 不能向父频道报告（新，14:57 实测）。** ae 在 `JOURN-75` 回合里查明三个真实阻塞（收件人/发件人未确认、无邮件集成、Corti HELD），但 `#cos__human` 写入 403（`live-chat-relay-post-error: channel access denied`），结论只落在 `headless-codex-ae.log`。协作层看到的是 `turn | ok (no durable trace: no message, no task mutation)`，11 分钟后标 stalled。**阻塞信息存在，但对系统不可见。**
+
+**F2 的边界**：`JOURN-24` 已 `done`，其交付物（三封邮件）只在 `agents/ae/notebook/`，wiki 无页面，且 `verification=not_required`。狭义上主任务 `JOURN-22` 仍 `running`，F2 未触发；广义上「子任务 done 而无 wiki artifact」已接近红线。若下一轮邮件仍不落 wiki 就收口，F2 应判命中。
 
 **对 §9.5 判据的实证支持**：同一套系统里，「文件在盘 + git sha + mtime」让 4 篇工件可当场验证；而「分析质量」「采访是否发生」这类没有落盘信号的步骤只能给 2–3 分。九步表按「人可见交付」打分是对的。
 
@@ -382,8 +385,9 @@ digest ──► render_artifacts()（脚本，0 LLM）
 **下一步（按影响排序）**
 
 1. 打通授权路径（P0）：`broker_intake.go:818` 填 `Definition.ArtifactPath`，或对 `created_by=human` 的任务在 `wiki_handlers.go:160` 豁免；另一条是把 composer 的 `issue_created` 记为 `human` 或补写授权锚点。
-2. 补「回合结束未收口」的重投（P1）：`scheduler.go` 在 `recheck_at` 之外加 2 个 poll 周期的兜底。
-3. 邮件 wiki 化 + 实体页/`[[wikilink]]` + done-post 带链接（P2）：`entity_index.go`、`MessageRenderer.tsx`。
+2. **子任务 bot 的跨频道写入（P0，14:57 实测阻塞信息不可见）**：`headless_live_chat_relay.go:125` 的 relay 权限、`broker_messages.go:97/164` 的频道成员校验——至少允许子任务 bot 向父任务的频道/负责人写一条「阻塞 + 需要什么」。
+3. 补「回合结束未收口」的短周期兜底（P1）：`scheduler.go` 在 `recheck_at` 之外加 2 个 poll 周期的重投；现在 65 分钟空转。
+4. 邮件 wiki 化 + 实体页质量 + done-post 带链接（P2）：`entity_index.go`、`MessageRenderer.tsx`；实体页现有模板摘要，缺 Brightline、缺业务字段。
 
 ### 8.5 巡检发现：覆盖、索引、倒计时（2026-10-30 05:10 UTC）
 
