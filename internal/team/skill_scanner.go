@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -857,8 +858,20 @@ func skillJudgeHTTPConfig() provider.OneShotHTTPConfig {
 		cfg.Headers = map[string]string{"User-Agent": "wuphf-skill-judge/1.0"}
 		cfg.SessionHeader = "x-opencode-session"
 	}
+	// Log the resolved endpoint once. The judge is configured entirely through
+	// env vars set by the watchdog, and a silent fallback (wrong key, stale
+	// URL) is otherwise invisible until verdicts stop arriving.
+	judgeConfigOnce.Do(func() {
+		host := baseURL
+		if u, err := url.Parse(baseURL); err == nil && u.Host != "" {
+			host = u.Host
+		}
+		slog.Info("skill_scanner: judge endpoint", "host", host, "model", model, "session_header", cfg.SessionHeader)
+	})
 	return cfg
 }
+
+var judgeConfigOnce sync.Once
 
 // defaultLLMProvider classifies wiki articles using the configured LLM
 // provider (via provider.RunConfiguredOneShot). It implements two strategies
