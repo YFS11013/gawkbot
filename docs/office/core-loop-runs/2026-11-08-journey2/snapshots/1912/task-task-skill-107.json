@@ -1,0 +1,54 @@
+{
+  "id": "task-skill-107",
+  "channel": "cos",
+  "title": "Run skill: Wiki maintenance",
+  "details": "Invoked by @cos on 2026-11-07T10:56:10Z. Follow the steps below.\n\nEvery bot maintains the team wiki.\n\n1. Write working knowledge to your notebook first (notebook_write); promote durable articles for review rather than pushing them straight to the wiki.\n2. Use team_wiki_write directly only when the human explicitly asked for the article — pass their message id as human_request.\n3. Prefer updating an existing article over creating a near-duplicate; read the index before writing.",
+  "owner": "cos",
+  "status": "in_progress",
+  "created_by": "cos",
+  "task_type": "skill_run",
+  "pipeline_id": "skill_invocation",
+  "pipeline_stage": "act",
+  "execution_mode": "office",
+  "review_state": "not_required",
+  "skill_id": "skill-wiki-maintenance",
+  "skill_name": "wiki-maintenance",
+  "due_at": "2026-11-07T11:56:10Z",
+  "follow_up_at": "2026-11-07T11:56:10Z",
+  "reminder_at": "2026-11-07T12:26:10Z",
+  "recheck_at": "2026-11-07T12:11:10Z",
+  "ledger": [
+    {
+      "agent": "cos",
+      "at": "2026-11-07T10:56:38Z",
+      "outcome": "ok",
+      "said": "NEX-100 已由 @ae 负责且处于进行中，无需重复领取。请直接核对 NEX-95 的账户事实并起草三封中英双语待确认邮件，严格不补造联系人或未提供数据。"
+    },
+    {
+      "agent": "cos",
+      "at": "2026-11-07T10:56:54Z",
+      "outcome": "ok",
+      "said": "先按已知事实整理缺口，所有未知项明确标注，不补猜测。"
+    },
+    {
+      "agent": "cos",
+      "at": "2026-11-07T10:57:46Z",
+      "outcome": "ok",
+      "said": "已补回 NEX-100 与 NEX-102 的账户事实，并在 `#ae__cos` 说明：\n\n- Acme Corp：Q3，$48k，champion 于 May 离职\n- Brightline：Q3，$22k，usage up 40%\n- Corti Labs：Q4，$61k，两起未解决的支持升级\n\n两条工作线可继续推进，未提供的联系人和具体日期需标注为缺失。"
+    },
+    {
+      "agent": "cos",
+      "at": "2026-11-07T10:58:08Z",
+      "outcome": "ok",
+      "said": "NEX-100 的阻塞已记录：当前缺少联系人、具体续约期限及三类事件细节。补充后，@ae 将继续起草三封中英双语邮件，期间不虚构任何信息。"
+    },
+    {
+      "agent": "cos",
+      "at": "2026-11-07T10:58:29Z",
+      "outcome": "ok",
+      "said": "三份账户简报已按已核对事实整理完成，未知字段全部保留为 `[NEEDS CONFIRMATION: ...]`，NEX-102 已落地。已将三家账户事实同步给 NEX-100：Acme Corp（Q3，$48k，champion left in May）、Brightline（Q3，$22k，usage up 40%）、Corti Labs（Q4，$61k，two unresolved support escalations）；@ae 可据此继续起草邮件，不补联系人或其他数据。"
+    }
+  ],
+  "created_at": "2026-11-07T10:56:10Z",
+  "updated_at": "2026-11-07T10:58:29Z"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "NEX-57",
+  "channel": "cos__human",
+  "title": "[@revops] Missing capability for: Dedupe CRM accounts",
+  "details": "Orientation work; not part of this run.",
+  "owner": "cos",
+  "status": "canceled",
+  "created_by": "system",
+  "task_type": "issue",
+  "pipeline_id": "incident",
+  "pipeline_stage": "breakdown",
+  "execution_mode": "office",
+  "review_state": "not_required",
+  "parent_issue_id": "ai-revops-1",
+  "lifecycle_state": "approved",
+  "created_at": "2026-11-07T09:05:56Z",
+  "updated_at": "2026-11-07T09:17:18Z"
+}

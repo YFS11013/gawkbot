@@ -1,0 +1,5 @@
+[2026-11-07T17:01:05+08:00] queue-park: at concurrency cap, deferring lane until a slot frees
+[2026-11-07T17:05:49+08:00] live-chat-relay-post: posted streamed output to #human__reviewer as msg-53
+[2026-11-07T17:05:49+08:00] opencode_result: 已收到拒绝并回复。正在等待人类进一步指示。
+[2026-11-07T17:18:03+08:00] error: headless codex turn timed out after 15m0s
+[2026-11-07T17:18:03+08:00] timeout-recovery: ai-revops-4 already produced durable progress; leaving task state unchanged

@@ -1,0 +1,51 @@
+{
+  "id": "NEX-62",
+  "channel": "cos__human",
+  "title": "We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%), and Corti Labs (Q4, $61k, two unresolved support escalations). Draft a tailored renewal email for each, capture a per-account brief on the wiki, and write a renewal-outreach playbook we can reuse every quarter.",
+  "details": "We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%), and Corti Labs (Q4, $61k, two unresolved support escalations). Draft a tailored renewal email for each, capture a per-account brief on the wiki, and write a renewal-outreach playbook we can reuse every quarter.\n\n(operator nudge: no change to the brief — proceed as written)\n\n(operator nudge 2 — no change to the brief)\n\n@cos hit an error and stopped after retrying (something went wrong while it worked). Restart it from here, or hand it to another bot.\n\nresuming after the opencode database-lock failure\n\nresuming after an operator-initiated process kill\n\nresuming after clearing a 6.6 GB opencode session database\n\nCanceled by operator.",
+  "owner": "cos",
+  "status": "canceled",
+  "created_by": "human",
+  "task_type": "issue",
+  "pipeline_id": "issue",
+  "pipeline_stage": "canceled",
+  "execution_mode": "office",
+  "review_state": "canceled",
+  "lifecycle_state": "canceled",
+  "ledger": [
+    {
+      "agent": "cos",
+      "at": "2026-11-07T09:30:22Z",
+      "outcome": "exit status 0xffffffff",
+      "actions": [
+        "task_updated: We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%), and Corti Labs (Q4, $61k…"
+      ],
+      "context_used": [
+        "wiki:team/getting-started/channels.md",
+        "wiki:team/getting-started/connecting-your-work.md",
+        "wiki:team/getting-started/working-with-agents.md",
+        "wiki:team/getting-started/your-context-graph.md",
+        "wiki:team/pipeline/stage-definitions.md"
+      ]
+    },
+    {
+      "agent": "cos",
+      "at": "2026-11-07T09:44:36Z",
+      "outcome": "exit status 0xffffffff",
+      "actions": [
+        "task_updated: We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%), and Corti Labs (Q4, $61k…"
+      ],
+      "context_used": [
+        "wiki:team/getting-started/channels.md",
+        "wiki:team/getting-started/connecting-your-work.md",
+        "wiki:team/getting-started/working-with-agents.md",
+        "wiki:team/getting-started/your-context-graph.md",
+        "wiki:team/pipeline/stage-definitions.md",
+        "journal:NEX-62"
+      ]
+    }
+  ],
+  "created_at": "2026-11-07T09:06:14Z",
+  "updated_at": "2026-11-07T10:50:27Z",
+  "completed_at": "2026-11-07T10:50:27Z"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "NEX-9",
+  "channel": "human__revops",
+  "title": "Discover and enable a CRM connection for hygiene sweep",
+  "details": "Orientation work; not part of this run.",
+  "owner": "revops",
+  "status": "canceled",
+  "created_by": "revops",
+  "task_type": "research",
+  "pipeline_id": "research",
+  "pipeline_stage": "investigate",
+  "execution_mode": "live_external",
+  "review_state": "pending_review",
+  "lifecycle_state": "approved",
+  "created_at": "2026-11-07T09:02:41Z",
+  "updated_at": "2026-11-07T09:17:18Z"
+}

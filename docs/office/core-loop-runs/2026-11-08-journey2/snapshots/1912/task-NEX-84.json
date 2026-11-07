@@ -1,0 +1,48 @@
+{
+  "id": "NEX-84",
+  "channel": "cos__human",
+  "title": "[@cos] Repeated errors blocked: We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%), and Corti Labs (Q4, $61k, two unresolved support escalations). Draft a tailored renewal email for each, capture a per-account brief on the wiki, and write a renewal-outreach playbook we can reuse every quarter.",
+  "details": "## What happened\n\nCos hit the same error repeatedly while working on this and stopped to avoid wasting more attempts.\n\n> Cos reported: @cos hit an error and stopped after retrying (something went wrong while it worked). Restart it from here, or hand it to another bot.\n\n## What needs to happen\n\nThe Chief of Staff will look at the failing pattern and either fix the root cause or escalate to you with a specific question. If you know which step keeps breaking (e.g. \"the email send is rate-limited\"), comment it here — that often resolves it in one turn.\n\n**Original work:** We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%), and Corti Labs (Q4, $61k, two unresolved support escalations). Draft a tailored renewal email for each, capture a per-account brief on the wiki, and write a renewal-outreach playbook we can reuse every quarter. · NEX-62\n\n---\n\n### Bot context (for the assigned bot)\n\n- Bot: @cos\n- Original task: NEX-62\n- Trigger: max_retries\n- Detail: @cos hit an error and stopped after retrying (something went wrong while it worked). Restart it from here, or hand it to another bot.\n\n**Original task contract (verbatim — work from THIS, not from the clipped detail above):**\n\nWe have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%), and Corti Labs (Q4, $61k, two unresolved support escalations). Draft a tailored renewal email for each, capture a per-account brief on the wiki, and write a renewal-outreach playbook we can reuse every quarter.\n\n(operator nudge: no change to the brief — proceed as written)\n\n(operator nudge 2 — no change to the brief)\n\n@cos hit an error and stopped after retrying (something went wrong while it worked). Restart it from here, or hand it to another bot.\n\n**Repair loop:**\n\n1. Inspect the failed task and recent thread context. Use the pushed packet as authoritative; call team_poll or team_tasks only if context is missing.\n2. Classify the blocker: missing specialist/channel, missing or outdated skill/playbook, missing tool/provider/integration, stale runtime/session, unclear human decision, or implementation bug.\n3. Take the smallest reversible repair in office state. Prefer a bounded refresh/retry/requeue, reassignment, capability-check step, specialist/channel creation, playbook update, or exact human question before broad process changes.\n4. If runtime/tool state looks stale, refresh or reconnect once and verify with a cheap health check before treating it as a human blocker.\n5. Repair the missing capability first, then resume or requeue the original workflow with a concrete verification step. A self-heal that only reports the blocker is incomplete.\n6. Treat learning as a post-repair review: propose a skill or update a wiki/playbook only when the workaround is durable and reusable. Include the trigger, failure signature, recovery step, verification signal, and any tool/provider/channel constraints. If nothing reusable was learned, leave skills unchanged.\n7. Do not mark this self-healing task complete until the original task is unblocked, resumed/requeued with a clearer owner/cut line, or explicitly blocked behind a human decision.\n\nLatest incident:\n- Trigger: max_retries\n- Detail: @cos hit an error and stopped after retrying (something went wrong while it worked). Restart it from here, or hand it to another bot.\n\nCanceled by operator.",
+  "owner": "cos",
+  "status": "canceled",
+  "created_by": "system",
+  "task_type": "issue",
+  "pipeline_id": "incident",
+  "pipeline_stage": "canceled",
+  "execution_mode": "office",
+  "review_state": "canceled",
+  "parent_issue_id": "NEX-62",
+  "lifecycle_state": "canceled",
+  "ledger": [
+    {
+      "agent": "cos",
+      "at": "2026-11-07T09:30:22Z",
+      "outcome": "exit status 0xffffffff",
+      "context_used": [
+        "wiki:team/getting-started/channels.md",
+        "wiki:team/getting-started/connecting-your-work.md",
+        "wiki:team/getting-started/index.md",
+        "wiki:team/getting-started/working-with-agents.md",
+        "wiki:team/pipeline/stage-definitions.md"
+      ]
+    },
+    {
+      "agent": "cos",
+      "at": "2026-11-07T09:44:36Z",
+      "outcome": "exit status 0xffffffff",
+      "actions": [
+        "task_updated: [@cos] Repeated errors blocked: We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage u…"
+      ],
+      "context_used": [
+        "wiki:team/getting-started/channels.md",
+        "wiki:team/getting-started/connecting-your-work.md",
+        "wiki:team/getting-started/index.md",
+        "wiki:team/getting-started/working-with-agents.md",
+        "wiki:team/pipeline/stage-definitions.md"
+      ]
+    }
+  ],
+  "created_at": "2026-11-07T09:26:44Z",
+  "updated_at": "2026-11-07T10:50:27Z",
+  "completed_at": "2026-11-07T10:50:27Z"
+}

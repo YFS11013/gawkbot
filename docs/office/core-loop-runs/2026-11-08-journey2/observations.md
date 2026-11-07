@@ -74,3 +74,46 @@
 
 - 18:00 停 journey2（registry `state=paused`，数据保留），重新启用并拉起主办公室：`:7892/health` 200，`check-office-drift.ps1` 首行 `DRIFT: none`。
 - `opencode.db` 旧库保留为 `~/.local/share/opencode/opencode.db.pre-journey2`（6.6 GB），确认不需要历史后可删。
+
+## 重建（18:45 起）：环境级缺陷修复后重跑
+
+17:06–18:00 的第一次场景整段没有模型输出，定性为环境故障（见下）。18:45 起在三处代码修复落地后重建环境重跑。**场景起点重置为 18:55:55（10:55:55Z）NEX-98**，此前 NEX-62/NEX-95 的回合不计分。
+
+| 时间 | 事件 | 证据 |
+|---|---|---|
+| 18:45 | 重建 `gawkbot-fix.exe`（含 `cd9a67f`：取消即停回合 / opencode 数据目录按工作区隔离 / 创建前写配置） | `ls -l gawkbot-fix.exe` 18:45 |
+| 18:47 | 恢复 journey2：`/health` `provider=opencode`；`~/.wuphf-spaces/journey2/.local/share/opencode/auth.json` 出现（硬链接自用户目录，mtime 仍是 10-20）→ 隔离生效 | `/health`、`ls -l .local/share/opencode` |
+| 18:47 | 首回合 `opencode-go/beam-free` 报 `Rate limit exceeded`（`stream error` 两次），`?` 无正文 | `opencode/.local/share/opencode/log/opencode.log` |
+| 18:48–18:52 | 换 `opencode-go/glm-5.3` 实测可用（21s 返回 `OK`）；但办公 `cos` 回合在 15 万字节系统提示上长时间只产 reasoning，18:52 起 12 分钟无 text part | 直跑 `opencode run -m …`；DB `part` 表只有 `step-start/reasoning` |
+| 18:52 | 改钉 `WUPHF_OPENCODE_MODEL=opencode-go/gpt-5.6-luna`（User 环境 + 启动进程时显式传），重启 broker；`/health` `model=opencode-go/gpt-5.6-luna` | `/health` |
+| 18:53 | **测试污染**：`internal/team` 的 `TestRefreshIDPrefix*` 用 `HOME` 隔离，Windows 上 `os.UserHomeDir()` 读 `USERPROFILE` → 测试把 fixture 写进真实 `~/.wuphf-spaces/registry.json`，journey2 登记被覆盖 | registry 只剩 `acme-revops`，`runtime_home` 指向 `%TEMP%` 测试目录；已修（`WUPHF_SPACES_DIR` 覆盖 + 测试改用临时目录，提交 `76b9f28`） |
+| 18:55 | 手工恢复 registry 的 journey2 条目（`broker_port=7910`、`web_port=7911`、`state=paused`）后 `workspace resume` | `workspace resume` 输出 `Resumed "journey2"` |
+| 18:55:55 | **场景重新提交**：`POST /tasks` 父 Issue NEX-98（`owner=cos`、`created_by=human`、`channel=cos__human`），正文与 Journey 1 同一份三客户续约简报 | `snapshots/1912/task-NEX-98.json` |
+| 18:56–18:59 | cos 拆三条子 Issue：NEX-100（ae，邮件）、NEX-102（analyst，账户简报）、NEX-104（cos，playbook）；子任务频道为 `ae__cos` / `analyst__cos` | `snapshots/1912/tasks.json` |
+| 18:58 | NEX-102 done（`hollow_completion=true`）、NEX-100 done（`hollow_completion=true`）；自报已完成，但 `team/emails/`、`team/accounts/brightline.md` 不存在 | 同上 + `wiki-tree.txt` |
+| 18:58:03–18:58:05 | analyst 实际落了 `team/companies/acme-corp.md`、`corti-labs.md`、`needs-confirmation.md` + 3 个 facts.jsonl（archivist 抽取） | `wiki-tree.txt` mtime |
+| 18:56:27 | cos 把 playbook 写进 `agents/cos/notebook/2026-11-07-quarterly-renewal-outreach-playbook.md`，而 NEX-104 的 `artifact` 指向 `team/playbooks/quarterly-renewal-outreach.md`（该文件不存在） | 文件树 |
+| 18:59–19:11 | 办公室静默：无 opencode 进程，NEX-98/NEX-104 停在 `in_progress`；下一次唤醒是 `recheck:…:nex-104` @ 19:11:40、`task-follow-up:…:nex-98` @ 19:55:55 | `/scheduler` |
+| 18:57:04 | **已取消的 NEX-95 被重新拉起**：10:55 取消后又出现 `in_progress` 与 `turn_id=f45802a97db6747a 10:57:10Z` 的回合（§9.9 修复只停「运行中/排队中」的回合，管不到随后重投的派活） | `office/events.jsonl`、`broker-state.json` |
+
+## 停表（19:16）
+
+| 时间 | 事件 | 证据 |
+|---|---|---|
+| 18:55:50–18:56:18 | cos 的回合反复撞上 `live-chat-relay-post-error: request pending in this channel; answer required before chat resumes here`，生成的正文发不出去 | `headless-codex-cos.log:77-80` |
+| 18:59:00 | cos 最后一个回合 `status=ok final_chars=0`；此后到停表 **0** 个 `opencode.exe` | `headless-codex-latency.log`、进程计数 |
+| 19:07:39 / 19:08:39 | 看门狗发「@cos has gone quiet on … for about 11 minutes」——办公室自己也知道停了 | `messages.json` |
+| 19:11:54 | `scheduler: dispatched 1 due job(s)`；`recheck:cos--human:task:nex-104` 的 `last_run` 更新，但**没有回合、没有消息**，只有 `signals` 里一条 `task_stalled 11:11:54Z` | `broker.log`、`scheduler.json`、`signals` |
+| 19:16 | 停表。开放任务：`NEX-95 / NEX-98 / NEX-104 in_progress`、`task-skill-107 in_progress`；下属 `NEX-100 / NEX-102 done hollow_completion=true` | `snapshots/1925/tasks.json` |
+
+**待处理请求（全部保持 pending，未点）**
+
+| id | 频道 | 内容 |
+|---|---|---|
+| `request-44` | cos__human | Create the #general channel? |
+| `request-46` | cos__human | Reject the #review channel creation … |
+| `request-110` | analyst__human | 请提供三家客户的已知续约事实 … |
+| `request-113` | ae__human | 请补充或转发 NEX-95 中三家账户的事实摘要 … |
+| `request-117` | cos__human | @cos wants to promote "Quarterly Renewal Outreach Playbook" into the team wiki. Approve? |
+
+三张 `cos__human` 的卡同时是 cos 投递的闸门：只要有一张 pending，`live-chat-relay` 就拒发这个频道的任何内容（这正是 18:59 空转的机制）。prereg 允许的 1 次点击**没有用掉**——本轮要判的就是「不点会怎样」。

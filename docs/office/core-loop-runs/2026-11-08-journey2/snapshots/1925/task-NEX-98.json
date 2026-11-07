@@ -1,0 +1,34 @@
+{
+  "id": "NEX-98",
+  "channel": "cos__human",
+  "title": "三客户续约：Acme / Brightline / Corti Labs",
+  "details": "We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%), and Corti Labs (Q4, $61k, two unresolved support escalations). Draft a tailored renewal email for each, capture a per-account brief on the wiki, and write a renewal-outreach playbook we can reuse every quarter.",
+  "owner": "cos",
+  "status": "in_progress",
+  "created_by": "human",
+  "task_type": "issue",
+  "pipeline_id": "issue",
+  "pipeline_stage": "plan",
+  "execution_mode": "office",
+  "review_state": "pending_review",
+  "lifecycle_state": "planning",
+  "due_at": "2026-11-07T11:55:55Z",
+  "follow_up_at": "2026-11-07T11:55:55Z",
+  "reminder_at": "2026-11-07T12:25:55Z",
+  "recheck_at": "2026-11-07T12:10:55Z",
+  "ledger": [
+    {
+      "agent": "cos",
+      "at": "2026-11-07T10:56:18Z",
+      "outcome": "ok (no durable trace: no message, no task mutation)",
+      "context_used": [
+        "wiki:team/getting-started/channels.md",
+        "wiki:team/getting-started/connecting-your-work.md",
+        "wiki:team/getting-started/working-with-agents.md",
+        "wiki:team/pipeline/stage-definitions.md"
+      ]
+    }
+  ],
+  "created_at": "2026-11-07T10:55:55Z",
+  "updated_at": "2026-11-07T10:56:18Z"
+}

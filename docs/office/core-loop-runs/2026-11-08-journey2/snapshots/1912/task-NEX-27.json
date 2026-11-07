@@ -1,0 +1,33 @@
+{
+  "id": "NEX-27",
+  "channel": "cos__revops",
+  "title": "Flag stale opportunities",
+  "details": "Orientation work; not part of this run.",
+  "owner": "revops",
+  "status": "canceled",
+  "created_by": "cos",
+  "task_type": "issue",
+  "pipeline_id": "issue",
+  "pipeline_stage": "implement",
+  "execution_mode": "office",
+  "review_state": "not_required",
+  "parent_issue_id": "ai-revops-1",
+  "lifecycle_state": "approved",
+  "ledger": [
+    {
+      "agent": "revops",
+      "at": "2026-11-07T09:16:02Z",
+      "outcome": "exit status 1",
+      "said": "Done. NEX-23 is blocked pending CRM connection — reported to the human and @cos. No account records exist to deduplicate.",
+      "context_used": [
+        "wiki:team/getting-started/working-with-agents.md",
+        "wiki:team/getting-started/connecting-your-work.md",
+        "wiki:team/getting-started/index.md",
+        "wiki:team/getting-started/the-wiki.md",
+        "wiki:team/getting-started/your-context-graph.md"
+      ]
+    }
+  ],
+  "created_at": "2026-11-07T09:04:03Z",
+  "updated_at": "2026-11-07T09:17:18Z"
+}

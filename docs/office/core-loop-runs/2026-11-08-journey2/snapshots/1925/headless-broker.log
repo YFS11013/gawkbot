@@ -1,0 +1,102 @@
+Launching WUPHF Office web view... the browser is the team now.
+2026/11/07 17:00:20 INFO skill_consolidation_migration: no overlapping clusters found
+2026/11/07 17:00:20 [transport] share: registered (human-share)
+
+  Web UI:  http://127.0.0.1:7911
+  Broker:  http://127.0.0.1:7910
+  Press Ctrl+C to stop.
+
+Launching WUPHF Office web view... the browser is the team now.
+2026/11/07 17:00:39 WARNING wiki: gbrain unavailable (wiki_index_gbrain_entity: connect: connect gbrain mcp: calling "initialize": EOF); falling back to the in-memory index. Facts will NOT persist across restarts. Install gbrain, or set WUPHF_WIKI_BACKEND=memory to silence this.
+2026/11/07 17:00:40 wiki lint cron: disabled (set WUPHF_LINT_CRON=HH:MM to enable a daily run)
+2026/11/07 17:00:40 INFO skill_compile cron: started interval=30m0s
+2026/11/07 17:00:40 wiki_index: boot reconcile complete
+2026/11/07 17:00:40 INFO skill_crud: backfilled missing SKILL.md from broker state name=app-building path=team/skills/app-building.md
+2026/11/07 17:00:40 INFO skill_consolidation_migration: no overlapping clusters found
+2026/11/07 17:00:41 INFO skill_crud: backfilled missing SKILL.md from broker state name=wiki-maintenance path=team/skills/wiki-maintenance.md
+2026/11/07 17:00:41 INFO skill_crud: backfilled missing SKILL.md from broker state name=data-modeling path=team/skills/data-modeling.md
+2026/11/07 17:00:41 [transport] share: registered (human-share)
+
+  Web UI:  http://127.0.0.1:7911
+  Broker:  http://127.0.0.1:7910
+  Press Ctrl+C to stop.
+
+2026/11/07 17:00:56 scheduler: loop started (poll=20s)
+2026/11/07 17:01:12 onboarding: wiki materialized blueprint=ai-revops dirs=5 articles_created=5 articles_skipped=0
+2026/11/07 17:01:12 onboarding: wiki bootstrap committed acd9a7c (blueprint=ai-revops)
+2026/11/07 17:01:13 onboarding: getting-started pages committed 0fd303f
+2026/11/07 17:04:10 wiki write-task refused: task=ai-revops-4 slug=reviewer path=team/hygiene/scorecard.md: task ai-revops-4 declares no artifact_path; pass human_request instead
+2026/11/07 17:04:22 wiki write-task refused: task=ai-revops-2 slug=analyst path=team/pipeline/stage-definitions.md: task ai-revops-2 declares no artifact_path; pass human_request instead
+2026/11/07 17:05:36 workflow detect ai-revops-2: no recurring/end-to-end shape in corpus — skipping
+2026/11/07 17:07:36 scheduler: dispatched 1 due job(s)
+2026/11/07 17:09:56 scheduler: dispatched 1 due job(s)
+2026/11/07 17:10:56 scheduler: heartbeat (uptime=10m0s, poll=20s)
+2026/11/07 17:20:56 scheduler: heartbeat (uptime=20m0s, poll=20s)
+Launching WUPHF Office web view... the browser is the team now.
+2026/11/07 17:26:43 WARNING wiki: gbrain unavailable (wiki_index_gbrain_entity: connect: connect gbrain mcp: calling "initialize": EOF); falling back to the in-memory index. Facts will NOT persist across restarts. Install gbrain, or set WUPHF_WIKI_BACKEND=memory to silence this.
+2026/11/07 17:26:43 wiki lint cron: disabled (set WUPHF_LINT_CRON=HH:MM to enable a daily run)
+2026/11/07 17:26:43 INFO skill_compile cron: started interval=30m0s
+2026/11/07 17:26:43 broker: MigrateLegacyChannels: folded 4 legacy channel(s) into archived tasks: [analyst__human ae__human human__reviewer analyst__cos]
+2026/11/07 17:26:43 wiki_index: boot reconcile complete
+2026/11/07 17:26:43 [transport] share: registered (human-share)
+
+  Web UI:  http://127.0.0.1:7911
+  Broker:  http://127.0.0.1:7910
+  Press Ctrl+C to stop.
+
+2026/11/07 17:26:58 scheduler: loop started (poll=20s)
+2026/11/07 17:36:58 scheduler: heartbeat (uptime=10m0s, poll=20s)
+Launching WUPHF Office web view... the browser is the team now.
+2026/11/07 17:45:20 WARNING wiki: gbrain unavailable (wiki_index_gbrain_entity: connect: connect gbrain mcp: calling "initialize": EOF); falling back to the in-memory index. Facts will NOT persist across restarts. Install gbrain, or set WUPHF_WIKI_BACKEND=memory to silence this.
+2026/11/07 17:45:20 wiki lint cron: disabled (set WUPHF_LINT_CRON=HH:MM to enable a daily run)
+2026/11/07 17:45:20 INFO skill_compile cron: started interval=30m0s
+2026/11/07 17:45:20 wiki_index: boot reconcile complete
+2026/11/07 17:45:20 [transport] share: registered (human-share)
+
+  Web UI:  http://127.0.0.1:7911
+  Broker:  http://127.0.0.1:7910
+  Press Ctrl+C to stop.
+
+2026/11/07 17:45:35 scheduler: loop started (poll=20s)
+2026/11/07 17:55:35 scheduler: heartbeat (uptime=10m0s, poll=20s)
+Launching WUPHF Office web view... the browser is the team now.
+2026/11/07 18:47:37 WARNING wiki: gbrain unavailable (wiki_index_gbrain_entity: connect: connect gbrain mcp: calling "initialize": EOF); falling back to the in-memory index. Facts will NOT persist across restarts. Install gbrain, or set WUPHF_WIKI_BACKEND=memory to silence this.
+2026/11/07 18:47:37 wiki lint cron: disabled (set WUPHF_LINT_CRON=HH:MM to enable a daily run)
+2026/11/07 18:47:37 INFO skill_compile cron: started interval=30m0s
+2026/11/07 18:47:37 [transport] share: registered (human-share)
+
+  Web UI:  http://127.0.0.1:7911
+  Broker:  http://127.0.0.1:7910
+  Press Ctrl+C to stop.
+
+2026/11/07 18:47:37 wiki_index: boot reconcile complete
+2026/11/07 18:47:52 scheduler: loop started (poll=20s)
+Launching WUPHF Office web view... the browser is the team now.
+2026/11/07 18:51:36 WARNING wiki: gbrain unavailable (wiki_index_gbrain_entity: connect: connect gbrain mcp: calling "initialize": EOF); falling back to the in-memory index. Facts will NOT persist across restarts. Install gbrain, or set WUPHF_WIKI_BACKEND=memory to silence this.
+2026/11/07 18:51:36 wiki lint cron: disabled (set WUPHF_LINT_CRON=HH:MM to enable a daily run)
+2026/11/07 18:51:36 INFO skill_compile cron: started interval=30m0s
+2026/11/07 18:51:36 wiki_index: boot reconcile complete
+2026/11/07 18:51:36 [transport] share: registered (human-share)
+
+  Web UI:  http://127.0.0.1:7911
+  Broker:  http://127.0.0.1:7910
+  Press Ctrl+C to stop.
+
+2026/11/07 18:51:51 scheduler: loop started (poll=20s)
+Launching WUPHF Office web view... the browser is the team now.
+2026/11/07 18:55:39 WARNING wiki: gbrain unavailable (wiki_index_gbrain_entity: connect: connect gbrain mcp: calling "initialize": EOF); falling back to the in-memory index. Facts will NOT persist across restarts. Install gbrain, or set WUPHF_WIKI_BACKEND=memory to silence this.
+2026/11/07 18:55:39 wiki lint cron: disabled (set WUPHF_LINT_CRON=HH:MM to enable a daily run)
+2026/11/07 18:55:39 INFO skill_compile cron: started interval=30m0s
+2026/11/07 18:55:39 wiki_index: boot reconcile complete
+2026/11/07 18:55:39 [transport] share: registered (human-share)
+
+  Web UI:  http://127.0.0.1:7911
+  Broker:  http://127.0.0.1:7910
+  Press Ctrl+C to stop.
+
+2026/11/07 18:55:54 scheduler: loop started (poll=20s)
+2026/11/07 18:58:13 workflow detect NEX-102: not app-worthy ()
+2026/11/07 18:59:04 workflow detect NEX-100: not app-worthy ()
+2026/11/07 19:05:54 scheduler: heartbeat (uptime=10m0s, poll=20s)
+2026/11/07 19:11:54 scheduler: dispatched 1 due job(s)
+2026/11/07 19:15:54 scheduler: heartbeat (uptime=20m0s, poll=20s)
