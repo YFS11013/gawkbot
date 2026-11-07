@@ -1,6 +1,7 @@
 package team
 
 import (
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -58,7 +59,9 @@ func TestRefreshIDPrefixUsesWorkspaceNameWhenCompanyNameEmpty(t *testing.T) {
 	// WUPHF_RUNTIME_HOME. Point both at the temp dir so the seeded
 	// registry row matches this broker's runtime home.
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	t.Setenv("WUPHF_RUNTIME_HOME", home)
+	t.Setenv("WUPHF_SPACES_DIR", filepath.Join(home, ".wuphf-spaces"))
 
 	now := time.Now().UTC()
 	reg := &workspaces.Registry{
@@ -101,7 +104,9 @@ func TestRefreshIDPrefixUsesWorkspaceNameWhenCompanyNameEmpty(t *testing.T) {
 func TestRefreshIDPrefixCompanyNameWins(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	t.Setenv("WUPHF_RUNTIME_HOME", home)
+	t.Setenv("WUPHF_SPACES_DIR", filepath.Join(home, ".wuphf-spaces"))
 
 	now := time.Now().UTC()
 	reg := &workspaces.Registry{

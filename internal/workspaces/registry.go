@@ -64,6 +64,14 @@ type Workspace struct {
 // user-global; intentionally NOT under WUPHF_RUNTIME_HOME — the spaces
 // directory is the cross-workspace orchestration root, not per-workspace state.
 func spacesDir() (string, error) {
+	// Explicit override. os.UserHomeDir() reads %USERPROFILE% on Windows, so a
+	// test that isolates itself with HOME=/tmp (the Unix idiom) still writes
+	// this user's real ~/.wuphf-spaces/registry.json — which is how a test run
+	// once replaced a live workspace list with its own fixture. Anything that
+	// must not touch the operator's registry points this at a temp dir.
+	if dir := strings.TrimSpace(os.Getenv("WUPHF_SPACES_DIR")); dir != "" {
+		return dir, nil
+	}
 	home, err := os.UserHomeDir()
 	if err != nil || home == "" {
 		// Fall back to RuntimeHomeDir's resolution if HOME is unset (e.g. in

@@ -70,3 +70,18 @@ func TestSeedWorkspaceConfigLeavesAnExistingFileAlone(t *testing.T) {
 		t.Fatalf("existing config was overwritten: %s", raw)
 	}
 }
+
+// The registry lives under the operator's home by default. A test (or an
+// embedded run) that must not touch it sets WUPHF_SPACES_DIR — os.UserHomeDir
+// ignores HOME on Windows, so the Unix idiom alone is not enough.
+func TestSpacesDirHonorsExplicitOverride(t *testing.T) {
+	want := t.TempDir()
+	t.Setenv("WUPHF_SPACES_DIR", want)
+	got, err := spacesDir()
+	if err != nil {
+		t.Fatalf("spacesDir: %v", err)
+	}
+	if got != want {
+		t.Fatalf("spacesDir = %q, want %q", got, want)
+	}
+}
