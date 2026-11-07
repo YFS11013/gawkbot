@@ -95,7 +95,7 @@ func (l *Launcher) writeHeadlessOpencodeMCPConfig(slug string) (string, error) {
 	}
 	agents["wuphf-headless"] = map[string]any{
 		"permission": map[string]any{
-			"read":               "allow",
+			"read": "allow",
 			// Shell is not part of the core loop: bridge + QA run as scheduled
 			// tasks outside the bot. Bash turned bots into agents that probed
 			// the broker's own auth endpoints and edited files mid-brief.
@@ -107,13 +107,13 @@ func (l *Launcher) writeHeadlessOpencodeMCPConfig(slug string) (string, error) {
 			"doom_loop":          "allow",
 			// The digest is the only data source; fetching the web lets a bot
 			// invent numbers that the brief cannot cite back.
-			"webfetch":           "deny",
+			"webfetch": "deny",
 			// Subagents have no wuphf routing: a model that spawns one stalls
 			// the turn on "subagent route unsupported for this slug" instead of
 			// answering. Deny at the permission layer — prompt rules alone did
 			// not hold (2026-10-29: qwen3.5-122b looped twice on this).
-			"task": "deny",
-			"wuphf-office_*":     "allow",
+			"task":           "deny",
+			"wuphf-office_*": "allow",
 		},
 	}
 	merged["agent"] = agents
