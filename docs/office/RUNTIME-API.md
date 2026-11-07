@@ -914,6 +914,8 @@ WARN provider: no one-shot for this kind, using the opencode CLI
 
 为什么第 2 步是安全的：一个 HTTP provider 从来没有仓库工具，所以「不起 agent」不会丢掉调用方以为有、实际没有的上下文；反过来，今天的行为是让调用方**拿到一个它没选的模型**。
 
-未做（换成另一批）：把「无端点 → 报错」也定下来。这一步会改变 ollama/mlx/exo 默认安装下的行为（它们的内置 base URL 藏在各自的 `NewOpenAICompatStreamFn` 闭包里，`OneShotHTTPConfigFor` 取不到），要改得先把默认端点搬进 `Entry`，属于独立设计。
+默认端点：`OneShotHTTPConfigFor` 现在读 `NewOpenAICompatStreamFn` 注册的那张表（`openAICompatDefaultsFor`），所以**本机装了 ollama/mlx-lm/exo、什么都没配**也会走 HTTP，`WUPHF_<KIND>_BASE_URL`/`_MODEL` 仍然优先。没注册 StreamFn 的 kind 依旧是 invalid，不会凭空猜一个地址。
 
-测试：`TestRunConfiguredOneShotCtx_UsesHTTPWhenConfigured`（ollama + 测试端点 → 命中一次 `/v1/chat/completions`，答案来自 HTTP）。当前运行态 provider 是 `opencode`（`SupportsOneShot=true`），所以这条改动在现网不改变任何行为。
+代价要说清：provider 选的是本地模型但守护进程没起来时，以前会静默换成 opencode agent「假装答了」，现在直接报连接错误。这是有意的——调用方选的是那个模型，起 agent 只会给出一个它没选的答案。
+
+测试：`TestRunConfiguredOneShotCtx_UsesHTTPWhenConfigured`（显式端点 → 命中一次 `/v1/chat/completions`，答案来自 HTTP）、`TestOneShotHTTPConfigFor_DefaultsToTheProviderEndpoint`（无 env 时落到默认端点、env 优先、未知 kind 保持 invalid）。当前运行态 provider 是 `opencode`（`SupportsOneShot=true`），所以这条改动在现网不改变任何行为。

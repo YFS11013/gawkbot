@@ -39,3 +39,32 @@ func TestRunConfiguredOneShotCtx_UsesHTTPWhenConfigured(t *testing.T) {
 		t.Fatalf("endpoint hits = %d, want 1", hits.Load())
 	}
 }
+
+// A locally installed provider answers at its own address without any env
+// beyond the provider selection. Before this, ollama/mlx-lm/exo resolved to an
+// invalid one-shot config and the caller silently got the opencode agent.
+func TestOneShotHTTPConfigFor_DefaultsToTheProviderEndpoint(t *testing.T) {
+	t.Setenv("WUPHF_LLM_PROVIDER", "ollama")
+	t.Setenv("WUPHF_OLLAMA_BASE_URL", "")
+	t.Setenv("WUPHF_OLLAMA_MODEL", "")
+
+	cfg := OneShotHTTPConfigFor("ollama")
+	if !cfg.Valid() {
+		t.Fatal("ollama must resolve to its default endpoint")
+	}
+	if cfg.BaseURL != defaultOllamaBaseURL || cfg.Model != defaultOllamaModel {
+		t.Fatalf("got %s / %s, want %s / %s", cfg.BaseURL, cfg.Model, defaultOllamaBaseURL, defaultOllamaModel)
+	}
+
+	// An explicit endpoint still wins over the default.
+	t.Setenv("WUPHF_OLLAMA_BASE_URL", "http://127.0.0.1:9999/v1")
+	t.Setenv("WUPHF_OLLAMA_MODEL", "chosen")
+	if got := OneShotHTTPConfigFor("ollama"); got.BaseURL != "http://127.0.0.1:9999/v1" || got.Model != "chosen" {
+		t.Fatalf("env must override the default, got %s / %s", got.BaseURL, got.Model)
+	}
+
+	// A kind with no StreamFn has nothing to default to.
+	if OneShotHTTPConfigFor("no-such-provider").Valid() {
+		t.Fatal("an unknown kind must not invent an endpoint")
+	}
+}

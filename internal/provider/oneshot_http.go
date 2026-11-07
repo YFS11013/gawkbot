@@ -150,12 +150,18 @@ func clipRaw(b []byte, max int) string {
 // (WUPHF_<KIND>_BASE_URL / _MODEL / _API_KEY and ~/.wuphf/config.json
 // provider_endpoints). Returns an invalid config when the kind has no endpoint,
 // so callers can fall back instead of guessing.
+//
+// The defaults come from the same table NewOpenAICompatStreamFn populates, so
+// a locally installed ollama/mlx-lm/exo answers one-shots at its own address
+// instead of silently becoming an opencode agent. Providers that registered no
+// StreamFn (nothing to default to) still resolve to an invalid config.
 func OneShotHTTPConfigFor(kind string) OneShotHTTPConfig {
 	kind = strings.TrimSpace(kind)
 	if kind == "" {
 		return OneShotHTTPConfig{}
 	}
-	baseURL, model := config.ResolveProviderEndpoint(kind, "", "")
+	defaultBaseURL, defaultModel := openAICompatDefaultsFor(kind)
+	baseURL, model := config.ResolveProviderEndpoint(kind, defaultBaseURL, defaultModel)
 	return OneShotHTTPConfig{
 		BaseURL: baseURL,
 		Model:   model,
