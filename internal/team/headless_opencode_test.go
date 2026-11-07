@@ -194,3 +194,76 @@ func TestWriteHeadlessOpencodeMCPConfigLogsBaseConfigParseFailure(t *testing.T) 
 		t.Fatalf("expected base config path %q in bot log, got:\n%s", configPath, logStr)
 	}
 }
+
+// TestWriteHeadlessOpencodeMCPConfigPinsSmallModel verifies that the per-bot
+// config pins opencode's `small_model` to the office model. Without it opencode
+// resolves small calls (session titles) from its own provider default, and on
+// openrouter that default is an image model (google/gemini-nano-banana-2.1) —
+// every turn billed an image model to write a title.
+func TestWriteHeadlessOpencodeMCPConfigPinsSmallModel(t *testing.T) {
+	newLauncherForTest := func(t *testing.T) (*Launcher, string) {
+		t.Helper()
+		home := t.TempDir()
+		setTestHome(t, home)
+		t.Setenv("WUPHF_RUNTIME_HOME", home)
+		orig := headlessOpencodeExecutablePath
+		headlessOpencodeExecutablePath = func() (string, error) { return "/usr/local/bin/wuphf", nil }
+		t.Cleanup(func() { headlessOpencodeExecutablePath = orig })
+		configDir := filepath.Join(home, ".config", "opencode")
+		if err := os.MkdirAll(configDir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		return &Launcher{}, configDir
+	}
+	readWritten := func(t *testing.T, configDir string) map[string]any {
+		t.Helper()
+		raw, err := os.ReadFile(filepath.Join(configDir, "opencode.cos.json"))
+		if err != nil {
+			t.Fatalf("read per-bot config: %v", err)
+		}
+		var got map[string]any
+		if err := json.Unmarshal(raw, &got); err != nil {
+			t.Fatalf("per-bot config is not valid JSON: %v\n%s", err, raw)
+		}
+		return got
+	}
+
+	t.Run("pins office model", func(t *testing.T) {
+		l, configDir := newLauncherForTest(t)
+		t.Setenv("WUPHF_OPENCODE_MODEL", "openrouter/qwen/qwen3.5-122b-a10b")
+		t.Setenv("OPENCODE_MODEL", "")
+		if _, err := l.writeHeadlessOpencodeMCPConfig("cos"); err != nil {
+			t.Fatalf("writeHeadlessOpencodeMCPConfig: %v", err)
+		}
+		if got := readWritten(t, configDir)["small_model"]; got != "openrouter/qwen/qwen3.5-122b-a10b" {
+			t.Fatalf("small_model = %v, want the office model", got)
+		}
+	})
+
+	t.Run("keeps user small_model", func(t *testing.T) {
+		l, configDir := newLauncherForTest(t)
+		t.Setenv("WUPHF_OPENCODE_MODEL", "openrouter/qwen/qwen3.5-122b-a10b")
+		seed := `{"small_model":"local/keep-me"}`
+		if err := os.WriteFile(filepath.Join(configDir, "opencode.json"), []byte(seed), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := l.writeHeadlessOpencodeMCPConfig("cos"); err != nil {
+			t.Fatalf("writeHeadlessOpencodeMCPConfig: %v", err)
+		}
+		if got := readWritten(t, configDir)["small_model"]; got != "local/keep-me" {
+			t.Fatalf("small_model = %v, want the user value preserved", got)
+		}
+	})
+
+	t.Run("omits when no model configured", func(t *testing.T) {
+		l, configDir := newLauncherForTest(t)
+		t.Setenv("WUPHF_OPENCODE_MODEL", "")
+		t.Setenv("OPENCODE_MODEL", "")
+		if _, err := l.writeHeadlessOpencodeMCPConfig("cos"); err != nil {
+			t.Fatalf("writeHeadlessOpencodeMCPConfig: %v", err)
+		}
+		if _, ok := readWritten(t, configDir)["small_model"]; ok {
+			t.Fatal("small_model must not be invented when no office model is configured")
+		}
+	})
+}

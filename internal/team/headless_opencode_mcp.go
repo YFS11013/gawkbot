@@ -117,6 +117,19 @@ func (l *Launcher) writeHeadlessOpencodeMCPConfig(slug string) (string, error) {
 		},
 	}
 	merged["agent"] = agents
+	// Session titles and other small calls resolve separately from the `--model`
+	// flag. Left unset, opencode picks its own default for the provider and on
+	// openrouter that default is an image model (google/gemini-nano-banana-2.1),
+	// so every office turn billed an image model to write a title the operator
+	// never asked for. Pin it to the office model so one provider change does not
+	// silently reroute the small calls. (2026-11-07: observed in Journey 2 logs
+	// right after WUPHF_OPENCODE_MODEL moved to openrouter; opencode-go titles had
+	// used opencode-go/glm-5.3, i.e. the same provider as the main turn.)
+	if _, ok := merged["small_model"]; !ok {
+		if model := strings.TrimSpace(config.ResolveOpencodeModel()); model != "" {
+			merged["small_model"] = model
+		}
+	}
 	if _, ok := merged["$schema"]; !ok {
 		merged["$schema"] = "https://opencode.ai/config.json"
 	}
