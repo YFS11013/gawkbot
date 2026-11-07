@@ -1,0 +1,12 @@
+{
+  "task_id": "JOURN-24",
+  "events": [
+    {
+      "id": "action-36",
+      "kind": "lifecycle",
+      "timestamp": "2026-11-07T05:43:30Z",
+      "actor": "cos",
+      "summary": "Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "channel": "cos__human",
+  "messages": [
+    {
+      "id": "msg-1",
+      "from": "cos",
+      "channel": "cos__human",
+      "content": "I am Chief of Staff. Hand me the boring part: I read the threads, chase the follow ups, and do the menial work, and when you want a screen to manage the outcome I build you a microapp for it. You can also show me a workflow once on a screenshare and I will handle it from then on. Anything that leaves this office waits for your approval first.\n\nSo, what are you trying to get done? Give me the goal and I will plan the first thing. If the work needs more bots, I will propose them as we go.",
+      "tagged": null,
+      "timestamp": "2026-11-07T05:16:00Z"
+    },
+    {
+      "id": "msg-23",
+      "from": "system",
+      "channel": "cos__human",
+      "kind": "issue_created",
+      "title": "We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%),",
+      "content": "Issue created: JOURN-22 — We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%),",
+      "tagged": [
+        "cos",
+        "human"
+      ],
+      "timestamp": "2026-11-07T05:40:54Z",
+      "source_task_id": "JOURN-22",
+      "payload": {
+        "channel": "cos__human",
+        "created_by": "human",
+        "lifecycle_state": "running",
+        "owner": "cos",
+        "task_id": "JOURN-22",
+        "title": "We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%),"
+      }
+    },
+    {
+      "id": "msg-25",
+      "from": "system",
+      "channel": "cos__human",
+      "kind": "issue_created",
+      "title": "Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs",
+      "content": "Issue created: JOURN-24 — Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs",
+      "tagged": [
+        "cos",
+        "ae"
+      ],
+      "timestamp": "2026-11-07T05:43:30Z",
+      "source_task_id": "JOURN-24",
+      "payload": {
+        "channel": "cos__human",
+        "created_by": "cos",
+        "lifecycle_state": "running",
+        "owner": "ae",
+        "task_id": "JOURN-24",
+        "title": "Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs"
+      }
+    }
+  ],
+  "tagged_count": 0
+}

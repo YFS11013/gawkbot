@@ -1,0 +1,27 @@
+{
+  "task_id": "JOURN-24",
+  "events": [
+    {
+      "id": "action-36",
+      "kind": "lifecycle",
+      "timestamp": "2026-11-07T05:43:30Z",
+      "actor": "cos",
+      "summary": "Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs"
+    },
+    {
+      "id": "turn-JOURN-24-0",
+      "kind": "turn",
+      "timestamp": "2026-11-07T05:49:01Z",
+      "actor": "ae",
+      "summary": "ok (no durable trace: no message, no task mutation)",
+      "context_used": [
+        "wiki:team/getting-started/the-wiki.md",
+        "wiki:team/decisions/ops-log.md",
+        "wiki:team/getting-started/channels.md",
+        "wiki:team/getting-started/connecting-your-work.md",
+        "wiki:team/getting-started/index.md",
+        "learning:dd728beb-1936-48df-923f-0aab25e24883"
+      ]
+    }
+  ]
+}

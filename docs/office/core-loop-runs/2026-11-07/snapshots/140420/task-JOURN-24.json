@@ -1,0 +1,55 @@
+{
+  "taskId": "JOURN-24",
+  "lifecycleState": "running",
+  "spec": {},
+  "sessionReport": {
+    "highlights": "",
+    "topWins": null,
+    "deadEnds": null,
+    "metadata": null
+  },
+  "changedFiles": null,
+  "reviewerGrades": null,
+  "dependencies": {
+    "parentTaskId": "",
+    "blockedOn": null
+  },
+  "updatedAt": "2026-11-07T05:43:30.9548812Z",
+  "task": {
+    "id": "JOURN-24",
+    "channel": "cos__human",
+    "title": "Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs",
+    "details": "Draft one tailored renewal email per account, grounded in the account situations below. Tailor tone/approach per the renewal-outreach playbook (team/playbooks/renewal-outreach.md) and the per-account briefs (team/accounts/). Emails are drafts only — do not send; @reviewer QAs before send.\n\nAccount context:\n1. Acme Corp — Q3 renewal, $48k. Champion departed in May (name not on file). Risk: High (re-qualify; treat as re-sell; no assumption of renewal; ask for re-introduction meeting with new stakeholder). Lead with value recap.\n2. Brightline — Q3 renewal, $22k. Usage up 40%. Risk: Low (renew + propose expansion aligned to 40% growth; multi-year option). Lead with usage win.\n3. Corti Labs — Q4 renewal, $61k. Two unresolved support escalations. Risk: Medium-High (do NOT send standard renewal until escalations resolved/clear ETA; sequence support resolution first, then renewal with exec sponsor). Draft a post-resolution renewal email held until escalations clear.\n\nDeliver: 3 email drafts (subject + body) in your task output. Flag any [NEEDS CONFIRMATION] items per briefs.",
+    "owner": "ae",
+    "status": "in_progress",
+    "created_by": "cos",
+    "task_type": "issue",
+    "pipeline_id": "issue",
+    "pipeline_stage": "implement",
+    "execution_mode": "office",
+    "review_state": "pending_review",
+    "parent_issue_id": "JOURN-22",
+    "lifecycle_state": "running",
+    "due_at": "2026-11-07T06:43:30Z",
+    "follow_up_at": "2026-11-07T06:43:30Z",
+    "reminder_at": "2026-11-07T07:13:30Z",
+    "recheck_at": "2026-11-07T06:58:30Z",
+    "ledger": [
+      {
+        "agent": "ae",
+        "at": "2026-11-07T05:49:01Z",
+        "outcome": "ok (no durable trace: no message, no task mutation)",
+        "context_used": [
+          "wiki:team/getting-started/the-wiki.md",
+          "wiki:team/decisions/ops-log.md",
+          "wiki:team/getting-started/channels.md",
+          "wiki:team/getting-started/connecting-your-work.md",
+          "wiki:team/getting-started/index.md",
+          "learning:dd728beb-1936-48df-923f-0aab25e24883"
+        ]
+      }
+    ],
+    "created_at": "2026-11-07T05:43:30Z",
+    "updated_at": "2026-11-07T05:49:01Z"
+  }
+}

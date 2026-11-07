@@ -1,0 +1,76 @@
+{
+  "taskId": "JOURN-22",
+  "lifecycleState": "running",
+  "spec": {
+    "feedback": [
+      {
+        "appendedAt": "2026-11-07T05:44:56.428519Z",
+        "author": "cos",
+        "body": "Briefs (3) + quarterly renewal-outreach playbook drafted and saved to notebook. Wiki publish blocked: no human-authored chat message to authorize team_wiki_write (msg-23 is a system message). @ae drafting renewal emails in parallel (JOURN-24). Awaiting human 'save to wiki' confirmation to publish canonically."
+      }
+    ]
+  },
+  "sessionReport": {
+    "highlights": "",
+    "topWins": null,
+    "deadEnds": null,
+    "metadata": null
+  },
+  "changedFiles": null,
+  "reviewerGrades": null,
+  "dependencies": {
+    "parentTaskId": "",
+    "blockedOn": null
+  },
+  "updatedAt": "2026-11-07T05:44:56.428519Z",
+  "task": {
+    "id": "JOURN-22",
+    "channel": "cos__human",
+    "title": "We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%),",
+    "details": "We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%),\n ▏ and Corti Labs (Q4, $61k, two unresolved support escalations). Draft a tailored renewal email for each, capture a\n ▏ per-account brief on the wiki, and write a renewal-outreach playbook we can reuse every quarter.\n\nWe have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%), and Corti Labs (Q4, $61k, two unresolved support escalations). Draft a tailored renewal email for each, capture a per-account brief on the wiki, and write a renewal-outreach playbook we can reuse every quarter.\n\nBriefs (3) + quarterly renewal-outreach playbook drafted and saved to notebook. Wiki publish blocked: no human-authored chat message to authorize team_wiki_write (msg-23 is a system message). @ae drafting renewal emails in parallel (JOURN-24). Awaiting human 'save to wiki' confirmation to publish canonically.",
+    "owner": "cos",
+    "status": "in_progress",
+    "created_by": "human",
+    "thread_id": "msg-23",
+    "task_type": "issue",
+    "pipeline_id": "issue",
+    "pipeline_stage": "breakdown",
+    "execution_mode": "office",
+    "provider": "opencode",
+    "review_state": "pending_review",
+    "lifecycle_state": "running",
+    "due_at": "2026-11-07T06:44:56Z",
+    "follow_up_at": "2026-11-07T06:44:56Z",
+    "reminder_at": "2026-11-07T07:14:56Z",
+    "recheck_at": "2026-11-07T06:59:56Z",
+    "definition": {
+      "goal": "Land all three upcoming renewals (Acme Corp $48k Q3, Brightline $22k Q3, Corti Labs $61k Q4) by producing tailored renewal emails, per-account briefs, and a reusable quarterly renewal-outreach playbook.",
+      "success_criteria": [
+        "3 tailored renewal emails drafted (one per account)",
+        "3 per-account renewal briefs published to wiki (team/accounts/)",
+        "1 reusable renewal-outreach playbook published to wiki (team/playbooks/renewal-outreach.md)",
+        "Emails QA'd by @reviewer before send; briefs grounded only in task-provided account facts"
+      ],
+      "defined_at": "2026-11-07T05:43:24Z"
+    },
+    "ledger": [
+      {
+        "agent": "cos",
+        "at": "2026-11-07T05:45:24Z",
+        "outcome": "ok",
+        "actions": [
+          "task_updated: We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%), [in_progress]",
+          "task_updated: We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%), [in_progress]"
+        ],
+        "context_used": [
+          "wiki:team/getting-started/channels.md",
+          "wiki:team/getting-started/connecting-your-work.md",
+          "wiki:team/getting-started/working-with-agents.md",
+          "wiki:team/getting-started/your-context-graph.md"
+        ]
+      }
+    ],
+    "created_at": "2026-11-07T05:40:54Z",
+    "updated_at": "2026-11-07T05:45:24Z"
+  }
+}

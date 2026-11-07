@@ -1,0 +1,40 @@
+0b2f18e librarian: compile skill renewal-outreach
+d808541 archivist: compile playbook renewal-outreach
+9a7f6f6 Publish quarterly renewal-outreach playbook per human 'save to wiki' authorization
+328f6c3 Publish Corti Labs renewal brief per human 'save to wiki' authorization
+78c00e8 Publish Brightline renewal brief per human 'save to wiki' authorization
+cf96d59 Publish Acme Corp renewal brief per human 'save to wiki' authorization
+b36fb30 human: remember (write_kb)
+8c19d89 Renewal Email Drafts — JOURN-24
+5fcc001 Renewal briefs + playbook draft (JOURN-22)
+1aa76a9 wuphf: recover from crashed write
+7c76fdb Follow-up sequence v1 — stale-but-real re-engagement
+f759928 archivist: entity article companies/no-crm (1 facts)
+1eeb87b archivist: entity article companies/crm-pipeline (1 facts)
+3f1846b learning: pattern/pipeline-truth-baseline-honest-first-read
+938f133 graph: companies/no-crm → 1 ref(s)
+7e4ece0 fact: companies/no-crm — Completed task ai-revops-2 ("Establish the pipeline-truth baseline") involved this entity. Goal: Establish the pipeline-truth baseline. Co-occurring entities: [[companies/crm-pipeline]].
+12665bc graph: companies/crm-pipeline → 1 ref(s)
+5ec3b37 fact: companies/crm-pipeline — Completed task ai-revops-2 ("Establish the pipeline-truth baseline") involved this entity. Goal: Establish the pipeline-truth baseline. Co-occurring entities: [[companies/no-crm]].
+bd31add Pipeline Truth Baseline — Honest First Read
+d458859 artifact: create visual artifact ra_36c72287b9e5ac4c
+007da90 wuphf: materialize ai-revops blueprint skeletons
+77cf571 bot: seed agents/ae/TOOLS.md
+896f0a9 bot: seed agents/ae/OPERATIONS.md
+f6c504e bot: seed agents/ae/IDENTITY.md
+e9778ba bot: seed agents/ae/SOUL.md
+66fcae9 bot: seed agents/analyst/TOOLS.md
+03cab80 bot: seed agents/analyst/OPERATIONS.md
+ce52fa7 bot: seed agents/analyst/IDENTITY.md
+85f7b50 bot: seed agents/analyst/SOUL.md
+e6cf126 bot: seed agents/revops/TOOLS.md
+84da8ff bot: seed agents/revops/OPERATIONS.md
+51baf77 bot: seed agents/revops/IDENTITY.md
+dd0f1bc bot: seed agents/revops/SOUL.md
+159b5e4 Pipeline-truth baseline progress
+cf35708 CRM Hygiene Scorecard & Review Cadence
+6babd7a Follow-up sequence draft v1
+29b048c wuphf: materialize getting-started wiki pages
+00b569c wuphf: materialize ai-revops blueprint skeletons
+6e81f5c wuphf: backfill skill data-modeling from broker state
+4081b03 wuphf: backfill skill wiki-maintenance from broker state
