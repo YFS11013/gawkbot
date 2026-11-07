@@ -322,6 +322,36 @@ digest ──► render_artifacts()（脚本，0 LLM）
 
 按作者 Journey 1 跑一条人给的、带 Goal / Deliverables+格式 / Success criteria 的任务，逐段按 rubric 记分，结果落 `docs/office/core-loop-runs/<date>.md`。跑通之前不再加场景——包括 `USE-CASES-2026-11-01.md` 里的 A2/A3。
 
+### 9.6 专家评审（2026-11-07，五个视角）
+
+目的是回答「两周内能不能拿出可复现证据证明这套办公室能干什么」。五份意见独立给出，下面是压缩版；原始长答不作为文档维护对象。
+
+| 视角 | 结论 | 最硬的一条依据 |
+|---|---|---|
+| **产品推广** | 只能对「要本地可审计定时管线」的技术型创始人讲；撤回「多 bot 争论并交付」 | 今天可复现的三条：`forex-bridge.py` → wiki 产物、`check-office-drift.ps1` → `DRIFT: none`、`WUPHF_RUNTIME_HOME` 隔离复现 |
+| **多智能体系统** | 只修一处：技能 `Inputs` 结构化 + 创建时校验 | `createSkillRunTaskLocked` 之前没有输入校验 → 散文 Inputs 照进队 → 403 问不到 → 30 分钟重放 = 41 次 abort，一处可截断两处 |
+| **红队** | 两周内**不该推广** | 20 次是文件数不是简报数；分析段全 `待补`；唯一审阅样本是 87 字节演练件；`ACMER-3344` 的验收门结构性不可满足（产物 mtime 必须晚于任务创建，而 bot 无 shell） |
+| **评估方法** | 现行 rubric 有 7 处可事后解释，必须预注册 + 硬失败条件 | 5 级行为锚、依赖阻断、A/B/C 证据分级、总分 = median(9 步)；触发 F1–F6 任一即判「循环不成立」 |
+| **运维** | 用 `workspace` 隔离，别手设 `WUPHF_RUNTIME_HOME` | 端口池 791x 起、按端口取 token、Demo 必须钉 markdown；成本上限 12 turn / 8 分钟 / $0.05 |
+
+**复核：专家说法里被实测推翻或补强的部分**
+
+- `workspace create --from-scratch NAME` 实测可用（:7910 / :7911），但 **flag 必须写在子命令后、名字前**；写成 `create NAME --from-scratch` 会报 `unexpected extra argument`。`shred` 同理（`shred --yes NAME`）。
+- 新 workspace 的 `/health` 实测是 `provider=claude-code`、`provider_model=""`、`memory_backend=gbrain`、`members=1`。所以「钉 markdown」不是保险而是**必需**（gbrain 下 `/wiki/write*` 一律 503，见 TODO K），provider 也必须显式指定；新建办公室还需要走一次 onboarding 才有团队。
+- `/api-token` 返回的是 JSON `{token, broker_url, analytics}`，不是裸 token 字符串。
+- 红队的两条硬纠正确认：`artifacts/forex/` 的 20 是**文件数**（10 天 × 2），窗口内只有 5 个交易日 / 5 份 `team/forex-brief-*.md`；每天的分析段 `待补` 各命中 1 次。审阅样本 `ACMER-2847` 审的确实是 `team/drills/review-target-3.md`（87 字节）。
+- 读侧信号：窗口内 69 条 `reader=web, is_agent=false` 无法区分真人浏览与宿主工具，**消费仍未测量**；要测就得给读请求加调用方身份。
+- `~/.wuphf-spaces/registry.json` 里有一条测试残留：`acme-revops`，`state=running` 但 `broker_port=0`、`runtime_home` 指向 `%TEMP%` 下已不存在的目录。`workspace list` 会把它当运行中。跑 Demo 前先 `workspace doctor` 清掉，否则脚本会误判基线。
+
+**由此定下的四件事**
+
+1. **预注册 + 硬失败条件**（评估方法那份的 F1–F6）作为 Journey 1 的前置：先 commit `core-loop-runs/<date>-prereg.md`，再建任务。
+2. **证据分级**：A 机器可验（`verification.pass` + git hash + mtime 关系）> B 文件在盘 > C 截图口述；C 不能单独支撑 ≥4 分。
+3. **对外口径收窄**：不宣称「AI 分析」——现有产物是脚本骨架；可宣称的是「定时、可审计、会被机检拒绝的交付管线」。
+4. **`Inputs` 结构化排在 Journey 1 之后**：它修的是技能调用链，不是循环入口；但它是「协作层还救不救」的前置。
+
+**未决（要人拍板）**：Journey 1 是否本周排（约 1–2 小时人工 + 新建 workspace 的 onboarding）；以及红队主张的「读侧信号」要不要先补（给 `/wiki/read*` 带调用方身份）。
+
 ### 8.5 巡检发现：覆盖、索引、倒计时（2026-10-30 05:10 UTC）
 
 - **Medium 事件被静默丢弃**：`MEDIUM_KEEP` 只匹配央行类关键词，导致德国 10 月初值 CPI（07:29 UTC）、德国 GDP（09:00）、美国 ECI（12:30）、加拿大 GDP 全部从日历消失。修复后本周事件 24 → 30 条，当日未来事件从 1 条恢复为 4 条。

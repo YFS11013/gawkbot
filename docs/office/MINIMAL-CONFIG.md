@@ -139,12 +139,15 @@ pwsh -NoProfile -File scripts/office/check-office-drift.ps1
 
 | 面 | 观测 |
 |---|---|
-| 业务产出 | **20 次** `artifact: forex brief`（job `5`，每交易日一次） |
+| 业务产出 | 窗口内 **5 个交易日**都出了产物：`artifacts/forex/2026-11-0N.md` + `-headline.md` 各 5 个，`team/forex-brief-*.md` 5 份。**"20 次"是错的**（2026-11-07 复核改正）：20 是 `artifacts/forex/` 的累计文件数（10 天 × 2），被原表当成了窗口内次数 |
+| 产物的内容 | 每份 `artifacts/forex/2026-11-0N.md` 的分析段都是 **`待补`**（11-02..11-07 逐日 `grep -c 待补` = 1），`team/forex-brief-*.md` 头部也写着「脚本生成」。即 `DESIGN-DECISIONS` D2 要 LLM 写的那 5–8 行判断**从未落盘**，交付物只有脚本骨架 |
 | 人工需求 | **0 个**新建任务；`~/.wuphf/tasks` 自 11-02 起无写入 |
 | 团队层自发活动 | `meeting-prep` 共 **44 次执行：1 次成功、2 次部分、41 次 aborted**（11-01 19 次、11-02 21 次、11-06 1 次）。wiki 只提交了 14 条 `playbook execution … aborted`，其余只落在 `meeting-prep.executions.jsonl` |
 | 系统 cron | 7 条全部在跑；`wiki-archive-sweep` 每天 03:05 |
 | wiki 噪声 | 303 次提交是 `team/alerts.md`（占比 74%），来源见下节；另有 8 次 `recover from crashed write` |
 | 论点台账 | `TH-2026-11-02-001` 窗口 11-02..11-06 已关，复核 11-09，状态 pending |
+| 人类读取 | **未测量**。`.reads/reads.jsonl` 有记录，但窗口内 `reader=web, is_agent=false` 的 69 条无法区分真人浏览与宿主工具（本次复核自己也读过 wiki），不能拿它当"有人读"的证据；要测就得给读请求加调用方身份 |
+| 审阅回合的生产样本 | **0**。唯一的 `team/reviews/ACMER-2847.md` 审的是 `team/drills/review-target-3.md`（87 字节演练件），不是生产交付 |
 
 ### 试验的副作用（已修，记录在案）
 
@@ -162,9 +165,9 @@ pwsh -NoProfile -File scripts/office/check-office-drift.ps1
 
 | 判据 | 结论 |
 |---|---|
-| 简报照常出 | 是，20 次 |
+| 简报照常出 | 是，窗口内 5 个交易日都出了产物；但产物是脚本骨架，分析段全部 `待补` |
 | 你没觉得少东西 | 成立。6 天里人类只发了 **1 条**消息，而且是回答 bot 的求助（让宿主机重跑 `forex-bridge.py` 重生 digest），不是提新需求；新建任务 0 个 |
-| 团队层产生价值 | **没有**。8 个 enabled job 里 7 个是系统 cron，唯一业务产出来自一个定时脚本链；多 bot 自身产出的是 **10 条 `task_stalled` + 14 条 consult relay + 41 次中止的 playbook**，全部是维护自己的流量 |
+| 团队层产生价值 | **没有**。8 个 enabled job 里 7 个是系统 cron，唯一业务产出来自一个定时脚本链，而且 LLM 层对这份产物**没有贡献**（分析段待补）；多 bot 自身产出的是 **10 条 `task_stalled` + 14 条 consult relay + 41 次中止的 playbook**，全部是维护自己的流量 |
 | 论点台账值得保留 | 保留，但它与团队层无关：`check_theses.py` 只读快照数据 |
 
 那 41 次中止的根因（`meeting-prep.executions.jsonl` 原文）：
