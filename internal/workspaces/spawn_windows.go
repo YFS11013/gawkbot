@@ -4,6 +4,7 @@ package workspaces
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"syscall"
@@ -48,16 +49,31 @@ func defaultSpawn(name string, runtimeHome string, brokerPort, webPort int) erro
 
 	// No context watcher: the child is meant to outlive us, so there is nothing
 	// that should be able to cancel it.
-	cmd := exec.Command(binary, spawnArgs(brokerPort, webPort)...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: windows.CREATE_NEW_PROCESS_GROUP | windows.DETACHED_PROCESS,
-		HideWindow:    true,
+	newCmd := func(flags uint32) *exec.Cmd {
+		c := exec.Command(binary, spawnArgs(brokerPort, webPort)...)
+		c.SysProcAttr = &syscall.SysProcAttr{CreationFlags: flags, HideWindow: true}
+		c.Stdout = logFile
+		c.Stderr = logFile
+		c.Env = spawnEnv(runtimeHome, brokerPort)
+		return c
 	}
-	cmd.Stdout = logFile
-	cmd.Stderr = logFile
-	cmd.Env = spawnEnv(runtimeHome, brokerPort)
 
-	if err := cmd.Start(); err != nil {
+	const baseFlags = windows.CREATE_NEW_PROCESS_GROUP | windows.DETACHED_PROCESS
+	// CREATE_BREAKAWAY_FROM_JOB: DETACHED_PROCESS alone keeps the child inside
+	// whatever job object the parent belongs to. Terminals and task runners
+	// commonly put their command tree in a job that is terminated when the
+	// command finishes, so the "detached" broker died seconds after the
+	// resume/create command that started it returned. Breakaway is refused
+	// when the job forbids it (ERROR_ACCESS_DENIED); fall back to the old flags
+	// so a restrictive job degrades to the previous behavior instead of
+	// failing to start the office at all.
+	cmd := newCmd(baseFlags | windows.CREATE_BREAKAWAY_FROM_JOB)
+	err = cmd.Start()
+	if err != nil && isJobBreakawayDenied(err) {
+		cmd = newCmd(baseFlags)
+		err = cmd.Start()
+	}
+	if err != nil {
 		return fmt.Errorf("workspaces: spawn %q: start process: %w", name, err)
 	}
 
@@ -81,6 +97,12 @@ func defaultSpawn(name string, runtimeHome string, brokerPort, webPort int) erro
 	// process holds, so the broker is fully independent of us.
 	_ = cmd.Process.Release()
 	return nil
+}
+
+// isJobBreakawayDenied reports whether CreateProcess refused the breakaway flag
+// because the parent's job object does not allow it.
+func isJobBreakawayDenied(err error) bool {
+	return errors.Is(err, syscall.ERROR_ACCESS_DENIED)
 }
 
 // terminateSpawned kills a child that failed to become ready and waits for it
