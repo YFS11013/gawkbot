@@ -7,16 +7,31 @@ import (
 	"os/exec"
 	"strconv"
 	"sync"
+	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
 
-// configureHeadlessProcess is empty on Windows on purpose: there is no
-// process-group flag to set at spawn time. The equivalent boundary — a kernel
-// job object that owns the tool and everything the tool starts — can only be
-// attached once a pid exists, so startHeadlessProcess does it.
-func configureHeadlessProcess(cmd *exec.Cmd) {}
+// createNoWindow keeps a spawned console program from opening a console window.
+//
+// Without it, a turn started by a broker that has no console of its own (the
+// workspace orchestrator spawns brokers DETACHED_PROCESS, so they have none)
+// pops a window for every tool call, and `command` verification pops one per
+// check. Inheriting a hidden console is not something to rely on: whether the
+// broker has one depends on how it was started.
+const createNoWindow = 0x08000000
+
+// configureHeadlessProcess turns off the console window. The ownership
+// boundary — a kernel job object that owns the tool and everything the tool
+// starts — can only be attached once a pid exists, so startHeadlessProcess
+// does that; this is only about visibility.
+func configureHeadlessProcess(cmd *exec.Cmd) {
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.SysProcAttr.CreationFlags |= createNoWindow
+}
 
 // startHeadlessProcess starts cmd and puts it in a job object.
 //

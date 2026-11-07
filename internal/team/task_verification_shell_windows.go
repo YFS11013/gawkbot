@@ -28,6 +28,9 @@ import (
 // this only stops Go from re-quoting the text on the way in.
 func verificationShellCommand(ctx context.Context, spec string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, "cmd")
-	cmd.SysProcAttr = &syscall.SysProcAttr{CmdLine: `cmd /S /C "` + spec + `"`}
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		CmdLine:       `cmd /S /C "` + spec + `"`,
+		CreationFlags: createNoWindow,
+	}
 	return cmd
 }

@@ -3,13 +3,32 @@
 package team
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
+	"syscall"
 	"testing"
 	"time"
 )
+
+var (
+	kernel32Once         sync.Once
+	procGetConsoleWindow *syscall.LazyProc
+)
+
+// consoleWindowProbe reports whether the current process owns a console
+// window. Used by the test below to prove configureHeadlessProcess actually
+// suppresses the window rather than merely setting a flag.
+func consoleWindowProbe() uintptr {
+	kernel32Once.Do(func() {
+		procGetConsoleWindow = syscall.NewLazyDLL("kernel32.dll").NewProc("GetConsoleWindow")
+	})
+	h, _, _ := procGetConsoleWindow.Call()
+	return h
+}
 
 // processAlive reports whether a pid still exists. tasklist exits 0 whether or
 // not it matched, so the pid string has to be found in the output.
@@ -124,4 +143,33 @@ func TestHeadlessJobKillsLeftoversWhenTheToolExits(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	}
 	t.Fatalf("leftover %s outlived the tool that started it: the turn owned no boundary it could not leave", leftover)
+}
+
+// A bot turn is a console program. Spawned by a broker that has no console of
+// its own — the workspace orchestrator starts brokers DETACHED_PROCESS — it
+// opens a window per tool call. The user sees a flash per turn; a recorded demo
+// sees one mid-take. This asserts the child really has no console window.
+func TestConfigureHeadlessProcessSuppressesConsoleWindow(t *testing.T) {
+	if os.Getenv("WUPHF_TEST_CONSOLE_PROBE") == "1" {
+		if consoleWindowProbe() == 0 {
+			fmt.Println("NO_CONSOLE_WINDOW")
+		} else {
+			fmt.Println("HAS_CONSOLE_WINDOW")
+		}
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestConfigureHeadlessProcessSuppressesConsoleWindow")
+	cmd.Env = append(os.Environ(), "WUPHF_TEST_CONSOLE_PROBE=1")
+	configureHeadlessProcess(cmd)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("probe child: %v\n%s", err, out)
+	}
+	if strings.Contains(string(out), "HAS_CONSOLE_WINDOW") {
+		t.Fatalf("spawned turn still owns a console window:\n%s", out)
+	}
+	if !strings.Contains(string(out), "NO_CONSOLE_WINDOW") {
+		t.Fatalf("probe produced no verdict:\n%s", out)
+	}
 }
