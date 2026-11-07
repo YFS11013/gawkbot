@@ -720,6 +720,86 @@ func skillLLMTimeout() time.Duration {
 	return defaultSkillLLMTimeout
 }
 
+// Decision-gate thresholds. Calibrated on the 79-article tree against the
+// provenance labels in team/skills/*.md (source_articles, 11 positives) plus 19
+// negatives: perplexity/pplx-decider-flash-v1.2 put all 11 positives at
+// >=0.61 and 18 of 19 negatives at <=0.22 (AUC 1.00).
+const (
+	skillGateAccept = 0.50 // >= this: spend a text call to author the body
+	skillGateReject = 0.30 // <  this: not a skill, cache the verdict
+	// Between the two: no verdict. Returning an error keeps the article out of
+	// the cache so the next pass asks again — a calibrated 0.4 is not a "no".
+)
+
+// skillGateDecideConfig reads the decision-gate endpoint. Unset means the gate
+// is disabled and AskIsSkill goes straight to the text path.
+func skillGateDecideConfig() provider.DecisionsConfig {
+	model := strings.TrimSpace(os.Getenv("WUPHF_SKILL_GATE_MODEL"))
+	if model == "" {
+		return provider.DecisionsConfig{}
+	}
+	key := strings.TrimSpace(os.Getenv("WUPHF_SKILL_GATE_API_KEY"))
+	if key == "" {
+		key = strings.TrimSpace(os.Getenv("OPENROUTER_API_KEY"))
+	}
+	return provider.DecisionsConfig{
+		BaseURL: strings.TrimSpace(os.Getenv("WUPHF_SKILL_GATE_BASE_URL")),
+		APIKey:  key,
+		Model:   model,
+	}
+}
+
+// skillGateDecide asks the decision model whether the article should become a
+// skill. ok=false with a nil error is a confident rejection; an error means no
+// verdict was obtained.
+func skillGateDecide(ctx context.Context, articlePath, articleContent, existingSkillsSummary string) (bool, error) {
+	cfg := skillGateDecideConfig()
+	if !cfg.Valid() {
+		return true, nil // gate disabled: let the text path decide
+	}
+	state := map[string]string{
+		"article_path": articlePath,
+		"article":      articleContent,
+	}
+	if strings.TrimSpace(existingSkillsSummary) != "" {
+		state["existing_skills"] = existingSkillsSummary
+	}
+	questions := map[string]provider.DecisionQuestion{
+		"is_skill": {
+			Type:         "noul",
+			Instructions: "Is this article a reusable, bot-callable procedure that should become a skill, or an improvement to an existing skill?",
+			Criteria: map[string]string{
+				"true":  "It describes a repeatable procedure a bot could execute again, or details that improve an existing skill.",
+				"false": "It is a one-off note, a status report, a review log, a person or company profile, or reference material.",
+			},
+		},
+	}
+	// The gate is a prefilter, so it gets its own deadline: the text path's
+	// 180s is meant for generation, not for a yes/no.
+	gateCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	res, err := provider.RunDecisionsCtx(gateCtx, cfg, state, questions)
+	if err != nil {
+		return false, fmt.Errorf("skill_scanner: decision gate: %w", err)
+	}
+	ans, err := res.Answer("is_skill")
+	if err != nil {
+		return false, fmt.Errorf("skill_scanner: decision gate: %w", err)
+	}
+	pYes, err := ans.NoulProbability()
+	if err != nil {
+		return false, fmt.Errorf("skill_scanner: decision gate: %w", err)
+	}
+	switch {
+	case pYes >= skillGateAccept:
+		return true, nil
+	case pYes < skillGateReject:
+		return false, nil
+	default:
+		return false, fmt.Errorf("skill_scanner: decision gate uncertain (p=%.2f) for %s", pYes, articlePath)
+	}
+}
+
 // skillJudgeHTTPConfig resolves the HTTP endpoint used for skill verdicts.
 //
 // Two ways to point it somewhere, both optional:
@@ -842,6 +922,16 @@ func (p *defaultLLMProvider) AskIsSkill(ctx context.Context, articlePath, articl
 			fm.License = "MIT"
 		}
 		return true, fm, body, "", nil
+	}
+
+	// Gate: when a decision model is configured, ask it first. It answers a
+	// typed yes/no in ~0.9s for ~1.7k input tokens, where the text path costs
+	// 7-120s and 100-800 output tokens. Only articles that clear the threshold
+	// reach the text model, which is the only thing that can author a body.
+	if ok, err := skillGateDecide(ctx, articlePath, articleContent, existingSkillsSummary); err != nil {
+		return false, SkillFrontmatter{}, "", "", err
+	} else if !ok {
+		return false, SkillFrontmatter{}, "", "", nil
 	}
 
 	// LLM path: wrap the caller's context with a per-call deadline so a slow

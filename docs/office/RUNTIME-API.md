@@ -770,3 +770,44 @@ POST /skills/compile {"dry_run":true,"scope_path":"team/reviews"}
 **缓存现状**：`skills-scan-cache.json` 里 72 条是 qwen 时代的结论、7 条是 `openrouter/free`（v2 版本号不区分模型）。要拿到单一模型的基线就得整体重判（budget 50/轮 → 两轮，约 20–30 分钟）；但 cron 的 pass 不是 dry-run，重判会**真的**把 `forex-watch-2026-11-03`、`fund-invest-2026-11-02` 两篇技能改写（追加 “Quality checklist / Enhancements from OFFICE-3012” 段）。所以没有自动做，等操作者决定。
 
 另：`team/skills/` 下是**扁平的 `*.md`**，不是目录 —— 之前用 `ls -d */` 数出 0 是错的，实际有 14 个技能，`buildExistingSkillsSummary` 的 2 KB 上限基本用满（实测块 2,051 字节）。
+
+### 14.9 判定前置决策模型（gate），2026-11-07
+
+`openrouter/free` 能认出 enhance 信号，但延迟 7–120 s，靠 180 s 超时兜底，超时即「无结论」→ 每轮重试。判定的第一步其实是**一个 yes/no**，不需要通用文本模型。OpenRouter 的 Decisions API 正是这个形状（`POST /api/alpha/decisions`，`state` + 类型化 questions → `noul` 概率 / `choice` / `score`，**不产生自由文本**）。
+
+**离线评测**（11 篇技能来源文章 `source_articles` 作正例 + 19 篇 review/公司/索引作负例，同一份 state 与问题）：
+
+| 模型 | 延迟中位 / p90 | input tokens | 正例均 p | 负例均 p | AUC | $/call |
+|---|---|---|---|---|---|---|
+| **perplexity/pplx-decider-flash-v1.2** | **0.86 / 1.02 s** | 3089 | 0.92 | 0.09 | **1.00** | 0.000054 |
+| cloudflare/clef-flash | 1.08 / 1.45 s | 1696 | 0.73 | 0.15 | 1.00 | 0.000069 |
+| microsoft/microsoft-decision-1 | 1.22 / 1.50 s | 1553 | 0.77 | 0.03 | 1.00 | 0.000114 |
+| liquid/d1.1 | 0.96 / 1.36 s | 1735 | 0.64 | 0.04 | 0.98 | 0.000056 |
+| typesafe/jev-1.14 | 0.71 / 0.82 s | 2212 | 0.68 | 0.10 | 0.99 | 0.000148 |
+| baseten/joey-1 | 0.79 / 0.95 s | 1599 | 0.41 | 0.31 | 0.70 | 0.000023 |
+
+选 `pplx-decider-flash-v1.2`：11 篇正例全部 ≥0.61（9 篇 ≥0.90），19 篇负例里 18 篇 ≤0.22（唯一例外是 `opencode-models-2026-11-02.md` 0.71 —— 机器生成的模型快照，本该进跳过列表）。
+
+**接入**（`skill_scanner.go`）：
+
+| 概率 | 行为 |
+|---|---|
+| ≥ 0.50 | 交给文本模型写 `name`/`description`/`body` |
+| 0.30 – 0.50 | **不判**：返回 error，不写缓存，下轮再问。概率 0.4 不是「否」 |
+| < 0.30 | 判定为不是技能，缓存结论 |
+
+gate 有自己的 30 s 超时（文本路径的 180 s 是给生成用的）。`RunDecisionsCtx`（`internal/provider/decisions.go`）按文档要求做类型检查：`answers.<id>.type` 不是 `noul`、或 `noul` 缺失，一律报错而不是取零值——否则「拿不准」会变成「否」。
+
+配置（`~/.wuphf/data/broker-watchdog.ps1`）：`WUPHF_SKILL_GATE_MODEL='perplexity/pplx-decider-flash-v1.2'`，key 取用户级 `OPENROUTER_API_KEY`。不设 `WUPHF_SKILL_GATE_MODEL` 即完全关闭 gate，行为退回 14.8。
+
+**实跑**（broker 重启后、缓存里 `team/companies` 已剔除）：
+
+```
+POST /skills/compile {"dry_run":true,"scope_path":"team/companies"}
+→ {"scanned":20,...,"duration_ms":10239}      # 20 篇 10.2s, 每篇 0.51s，全部被 gate 拒
+→ matched 0：没有任何一篇花费文本调用
+```
+
+同一批走 `openrouter/free` 是 20 × ~10 s ≈ 200 s，且历史上其中 2 篇会撞 30 s 超时。
+
+**运维注意**：`mtimeCache` 是进程内状态，首次 Scan 时从磁盘加载。手工改 `skills-scan-cache.json` 后**必须重启 broker** 才会生效（第二次 Scan 起只用内存）。
