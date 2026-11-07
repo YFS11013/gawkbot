@@ -8,27 +8,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
-	"syscall"
 	"testing"
 	"time"
 )
-
-var (
-	kernel32Once         sync.Once
-	procGetConsoleWindow *syscall.LazyProc
-)
-
-// consoleWindowProbe reports whether the current process owns a console
-// window. Used by the test below to prove configureHeadlessProcess actually
-// suppresses the window rather than merely setting a flag.
-func consoleWindowProbe() uintptr {
-	kernel32Once.Do(func() {
-		procGetConsoleWindow = syscall.NewLazyDLL("kernel32.dll").NewProc("GetConsoleWindow")
-	})
-	h, _, _ := procGetConsoleWindow.Call()
-	return h
-}
 
 // processAlive reports whether a pid still exists. tasklist exits 0 whether or
 // not it matched, so the pid string has to be found in the output.
@@ -151,7 +133,7 @@ func TestHeadlessJobKillsLeftoversWhenTheToolExits(t *testing.T) {
 // sees one mid-take. This asserts the child really has no console window.
 func TestConfigureHeadlessProcessSuppressesConsoleWindow(t *testing.T) {
 	if os.Getenv("WUPHF_TEST_CONSOLE_PROBE") == "1" {
-		if consoleWindowProbe() == 0 {
+		if hwnd, _, _ := procGetConsoleWindow.Call(); hwnd == 0 {
 			fmt.Println("NO_CONSOLE_WINDOW")
 		} else {
 			fmt.Println("HAS_CONSOLE_WINDOW")

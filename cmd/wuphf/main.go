@@ -231,6 +231,11 @@ func wireBrokerWorkspaces(l *team.Launcher, extra ...func(*team.Broker)) {
 }
 
 func main() {
+	// A broker started detached has no console, so every console program it
+	// spawns allocates a visible window. Give it one hidden console instead:
+	// children inherit it and no spawn path needs to remember a flag.
+	team.EnsureHiddenConsole()
+
 	cmd := flag.String("cmd", "", "Run a command non-interactively")
 	format := flag.String("format", "text", "Output format (text, json)")
 	showVersion := flag.Bool("version", false, "Print version and exit")
