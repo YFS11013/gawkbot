@@ -828,3 +828,54 @@ POST /skills/compile {"dry_run":true}
 ```
 
 `team/alerts.md` 与 `team/index.md` 同样是机器维护、每轮都变的页面，但**没有**加进去：它们各自还有被人手写内容覆盖的可能，而模型快照是纯生成物。要一起排除的话，往 `scanSkippedFilePrefixes` 追加两行即可。
+
+### 14.11 判定模型换成单一模型 crouton-alpha-free（2026-11-07）
+
+14.8 起文本判定用的是 8848 网关的 `openrouter/free`。**它不是模型，是免费池的路由**：同一句「Say OK」连打四次，回包里的 `model` 字段分别是 `liquid/lfm-2.5-2.6b:free`、`recursive/flint-v1.0:free`、`cohere/north-mini-code:free`、`cohere/north-mini-code:free`。30 篇文章的评测里一共命中了 **9 个不同的后端**。
+
+对一个会把结论写进持久缓存的分类器，这是错的形状：同一篇文章在不同轮次被不同的模型判，延迟在 2–22 s 之间摆（p90 21.8 s），`is_skill` 的边界取决于这次抽到哪个 2.6B。实测里 `team/playbooks/task.md` 与 `team/playbooks/smoke-review-lane-with-wake.md` 正是被 `liquid/lfm-2.5-2.6b` 判成「是技能」的。
+
+**候选（同一套 30 篇文章、同一份 skill-creator 提示词、temperature 0）：**
+
+| 模型 | 通路 | 延迟中位 | 输出 tokens | 严格 JSON | 结论 |
+|---|---|---|---|---|---|
+| **opencode/crouton-alpha-free** | opencode 推理 API | **3.7 s**（p90 13.1） | 否=7、是≈750 | 是 | 采用 |
+| nvidia/nemotron-3-ultra-550b-a55b:free | 8848 网关 | 10.8 s | 107–1758 | 是 | 慢，且把一个正例判否 |
+| openrouter/free | 8848 网关 | 5.6 s（p90 21.8） | 61–3685 | 是 | **路由，不可复现** |
+| beam-free | opencode 推理 API | 31 s | 3000–4300（推理） | 是 | 同一篇文章中英文输出随机切换 |
+| iceman-contributor-free | opencode 推理 API | 26 s | ~1300 | 是 | 慢 |
+| deepseek-v4-flash / minimax-m3 / qwen3.8-27b `:free` | 8848 网关 | — | — | — | 网关列出但无上游通道，404 |
+
+`opencode models` 现在有 83 个 `opencode/*`（10 月快照是 28 个），其中 10 个带 `free`；opencode 推理 API 的目录里只有 3 个（`beam-free`、`iceman-contributor-free`、`crouton-alpha-free`）。
+
+**判定质量**（11 篇技能来源文章作正例 + 19 篇非技能，正例里含 8 篇一次性产物：日期化的 watch/invest 包、drill 包、smoke 产物、数据摘要）：
+
+| | TP | FN | TN | FP |
+|---|---|---|---|---|
+| crouton-alpha-free | **3** | 8 | 19 | 0 |
+| openrouter/free | 5 | 6 | 19 | 0 |
+
+正例里通过的三篇——`candidate-prep`、`meeting-prep`、`style-digest`——都有 `Purpose` / `When to use` 段落；被拒的 8 篇是日期化产物与 smoke 产物，正是 14.4 的跳过列表要挡的东西。也就是说 crouton 的边界与 `team/skills` 自己的边界一致，`openrouter/free` 多「猜对」的两篇靠的是抽到 2.6B 小模型，而不是判断更好。
+
+**接入**：`opencode.ai/inference/go/v1` 要求 `x-opencode-session` 头（缺了报 `MissingSessionID`），并且对陌生 UA 返回 1010，所以 `OneShotHTTPConfig` 增加 `Headers` 与 `SessionHeader`（每次请求现取 UUID，避免两次无关判定共享服务端会话）。`skillJudgeHTTPConfig` 在 base URL 含 `opencode.ai` 时自动加上这两项。
+
+**运行配置**（`broker-watchdog.ps1`）：
+
+```powershell
+$env:WUPHF_SKILL_JUDGE_BASE_URL = 'https://opencode.ai/inference/go/v1'
+$env:WUPHF_SKILL_JUDGE_MODEL    = 'crouton-alpha-free'
+$env:WUPHF_SKILL_JUDGE_API_KEY  = <auth.json 的 opencode-go.key>
+```
+
+读不到 `opencode-go` 就整体回落到 8848 + `openrouter/free` + `bear` key（宁可结论不稳，也不要判定链路直接死掉）。
+
+**实跑**（broker 32448，缓存里三篇正例已剔除）：
+
+```
+POST /skills/compile {"dry_run":true,"scope_path":"team/playbooks"}
+→ {"scanned":11,"matched":3,"proposed":3,...,"duration_ms":37749}
+```
+
+11 篇 37.7 s（之前同一批走 `openrouter/free` 是 220 s，且有 1 篇 gate 不确定）。三篇通过的都是真正的通用方法。
+
+**风险**：`crouton-alpha-free` 是 stealth 模型的 alpha 期免费通道，随时可能下线。下线时的症状是整轮 pass 全进 `errors`、缓存不增（错误不缓存）。修法是把 `WUPHF_SKILL_JUDGE_MODEL` 指向列表里其他可用模型，或临时退回 8848 的 `openrouter/free`。
