@@ -70,6 +70,12 @@ func (l *Launcher) isolateOpencodeDataHome(env []string, slug string) []string {
 // already exists is left alone — it is this office's own copy. A missing src
 // is not an error: opencode may be configured through environment keys, and
 // the caller still wants the isolated data dir.
+//
+// Caveat: a hard link pins the inode. If the user deletes and recreates their
+// auth.json (key rotation), the office keeps reading the old file. Deleting
+// the office's copy re-links it on the next turn; nothing here detects the
+// rotation, because a stale credential and a deliberately separate one look
+// identical on disk.
 func seedOpencodeAuth(src, dst string) error {
 	if _, err := os.Stat(dst); err == nil {
 		return nil

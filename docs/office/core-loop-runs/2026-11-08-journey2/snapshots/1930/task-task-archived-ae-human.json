@@ -1,0 +1,17 @@
+{
+  "id": "task-archived-ae-human",
+  "channel": "ae__human",
+  "title": "Chat with Ae",
+  "details": "Archived on upgrade: preserves your earlier 1:1 messages with Ae as a task. WUPHF no longer has standalone DMs — every conversation lives in a task.",
+  "status": "archived",
+  "created_by": "system",
+  "task_type": "follow_up",
+  "pipeline_id": "follow_up",
+  "pipeline_stage": "archived",
+  "execution_mode": "office",
+  "review_state": "approved",
+  "lifecycle_state": "archived",
+  "created_at": "2026-11-07T09:26:43Z",
+  "updated_at": "2026-11-07T09:26:43Z",
+  "system": true
+}

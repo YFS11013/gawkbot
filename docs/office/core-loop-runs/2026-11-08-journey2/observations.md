@@ -117,3 +117,22 @@
 | `request-117` | cos__human | @cos wants to promote "Quarterly Renewal Outreach Playbook" into the team wiki. Approve? |
 
 三张 `cos__human` 的卡同时是 cos 投递的闸门：只要有一张 pending，`live-chat-relay` 就拒发这个频道的任何内容（这正是 18:59 空转的机制）。prereg 允许的 1 次点击**没有用掉**——本轮要判的就是「不点会怎样」。
+
+## 停表后的补充实验（不计分，19:20 起）
+
+用 prereg 允许的那一次点击回答 `request-117`（promote playbook）：
+
+| 时间 | 事件 | 证据 |
+|---|---|---|
+| 19:20:0x | `POST /requests/answer {"id":"request-117","choice_id":"approve"}` → `{"ok":true}` | 响应 |
+| 19:20:0x | `~/.wuphf-spaces/journey2/.wuphf/wiki/team/playbooks/quarterly-renewal-outreach.md` 立刻出现，内容与 `agents/cos/notebook/2026-11-07-quarterly-renewal-outreach-playbook.md` 一致 | 文件头尾比对 |
+| 19:22:56 | cos 起新回合，`final_chars=307`（此前连续 0）——**投递闸门在同一张卡被回答后放开** | `headless-codex-latency.log` |
+| 19:23:32 | 办公室恢复发消息（`ae__cos`）；`NEX-98`/`NEX-104` 的 `updated_at` 前移到 `11:22:08Z` | `messages.json`、`tasks.json` |
+
+结论：**promotion 机制是通的**，卡住循环的是「必须有人点一下」这张卡。
+
+补充（19:26 复核，避免过度归因）：
+
+- **不能把「办公室复活」全记在这张卡上。** 我在 19:19:5x 先 `workspace resume` 再点批准，19:22:56 的回合可能来自 boot reconcile。能单独归因的是：回答卡片后，`cos__human` 立刻出现 `you Approved @cos's request.` 与 `system Promoted …`，并且 cos 随后能在**同一个频道**发消息（`11:22:25Z system Ready for review — @cos submitted NEX-104`）——而 `request-44`/`request-46` 此刻仍是 `pending`。投递闸门是按「这张卡答没答」放的，不是按频道内是否还有 pending。
+- **复活后第一件事是重做已经做完的活**：`11:21:58Z` 又建了 `NEX-148`（起草三封邮件，`ae__cos`）与 `NEX-150`（三份账户简报，`cos__revops`），而 `NEX-100`/`NEX-102` 早已 `done`。两条新 single 也以 `hollow_completion=true` 收尾（`snapshots/1930/tasks.json`：4 条 hollow done）。重投后没有「先查已完成的同题任务」，去重只在**同一个 active 回合**里做。
+- **父 Issue 仍未闭环**：`NEX-98 in_progress`；`NEX-104` 于 `11:22:25Z` 提交审核后停在 `in_progress`。

@@ -1,0 +1,49 @@
+{
+  "id": "ai-revops-2",
+  "channel": "pipeline",
+  "title": "Establish the pipeline-truth baseline",
+  "details": "Baseline established. Clean data model defined in 'CRM Pipeline' data space: Company (domain unique, industry, size, owner, notes), Contact (email unique, title, phone, company link, owner), Deal (stage status Lead→Qualified→Proposal→Negotiation→Won/Lost, amount, currency, close_date, source, company link, primary_contact link, owner, notes). Relationships wired (deal→company, deal→contact, contact→company). Funnel read: 0 companies, 0 contacts, 0 deals, $0 pipeline. Pipeline is empty — no deals tracked yet. This is the honest baseline. Stage taxonomy: Lead, Qualified, Proposal, Negotiation, Won, Lost. Dedup keys: domain (company), email (contact).",
+  "owner": "analyst",
+  "status": "done",
+  "created_by": "wuphf",
+  "task_type": "issue",
+  "pipeline_id": "issue",
+  "pipeline_stage": "implement",
+  "execution_mode": "live_external",
+  "review_state": "approved",
+  "lifecycle_state": "approved",
+  "artifact": "ra_806827009ff3f071",
+  "ledger": [
+    {
+      "agent": "analyst",
+      "at": "2026-11-07T09:05:59Z",
+      "outcome": "external-action turn for #ai-revops-2 marked done/approved without recorded external execution evidence",
+      "actions": [
+        "task_updated: Establish the pipeline-truth baseline [done]"
+      ],
+      "context_used": [
+        "wiki:team/skills/data-modeling.md",
+        "wiki:team/skills/app-building.md",
+        "wiki:team/skills/wiki-maintenance.md"
+      ]
+    },
+    {
+      "agent": "cos",
+      "at": "2026-11-07T09:06:02Z",
+      "outcome": "external-action turn for #ai-revops-2 marked done/approved without recorded external execution evidence",
+      "said": "Skill \"data-modeling\" invoked by @cos (usage #1)",
+      "actions": [
+        "task_updated: Establish the pipeline-truth baseline [done]"
+      ],
+      "context_used": [
+        "wiki:team/skills/data-modeling.md",
+        "wiki:team/skills/app-building.md",
+        "wiki:team/skills/wiki-maintenance.md"
+      ]
+    }
+  ],
+  "done_posted_for": "2026-11-07T09:05:36Z",
+  "created_at": "2026-11-07T09:01:04Z",
+  "updated_at": "2026-11-07T09:06:02Z",
+  "completed_at": "2026-11-07T09:05:36Z"
+}

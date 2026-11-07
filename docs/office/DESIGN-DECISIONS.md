@@ -419,6 +419,8 @@ Journey 2 的安装期任务把并发槽占满，我用 `POST /tasks` 取消它�
 
 测试：`TestSeedOpencodeAuthLinksWithoutSecondCopy`（硬链接跟随用户文件）、`TestSeedOpencodeAuthKeepsExistingOfficeCopy`（不覆盖办公室自己的副本）、`TestSeedOpencodeAuthWithoutUserFileIsNotAnError`（没有用户凭证不算错，隔离照做）。
 
+已知边界：硬链接只跟随**同一个 inode**。用户若把 `~/.local/share/opencode/auth.json` 删掉重建（轮换 key 的常见做法），办公室那份仍指向旧 inode，会静默用过期凭证。轮换后删掉 `<runtime>/.local/share/opencode/auth.json` 让它下次回合重新 link 即可；自动化这一步没做，因为「凭证变旧」和「用户故意保留旧凭证」在磁盘上不可区分。
+
 ### 9.11 `workspace create` 先起 broker 再让人写配置（2026-11-07 18:5x）
 
 broker 在进程启动时就把 provider 定下来了，而 `workspace create` 一结束 broker 已经在跑。于是「创建工作区 → 写 `config.json` 想指定 opencode」这条路必输：第一个会话全部按默认的 `claude-code` 跑。Journey 2 里它表现为 cos 把 `Failed to authenticate. API Error: 401 Invalid API key` 当正文贴进 DM 六次。

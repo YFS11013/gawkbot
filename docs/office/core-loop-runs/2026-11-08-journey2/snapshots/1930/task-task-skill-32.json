@@ -1,0 +1,135 @@
+{
+  "id": "task-skill-32",
+  "channel": "pipeline",
+  "title": "Run skill: Data modeling",
+  "details": "Invoked by @cos on 2026-11-07T09:04:21Z. Follow the steps below.\n\nWhen the human asks you to TRACK something — investors, clients, projects, candidates, deliverables — that is structured data. Build the model with the data_* tools; do not keep it in prose, and do not reach for an app unless they ask for one.\n\n1. Call data_list_spaces, then data_get_schema on the space that fits. One space per use case. If none fits, data_create_space — it is private to you and the human by default.\n2. Check the existing types before creating. If a type already exists, add to it with data_add_attributes; never create a second near-duplicate type.\n3. Create the types, their attributes AND the relationships between them in ONE data_create_object_types call. A relationship IS an attribute: type=relationship plus `relationship` also creates the mirrored attribute on the other type. State cardinality from the side you are defining, because it cannot be changed later.\n4. Re-read the schema right after any create or change: the store adds a required primary `name` attribute you did not define and mints your select option ids, so your own call is NOT the effective schema. Never invent an attribute slug or an option value — an invalid option comes back listing the valid ones. Never add a near-duplicate option; map onto the existing one or ask.\n5. Write records with data_upsert_records on a UNIQUE attribute whenever the source could be read again, so a second run updates instead of duplicating. Every write returns {succeeded, failed, summary, entries[]} in request order — read `entries`, do not assume the whole call worked.\n6. Deleting is two calls: data_delete_preview, show the human the impact counts, then data_delete with the token. Sharing is the human's call: a space goes shared or global only when they ask.\n\nCanceled by operator.",
+  "owner": "cos",
+  "status": "canceled",
+  "created_by": "cos",
+  "task_type": "skill_run",
+  "pipeline_id": "skill_invocation",
+  "pipeline_stage": "canceled",
+  "execution_mode": "office",
+  "review_state": "canceled",
+  "skill_id": "skill-data-modeling",
+  "skill_name": "data-modeling",
+  "lifecycle_state": "canceled",
+  "ledger": [
+    {
+      "agent": "cos",
+      "at": "2026-11-07T09:17:19Z",
+      "outcome": "exit status 1",
+      "context_used": [
+        "wiki:team/skills/app-building.md",
+        "wiki:team/skills/data-modeling.md",
+        "wiki:team/getting-started/index.md",
+        "wiki:team/getting-started/skills-and-runtimes.md",
+        "wiki:team/getting-started/connecting-your-work.md"
+      ]
+    },
+    {
+      "agent": "cos",
+      "at": "2026-11-07T09:23:25Z",
+      "outcome": "exit status 1",
+      "context_used": [
+        "wiki:team/skills/app-building.md",
+        "wiki:team/skills/data-modeling.md",
+        "wiki:team/getting-started/index.md",
+        "wiki:team/getting-started/skills-and-runtimes.md",
+        "wiki:team/getting-started/connecting-your-work.md",
+        "journal:task-skill-32"
+      ]
+    },
+    {
+      "agent": "cos",
+      "at": "2026-11-07T09:30:22Z",
+      "outcome": "exit status 0xffffffff",
+      "context_used": [
+        "wiki:team/skills/app-building.md",
+        "wiki:team/skills/data-modeling.md",
+        "wiki:team/getting-started/index.md",
+        "wiki:team/getting-started/skills-and-runtimes.md",
+        "wiki:team/getting-started/connecting-your-work.md",
+        "journal:task-skill-32"
+      ]
+    },
+    {
+      "agent": "cos",
+      "at": "2026-11-07T09:34:10Z",
+      "outcome": "exit status 1",
+      "context_used": [
+        "wiki:team/getting-started/connecting-your-work.md",
+        "wiki:team/getting-started/working-with-agents.md",
+        "wiki:team/pipeline/stage-definitions.md",
+        "wiki:team/decisions/ops-log.md",
+        "wiki:team/getting-started/index.md"
+      ]
+    },
+    {
+      "agent": "cos",
+      "at": "2026-11-07T09:44:36Z",
+      "outcome": "exit status 0xffffffff",
+      "context_used": [
+        "wiki:team/skills/app-building.md",
+        "wiki:team/skills/data-modeling.md",
+        "wiki:team/getting-started/index.md",
+        "wiki:team/getting-started/skills-and-runtimes.md",
+        "wiki:team/getting-started/connecting-your-work.md",
+        "journal:task-skill-32"
+      ]
+    },
+    {
+      "agent": "cos",
+      "at": "2026-11-07T10:59:00Z",
+      "outcome": "ok",
+      "said": "NEX-100 已审核通过并结案。@ae 的三封中英双语续约邮件草稿已发布，尚未发送；联系人、具体日期及事件细节等缺失项均已标注待补。续约主线仍由 NEX-95 / NEX-98 跟进，账户简报与季度 playbook 继续按现有任务推进。",
+      "context_used": [
+        "wiki:team/skills/app-building.md",
+        "wiki:team/skills/data-modeling.md",
+        "wiki:team/getting-started/index.md",
+        "wiki:team/getting-started/skills-and-runtimes.md",
+        "wiki:team/getting-started/connecting-your-work.md",
+        "journal:task-skill-32"
+      ]
+    },
+    {
+      "agent": "cos",
+      "at": "2026-11-07T11:22:09Z",
+      "outcome": "ok (no durable trace: no message, no task mutation)",
+      "context_used": [
+        "wiki:team/skills/app-building.md",
+        "wiki:team/skills/data-modeling.md",
+        "wiki:team/getting-started/index.md",
+        "wiki:team/getting-started/skills-and-runtimes.md",
+        "wiki:team/getting-started/connecting-your-work.md",
+        "journal:task-skill-32"
+      ]
+    },
+    {
+      "agent": "cos",
+      "at": "2026-11-07T11:22:40Z",
+      "outcome": "ok",
+      "said": "NEX-148 已批准并结案。三封中英双语续约邮件草稿已完成且未发送；缺失联系人、日期及事件细节均已标注待补。",
+      "context_used": [
+        "wiki:team/playbooks/quarterly-renewal-outreach.md",
+        "wiki:team/inbox/raw-signals.md"
+      ]
+    },
+    {
+      "agent": "cos",
+      "at": "2026-11-07T11:23:33Z",
+      "outcome": "ok",
+      "said": "已更新 NEX-95：\n\n- 三封双语续约邮件草稿已完成，保持未发送。\n- 待补齐联系人、日期、Brightline usage 来源/期间及 Corti Labs 支持升级细节。\n- Playbook 已落地至 `team/playbooks/quarterly-renewal-outreach.md`。\n- 当前不把待确认事实写入续约承诺。",
+      "context_used": [
+        "wiki:team/playbooks/quarterly-renewal-outreach.md",
+        "wiki:team/companies/acme-corp.md",
+        "wiki:team/companies/corti-labs.md",
+        "wiki:team/companies/needs-confirmation.md",
+        "wiki:team/getting-started/channels.md"
+      ]
+    }
+  ],
+  "created_at": "2026-11-07T09:04:21Z",
+  "updated_at": "2026-11-07T11:23:33Z",
+  "completed_at": "2026-11-07T09:18:43Z"
+}
