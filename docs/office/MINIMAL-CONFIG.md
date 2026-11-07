@@ -136,7 +136,7 @@ pwsh -NoProfile -File scripts/office/check-office-drift.ps1
 |---|---|
 | 业务产出 | **20 次** `artifact: forex brief`（job `5`，每交易日一次） |
 | 人工需求 | **0 个**新建任务；`~/.wuphf/tasks` 自 11-02 起无写入 |
-| 团队层自发活动 | 14 次 `playbook execution: meeting-prep — aborted`（13 次集中在 11-02 白天，30 分钟一轮；1 次在 11-06）。**没有一次成功** |
+| 团队层自发活动 | `meeting-prep` 共 **44 次执行：1 次成功、2 次部分、41 次 aborted**（11-01 19 次、11-02 21 次、11-06 1 次）。wiki 只提交了 14 条 `playbook execution … aborted`，其余只落在 `meeting-prep.executions.jsonl` |
 | 系统 cron | 7 条全部在跑；`wiki-archive-sweep` 每天 03:05 |
 | wiki 噪声 | 303 次提交是 `team/alerts.md`（占比 74%），来源见下节；另有 8 次 `recover from crashed write` |
 | 论点台账 | `TH-2026-11-02-001` 窗口 11-02..11-06 已关，复核 11-09，状态 pending |
@@ -159,7 +159,15 @@ pwsh -NoProfile -File scripts/office/check-office-drift.ps1
 |---|---|
 | 简报照常出 | 是，20 次 |
 | 你没觉得少东西 | 证据支持：5 天零人工需求，团队层唯一自发活动是 14 次全部中止的 playbook |
-| 团队层产生价值 | **没有**。8 个 enabled job 里 7 个是系统 cron，唯一业务产出来自一个定时脚本链 |
+| 团队层产生价值 | **没有**。8 个 enabled job 里 7 个是系统 cron，唯一业务产出来自一个定时脚本链；团队层唯一的自发动作是一个失败循环 |
+
+那 41 次中止的根因（`meeting-prep.executions.jsonl` 原文）：
+
+> `task-skill-2923` 已被取消，执行上下文仍缺 `object_name` 与 `meeting_date` 两个必填输入，无法执行 playbook Step 1（wiki 检索）或确定输出路径。cos 无 `#data-keeper__human` 频道访问权限（403），无法回问发起方。停止重放，等待人类补输入后重建任务。
+
+三个独立缺陷串在一起：① playbook 的 `## Inputs` 只是散文（`必填`），调用侧无法校验，于是缺输入的调用照样起执行；② 执行方被 403 挡住，问不了发起方；③ 记录里写着「停止重放」，实际每 30 分钟继续重放，直到人类取消任务才停。
+
+**这三条 11-09 之前不修**：修 abort 语义等于在观察期末尾改被测对象。等判定出来再决定值不值得修——如果结论是「团队层砍掉」，这三条也就不必修。
 | 论点台账值得保留 | 待 11-09（`TH-2026-11-02-001` 判 hit 还是 miss） |
 
 ### 11-09 结案时只做两件事
