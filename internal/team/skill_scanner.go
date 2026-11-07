@@ -845,11 +845,7 @@ func skillJudgeHTTPConfig() provider.OneShotHTTPConfig {
 	if baseURL == "" || model == "" {
 		return provider.OneShotHTTPConfig{}
 	}
-	cfg := provider.OneShotHTTPConfig{
-		BaseURL: baseURL,
-		Model:   model,
-		APIKey:  strings.TrimSpace(os.Getenv("WUPHF_SKILL_JUDGE_API_KEY")),
-	}
+	cfg := skillJudgeConfig(baseURL, model, strings.TrimSpace(os.Getenv("WUPHF_SKILL_JUDGE_API_KEY")))
 	// opencode's inference API rejects requests from unknown user agents (its
 	// edge answers 1010) and requires an x-opencode-session header, so a judge
 	// pointed at it has to look like the CLI. The gateway hosts used before
@@ -862,13 +858,45 @@ func skillJudgeHTTPConfig() provider.OneShotHTTPConfig {
 	// env vars set by the watchdog, and a silent fallback (wrong key, stale
 	// URL) is otherwise invisible until verdicts stop arriving.
 	judgeConfigOnce.Do(func() {
-		host := baseURL
-		if u, err := url.Parse(baseURL); err == nil && u.Host != "" {
-			host = u.Host
-		}
-		slog.Info("skill_scanner: judge endpoint", "host", host, "model", model, "session_header", cfg.SessionHeader)
+		slog.Info("skill_scanner: judge endpoint",
+			"host", urlHost(baseURL), "model", model, "session_header", cfg.SessionHeader,
+			"fallback_model", skillJudgeFallbackConfig().Model)
 	})
 	return cfg
+}
+
+// skillJudgeFallbackConfig is the second opinion used when the primary judge
+// fails outright (not when it times out: a hung endpoint must not double the
+// per-article budget). crouton-alpha-free is an alpha-period stealth model, and
+// when it disappears the symptom is that every article lands in the pass's
+// errors and the verdict cache stops growing — skill compilation dies quietly.
+// Unset means no fallback, which is the pre-fallback behaviour.
+func skillJudgeFallbackConfig() provider.OneShotHTTPConfig {
+	baseURL := strings.TrimSpace(os.Getenv("WUPHF_SKILL_JUDGE_FALLBACK_BASE_URL"))
+	model := strings.TrimSpace(os.Getenv("WUPHF_SKILL_JUDGE_FALLBACK_MODEL"))
+	if baseURL == "" || model == "" {
+		return provider.OneShotHTTPConfig{}
+	}
+	return skillJudgeConfig(baseURL, model, strings.TrimSpace(os.Getenv("WUPHF_SKILL_JUDGE_FALLBACK_API_KEY")))
+}
+
+// skillJudgeConfig applies the transport quirks a judge endpoint needs. Only
+// opencode's inference API has any: it rejects unknown user agents at the edge
+// and requires a per-request session header.
+func skillJudgeConfig(baseURL, model, apiKey string) provider.OneShotHTTPConfig {
+	cfg := provider.OneShotHTTPConfig{BaseURL: baseURL, Model: model, APIKey: apiKey}
+	if strings.Contains(baseURL, "opencode.ai") {
+		cfg.Headers = map[string]string{"User-Agent": "wuphf-skill-judge/1.0"}
+		cfg.SessionHeader = "x-opencode-session"
+	}
+	return cfg
+}
+
+func urlHost(raw string) string {
+	if u, err := url.Parse(raw); err == nil && u.Host != "" {
+		return u.Host
+	}
+	return raw
 }
 
 var judgeConfigOnce sync.Once
@@ -974,26 +1002,11 @@ func (p *defaultLLMProvider) AskIsSkill(ctx context.Context, articlePath, articl
 		return false, SkillFrontmatter{}, "", "", nil
 	}
 
-	// LLM path: wrap the caller's context with a per-call deadline so a slow
-	// provider doesn't block the whole scan pass.
 	timeout := skillLLMTimeout()
-	callCtx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
 	userPrompt := buildSkillUserPrompt(articlePath, articleContent, existingSkillsSummary)
-	// Over HTTP when a judge endpoint is configured: this is a 20-token
-	// classification, and routing it through a CLI agent starts a coding agent
-	// with repo tools (measured: 8-33s and 11k-25k input tokens versus 0.6-0.8s
-	// and ~1.6k over HTTP, plus agent turns that answer with tool calls and no
-	// text). Falls back to the configured provider's one-shot when unset.
-	var out string
-	var callErr error
-	if judgeCfg := skillJudgeHTTPConfig(); judgeCfg.Valid() {
-		out, callErr = provider.RunOneShotHTTPCtx(callCtx, judgeCfg, sysPrompt, userPrompt)
-	} else {
-		out, callErr = provider.RunConfiguredOneShotCtx(callCtx, sysPrompt, userPrompt, "")
-	}
+	out, callErr := p.judgeText(ctx, sysPrompt, userPrompt)
 	if callErr != nil {
-		if callCtx.Err() != nil {
+		if errors.Is(callErr, context.DeadlineExceeded) {
 			// No answer arrived. Returning (false, nil) here would be
 			// indistinguishable from "the model said no", and Scan would cache
 			// that non-answer as a verdict — the article would then never be
@@ -1018,10 +1031,6 @@ func (p *defaultLLMProvider) AskIsSkill(ctx context.Context, articlePath, articl
 		}
 		return false, SkillFrontmatter{}, "", "", fmt.Errorf("skill_scanner: %w", callErr)
 	}
-	if callCtx.Err() != nil {
-		slog.Warn("skill_scanner: LLM call timed out", "path", articlePath, "timeout", timeout)
-		return false, SkillFrontmatter{}, "", "", fmt.Errorf("skill_scanner: llm timeout after %s", timeout)
-	}
 	result := parseSkillJSONFull(out)
 	if result.Err != nil {
 		// Same reasoning as the timeout branch: we have no verdict, so we must
@@ -1045,6 +1054,48 @@ func (p *defaultLLMProvider) AskIsSkill(ctx context.Context, articlePath, articl
 		}
 	}
 	return result.IsSkill, result.FM, result.Body, result.Enhance, nil
+}
+
+// judgeText is the text model that turns an article into a skill body.
+//
+// Over HTTP when a judge endpoint is configured: this is a 20-token
+// classification, and routing it through a CLI agent starts a coding agent
+// with repo tools (measured: 8-33s and 11k-25k input tokens versus ~3.5k and
+// 3-15s over HTTP, plus agent turns that answer with tool calls and no text).
+// Falls back to the configured provider's one-shot when no endpoint is set.
+//
+// Each attempt gets its own deadline. A primary that times out is not retried
+// on the fallback: one hung service must not cost two timeouts per article.
+func (p *defaultLLMProvider) judgeText(ctx context.Context, sysPrompt, userPrompt string) (string, error) {
+	timeout := skillLLMTimeout()
+	primary := skillJudgeHTTPConfig()
+	if !primary.Valid() {
+		callCtx, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+		return provider.RunConfiguredOneShotCtx(callCtx, sysPrompt, userPrompt, "")
+	}
+
+	callCtx, cancel := context.WithTimeout(ctx, timeout)
+	out, err := provider.RunOneShotHTTPCtx(callCtx, primary, sysPrompt, userPrompt)
+	timedOut := errors.Is(callCtx.Err(), context.DeadlineExceeded)
+	cancel()
+	if err == nil {
+		return out, nil
+	}
+	fallback := skillJudgeFallbackConfig()
+	if timedOut || !fallback.Valid() || ctx.Err() != nil {
+		return "", err
+	}
+	slog.Warn("skill_scanner: judge failed, asking the fallback",
+		"model", primary.Model, "host", urlHost(primary.BaseURL), "fallback", fallback.Model, "err", err)
+	retryCtx, retryCancel := context.WithTimeout(ctx, timeout)
+	defer retryCancel()
+	out, fallbackErr := provider.RunOneShotHTTPCtx(retryCtx, fallback, sysPrompt, userPrompt)
+	if fallbackErr != nil {
+		return "", fmt.Errorf("%w (fallback %s: %v)", err, fallback.Model, fallbackErr)
+	}
+	slog.Info("skill_scanner: judge answered on the fallback model", "model", fallback.Model)
+	return out, nil
 }
 
 // buildSkillUserPrompt assembles the user-message body sent to the LLM.

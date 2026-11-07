@@ -879,3 +879,20 @@ POST /skills/compile {"dry_run":true,"scope_path":"team/playbooks"}
 11 篇 37.7 s（之前同一批走 `openrouter/free` 是 220 s，且有 1 篇 gate 不确定）。三篇通过的都是真正的通用方法。
 
 **风险**：`crouton-alpha-free` 是 stealth 模型的 alpha 期免费通道，随时可能下线。下线时的症状是整轮 pass 全进 `errors`、缓存不增（错误不缓存）。修法是把 `WUPHF_SKILL_JUDGE_MODEL` 指向列表里其他可用模型，或临时退回 8848 的 `openrouter/free`。
+
+**兜底（同日补）**：`crouton-alpha-free` 是 stealth 模型的 alpha 通道，下线时症状和 14.7 那类 bug 一样——整轮 pass 全进 `errors`、缓存不增、技能编译静默死亡。所以判定加了一次重试：
+
+- `WUPHF_SKILL_JUDGE_FALLBACK_BASE_URL` / `_MODEL` / `_API_KEY`，当前指向 8848 + `nvidia/nemotron-3-ultra-550b-a55b:free`。选单一模型而不是 `openrouter/free`，理由同 14.8。
+- **只在主判定明确失败时重试**（404/410/401/5xx）。超时不重试：一个卡住的服务不该让每篇文章付两个 180 s。
+- 两次尝试各自拿一个 `WUPHF_SKILL_LLM_TIMEOUT` 预算，用的是**父 ctx**，不是第一次尝试那个已经耗尽的 ctx。
+- 日志每次都会说清谁答的：`judge failed, asking the fallback` → `answered on the fallback model`。
+
+**演练**（把主模型故意改成 `crouton-alpha-gone` 后重启）：
+
+```
+INFO  judge endpoint host=opencode.ai model=crouton-alpha-gone ... fallback_model=nvidia/nemotron-3-ultra-550b-a55b:free
+WARN  judge failed, asking the fallback ... err="HTTP 400 ... Model is unavailable."
+INFO  judge answered on the fallback model model=nvidia/nemotron-3-ultra-550b-a55b:free
+```
+
+pass 正常完成（7 篇 10.3 s，缓存补齐，零 errors），随后主模型改回 `crouton-alpha-free`。单测 `TestSkillJudge_FallsBackWhenPrimaryFails` / `TestSkillJudge_NoFallbackConfiguredPropagates` 覆盖「有兜底」和「没兜底时必须报错而不是缓存结论」。

@@ -28,6 +28,12 @@ func gateServer(t *testing.T, pYes float64) (*httptest.Server, *atomic.Int64) {
 	return srv, &textCalls
 }
 
+// jsonString encodes s as a JSON string literal (quotes, escaped newlines).
+func jsonString(s string) string {
+	b, _ := json.Marshal(s)
+	return string(b)
+}
+
 func jsonNumber(f float64) string {
 	b, _ := json.Marshal(f)
 	return string(b)
@@ -120,5 +126,69 @@ func TestScanSkipsGeneratedModelSnapshots(t *testing.T) {
 	}
 	if !shouldSkipPath("team/prep/packet.md") || !shouldSkipPath("team/skills/x.md") {
 		t.Fatalf("existing directory skips must still apply")
+	}
+}
+
+// The primary judge is an alpha-period stealth model; when it disappears the
+// fallback keeps verdicts flowing instead of leaving every article in the
+// pass's error list with nothing cached.
+func TestSkillJudge_FallsBackWhenPrimaryFails(t *testing.T) {
+	var fallbackCalls atomic.Int64
+	mux := http.NewServeMux()
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	mux.HandleFunc("/broken/v1/chat/completions", func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "no such model", http.StatusNotFound)
+	})
+	mux.HandleFunc("/good/v1/chat/completions", func(w http.ResponseWriter, r *http.Request) {
+		fallbackCalls.Add(1)
+		// Over skillNewBodyMinBytes (400) with >= 3 enumerated steps inside
+		// "## Steps", so the depth gate passes and the assertion is about the
+		// fallback rather than about body quality.
+		body := "## When to use\nWhen the ledger and the tree disagree about which change is live.\n\n" +
+			"## Steps\n1. run the thing and capture its output into a scratch file\n" +
+			"2. compare the captured output against the expected shape from the last green run\n" +
+			"3. write the difference to the ledger with the timestamp of the run\n" +
+			"4. report back with the ledger link and the name of the file that diverged\n\n" +
+			"## Failure modes\nA missing ledger entry means the comparison step never ran; re-run it before trusting the diff."
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":` + jsonString(`{"is_skill": true, "name": "x", "description": "d", "body": `+jsonString(body)+`}`) + `}}]}`))
+	})
+
+	t.Setenv("WUPHF_SKILL_GATE_MODEL", "")
+	t.Setenv("WUPHF_SKILL_JUDGE_BASE_URL", srv.URL+"/broken")
+	t.Setenv("WUPHF_SKILL_JUDGE_MODEL", "gone-model")
+	t.Setenv("WUPHF_SKILL_JUDGE_FALLBACK_BASE_URL", srv.URL+"/good")
+	t.Setenv("WUPHF_SKILL_JUDGE_FALLBACK_MODEL", "backup-model")
+
+	isSkill, fm, body, _, err := NewDefaultLLMProvider("").AskIsSkill(
+		context.Background(), "team/x.md", "some procedure about running things", "")
+	if err != nil {
+		t.Fatalf("AskIsSkill must survive a dead primary: %v", err)
+	}
+	if !isSkill || fm.Name != "x" || !strings.Contains(body, "report back") {
+		t.Fatalf("verdict must come from the fallback, got is_skill=%v fm=%+v body=%q", isSkill, fm, body)
+	}
+	if fallbackCalls.Load() != 1 {
+		t.Fatalf("fallback calls = %d, want 1", fallbackCalls.Load())
+	}
+}
+
+// No fallback configured is the old behaviour: propagate the failure so Scan
+// drops the cache entry and retries next pass.
+func TestSkillJudge_NoFallbackConfiguredPropagates(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "no such model", http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	t.Setenv("WUPHF_SKILL_GATE_MODEL", "")
+	t.Setenv("WUPHF_SKILL_JUDGE_BASE_URL", srv.URL)
+	t.Setenv("WUPHF_SKILL_JUDGE_MODEL", "gone-model")
+	t.Setenv("WUPHF_SKILL_JUDGE_FALLBACK_BASE_URL", "")
+	t.Setenv("WUPHF_SKILL_JUDGE_FALLBACK_MODEL", "")
+
+	if _, _, _, _, err := NewDefaultLLMProvider("").AskIsSkill(
+		context.Background(), "team/x.md", "some procedure about running things", ""); err == nil {
+		t.Fatal("a dead judge with no fallback must return an error, never a cached verdict")
 	}
 }
