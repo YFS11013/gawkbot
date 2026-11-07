@@ -23,6 +23,19 @@
 
 已完成、只在正文留档的：P0 #2 停用门禁、P2 #6 `/notebook/*`、P3 #7 测试包编译、P3 7d/7e 两个根因。
 
+## 核心循环 Journey 2 暴露的四个缺陷（2026-11-07，待排期）
+
+来源：`core-loop-runs/2026-11-08-journey2/scorecard.md` §4。四条都有人可见后果，按严重度排。
+
+| # | 缺陷 | 现象（实测） | 代码位置 | 修复判据 |
+|---|---|---|---|---|
+| J2-1 | **done 与产物脱钩** | `NEX-100/102` 与重做后的 `NEX-148/150` 全 `done + hollow_completion=true`；系统已识别「无产物」，仍然放行并让父 Issue 等它 | `internal/team/broker_tasks_mutation_service.go:1346`（`artifact_path` 为空直接跳过校验）、`task_completion_hook.go:43` | `done` 必须要么带已校验的 `artifact_path`，要么显式 `verification=not_required` + 理由；hollow 不能让父 Issue 结算 |
+| J2-2 | **交付通道与审批通道互锁** | `cos__human` 有 pending 审批卡时 `live-chat-relay-post-error: request pending in this channel`，cos 回合 `status=ok final_chars=0`；答一张卡后同频道立刻恢复（`request-44/46` 仍 pending） | `internal/team/headless_live_chat_relay.go`（闸门）、`broker_requests*.go`（卡片来源） | 审批卡不阻塞非审批类投递；或回合结束时把「未投递的正文」落盘并告诉人卡在哪 |
+| J2-3 | **取消不撤销已排的派活** | `NEX-95` 取消（`{"changed":true}`）后 `10:57:04Z` 回到 `in_progress`、`10:57:10Z` 起回合（11 次工具调用）；触发者尚未定位（`scheduler.json` 只剩 `task_follow_up`，无 `task_retry`） | `internal/team/broker_scheduler.go`（`cancelSupersededTaskJobsLocked` 只关同名 slug）、`broker_tasks_lifecycle.go`（cancel 分支） | 复现并指认触发者；cancel 终态后不存在任何指向该 task 的 `task_follow_up`/`recheck`/`task_retry` job，且状态不再倒退 |
+| J2-4 | **recheck 只报警不派活** | `19:11:54 dispatched 1 due job(s)` → 只写 `signals` 一条 `task_stalled`，无回合、无消息；人可见的最后一条停在 `11:08:39Z`，任务挂到停表 | `internal/team/scheduler.go:278-345`（`processTaskJob` 非 blocked 分支只 `CreateWatchdogAlert`+`RecordAction`+`deliverTask`） | recheck 对「有 owner、非 blocked、无 active 回合」的任务必须派一次回合（或升格为 `task_retry`），并把结果写成人可见消息 |
+
+补充事实（同一轮）：办公室被放行后**重做已完成的任务**（`NEX-148/150` 对应已 done 的 `NEX-100/102`）——重投路径不查同题任务是否已完成，去重只覆盖同一 active 回合。
+
 ## 已完成 — 工作树回归修复（2026-10-30 22:05）
 - `/apps/integrations/call` 路由被误删 → 恢复注册；新增的 `/apps/fetch` 独立注册并带 `requireAuth`。
 - `web/package.json` 误删 `remark-gfm`（8+ 文件仍 import）→ 恢复，与 `remark-breaks` 并存。
