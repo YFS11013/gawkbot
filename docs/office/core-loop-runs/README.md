@@ -72,6 +72,13 @@ Get-Content "$env:TEMP\wuphf-broker-token-7910"   # 同一个 token
 #    但新办公室只有 1 个成员，团队要 onboarding 之后才有 —— 这一步需要人。
 ```
 
+# 6) 坑（2026-11-07 新增）：watchdog 原本按**可执行文件名**杀进程
+#    ~/.wuphf/data/broker-watchdog.ps1 的 Restart-Broker 会杀掉所有
+#    gawkbot-fix.exe / opencode.exe ——包括隔离办公室。表现为 workspace resume
+#    报成功、十几秒后 HTTP 000、broker.log 无任何错误。
+#    修法：按主办公室端口（--broker-port 7892）取根进程，再按父子关系遍历后代一并杀。
+#    验证：起隔离办公室 → 触发一次 watchdog 重启 → 两边 /health 都应 200。
+
 **绝对不要用 `--workspace` 旗**：
 
 ```

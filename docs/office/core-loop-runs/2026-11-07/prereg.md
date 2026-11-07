@@ -32,6 +32,7 @@
 | 13:16 | onboarding 经 API 完成（`POST /onboarding/complete`，`agents` 显式列出 slug） | UI 点击需人；首轮传 `agents: []` 只种入 lead——`botSelectionFilter` 只在 `nil` 时返回「全量」，JSON 空数组是「只留 lead」，这个差异记录在产品侧 |
 | 13:20 | 取消蓝图 starter lanes：`ai-revops-1/3/4`、`task-skill-4` | 避免与主任务争用同一批 bot 和免费额度，让「人给的任务」是唯一在跑的工作 |
 | 13:20–13:24 | 修三处 Windows 运行缺陷并重建 broker：`1a9db10`（回合/校验开窗）、`32c1533`（脱离控制台的进程默认开窗）、`2e263f5`（DETACHED broker 被父 job 杀掉） | 运行中实测发现；非评分对象，但决定这次能不能稳定观察 |
+| 13:25 | watchdog 重启改为只杀主办公室的进程树（`~/.wuphf/data/broker-watchdog.ps1`，备份 `.bak-scopedkill`） | 原逻辑按**可执行文件名**杀 `gawkbot-fix.exe` / `opencode.exe`，每 15 分钟（及每次手动重启）把隔离办公室一起杀掉：`workspace resume` 报成功、十几秒后 HTTP 000。不修则 Journey 1 无法连续观察 |
 
 ## 5. 允许的人工干预（任务创建后）
 
