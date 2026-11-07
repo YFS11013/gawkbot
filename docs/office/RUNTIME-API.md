@@ -919,3 +919,27 @@ WARN provider: no one-shot for this kind, using the opencode CLI
 代价要说清：provider 选的是本地模型但守护进程没起来时，以前会静默换成 opencode agent「假装答了」，现在直接报连接错误。这是有意的——调用方选的是那个模型，起 agent 只会给出一个它没选的答案。
 
 测试：`TestRunConfiguredOneShotCtx_UsesHTTPWhenConfigured`（显式端点 → 命中一次 `/v1/chat/completions`，答案来自 HTTP）、`TestOneShotHTTPConfigFor_DefaultsToTheProviderEndpoint`（无 env 时落到默认端点、env 优先、未知 kind 保持 invalid）。当前运行态 provider 是 `opencode`（`SupportsOneShot=true`），所以这条改动在现网不改变任何行为。
+
+### 14.13 watchdog 的两个 gate 不再对「按判定停用的采集器」报警（2026-11-07）
+
+判定落地后，`WUPHF-RoutineScorecard` 是**有意停用**的（`MINIMAL-CONFIG.md`），但 `~/.wuphf/data/broker-watchdog.ps1` 的 routine gate 每 15 分钟跑一次 `check_routine_scorecard.py`，而那个脚本的第一条检查就是「快照不超过 26h」。没有采集器就没有新快照，于是它永远失败：
+
+```
+routine gate FAILED:
+  - snapshot is 118.7h old (limit 26h)
+```
+
+到 11-07 11:36 已经 379 条。这不是告警，是一个不可能通过的门；它的真正代价是把真告警埋掉——这正是 §14 开头那条教训（告警文本比告警本身贵）。
+
+三处改动，都是运行时文件（不入库，`broker-watchdog.ps1.bak-gateskip` 是改前备份）：
+
+1. **gate 与被测对象对齐**：两个 gate 先读 `docs/office/expected-scheduler.json` 里对应任务的 `enabled`，为 `false` 就跳过并记录一次。routine gate 看 `WUPHF-RoutineScorecard`，thesis gate 看 `WUPHF-ThesisReview`。缺字段按启用处理（与 `check-office-drift.ps1` 的 `$t.enabled -eq $false` 同一条规则），所以字段写漏不会悄悄让门失效。
+2. **去重键把数字归一**：原来对原始输出做 SHA256，而消息里嵌着会变大的数字（`118.7h` → `119.0h`），哈希每分钟都不同，去重永不命中。现在先 `\d+(\.\d+)?` → `#` 再哈希，同一类故障只记一行；故障种类变了仍会新记一行。
+3. **`SKIP` 哨兵**：跳过只在状态文件从「无/哈希」变成 `SKIP` 的那一次写日志。实测连跑三次，`routine gate` 行数停在 379 不动。
+
+两个坑写在这里，因为都会静默失败：
+
+- **manifest 必须显式按 UTF-8 读**。watchdog 由任务计划器用 Windows PowerShell 5.1 启动，`Get-Content -Raw` 读无 BOM 的 UTF-8 文件会按 ANSI 解码，中文注释直接让 `ConvertFrom-Json` 抛异常——函数走 `catch` 返回 `$null`，于是「没有声明」被误读成「门正常运行」，跳过逻辑形同不存在。第一版就是这样：改了没生效，日志照旧 FAILED。改用 `[System.IO.File]::ReadAllText($path, [Text.Encoding]::UTF8)`。
+- **缺 `enabled` 字段不等于停用**。第一版用 `[bool]$t.enabled`，而 `WUPHF-ThesisReview` 在 manifest 里根本没有 `enabled` 字段——结果一个**正常工作**的 thesis gate 被静默停掉。实测发现（日志出现 `thesis gate skipped`），改为 `PSObject.Properties['enabled']` 存在性判断。
+
+验证：手工跑 `powershell -NoProfile -File ~/.wuphf/data/broker-watchdog.ps1` 两次，日志出现一次 `routine gate skipped: WUPHF-RoutineScorecard disabled by expected state`，`logs/watchdog-routine.state` 内容为 `SKIP`，第二次运行不再新增；thesis gate 不再出现 `skipped`，且不写状态文件（= `--score --dry-run` 通过）。
