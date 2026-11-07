@@ -102,3 +102,23 @@ func TestSkillGate_DisabledWithoutModel(t *testing.T) {
 		t.Fatalf("gate disabled must fall through to the text model, got %d", textCalls.Load())
 	}
 }
+
+// The daily model snapshot is generated boilerplate whose hash changes every
+// day; a prefix match keeps it out without naming the date.
+func TestScanSkipsGeneratedModelSnapshots(t *testing.T) {
+	for _, rel := range []string{
+		"team/opencode-models-2026-11-07.md",
+		"team/opencode-models-2026-10-31.md",
+	} {
+		if !shouldSkipPath(rel) {
+			t.Fatalf("%s must be skipped", rel)
+		}
+	}
+	// A hand-written note that merely mentions the snapshots is still scanned.
+	if shouldSkipPath("team/learnings/opencode-models-are-stale.md") {
+		t.Fatalf("unrelated article must not be skipped")
+	}
+	if !shouldSkipPath("team/prep/packet.md") || !shouldSkipPath("team/skills/x.md") {
+		t.Fatalf("existing directory skips must still apply")
+	}
+}

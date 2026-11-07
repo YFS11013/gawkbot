@@ -811,3 +811,20 @@ POST /skills/compile {"dry_run":true,"scope_path":"team/companies"}
 同一批走 `openrouter/free` 是 20 × ~10 s ≈ 200 s，且历史上其中 2 篇会撞 30 s 超时。
 
 **运维注意**：`mtimeCache` 是进程内状态，首次 Scan 时从磁盘加载。手工改 `skills-scan-cache.json` 后**必须重启 broker** 才会生效（第二次 Scan 起只用内存）。
+
+### 14.10 生成物移出扫描范围（2026-11-07）
+
+`team/opencode-models-YYYY-MM-DD.md` 是 `model-snapshot.ps1` 每天写的模型清单（同样的 460 个 id 加一张变动表）。它不是流程，而且内容每天变，所以**每天都会被判一次**——它也是 14.9 校准里唯一的假阳性（p=0.71，其余非技能都 ≤0.22）。
+
+`shouldSkipPath` 原先是目录前缀匹配，抓不到带日期的文件名，于是新增 `scanSkippedFilePrefixes`（文件前缀 `team/opencode-models-`），语义与目录表一致、同样带注释说明原因。
+
+验证（broker 60344）：
+
+```
+POST /skills/compile {"dry_run":true}
+→ {"scanned":74,...}        # 之前 80；恰好少了 6 篇 opencode-models-*.md
+→ cache 73 条，含 opencode-models-* 的条目 0 条
+→ 唯一未判的是 team/playbooks/forex-watch-2026-11-03.md（gate p=0.43，按设计每轮重试）
+```
+
+`team/alerts.md` 与 `team/index.md` 同样是机器维护、每轮都变的页面，但**没有**加进去：它们各自还有被人手写内容覆盖的可能，而模型快照是纯生成物。要一起排除的话，往 `scanSkippedFilePrefixes` 追加两行即可。

@@ -68,6 +68,19 @@ var scanSkippedDirs = []string{
 	"team/theses/",
 }
 
+// scanSkippedFilePrefixes lists wiki-relative file prefixes the scanner must
+// skip. Filenames are matched (not just directories) because the daily model
+// snapshot carries its date in the name and a new file appears every day.
+var scanSkippedFilePrefixes = []string{
+	// team/opencode-models-YYYY-MM-DD.md is written by model-snapshot.ps1
+	// every morning: the same 460 model IDs, sorted, with a changed table.
+	// It is generated boilerplate, not a procedure, and its hash changes
+	// daily, so the scanner paid a verdict for it every day (the only false
+	// positive in the decision-gate calibration: p=0.71 where every other
+	// non-skill scored <=0.22).
+	"team/opencode-models-",
+}
+
 // scanBotNotebookSegment is the path segment that identifies per-bot
 // notebooks (team/bots/*/notebook/). Notebook articles are scratch space —
 // scanning them would create noise. Promotion is gated by the notebook→wiki
@@ -583,6 +596,11 @@ func shouldSkipPath(rel string) bool {
 	}
 	if strings.HasSuffix(rel, ".executions.jsonl") {
 		return true
+	}
+	for _, prefix := range scanSkippedFilePrefixes {
+		if strings.HasPrefix(rel, prefix) {
+			return true
+		}
 	}
 	return false
 }
