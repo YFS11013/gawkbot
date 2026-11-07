@@ -87,6 +87,67 @@ func (b *Broker) ScheduleRecheck(channel, targetType, targetID, label, payload s
 	})
 }
 
+// noTraceRetryBaseDelay / noTraceRetryMaxDelay bound the short retry armed
+// after a headless turn that left no durable trace. The follow-up interval is
+// the only other re-arm and it is hourly by default: Journey 1's ae turn hit a
+// blocker at 13:49 and nothing woke the task again until 14:45.
+const (
+	noTraceRetryBaseDelay = 2 * time.Minute
+	noTraceRetryMaxDelay  = 30 * time.Minute
+)
+
+// ScheduleNoTraceRetry arms one short retry for a task whose last turn changed
+// nothing observable. Backoff doubles per consecutive empty turn (2m, 4m, 8m …
+// capped at 30m) so a bot that keeps waking with the same input does not spin,
+// and a task waiting on an open blocking request is skipped — the owner is not
+// what it is waiting for.
+func (b *Broker) ScheduleNoTraceRetry(taskID string) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	task := b.taskByIDLocked(strings.TrimSpace(taskID))
+	if task == nil {
+		return nil
+	}
+	if !strings.EqualFold(strings.TrimSpace(task.status), "in_progress") || task.blocked {
+		return nil
+	}
+	if strings.TrimSpace(task.Owner) == "" {
+		return nil
+	}
+	channel := normalizeChannelSlug(task.Channel)
+	if firstBlockingRequestInChannel(b.requests, channel) != nil {
+		return nil
+	}
+	n := task.StalledTurns
+	if n < 1 {
+		n = 1
+	}
+	if n > 5 {
+		n = 5 // 2m << 4 = 32m, already past the cap; avoids a huge shift
+	}
+	delay := noTraceRetryBaseDelay << uint(n-1)
+	if delay > noTraceRetryMaxDelay {
+		delay = noTraceRetryMaxDelay
+	}
+	when := time.Now().UTC().Add(delay)
+	job := normalizeSchedulerJob(schedulerJob{
+		Slug:       normalizeSchedulerSlug("recheck", channel, "task", task.ID),
+		Kind:       "recheck",
+		Label:      "Retry task " + truncateSummary(task.Title, 48),
+		TargetType: "task",
+		TargetID:   task.ID,
+		Channel:    channel,
+		DueAt:      when.Format(time.RFC3339),
+		NextRun:    when.Format(time.RFC3339),
+		Status:     "scheduled",
+		Payload:    task.Details,
+	})
+	if err := b.scheduleJobLocked(job); err != nil {
+		return err
+	}
+	return b.saveLocked()
+}
+
 func (b *Broker) scheduleJob(job schedulerJob) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()

@@ -65,6 +65,11 @@ func normalizeTaskDefinition(in *TaskDefinition, now string) (*TaskDefinition, e
 		return nil, fmt.Errorf("definition goal is required")
 	}
 	out := &TaskDefinition{Goal: goal, ArtifactPath: strings.TrimSpace(in.ArtifactPath), DefinedAt: now}
+	if out.ArtifactPath != "" {
+		if err := validateTaskArtifactScope(out.ArtifactPath); err != nil {
+			return nil, err
+		}
+	}
 	for i, d := range in.Deliverables {
 		name := strings.TrimSpace(d.Name)
 		if name == "" {
@@ -88,6 +93,46 @@ func normalizeTaskDefinition(in *TaskDefinition, now string) (*TaskDefinition, e
 		}
 	}
 	return out, nil
+}
+
+// taskArtifactPathPrefixes are the wiki roots a bot may declare as a task's
+// self-authorized write scope. /wiki/write-task accepts exactly the declared
+// path from the task owner, so this list is what keeps "the task may publish
+// its deliverable" from becoming "the task may rewrite any page". A path
+// outside these roots still requires a human_request.
+var taskArtifactPathPrefixes = []string{
+	"team/accounts/",
+	"team/emails/",
+	"team/playbooks/",
+	"team/research/",
+	"team/reviews/",
+	"team/tasks/",
+}
+
+// validateTaskArtifactScope rejects a declared scope that is not a plain
+// markdown path under an allowed team root. Distinct from
+// validateTaskArtifactPath in task_completion_hook.go, which only sanity-checks
+// a delivered-artifact reference.
+func validateTaskArtifactScope(p string) error {
+	p = strings.TrimSpace(p)
+	if p == "" {
+		return nil
+	}
+	if strings.HasPrefix(p, "/") || strings.HasPrefix(p, "\\") || strings.Contains(p, "\\") {
+		return fmt.Errorf("definition artifact_path must be a wiki-relative path: %q", p)
+	}
+	if strings.Contains(p, "..") {
+		return fmt.Errorf("definition artifact_path must not contain ..: %q", p)
+	}
+	if !strings.HasSuffix(strings.ToLower(p), ".md") {
+		return fmt.Errorf("definition artifact_path must be a .md file: %q", p)
+	}
+	for _, prefix := range taskArtifactPathPrefixes {
+		if strings.HasPrefix(p, prefix) && len(p) > len(prefix) {
+			return nil
+		}
+	}
+	return fmt.Errorf("definition artifact_path must live under one of %s; got %q (a bot cannot self-authorize a write elsewhere — ask the human)", strings.Join(taskArtifactPathPrefixes, ", "), p)
 }
 
 // definitionPlaceholderRegex matches bracketed-uppercase placeholders an
@@ -175,4 +220,39 @@ func taskDefinitionPacketLines(def *TaskDefinition) []string {
 		lines = append(lines, "  Access needed: "+truncate(strings.Join(def.AccessNeeded, "; "), 600))
 	}
 	return lines
+}
+
+// taskRequiresDeliveredArtifactLocked reports whether a done transition on
+// this task must carry a delivered artifact. A task with its own Definition
+// always must; so must a sub-issue whose parent Issue is defined, because the
+// parent's contract is the one the human actually signed. Journey 1: JOURN-24
+// closed done with the three emails still in a notebook — only the parent had
+// a Definition, so the gate never bound.
+//
+// Caller must hold b.mu.
+func (b *Broker) taskRequiresDeliveredArtifactLocked(task *teamTask) bool {
+	if task == nil {
+		return false
+	}
+	if task.Definition != nil {
+		return true
+	}
+	parentID := strings.TrimSpace(task.ParentIssueID)
+	if parentID == "" {
+		return false
+	}
+	parent := b.taskByIDLocked(parentID)
+	return parent != nil && parent.Definition != nil
+}
+
+// taskArtifactGateReason names which contract bound the artifact gate, for the
+// rejection message the owner will read.
+func taskArtifactGateReason(task *teamTask) string {
+	if task == nil {
+		return "requires a delivered artifact"
+	}
+	if task.Definition != nil {
+		return "has a Definition"
+	}
+	return "is a sub-issue of a defined Issue"
 }

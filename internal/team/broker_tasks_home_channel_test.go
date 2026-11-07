@@ -76,11 +76,14 @@ func TestTaskCreateChannelPrefersOwnerOverCreator(t *testing.T) {
 }
 
 // But a DM has exactly two participants, so a bot opening a task for a
-// DIFFERENT bot must not be routed into a private conversation it cannot
-// post in. It falls back to its own DM rather than failing the create.
-func TestTaskCreateByBotForAnotherBotUsesTheCreatorsOwnDM(t *testing.T) {
-	// planner is hired, so the fallback below is genuinely "the creator cannot
-	// post in the owner's DM" and not "the owner does not exist".
+// DIFFERENT bot must not be routed into a private conversation either of them
+// cannot both join. It lands in the creator⇄owner pair DM — the one room both
+// can post in. (Was the creator's own DM; Journey 1 showed why that fails: the
+// owner is a write-only third party in the human's thread with the creator, so
+// it cannot comment, block or complete its own task.)
+func TestTaskCreateByBotForAnotherBotUsesTheCreatorOwnerPairDM(t *testing.T) {
+	// planner is hired, so this is genuinely "the creator cannot post in the
+	// owner's human DM" and not "the owner does not exist".
 	b := brokerWithBots(t, "planner")
 
 	resp, err := b.MutateTask(TaskPostRequest{
@@ -93,8 +96,11 @@ func TestTaskCreateByBotForAnotherBotUsesTheCreatorsOwnDM(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
-	if got, want := resp.Task.Channel, DMSlugFor("cos"); got != want {
-		t.Errorf("task channel = %q, want the creator's own DM %q", got, want)
+	if got, want := resp.Task.Channel, "cos__planner"; got != want {
+		t.Errorf("task channel = %q, want the creator⇄owner pair DM %q", got, want)
+	}
+	if !b.canAccessChannelLocked("planner", resp.Task.Channel) {
+		t.Errorf("owner cannot post in its own task channel %q", resp.Task.Channel)
 	}
 }
 

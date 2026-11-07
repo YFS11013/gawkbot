@@ -389,6 +389,20 @@ digest ──► render_artifacts()（脚本，0 LLM）
 3. 补「回合结束未收口」的短周期兜底（P1）：`scheduler.go` 在 `recheck_at` 之外加 2 个 poll 周期的重投；现在 65 分钟空转。
 4. 邮件 wiki 化 + 实体页质量 + done-post 带链接（P2）：`entity_index.go`、`MessageRenderer.tsx`；实体页现有模板摘要，缺 Brightline、缺业务字段。
 
+### 9.8 Journey 1 之后的四处修复（2026-11-07 15:2x）
+
+按 §9.7 的顺序落地，四处都有回归测试。
+
+| 缺陷 | 修法 | 位置 |
+|---|---|---|
+| 子任务落在别人的 DM，owner 写不进去（`channel access denied` → `no durable trace` → stalled） | 创建时把「一个 bot 为另一个 bot 开的任务」从人类 1:1 DM 迁到 creator⇄owner 的 pair DM；人类自己开给自己的任务原地不动 | `broker_tasks_mutation_service.go` create 分支 + `reHomeTaskOutOfHumanDMLocked`；测试 `TestMutateTaskCreateRehomesBotOwnedTaskOutOfHumanDM` |
+| 人给任务 → wiki 的授权往返 | `define` 新增 `artifact_scope`，写进 `Definition.ArtifactPath`——这正是 `/wiki/write-task` 授权的那一个路径；prompt 要求 CoS 为发布类任务声明 | `teammcp/server_tasks.go`、`server_types.go`、`prompt_builder.go`；测试 `TestHandleTeamTaskDefineForwardsArtifactScope` |
+| bot 定义任务可以自开任意 wiki 路径 | `artifact_scope` 只能落在 `team/accounts/`、`team/emails/`、`team/playbooks/`、`team/research/`、`team/reviews/`、`team/tasks/`，且必须是 `.md`、无 `..`、无绝对路径 | `task_definition.go` `validateTaskArtifactScope`；测试 `TestNormalizeTaskDefinitionValidatesArtifactScope` |
+| 子任务没有 Definition 就能 done（邮件只留在 notebook 也算完成） | done 的产物门改为「本任务有 Definition **或** 父 Issue 有 Definition」，拒绝文案说明是哪一种 | `taskRequiresDeliveredArtifactLocked`，接入 mutation 与 decision packet 两处；测试 `TestArtifactGate_BindsOnSubIssueOfDefinedParent` |
+| 回合结束但没留下任何痕迹时，要等一小时才重投 | 记录 `no durable trace` 后立即排一次短重试：2 分钟起、每次翻倍、封顶 30 分钟；任务 blocked 或卡在等人的阻塞请求上时不排 | `broker_scheduler.go` `ScheduleNoTraceRetry`、`task_ledger.go` 调用点；测试 `TestScheduleNoTraceRetry_ArmsShortRecheck` |
+
+**没改的两处**：`/wiki/write` 服务端仍不校验授权（信任 MCP 层）；`From: system` 的 composer 卡片照旧。前者是既有设计（写入口径在 prompt + MCP），后者若改成 human 会伪造授权，故不动。
+
 ### 8.5 巡检发现：覆盖、索引、倒计时（2026-10-30 05:10 UTC）
 
 - **Medium 事件被静默丢弃**：`MEDIUM_KEEP` 只匹配央行类关键词，导致德国 10 月初值 CPI（07:29 UTC）、德国 GDP（09:00）、美国 ECI（12:30）、加拿大 GDP 全部从日历消失。修复后本周事件 24 → 30 条，当日未来事件从 1 条恢复为 4 条。

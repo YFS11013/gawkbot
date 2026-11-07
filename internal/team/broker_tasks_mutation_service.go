@@ -540,6 +540,19 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		if strings.TrimSpace(body.Title) == "" || actor == "" {
 			return TaskResponse{}, taskMutationError(TaskMutationInvalid, "title and created_by required", nil)
 		}
+		// A task one bot opens for another must not keep the human 1:1 DM it
+		// was created from: the owner would be a write-only third party in it,
+		// and the human's private thread would carry another bot's work
+		// (broker_channel_access.go, ensureTaskOwnerChannelMembershipLocked).
+		// Move it to the creator⇄owner pair DM, which both can post in. A task
+		// the creator owns, or one created in a shared room, stays put.
+		//
+		// Journey 1: JOURN-24 was created inside #cos__human with owner=ae;
+		// ae could not comment, block or complete it (403 channel access
+		// denied), so its findings and blockers lived only in the headless log.
+		if owner := strings.TrimSpace(body.Owner); owner != "" && channel != "" {
+			channel = b.reHomeTaskOutOfHumanDMLocked(channel, owner)
+		}
 		if channel != "" && !b.canAccessChannelLocked(actor, channel) {
 			return TaskResponse{}, taskMutationError(TaskMutationForbidden, "channel access denied", nil)
 		}
@@ -1343,13 +1356,13 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		// Artifact gate (core-loop B1): a task with a Definition cannot land
 		// in done without a delivered artifact on record. Tasks without a
 		// Definition keep legacy behavior — additive rollout.
-		if reachedDone && task.Definition != nil && strings.TrimSpace(task.Artifact) == "" {
+		if reachedDone && b.taskRequiresDeliveredArtifactLocked(task) && strings.TrimSpace(task.Artifact) == "" {
 			rollbackTask()
 			return TaskResponse{}, taskMutationError(
 				TaskMutationArtifactRequired,
 				fmt.Sprintf(
-					"task %s has a Definition, so it cannot reach done without a delivered artifact. Publish the deliverable to the wiki, then retry this %s with artifact_path set to the wiki-relative path (e.g. \"team/playbooks/launch.md\") or the visual-artifact id.",
-					task.ID, action,
+					"task %s %s, so it cannot reach done without a delivered artifact. Publish the deliverable to the wiki, then retry this %s with artifact_path set to the wiki-relative path (e.g. \"team/playbooks/launch.md\") or the visual-artifact id.",
+					task.ID, taskArtifactGateReason(task), action,
 				),
 				nil,
 			)
@@ -1360,7 +1373,7 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		// checked outside the lock in the pre-phase; binding here only when
 		// the reference matches what was checked keeps the gate race-safe
 		// against concurrent artifact rewrites.
-		if reachedDone && task.Definition != nil &&
+		if reachedDone && b.taskRequiresDeliveredArtifactLocked(task) &&
 			strings.TrimSpace(task.Artifact) == doneArtifactRef && !doneArtifactExists {
 			rollbackTask()
 			return TaskResponse{}, taskMutationError(

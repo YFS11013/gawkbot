@@ -349,3 +349,65 @@ func TestDefinitionGapMarkers(t *testing.T) {
 		})
 	}
 }
+
+// TestNormalizeTaskDefinitionValidatesArtifactScope pins the narrow write
+// grant: a definition may declare a wiki path under the published roots and
+// nothing else. The scope is what /wiki/write-task authorizes, so an
+// out-of-root value would turn "this task may publish its deliverable" into
+// "this task may rewrite any article".
+func TestNormalizeTaskDefinitionValidatesArtifactScope(t *testing.T) {
+	const now = "2026-11-07T06:00:00Z"
+	ok := []string{
+		"team/accounts/acme-corp.md",
+		"team/emails/q3-renewals.md",
+		"team/playbooks/renewal-outreach.md",
+		"team/tasks/JOURN-22/report.md",
+		"team/reviews/JOURN-22.md",
+	}
+	for _, path := range ok {
+		if _, err := normalizeTaskDefinition(&TaskDefinition{Goal: "g", ArtifactPath: path}, now); err != nil {
+			t.Errorf("scope %q rejected: %v", path, err)
+		}
+	}
+	bad := []string{
+		"team/people/cos.md",
+		"team/entities/acme.facts.jsonl",
+		"/etc/passwd.md",
+		"team/accounts/../people/cos.md",
+		"team/accounts",
+		"team/accounts/acme.txt",
+		"general/acme.md",
+	}
+	for _, path := range bad {
+		if _, err := normalizeTaskDefinition(&TaskDefinition{Goal: "g", ArtifactPath: path}, now); err == nil {
+			t.Errorf("scope %q accepted, want rejection", path)
+		}
+	}
+}
+
+// TestAuthorizeTaskArtifactWriteHonoursDeclaredScope checks the gate the
+// accepted scope feeds: exact path, owner only, open task.
+func TestAuthorizeTaskArtifactWriteHonoursDeclaredScope(t *testing.T) {
+	b := newTestBroker(t)
+	b.tasks = []teamTask{{
+		ID:      "JOURN-90",
+		Channel: "team",
+		Title:   "Publish brief",
+		Owner:   "ae",
+		status:  "in_progress",
+		Definition: &TaskDefinition{
+			Goal:         "publish",
+			ArtifactPath: "team/accounts/acme-corp.md",
+		},
+	}}
+
+	if err := b.authorizeTaskArtifactWrite("ae", "JOURN-90", "team/accounts/acme-corp.md"); err != nil {
+		t.Fatalf("declared path refused: %v", err)
+	}
+	if err := b.authorizeTaskArtifactWrite("ae", "JOURN-90", "team/people/cos.md"); err == nil {
+		t.Fatal("undeclared path accepted")
+	}
+	if err := b.authorizeTaskArtifactWrite("revops", "JOURN-90", "team/accounts/acme-corp.md"); err == nil {
+		t.Fatal("non-owner accepted")
+	}
+}

@@ -153,6 +153,15 @@ func (l *Launcher) recordTaskLedgerEntry(slug string, turn headlessCodexTurn, st
 		entry.Outcome = noDurableTraceOutcome
 	}
 	stalledTurns, crossedLimit := l.broker.AppendTaskLedgerEntry(taskID, entry)
+	if entry.Outcome == noDurableTraceOutcome {
+		// A turn that changed nothing should not sleep a full follow-up
+		// interval: arm a short retry (2m, doubling) so the owner wakes again
+		// while the context is still fresh. Skipped when the task is done,
+		// blocked, or waiting on an open human request.
+		if err := l.broker.ScheduleNoTraceRetry(taskID); err != nil {
+			log.Printf("broker: schedule no-trace retry for %s: %v", taskID, err)
+		}
+	}
 	if !crossedLimit {
 		return
 	}

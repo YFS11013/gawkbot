@@ -577,3 +577,54 @@ func assertTaskIDs(t *testing.T, tasks []teamTask, want []string) {
 		}
 	}
 }
+
+// TestMutateTaskCreateRehomesBotOwnedTaskOutOfHumanDM pins the Journey 1
+// failure: a sub-issue created inside #cos__human with owner=ae stayed there,
+// so ae could not comment, block or complete its own task (403 channel access
+// denied) and its findings lived only in the headless log. A task one bot
+// opens for another now moves to the creator⇄owner pair DM, which both can
+// post in; the CEO's own task stays where the human asked.
+func TestMutateTaskCreateRehomesBotOwnedTaskOutOfHumanDM(t *testing.T) {
+	b := newTestBroker(t)
+	b.mu.Lock()
+	b.members = append(b.members, officeMember{Slug: "ae", Name: "AE", Role: "specialist"})
+	b.rebuildMemberIndexLocked()
+	b.channels = append(b.channels, teamChannel{
+		Slug:    "cos__human",
+		Name:    "cos",
+		Type:    "dm",
+		Members: []string{"cos", "human"},
+	})
+	b.mu.Unlock()
+
+	got, err := b.MutateTask(TaskPostRequest{
+		Action:    "create",
+		Channel:   "cos__human",
+		Title:     "Draft renewal emails",
+		Owner:     "ae",
+		CreatedBy: "cos",
+	})
+	if err != nil {
+		t.Fatalf("MutateTask create: %v", err)
+	}
+	if got.Task.Channel == "cos__human" {
+		t.Fatalf("task for ae kept the human DM %q; owner cannot post there", got.Task.Channel)
+	}
+	if !b.canAccessChannelLocked("ae", got.Task.Channel) {
+		t.Fatalf("owner ae cannot access re-homed channel %q", got.Task.Channel)
+	}
+
+	own, err := b.MutateTask(TaskPostRequest{
+		Action:    "create",
+		Channel:   "cos__human",
+		Title:     "Plan the week",
+		Owner:     "cos",
+		CreatedBy: "cos",
+	})
+	if err != nil {
+		t.Fatalf("MutateTask create (CEO-owned): %v", err)
+	}
+	if own.Task.Channel != "cos__human" {
+		t.Fatalf("CEO-owned task moved out of the human DM: %q", own.Task.Channel)
+	}
+}

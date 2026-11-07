@@ -131,6 +131,13 @@ func handleTeamTask(ctx context.Context, _ *mcp.CallToolRequest, args TeamTaskAr
 		if len(args.AccessNeeded) > 0 {
 			definition["access_needed"] = args.AccessNeeded
 		}
+		// The declared write scope rides INSIDE the definition: /wiki/write-task
+		// authorizes exactly this path, so it is what lets the owner publish its
+		// deliverable without a per-write human go-ahead. Top-level artifact_path
+		// stays what it always was — the delivered-artifact reference.
+		if scope := strings.TrimSpace(args.ArtifactScope); scope != "" {
+			definition["artifact_path"] = scope
+		}
 		payload["definition"] = definition
 	}
 	if ap := strings.TrimSpace(args.ArtifactPath); ap != "" {
