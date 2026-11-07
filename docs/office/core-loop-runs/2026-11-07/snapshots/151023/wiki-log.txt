@@ -1,0 +1,40 @@
+86997ca archivist: entity article companies/needs-confirmation (2 facts)
+a6f36d7 archivist: entity article companies/corti-labs (1 facts)
+e31ec4a archivist: entity article companies/acme-corp (1 facts)
+b07bd77 archivist: entity article people/cos (1 facts)
+142271b archivist: entity article people/ae (2 facts)
+f8851a6 archivist: entity article people/reviewer (1 facts)
+d6fb9ad graph: companies/needs-confirmation → 5 ref(s)
+c22a403 graph: companies/corti-labs → 5 ref(s)
+3904e09 graph: companies/acme-corp → 5 ref(s)
+b3f5e1d graph: people/cos → 5 ref(s)
+0e9ed4c graph: people/ae → 5 ref(s)
+78ce92c graph: people/reviewer → 5 ref(s)
+4ef2ed4 archivist: entity article companies/needs-confirmation (2 facts)
+4ecfa59 archivist: entity article companies/corti-labs (1 facts)
+2bb609e archivist: entity article companies/acme-corp (1 facts)
+f10a4b6 archivist: entity article people/cos (1 facts)
+563f780 archivist: entity article people/ae (2 facts)
+ad58363 archivist: entity article people/reviewer (1 facts)
+f795333 graph: companies/needs-confirmation → 5 ref(s)
+89640a9 fact: companies/needs-confirmation — Completed task JOURN-24 ("Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs") involved this entity. Goal: Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs. Co-occurring entities: [[people/reviewer]], [[people/ae]], [[people/cos]], [[companies/acme-corp]], [[companies/corti-labs]].
+338467e archivist: entity article companies/needs-confirmation (1 facts)
+445df5e graph: companies/corti-labs → 5 ref(s)
+0e47bad fact: companies/corti-labs — Completed task JOURN-24 ("Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs") involved this entity. Goal: Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs. Co-occurring entities: [[people/reviewer]], [[people/ae]], [[people/cos]], [[companies/acme-corp]], [[companies/needs-confirmation]].
+c14e816 archivist: entity article people/ae (2 facts)
+f670177 graph: companies/acme-corp → 5 ref(s)
+ef1505f fact: companies/acme-corp — Completed task JOURN-24 ("Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs") involved this entity. Goal: Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs. Co-occurring entities: [[people/reviewer]], [[people/ae]], [[people/cos]], [[companies/corti-labs]], [[companies/needs-confirmation]].
+5398835 graph: people/cos → 5 ref(s)
+2386872 graph: companies/needs-confirmation → 1 ref(s)
+3529e0b fact: people/cos — Completed task JOURN-24 ("Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs") involved this entity. Goal: Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs. Co-occurring entities: [[people/reviewer]], [[people/ae]], [[companies/acme-corp]], [[companies/corti-labs]], [[companies/needs-confirmation]].
+a878940 graph: people/ae → 5 ref(s)
+8787f5e fact: companies/needs-confirmation — Completed task JOURN-59 ("QA renewal email drafts — Acme Corp, Brightline, Corti Labs") involved this entity. Goal: QA renewal email drafts — Acme Corp, Brightline, Corti Labs. Co-occurring entities: [[people/ae]].
+b79380c graph: people/ae → 1 ref(s)
+182eeb7 fact: people/ae — Completed task JOURN-24 ("Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs") involved this entity. Goal: Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs. Co-occurring entities: [[people/reviewer]], [[people/cos]], [[companies/acme-corp]], [[companies/corti-labs]], [[companies/needs-confirmation]].
+2a66b83 graph: people/reviewer → 5 ref(s)
+f9fbcb7 fact: people/ae — Completed task JOURN-59 ("QA renewal email drafts — Acme Corp, Brightline, Corti Labs") involved this entity. Goal: QA renewal email drafts — Acme Corp, Brightline, Corti Labs. Co-occurring entities: [[companies/needs-confirmation]].
+df8a92b fact: people/reviewer — Completed task JOURN-24 ("Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs") involved this entity. Goal: Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs. Co-occurring entities: [[people/ae]], [[people/cos]], [[companies/acme-corp]], [[companies/corti-labs]], [[companies/needs-confirmation]].
+3abf964 QA Review — Renewal Email Drafts (JOURN-59)
+0b2f18e librarian: compile skill renewal-outreach
+d808541 archivist: compile playbook renewal-outreach
+9a7f6f6 Publish quarterly renewal-outreach playbook per human 'save to wiki' authorization

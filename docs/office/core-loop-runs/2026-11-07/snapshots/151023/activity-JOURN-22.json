@@ -1,0 +1,114 @@
+{
+  "task_id": "JOURN-22",
+  "events": [
+    {
+      "id": "action-34",
+      "kind": "lifecycle",
+      "timestamp": "2026-11-07T05:40:54Z",
+      "actor": "human",
+      "summary": "We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%),"
+    },
+    {
+      "id": "action-35",
+      "kind": "action",
+      "timestamp": "2026-11-07T05:43:24Z",
+      "actor": "cos",
+      "summary": "We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%), [in_progress]"
+    },
+    {
+      "id": "subissue-JOURN-24",
+      "kind": "sub_issue",
+      "timestamp": "2026-11-07T05:43:30Z",
+      "actor": "cos",
+      "summary": "Sub-issue created: Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs",
+      "sub_issue": {
+        "sub_issue_id": "JOURN-24",
+        "title": "Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs"
+      }
+    },
+    {
+      "id": "action-37",
+      "kind": "action",
+      "timestamp": "2026-11-07T05:44:56Z",
+      "actor": "cos",
+      "summary": "We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%), [in_progress]"
+    },
+    {
+      "id": "turn-JOURN-22-0",
+      "kind": "turn",
+      "timestamp": "2026-11-07T05:45:24Z",
+      "actor": "cos",
+      "summary": "ok",
+      "context_used": [
+        "wiki:team/getting-started/channels.md",
+        "wiki:team/getting-started/connecting-your-work.md",
+        "wiki:team/getting-started/working-with-agents.md",
+        "wiki:team/getting-started/your-context-graph.md"
+      ]
+    },
+    {
+      "id": "action-50",
+      "kind": "action",
+      "timestamp": "2026-11-07T05:52:30Z",
+      "actor": "cos",
+      "summary": "We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%), [in_progress]"
+    },
+    {
+      "id": "action-53",
+      "kind": "action",
+      "timestamp": "2026-11-07T06:01:55Z",
+      "actor": "cos",
+      "summary": "We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%), [in_progress]"
+    },
+    {
+      "id": "action-55",
+      "kind": "action",
+      "timestamp": "2026-11-07T06:12:53Z",
+      "actor": "system",
+      "summary": "no visible activity on JOURN-22 for 11m0s — marked stalled"
+    },
+    {
+      "id": "subissue-JOURN-59",
+      "kind": "sub_issue",
+      "timestamp": "2026-11-07T06:46:16Z",
+      "actor": "cos",
+      "summary": "Sub-issue created: QA renewal email drafts — Acme Corp, Brightline, Corti Labs",
+      "sub_issue": {
+        "sub_issue_id": "JOURN-59",
+        "title": "QA renewal email drafts — Acme Corp, Brightline, Corti Labs"
+      }
+    },
+    {
+      "id": "action-62",
+      "kind": "action",
+      "timestamp": "2026-11-07T06:46:41Z",
+      "actor": "cos",
+      "summary": "We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%), [in_progress]"
+    },
+    {
+      "id": "action-67",
+      "kind": "action",
+      "timestamp": "2026-11-07T06:54:07Z",
+      "actor": "cos",
+      "summary": "We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%), [in_progress]"
+    },
+    {
+      "id": "subissue-JOURN-75",
+      "kind": "sub_issue",
+      "timestamp": "2026-11-07T06:54:13Z",
+      "actor": "cos",
+      "summary": "Sub-issue created: Send approved renewal emails — Acme Corp, Brightline, Corti Labs",
+      "sub_issue": {
+        "sub_issue_id": "JOURN-75",
+        "title": "Send approved renewal emails — Acme Corp, Brightline, Corti Labs"
+      }
+    },
+    {
+      "id": "action-71",
+      "kind": "action",
+      "timestamp": "2026-11-07T07:09:53Z",
+      "actor": "system",
+      "summary": "no visible activity on JOURN-22 for 11m0s — marked stalled"
+    }
+  ]
+}

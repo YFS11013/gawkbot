@@ -1,0 +1,109 @@
+{
+  "task_id": "JOURN-24",
+  "events": [
+    {
+      "id": "action-36",
+      "kind": "lifecycle",
+      "timestamp": "2026-11-07T05:43:30Z",
+      "actor": "cos",
+      "summary": "Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs"
+    },
+    {
+      "id": "turn-JOURN-24-0",
+      "kind": "turn",
+      "timestamp": "2026-11-07T05:49:01Z",
+      "actor": "ae",
+      "summary": "ok (no durable trace: no message, no task mutation)",
+      "context_used": [
+        "wiki:team/getting-started/the-wiki.md",
+        "wiki:team/decisions/ops-log.md",
+        "wiki:team/getting-started/channels.md",
+        "wiki:team/getting-started/connecting-your-work.md",
+        "wiki:team/getting-started/index.md",
+        "learning:dd728beb-1936-48df-923f-0aab25e24883"
+      ]
+    },
+    {
+      "id": "action-56",
+      "kind": "action",
+      "timestamp": "2026-11-07T06:12:53Z",
+      "actor": "system",
+      "summary": "no visible activity on JOURN-24 for 11m0s — marked stalled"
+    },
+    {
+      "id": "action-57",
+      "kind": "action",
+      "timestamp": "2026-11-07T06:43:49Z",
+      "actor": "watchdog",
+      "summary": "@ae still needs to move Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs in #cos__human."
+    },
+    {
+      "id": "action-58",
+      "kind": "action",
+      "timestamp": "2026-11-07T06:44:44Z",
+      "actor": "cos",
+      "summary": "Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs [review]"
+    },
+    {
+      "id": "turn-JOURN-24-1",
+      "kind": "turn",
+      "timestamp": "2026-11-07T06:44:53Z",
+      "actor": "cos",
+      "summary": "ok",
+      "detail": "Done — JOURN-24 submitted for review with 3 drafts flagged for @reviewer QA.",
+      "context_used": [
+        "wiki:team/playbooks/.compiled/renewal-outreach/SKILL.md",
+        "wiki:team/playbooks/renewal-outreach.md",
+        "wiki:team/skills/renewal-outreach.md",
+        "wiki:team/accounts/corti-labs.md",
+        "wiki:team/accounts/acme-corp.md",
+        "learning:dd728beb-1936-48df-923f-0aab25e24883",
+        "journal:JOURN-24"
+      ]
+    },
+    {
+      "id": "turn-JOURN-24-2",
+      "kind": "turn",
+      "timestamp": "2026-11-07T06:45:45Z",
+      "actor": "ae",
+      "summary": "ok (no durable trace: no message, no task mutation)",
+      "context_used": [
+        "wiki:team/playbooks/.compiled/renewal-outreach/SKILL.md",
+        "wiki:team/playbooks/renewal-outreach.md",
+        "wiki:team/skills/renewal-outreach.md",
+        "wiki:team/accounts/corti-labs.md",
+        "wiki:team/accounts/acme-corp.md",
+        "learning:dd728beb-1936-48df-923f-0aab25e24883",
+        "journal:JOURN-24"
+      ]
+    },
+    {
+      "id": "action-60",
+      "kind": "action",
+      "timestamp": "2026-11-07T06:46:09Z",
+      "actor": "cos",
+      "summary": "Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs [review]"
+    },
+    {
+      "id": "action-65",
+      "kind": "action",
+      "timestamp": "2026-11-07T06:54:06Z",
+      "actor": "cos",
+      "summary": "Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs [done]"
+    },
+    {
+      "id": "action-69",
+      "kind": "action",
+      "timestamp": "2026-11-07T06:58:28Z",
+      "actor": "cos",
+      "summary": "Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs [review]"
+    },
+    {
+      "id": "action-70",
+      "kind": "action",
+      "timestamp": "2026-11-07T06:58:37Z",
+      "actor": "cos",
+      "summary": "Draft tailored renewal emails — Acme Corp, Brightline, Corti Labs [done]"
+    }
+  ]
+}

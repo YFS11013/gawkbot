@@ -282,6 +282,45 @@ defined_at: 2026-11-07T05:43:24Z
 - 缺的不是 Definition，而是 `artifact_path`：`write-task` 的授权门读的就是这个字段，而 Definition 的构造处（`broker_intake.go:818` 一带）只写 Goal/SuccessCriteria。
 - 预注册不改（跑完不动判据）；这条更正记在观察里，替总时按「Definition 存在、但无 artifact_path」判步骤 2。
 
+### 14:44–14:58 — recheck 触发，办公室自己醒了（推翻「终局」判断）
+
+- **14:44:53 / 14:45:45** ae 回合：把三封草稿投递到 `#ae__human`（`msg-57`）并 @cos（`msg-58`）。日志末行：
+  `live-chat-relay-post-error: channel access denied` + `@ae has no write access to #cos__human; @cos needs to relay submit_for_review or grant channel access`。
+- **14:46:09** `JOURN-24 [review]`；**14:46:09–14:54:06** reviewer QA → **14:54:06** `JOURN-24 [done]`。
+- **14:54:13** 新任务 `JOURN-75`（owner `ae`，title「Send approved renewal emails — Acme Corp, Brightline, Corti Labs」，`definition=null`）。
+- **14:54:07** `JOURN-22` updated（`06:54:07Z`），仍 `running` / `pending_review`。
+- **14:58:28 / 14:58:37** `JOURN-24 [review]` → `[done]`；**14:58:37** `status=done`、`review_state=approved`、`verification=not_required`。
+- **14:58:54** cos：`@ae — JOURN-24 drafts approved (QA CLEAN), task closed. Next lane is JOURN-75: send the three approved emails…`
+
+**这就是「回合结束未收口 → 无重投」的反证**：14:54 的 `follow_up_at`/`recheck_at` 确实把任务唤醒并收口了，但代价是 **从 13:49 到 14:54 的 65 分钟空转**。看门狗只重置 bot 状态、不重投；重投来自定时器。
+
+### 14:58 — 实体页由 archivist 自动生成（步骤 7 补上一半）
+
+wiki 新提交：
+
+| 提交 | 内容 |
+|---|---|
+| `b07bd77` | archivist: entity article `people/cos`（1 fact） |
+| `e31ec4a` | archivist: entity article `companies/acme-corp`（1 fact） |
+| `a6f36d7` | archivist: entity article `companies/corti-labs`（1 fact） |
+| `86997ca` | archivist: entity article `companies/needs-confirmation`（2 facts） |
+
+`team/companies/acme-corp.md` 1291 B（14:58），front matter 有 `last_synthesized_sha` / `fact_count_at_synthesis`，正文是模板化摘要（`Kind: company`、`Tasks: JOURN-24`）——**有页面、有事实来源链，但没有 `[[wikilink]]`、没有 infobox、内容极薄**。Brightline 未生成实体页（只有 acme / corti / needs-confirmation）。
+
+### 15:09 — JOURN-75 无法执行，且报不出去
+
+`headless-codex-ae.log 14:57:53`（原文）：
+
+> JOURN-75 无法执行发送。核对草稿与环境后发现三个阻塞：1) 收件人邮箱与发件人身份均未确认——三份草稿的 To/From 仍为 `[NEEDS CONFIRMATION]` 占位符；2) 本办公室未连接任何邮件集成（`team_action_connections` 返回空）；3) Corti Labs 按 playbook 标记为 HELD。… 另外，当前 @ae 对 #cos__human 无写入权限（403），以上阻塞未能写入 Issue 评论/Interview，仅在此汇报。
+
+随后：
+
+- `14:57:53` activity：`turn | ok (no durable trace: no message, no task mutation)`；
+- `15:09:53` activity：`action | no visible activity on JOURN-75 for 11m0s — marked stalled`；
+- 系统消息 `15:09:53`：`@ae has gone quiet … for about 11 minutes`。
+
+即：**子任务 bot 没有向父频道/负责人写字的权限，阻塞报告只能落在自己的 headless 日志里**；对协作层来说这一回合等于没发生（no durable trace），11 分钟后被标 stalled。
+
 ## 待记录
 
 - 采访是否出现、落在哪里（任务聊天 + Inbox）；
