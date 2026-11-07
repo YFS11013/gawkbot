@@ -304,6 +304,12 @@ func (w *watchdogScheduler) processTaskJob(job schedulerJob) {
 				return
 			}
 		}
+		if strings.EqualFold(strings.TrimSpace(job.Kind), "task_retry") {
+			// It went blocked after the retry was armed. Blockers resolve on
+			// their own schedule; the task's regular recheck covers it.
+			_ = w.broker.UpdateSchedulerJobState(job.Slug, time.Time{}, "done")
+			return
+		}
 		nextRun := w.clock.Now().UTC().Add(time.Duration(config.ResolveTaskReminderInterval()) * time.Minute)
 		_ = w.broker.UpdateSchedulerJobState(job.Slug, nextRun, "scheduled")
 		return
@@ -327,6 +333,14 @@ func (w *watchdogScheduler) processTaskJob(job schedulerJob) {
 			Actor:     "watchdog",
 			RelatedID: task.ID,
 		}, task)
+	}
+	if strings.EqualFold(strings.TrimSpace(job.Kind), "task_retry") {
+		// One shot. The retry exists to wake the owner sooner than the hourly
+		// follow-up; if the next turn is also empty, recordTaskLedgerEntry
+		// arms a longer one. Repeating on the reminder cadence would stack
+		// wakes on top of that.
+		_ = w.broker.UpdateSchedulerJobState(job.Slug, time.Time{}, "done")
+		return
 	}
 	nextRun := w.clock.Now().UTC().Add(time.Duration(config.ResolveTaskReminderInterval()) * time.Minute)
 	_ = w.broker.UpdateSchedulerJobState(job.Slug, nextRun, "scheduled")

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestArtifactGate_BindsOnSubIssueOfDefinedParent pins the Journey 1 hole:
@@ -57,19 +58,47 @@ func TestScheduleNoTraceRetry_ArmsShortRecheck(t *testing.T) {
 	}}
 	b.mu.Unlock()
 
+	// A lifecycle recheck already on the task must survive the retry: the
+	// retry has its own job identity, it does not tighten or overwrite it.
+	b.mu.Lock()
+	b.scheduler = []schedulerJob{{
+		Slug:       normalizeSchedulerSlug("recheck", "team", "task", "JOURN-91"),
+		Kind:       "recheck",
+		TargetType: "task",
+		TargetID:   "JOURN-91",
+		Channel:    "team",
+		Status:     "scheduled",
+		DueAt:      "2026-11-07T07:30:00Z",
+		NextRun:    "2026-11-07T07:30:00Z",
+	}}
+	b.mu.Unlock()
+
 	if err := b.ScheduleNoTraceRetry("JOURN-91"); err != nil {
 		t.Fatalf("ScheduleNoTraceRetry: %v", err)
 	}
 	b.mu.Lock()
 	var found *schedulerJob
+	rechecks := 0
 	for i := range b.scheduler {
-		if b.scheduler[i].Kind == "recheck" && b.scheduler[i].TargetID == "JOURN-91" {
+		if b.scheduler[i].TargetID != "JOURN-91" {
+			continue
+		}
+		switch b.scheduler[i].Kind {
+		case "task_retry":
 			found = &b.scheduler[i]
+		case "recheck":
+			rechecks++
+			if b.scheduler[i].NextRun != "2026-11-07T07:30:00Z" {
+				t.Errorf("lifecycle recheck was moved: %q", b.scheduler[i].NextRun)
+			}
 		}
 	}
 	b.mu.Unlock()
 	if found == nil {
-		t.Fatal("no recheck job armed for the no-trace turn")
+		t.Fatal("no task_retry job armed for the no-trace turn")
+	}
+	if rechecks != 1 {
+		t.Fatalf("lifecycle recheck job disappeared (got %d)", rechecks)
 	}
 
 	// A blocking human request means the owner is not the blocker.
@@ -91,8 +120,103 @@ func TestScheduleNoTraceRetry_ArmsShortRecheck(t *testing.T) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	for _, job := range b.scheduler {
-		if job.Kind == "recheck" && job.TargetID == "JOURN-91" {
+		if job.Kind == "task_retry" && job.TargetID == "JOURN-91" {
 			t.Fatal("armed a retry while a blocking request waits on the human")
+		}
+	}
+}
+
+// TestProcessTaskJob_TaskRetryIsOneShot pins the retry's lifecycle: it wakes
+// the owner once and closes itself, instead of re-firing on the reminder
+// cadence (the next empty turn arms a longer retry through the ledger).
+func TestProcessTaskJob_TaskRetryIsOneShot(t *testing.T) {
+	b := newCompletionHookBroker(t)
+	b.mu.Lock()
+	b.tasks = append(b.tasks, teamTask{
+		ID:      "JOURN-92",
+		Channel: "team",
+		Title:   "Draft renewal emails",
+		Owner:   "eng",
+		status:  "in_progress",
+	})
+	b.mu.Unlock()
+
+	delivered := 0
+	s := &watchdogScheduler{
+		broker: b,
+		clock:  newManualClock(time.Date(2026, 11, 7, 7, 0, 0, 0, time.UTC)),
+		deliverTask: func(action officeActionLog, task teamTask) {
+			delivered++
+		},
+	}
+	s.processTaskJob(schedulerJob{
+		Slug:       normalizeSchedulerSlug("task_retry", "team", "task", "JOURN-92"),
+		Kind:       "task_retry",
+		TargetType: "task",
+		TargetID:   "JOURN-92",
+		Channel:    "team",
+	})
+	if delivered != 1 {
+		t.Fatalf("retry delivered %d wakes, want 1", delivered)
+	}
+	for _, job := range b.Scheduler() {
+		if job.Slug == normalizeSchedulerSlug("task_retry", "team", "task", "JOURN-92") {
+			if !isClosedSchedulerStatus(job.Status) {
+				t.Fatalf("retry job still open after firing: status=%q next=%q", job.Status, job.NextRun)
+			}
+		}
+	}
+}
+
+// A retry that finds the task blocked closes instead of re-arming: blockers
+// clear on their own schedule and the task's recheck still covers it.
+func TestProcessTaskJob_TaskRetryClosesOnBlocked(t *testing.T) {
+	b := newCompletionHookBroker(t)
+	b.mu.Lock()
+	b.tasks = append(b.tasks, teamTask{
+		ID:      "JOURN-93",
+		Channel: "team",
+		Title:   "Draft renewal emails",
+		Owner:   "eng",
+		status:  "in_progress",
+		blocked: true,
+		Details: "waiting on provider",
+	})
+	b.mu.Unlock()
+
+	delivered := 0
+	s := &watchdogScheduler{
+		broker: b,
+		clock:  newManualClock(time.Date(2026, 11, 7, 7, 0, 0, 0, time.UTC)),
+		deliverTask: func(action officeActionLog, task teamTask) {
+			delivered++
+		},
+	}
+	slug := normalizeSchedulerSlug("task_retry", "team", "task", "JOURN-93")
+	b.mu.Lock()
+	b.scheduler = append(b.scheduler, schedulerJob{
+		Slug:       slug,
+		Kind:       "task_retry",
+		TargetType: "task",
+		TargetID:   "JOURN-93",
+		Channel:    "team",
+		Status:     "scheduled",
+	})
+	b.mu.Unlock()
+
+	s.processTaskJob(schedulerJob{
+		Slug:       slug,
+		Kind:       "task_retry",
+		TargetType: "task",
+		TargetID:   "JOURN-93",
+		Channel:    "team",
+	})
+	if delivered != 0 {
+		t.Fatalf("blocked task got %d wakes, want 0", delivered)
+	}
+	for _, job := range b.Scheduler() {
+		if job.Slug == slug && !isClosedSchedulerStatus(job.Status) {
+			t.Fatalf("retry job survived a blocked task: status=%q next=%q", job.Status, job.NextRun)
 		}
 	}
 }

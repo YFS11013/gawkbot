@@ -648,6 +648,7 @@ var retiredSchedulerJobFamilies = map[string]bool{
 	"task_follow_up":    true,
 	"request_follow_up": true,
 	"recheck":           true,
+	"task_retry":        true,
 	"watchdog_alert":    true,
 }
 

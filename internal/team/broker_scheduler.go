@@ -130,9 +130,13 @@ func (b *Broker) ScheduleNoTraceRetry(taskID string) error {
 		delay = noTraceRetryMaxDelay
 	}
 	when := time.Now().UTC().Add(delay)
+	// Its own kind and slug: a "recheck" here would overwrite the lifecycle
+	// recheck job the task already carries, and any later mutation cancels
+	// non-follow-up task jobs anyway. "task_retry" is one-shot — see
+	// processTaskJob.
 	job := normalizeSchedulerJob(schedulerJob{
-		Slug:       normalizeSchedulerSlug("recheck", channel, "task", task.ID),
-		Kind:       "recheck",
+		Slug:       normalizeSchedulerSlug("task_retry", channel, "task", task.ID),
+		Kind:       "task_retry",
 		Label:      "Retry task " + truncateSummary(task.Title, 48),
 		TargetType: "task",
 		TargetID:   task.ID,

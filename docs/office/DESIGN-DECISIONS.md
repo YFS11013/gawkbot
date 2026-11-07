@@ -399,7 +399,7 @@ digest ──► render_artifacts()（脚本，0 LLM）
 | 人给任务 → wiki 的授权往返 | `define` 新增 `artifact_scope`，写进 `Definition.ArtifactPath`——这正是 `/wiki/write-task` 授权的那一个路径；prompt 要求 CoS 为发布类任务声明 | `teammcp/server_tasks.go`、`server_types.go`、`prompt_builder.go`；测试 `TestHandleTeamTaskDefineForwardsArtifactScope` |
 | bot 定义任务可以自开任意 wiki 路径 | `artifact_scope` 只能落在 `team/accounts/`、`team/emails/`、`team/playbooks/`、`team/research/`、`team/reviews/`、`team/tasks/`，且必须是 `.md`、无 `..`、无绝对路径 | `task_definition.go` `validateTaskArtifactScope`；测试 `TestNormalizeTaskDefinitionValidatesArtifactScope` |
 | 子任务没有 Definition 就能 done（邮件只留在 notebook 也算完成） | done 的产物门改为「本任务有 Definition **或** 父 Issue 有 Definition」，拒绝文案说明是哪一种 | `taskRequiresDeliveredArtifactLocked`，接入 mutation 与 decision packet 两处；测试 `TestArtifactGate_BindsOnSubIssueOfDefinedParent` |
-| 回合结束但没留下任何痕迹时，要等一小时才重投 | 记录 `no durable trace` 后立即排一次短重试：2 分钟起、每次翻倍、封顶 30 分钟；任务 blocked 或卡在等人的阻塞请求上时不排 | `broker_scheduler.go` `ScheduleNoTraceRetry`、`task_ledger.go` 调用点；测试 `TestScheduleNoTraceRetry_ArmsShortRecheck` |
+| 回合结束但没留下任何痕迹时，要等一小时才重投 | 记录 `no durable trace` 后立即排一次短重试：2 分钟起、每次翻倍、封顶 30 分钟；任务 blocked 或卡在等人的阻塞请求上时不排。重试用独立的 job kind/slug（`task_retry`），不覆盖任务原有的 recheck；触发一次后自己关闭，下一次空回合由 ledger 再加长间隔 | `broker_scheduler.go` `ScheduleNoTraceRetry`、`task_ledger.go` 调用点、`scheduler.go` `processTaskJob` 的一次性分支；测试 `TestScheduleNoTraceRetry_ArmsShortRecheck`、`TestProcessTaskJob_TaskRetryIsOneShot` |
 
 **没改的两处**：`/wiki/write` 服务端仍不校验授权（信任 MCP 层）；`From: system` 的 composer 卡片照旧。前者是既有设计（写入口径在 prompt + MCP），后者若改成 human 会伪造授权，故不动。
 
