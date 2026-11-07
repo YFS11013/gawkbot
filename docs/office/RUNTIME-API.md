@@ -715,7 +715,7 @@ POST /skills/compile {"dry_run":true,"scope_path":"team/people"}
 
 同一批文章走 CLI 是 13–33 s/篇（合计 66–165 s），且修复前每次都留一条解析失败告警。成本侧：每篇约 1.6k input + 7 output，50 篇的 pass 约 0.01 美元量级；相比 13k–25k 的 agent 输入，降低约一个数量级。
 
-未做：`RunConfiguredOneShotCtx` 本身仍保留「HTTP provider → 回落 opencode」的行为（这次只给判定加了显式端点）。要彻底修，需要给 HTTP 类 provider 注册 `SupportsOneShot: true` + `OneShotCtx`，会改变所有 one-shot 调用方的行为，单独一批改。
+当时没做（2026-11-07 补上了，见 §14.12）：`RunConfiguredOneShotCtx` 仍保留「HTTP provider → 回落 opencode」的行为，只给判定加了显式端点。
 
 ### 14.7 判定端点换到 8848 的 qwen（2026-11-06 深夜）
 
@@ -896,3 +896,24 @@ INFO  judge answered on the fallback model model=nvidia/nemotron-3-ultra-550b-a5
 ```
 
 pass 正常完成（7 篇 10.3 s，缓存补齐，零 errors），随后主模型改回 `crouton-alpha-free`。单测 `TestSkillJudge_FallsBackWhenPrimaryFails` / `TestSkillJudge_NoFallbackConfiguredPropagates` 覆盖「有兜底」和「没兜底时必须报错而不是缓存结论」。
+
+### 14.12 one-shot 不再静默起编码 agent（2026-11-07）
+
+14.6 留下的尾巴：`RunConfiguredOneShotCtx` 在活动 provider 没有 one-shot 时直接 `RunOpencodeOneShotCtx`，也就是为一个分类问题起一个带工具的 agent。当时只有判定链路绕开了它，其余 15 个调用点（lint、onboarding、entity 合成、company seed、operator、workflow 起草、openai-compat 桥…）仍然共用这条路径。
+
+现在派发顺序是：
+
+1. 活动 provider 自己实现了 one-shot（claude/codex/opencode）→ 用它，行为不变；
+2. 否则该 kind 配了 HTTP 端点（`WUPHF_<KIND>_BASE_URL`/`_MODEL` 或 `provider_endpoints`）→ 走 `RunOneShotHTTPCtx`；
+3. 都没有 → 回落到 opencode CLI，但**每个进程只警告一次**：
+
+```
+WARN provider: no one-shot for this kind, using the opencode CLI
+     kind=ollama hint="set WUPHF_OLLAMA_BASE_URL and WUPHF_OLLAMA_MODEL to answer over HTTP instead"
+```
+
+为什么第 2 步是安全的：一个 HTTP provider 从来没有仓库工具，所以「不起 agent」不会丢掉调用方以为有、实际没有的上下文；反过来，今天的行为是让调用方**拿到一个它没选的模型**。
+
+未做（换成另一批）：把「无端点 → 报错」也定下来。这一步会改变 ollama/mlx/exo 默认安装下的行为（它们的内置 base URL 藏在各自的 `NewOpenAICompatStreamFn` 闭包里，`OneShotHTTPConfigFor` 取不到），要改得先把默认端点搬进 `Entry`，属于独立设计。
+
+测试：`TestRunConfiguredOneShotCtx_UsesHTTPWhenConfigured`（ollama + 测试端点 → 命中一次 `/v1/chat/completions`，答案来自 HTTP）。当前运行态 provider 是 `opencode`（`SupportsOneShot=true`），所以这条改动在现网不改变任何行为。

@@ -2,6 +2,9 @@ package provider
 
 import (
 	"context"
+	"log/slog"
+	"strings"
+	"sync"
 
 	"github.com/nex-crm/wuphf/internal/config"
 )
@@ -36,8 +39,27 @@ func RunConfiguredOneShotCtx(ctx context.Context, systemPrompt, prompt, cwd stri
 			return runLegacyOneShotCtx(ctx, e.OneShot, systemPrompt, prompt, cwd)
 		}
 	}
+	// The active provider has no one-shot of its own. When its HTTP endpoint is
+	// configured, ask it directly: the alternative below starts the opencode
+	// coding agent, which answers a 20-token classification with 8-33s of agent
+	// turn and 11k-25k input tokens, and sometimes with tool calls and no text.
+	// A configured HTTP provider never had repo tools, so there is no context
+	// to lose by not spawning one — the caller gets the model they selected.
+	if cfg := OneShotHTTPConfigFor(kind); cfg.Valid() {
+		return RunOneShotHTTPCtx(ctx, cfg, systemPrompt, prompt)
+	}
+	oneShotFallbackOnce.Do(func() {
+		envKind := strings.ToUpper(strings.ReplaceAll(kind, "-", "_"))
+		slog.Warn("provider: no one-shot for this kind, using the opencode CLI",
+			"kind", kind,
+			"hint", "set WUPHF_"+envKind+"_BASE_URL and WUPHF_"+envKind+"_MODEL to answer over HTTP instead")
+	})
 	return RunOpencodeOneShotCtx(ctx, systemPrompt, prompt, cwd)
 }
+
+// oneShotFallbackOnce keeps the warning to one line per process: the fallback
+// is a standing configuration fact, not a per-call event.
+var oneShotFallbackOnce sync.Once
 
 // runLegacyOneShotCtx unblocks the caller on context cancellation, but the
 // wrapped legacy fn and any subprocess it spawned continue until natural
