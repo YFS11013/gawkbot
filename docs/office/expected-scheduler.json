@@ -6,42 +6,50 @@
   "expected_jobs": [
    {
     "slug": "one-relay-events",
+    "loop_step": "support",
     "enabled": true,
     "interval_minutes": 1,
     "note": "系统 cron，v1 只读"
    },
    {
     "slug": "request_follow_up",
+    "loop_step": "support",
     "enabled": true,
     "interval_minutes": 60
    },
    {
     "slug": "review-expiry",
+    "loop_step": "support",
     "enabled": true,
     "interval_minutes": 10
    },
    {
     "slug": "wiki-archive-sweep",
+    "loop_step": "support",
     "enabled": true,
     "interval_minutes": 1440
    },
    {
     "slug": "task_follow_up",
+    "loop_step": "support",
     "enabled": true,
     "interval_minutes": 60
    },
    {
     "slug": "task_recheck",
+    "loop_step": "support",
     "enabled": true,
     "interval_minutes": 15
    },
    {
     "slug": "task_reminder",
+    "loop_step": "support",
     "enabled": true,
     "interval_minutes": 30
    },
    {
     "slug": "5",
+    "loop_step": "1-6",
     "enabled": true,
     "schedule_expr": "30 8 * * 1-5",
     "target_id": "forex-watch",
@@ -50,6 +58,7 @@
    },
    {
     "slug": "weekly-saturday-fund-portfolio-ratio-analysis-report",
+    "loop_step": "1-6",
     "enabled": false,
     "schedule_expr": "0 1 * * 6",
     "target_id": "fund-invest",
@@ -58,6 +67,7 @@
    },
    {
     "slug": "forex-bridge-refresh-daily-data-pull",
+    "loop_step": "support",
     "enabled": false,
     "schedule_expr": "0 22 * * *",
     "target_id": "forex-watch",
@@ -67,6 +77,7 @@
    },
    {
     "slug": "data-keeper-daily-bridge-health-check",
+    "loop_step": "support",
     "enabled": false,
     "schedule_expr": "30 23 * * *",
     "target_id": "data-keeper",
@@ -74,6 +85,7 @@
    },
    {
     "slug": "market-analyst-daily-direction-rating-after-forex-brief",
+    "loop_step": "1-6",
     "enabled": false,
     "schedule_expr": "30 7 * * 1-5",
     "target_id": "market-analyst",
@@ -81,6 +93,7 @@
    },
    {
     "slug": "daily-0800-utc-opencode-model-snapshot-to-data-space-space-7c90a37850d8b0a1",
+    "loop_step": "support",
     "enabled": false,
     "schedule_expr": "0 8 * * *",
     "target_id": "data-keeper",
@@ -89,6 +102,7 @@
    },
    {
     "slug": "daily-model-snapshot-verification-routine",
+    "loop_step": "support",
     "enabled": false,
     "schedule_expr": "0 8 * * *",
     "target_id": "cos",
@@ -97,6 +111,7 @@
    },
    {
     "slug": "check-scheduled-task-status-for-model-snapshot-daily-archive-verification",
+    "loop_step": "support",
     "enabled": false,
     "schedule_expr": "daily",
     "target_id": "cos",
@@ -105,6 +120,7 @@
    },
    {
     "slug": "one-workflow:cos__human:daily-opencode-model-snapshot",
+    "loop_step": "support",
     "enabled": false,
     "schedule_expr": "0 8 * * *",
     "target_id": "daily-opencode-model-snapshot",

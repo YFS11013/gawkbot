@@ -176,6 +176,16 @@ foreach ($j in $live) { $liveBySlug[$j.slug] = $j }
 $expectedSlugs = @{}
 foreach ($e in $manifest.broker.expected_jobs) {
     $expectedSlugs[$e.slug] = $true
+
+    # 每个 job 必须说明它服务核心循环哪一步（docs/office/DESIGN-DECISIONS.md §9.5）。
+    # 作者 doctrine："不支持核心循环的都是浪费"——这条门把它变成加 job 时的必答题，
+    # 而不是事后讨论。support = 系统 cron / 数据装配，不与九步直接对应。
+    if (-not $e.PSObject.Properties['loop_step']) {
+        Add-Violation "未声明 loop_step: $($e.slug)（写 '1'..'9' / 'a-b' / 'support'，见 DESIGN-DECISIONS §9.5）"
+    } elseif ("$($e.loop_step)" -notmatch '^(support|[1-9](-[1-9])?)$') {
+        Add-Violation "loop_step 非法: $($e.slug) 值='$($e.loop_step)'（允许 support / 1-9 / a-b）"
+    }
+
     $job = $liveBySlug[$e.slug]
     if (-not $job) { Add-Violation "缺失 job: $($e.slug)（期望 enabled=$($e.enabled)）"; continue }
 
