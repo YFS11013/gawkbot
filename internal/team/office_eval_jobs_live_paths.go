@@ -320,10 +320,17 @@ func evalJobLivePaths(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	if err != nil {
 		return err
 	}
-	if _, err := fx.broker.MutateTask(TaskPostRequest{Action: "complete", ID: cID, Channel: "general", CreatedBy: "eng"}); err != nil {
+	if _, err := fx.broker.MutateTask(TaskPostRequest{
+		Action: "complete", ID: cID, Channel: "general", CreatedBy: "eng",
+		// This live path tests the reopen payload, not delivery (J2-1).
+		Verification: verificationNotRequired, VerificationReason: "eval: reopen-path fixture, no deliverable",
+	}); err != nil {
 		return err
 	}
-	if _, err := fx.broker.MutateTask(TaskPostRequest{Action: "approve", ID: cID, Channel: "general", CreatedBy: "human"}); err != nil {
+	if _, err := fx.broker.MutateTask(TaskPostRequest{
+		Action: "approve", ID: cID, Channel: "general", CreatedBy: "human",
+		Verification: verificationNotRequired, VerificationReason: "eval: reopen-path fixture, no deliverable",
+	}); err != nil {
 		return err
 	}
 	// Exact FE payload: web/src/api/tasks.ts reopenTask.

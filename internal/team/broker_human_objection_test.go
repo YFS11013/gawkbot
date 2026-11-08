@@ -46,6 +46,9 @@ func newObjectionTestBroker(t *testing.T) *Broker {
 			Owner:     "eng",
 			status:    "review",
 			Reviewers: []string{"reviewer"},
+			// The fixture's topic is the review loop, not delivery; the done
+			// gate (J2-1) needs the empty completion accounted for.
+			ArtifactNotRequired: "not_required: fixture — one-pager lives in chat (fixture, 2026-11-08T00:00:00Z)",
 		},
 	}
 	return b
@@ -127,7 +130,10 @@ func TestHumanObjection_AgentApproveBlockedHumanApproveClears(t *testing.T) {
 	}
 
 	// HUMAN approve clears the objection and lands the task.
-	if _, err := b.MutateTask(TaskPostRequest{Action: "approve", ID: "task-obj-1", Channel: "team", CreatedBy: "human"}); err != nil {
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "approve", ID: "task-obj-1", Channel: "team", CreatedBy: "human",
+		Verification: verificationNotRequired, VerificationReason: "fixture: review-only task",
+	}); err != nil {
 		t.Fatalf("human approve: %v", err)
 	}
 	done := b.TaskByID("task-obj-1")
@@ -186,7 +192,10 @@ func TestHumanObjection_AgentRequestChangesDoesNotArmTheGate(t *testing.T) {
 	}
 	// Without a human objection the lead can still approve — and the
 	// approve retires the now-stale feedback stamp.
-	if _, err := b.MutateTask(TaskPostRequest{Action: "approve", ID: "task-obj-1", Channel: "team", CreatedBy: "cos"}); err != nil {
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "approve", ID: "task-obj-1", Channel: "team", CreatedBy: "cos",
+		Verification: verificationNotRequired, VerificationReason: "fixture: review-only task",
+	}); err != nil {
 		t.Fatalf("cos approve with no human objection: %v", err)
 	}
 	if got := b.TaskByID("task-obj-1"); got.ChangesRequested != nil {

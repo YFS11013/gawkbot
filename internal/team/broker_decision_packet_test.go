@@ -127,6 +127,9 @@ func seedTaskInState(t *testing.T, b *Broker, taskID string, state LifecycleStat
 		ID:             taskID,
 		Title:          "fixture " + taskID,
 		LifecycleState: state,
+		// Decision-path fixtures are about lifecycle routing, not delivery:
+		// the done gate (J2-1) needs the empty completion accounted for.
+		ArtifactNotRequired: "not_required: fixture — no artifact (fixture, 2026-11-08T00:00:00Z)",
 	})
 	task := &b.tasks[len(b.tasks)-1]
 	task.status = row.Status
@@ -799,4 +802,49 @@ func TestDecisionApproveFromReviewStillTerminal(t *testing.T) {
 		return
 	}
 	t.Fatalf("task %q not found after decision", taskID)
+}
+
+// Approving a review card terminalizes the task, so the done gate binds here
+// too (J2-1): the decision path is the second way into done and it used to
+// exempt every task without a Definition. A declaration recorded on the task
+// clears it — the card itself cannot carry one.
+func TestDecisionApproveRefusesDoneWithoutArtifact(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("WUPHF_RUNTIME_HOME", dir)
+	b := newTestBroker(t)
+	taskID := "task-review-no-artifact"
+	seedTaskInState(t, b, taskID, LifecycleStateReview)
+	// The seed helper declares not_required for every fixture; this test is
+	// precisely about the undeclared case, so drop it.
+	b.mu.Lock()
+	for i := range b.tasks {
+		if b.tasks[i].ID == taskID {
+			b.tasks[i].ArtifactNotRequired = ""
+		}
+	}
+	b.mu.Unlock()
+
+	err := b.RecordTaskDecision(taskID, string(RecordDecisionApprove), "test-human")
+	var mutationErr *TaskMutationError
+	if !errors.As(err, &mutationErr) || mutationErr.Kind != TaskMutationArtifactRequired {
+		t.Fatalf("approve of an empty task must be refused, got %v", err)
+	}
+	if task := b.TaskByID(taskID); task == nil || strings.EqualFold(task.status, "done") {
+		t.Fatalf("the refusal must not terminalize the task, got %+v", task)
+	}
+
+	b.mu.Lock()
+	for i := range b.tasks {
+		if b.tasks[i].ID == taskID {
+			b.tasks[i].ArtifactNotRequired = "not_required: reply lived in chat (human, 2026-11-08T00:00:00Z)"
+		}
+	}
+	b.mu.Unlock()
+
+	if err := b.RecordTaskDecision(taskID, string(RecordDecisionApprove), "test-human"); err != nil {
+		t.Fatalf("a declared completion must be approvable: %v", err)
+	}
+	if task := b.TaskByID(taskID); task == nil || !strings.EqualFold(task.status, "done") {
+		t.Fatalf("expected done after approve, got %+v", task)
+	}
 }

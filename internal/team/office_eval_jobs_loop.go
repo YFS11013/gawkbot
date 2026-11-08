@@ -260,8 +260,12 @@ func evalJobHumanSovereignty(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		errors.Is(decisionErr, ErrHumanObjectionOpen) && notDone,
 		fmt.Sprintf("err=%v", decisionErr), "")
 
-	// A HUMAN approve clears the objection and lands the task.
-	if _, err := fx.broker.MutateTask(TaskPostRequest{Action: "approve", ID: taskID, Channel: "general", CreatedBy: "human"}); err != nil {
+	// A HUMAN approve clears the objection and lands the task. The fixture's
+	// work is a draft kept in chat, so the completion is declared empty (J2-1).
+	if _, err := fx.broker.MutateTask(TaskPostRequest{
+		Action: "approve", ID: taskID, Channel: "general", CreatedBy: "human",
+		Verification: verificationNotRequired, VerificationReason: "eval: sovereignty fixture, no deliverable",
+	}); err != nil {
 		r.add(job, "human approve clears the objection and lands the task", false, err.Error(), "")
 		return nil
 	}
@@ -943,7 +947,10 @@ func evalJobGrounding(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		fmt.Sprintf("packet head=%q", truncate(stopPacket, 120)), "")
 	consumed := fx.broker.TaskByID(stopTask.ID)
 	r.add(job, "packet build consumes the note", consumed != nil && consumed.HumanNotePending == nil, "", "")
-	_, completeErr := fx.broker.MutateTask(TaskPostRequest{Action: "complete", ID: stopTask.ID, Channel: "general", CreatedBy: "eng"})
+	_, completeErr := fx.broker.MutateTask(TaskPostRequest{
+		Action: "complete", ID: stopTask.ID, Channel: "general", CreatedBy: "eng",
+		Verification: verificationNotRequired, VerificationReason: "eval: stop-order fixture, no deliverable",
+	})
 	r.add(job, "complete succeeds once a packet consumed the note", completeErr == nil, fmt.Sprintf("err=%v", completeErr), "")
 
 	// Non-halt note: rides the next packet's top but never blocks.
@@ -964,7 +971,10 @@ func evalJobGrounding(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	if _, err := fx.broker.PostMessage("you", fyiChannel, "FYI the Brightline seat count changed to 240 this morning.", nil, ""); err != nil {
 		return err
 	}
-	_, fyiCompleteErr := fx.broker.MutateTask(TaskPostRequest{Action: "complete", ID: fyiTask.ID, Channel: "general", CreatedBy: "eng"})
+	_, fyiCompleteErr := fx.broker.MutateTask(TaskPostRequest{
+		Action: "complete", ID: fyiTask.ID, Channel: "general", CreatedBy: "eng",
+		Verification: verificationNotRequired, VerificationReason: "eval: non-halt note fixture, no deliverable",
+	})
 	r.add(job, "non-halt human note never blocks complete", fyiCompleteErr == nil, fmt.Sprintf("err=%v", fyiCompleteErr), "")
 
 	// (d) Wire round-trip: human_note_pending survives the teamTaskWire
@@ -1124,10 +1134,17 @@ func evalJobDoneIntegrity(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	if err != nil {
 		return err
 	}
-	if _, err := fx.broker.MutateTask(TaskPostRequest{Action: "complete", ID: doneTask.ID, Channel: "general", CreatedBy: "eng"}); err != nil {
+	if _, err := fx.broker.MutateTask(TaskPostRequest{
+		Action: "complete", ID: doneTask.ID, Channel: "general", CreatedBy: "eng",
+		// This contract is post-done routing, not delivery (J2-1).
+		Verification: verificationNotRequired, VerificationReason: "eval: post-done routing fixture, no deliverable",
+	}); err != nil {
 		return err
 	}
-	if _, err := fx.broker.MutateTask(TaskPostRequest{Action: "approve", ID: doneTask.ID, Channel: "general", CreatedBy: "cos"}); err != nil {
+	if _, err := fx.broker.MutateTask(TaskPostRequest{
+		Action: "approve", ID: doneTask.ID, Channel: "general", CreatedBy: "cos",
+		Verification: verificationNotRequired, VerificationReason: "eval: post-done routing fixture, no deliverable",
+	}); err != nil {
 		return err
 	}
 	delivered := fx.broker.TaskByID(doneTask.ID)

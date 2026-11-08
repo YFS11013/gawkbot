@@ -249,14 +249,21 @@ func evalJobLifecycleBasic(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	}
 	r.add(job, "task created with owner", task.ID != "" && task.Owner == "eng", fmt.Sprintf("id=%s owner=%s state=%s", task.ID, task.Owner, task.LifecycleState), "")
 
-	if _, err := fx.broker.MutateTask(TaskPostRequest{Action: "complete", ID: task.ID, Channel: "general", CreatedBy: "eng"}); err != nil {
+	if _, err := fx.broker.MutateTask(TaskPostRequest{
+		Action: "complete", ID: task.ID, Channel: "general", CreatedBy: "eng",
+		// This eval checks lifecycle routing, not delivery (J2-1).
+		Verification: verificationNotRequired, VerificationReason: "eval: lifecycle bookkeeping, no deliverable",
+	}); err != nil {
 		r.add(job, "owner can complete the task", false, err.Error(), "")
 		return nil
 	}
 	inReview := fx.broker.TaskByID(task.ID)
 	r.add(job, "owner completion routes through review", inReview != nil && strings.EqualFold(strings.TrimSpace(inReview.status), "review"),
 		fmt.Sprintf("status=%q lifecycle=%s", strings.TrimSpace(inReview.status), inReview.LifecycleState), "")
-	if _, err := fx.broker.MutateTask(TaskPostRequest{Action: "approve", ID: task.ID, Channel: "general", CreatedBy: "cos"}); err != nil {
+	if _, err := fx.broker.MutateTask(TaskPostRequest{
+		Action: "approve", ID: task.ID, Channel: "general", CreatedBy: "cos",
+		Verification: verificationNotRequired, VerificationReason: "eval: lifecycle bookkeeping, no deliverable",
+	}); err != nil {
 		r.add(job, "reviewer can approve the task", false, err.Error(), "")
 		return nil
 	}
@@ -501,7 +508,12 @@ func evalJobDependencyHandoff(fx *officeEvalFixture, r *OfficeEvalReport) error 
 	if err != nil {
 		return err
 	}
-	if _, err := fx.broker.MutateTask(TaskPostRequest{Action: "complete", ID: a.ID, Channel: "general", CreatedBy: "cos"}); err != nil {
+	if _, err := fx.broker.MutateTask(TaskPostRequest{
+		Action: "complete", ID: a.ID, Channel: "general", CreatedBy: "cos",
+		// The research outcome lands in the task details, not the wiki; the
+		// handoff under test is the dependency release (J2-1).
+		Verification: verificationNotRequired, VerificationReason: "eval: research outcome lives in the task details",
+	}); err != nil {
 		return err
 	}
 	unblocked := fx.broker.TaskByID(b.ID)

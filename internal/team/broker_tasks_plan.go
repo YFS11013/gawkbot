@@ -325,6 +325,12 @@ func (b *Broker) refreshPlannedTaskBlockStateLocked(task *teamTask) {
 	if task == nil {
 		return
 	}
+	// A plan refresh must never revive closed work (J2-3): reuse matchers
+	// usually skip terminal rows, but a re-plan landing on a canceled task
+	// would silently flip it to in_progress and rearm its lifecycles.
+	if isTerminalTeamTaskStatus(task.status) {
+		return
+	}
 	if len(task.DependsOn) > 0 && b.hasUnresolvedDepsLocked(task) {
 		task.blocked = true
 		task.status = "open"

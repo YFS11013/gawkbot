@@ -147,7 +147,10 @@ func TestHumanNote_HaltBlocksAgentCompleteUntilConsumed(t *testing.T) {
 	if task := b.TaskByID("task-note-1"); task.HumanNotePending != nil {
 		t.Fatalf("ConsumeTaskHumanNote must clear the note; got %+v", task.HumanNotePending)
 	}
-	if _, err := b.MutateTask(TaskPostRequest{Action: "complete", ID: "task-note-1", Channel: "general", CreatedBy: "eng"}); err != nil {
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "complete", ID: "task-note-1", Channel: "general", CreatedBy: "eng",
+		Verification: verificationNotRequired, VerificationReason: "fixture: no artifact",
+	}); err != nil {
 		t.Errorf("complete must succeed once the note is consumed; got %v", err)
 	}
 }
@@ -167,7 +170,10 @@ func TestHumanNote_NonHaltNeverBlocks_HumanCompleteClears(t *testing.T) {
 	if task.HumanNotePending == nil || task.HumanNotePending.Halt {
 		t.Fatalf("FYI note must be pending and non-halt; got %+v", task.HumanNotePending)
 	}
-	if _, err := b.MutateTask(TaskPostRequest{Action: "complete", ID: "task-note-1", Channel: "general", CreatedBy: "eng"}); err != nil {
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "complete", ID: "task-note-1", Channel: "general", CreatedBy: "eng",
+		Verification: verificationNotRequired, VerificationReason: "fixture: no artifact",
+	}); err != nil {
 		t.Fatalf("non-halt note must never block bot complete; got %v", err)
 	}
 
@@ -179,7 +185,10 @@ func TestHumanNote_NonHaltNeverBlocks_HumanCompleteClears(t *testing.T) {
 	if _, err := b2.PostMessage("you", "general", "stop — actually I'll close this out myself", nil, ""); err != nil {
 		t.Fatalf("human post: %v", err)
 	}
-	if _, err := b2.MutateTask(TaskPostRequest{Action: "complete", ID: "task-note-1", Channel: "general", CreatedBy: "human"}); err != nil {
+	if _, err := b2.MutateTask(TaskPostRequest{
+		Action: "complete", ID: "task-note-1", Channel: "general", CreatedBy: "human",
+		Verification: verificationNotRequired, VerificationReason: "fixture: no artifact",
+	}); err != nil {
 		t.Fatalf("human complete must pass the halt gate; got %v", err)
 	}
 	if after := b2.TaskByID("task-note-1"); after.HumanNotePending != nil {

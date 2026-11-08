@@ -80,7 +80,10 @@ func TestDistillSkipsUnverifiedDone(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := b.MutateTask(TaskPostRequest{Action: "complete", ID: task.ID, Channel: "team", CreatedBy: "eng"}); err != nil {
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "complete", ID: task.ID, Channel: "team", CreatedBy: "eng",
+		Verification: verificationNotRequired, VerificationReason: "chore: nothing ships",
+	}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := b.MutateTask(TaskPostRequest{Action: "approve", ID: task.ID, Channel: "team", CreatedBy: "cos"}); err != nil {

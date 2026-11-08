@@ -221,38 +221,3 @@ func taskDefinitionPacketLines(def *TaskDefinition) []string {
 	}
 	return lines
 }
-
-// taskRequiresDeliveredArtifactLocked reports whether a done transition on
-// this task must carry a delivered artifact. A task with its own Definition
-// always must; so must a sub-issue whose parent Issue is defined, because the
-// parent's contract is the one the human actually signed. Journey 1: JOURN-24
-// closed done with the three emails still in a notebook — only the parent had
-// a Definition, so the gate never bound.
-//
-// Caller must hold b.mu.
-func (b *Broker) taskRequiresDeliveredArtifactLocked(task *teamTask) bool {
-	if task == nil {
-		return false
-	}
-	if task.Definition != nil {
-		return true
-	}
-	parentID := strings.TrimSpace(task.ParentIssueID)
-	if parentID == "" {
-		return false
-	}
-	parent := b.taskByIDLocked(parentID)
-	return parent != nil && parent.Definition != nil
-}
-
-// taskArtifactGateReason names which contract bound the artifact gate, for the
-// rejection message the owner will read.
-func taskArtifactGateReason(task *teamTask) string {
-	if task == nil {
-		return "requires a delivered artifact"
-	}
-	if task.Definition != nil {
-		return "has a Definition"
-	}
-	return "is a sub-issue of a defined Issue"
-}

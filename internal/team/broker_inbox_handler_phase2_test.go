@@ -133,7 +133,10 @@ func TestHandleTaskDecision_PersistsComment(t *testing.T) {
 
 	b.mu.Lock()
 	b.tasks = []teamTask{
-		{ID: "task-a", Title: "Decide me", CreatedAt: now},
+		{ID: "task-a", Title: "Decide me", CreatedAt: now,
+			// The decision path terminalizes; this fixture is about packet
+			// feedback, not delivery (J2-1).
+			ArtifactNotRequired: "not_required: fixture — no artifact (fixture, 2026-11-08T00:00:00Z)"},
 	}
 	if _, err := b.transitionLifecycleLocked("task-a", LifecycleStateDecision, "seed"); err != nil {
 		b.mu.Unlock()
@@ -188,7 +191,8 @@ func TestHandleTaskDecision_NoCommentLeavesFeedbackEmpty(t *testing.T) {
 
 	b.mu.Lock()
 	b.tasks = []teamTask{
-		{ID: "task-b", Title: "Decide me", CreatedAt: now},
+		{ID: "task-b", Title: "Decide me", CreatedAt: now,
+			ArtifactNotRequired: "not_required: fixture — no artifact (fixture, 2026-11-08T00:00:00Z)"},
 	}
 	if _, err := b.transitionLifecycleLocked("task-b", LifecycleStateDecision, "seed"); err != nil {
 		b.mu.Unlock()

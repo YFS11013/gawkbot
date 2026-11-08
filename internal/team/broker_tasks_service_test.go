@@ -214,6 +214,10 @@ func TestMutateTaskCreatesAndCompletesTask(t *testing.T) {
 		ID:        created.Task.ID,
 		Channel:   "general",
 		CreatedBy: "cos",
+		// Fixture work ships no file; declare it so the done gate (J2-1)
+		// does not mask the lifecycle assertions this test makes.
+		Verification:       verificationNotRequired,
+		VerificationReason: "fixture: no deliverable",
 	})
 	if err != nil {
 		t.Fatalf("MutateTask complete: %v", err)
@@ -341,8 +345,10 @@ func TestMutateTaskAppliesStateActions(t *testing.T) {
 		wantBlocked bool
 	}{
 		{
+			// Claim from open takes the task; it no longer resurrects a done one
+			// (J2-3: the layer below asserts that refusal).
 			name:       "claim",
-			task:       teamTask{ID: "task-1", Channel: "general", Title: "Task", status: "done", CompletedAt: "2026-05-03T00:00:00Z"},
+			task:       teamTask{ID: "task-1", Channel: "general", Title: "Task", status: "open"},
 			req:        TaskPostRequest{Action: "claim", Owner: "alice"},
 			wantStatus: "in_progress",
 			wantOwner:  "alice",
@@ -426,9 +432,11 @@ func TestMutateTaskAuthorizesExistingTaskAgainstActualChannel(t *testing.T) {
 	}
 
 	got, err := b.MutateTask(TaskPostRequest{
-		Action:    "complete",
-		ID:        "task-1",
-		CreatedBy: "cos",
+		Action:             "complete",
+		ID:                 "task-1",
+		CreatedBy:          "cos",
+		Verification:       verificationNotRequired,
+		VerificationReason: "fixture: no deliverable",
 	})
 	if err != nil {
 		t.Fatalf("MutateTask complete with actual channel access: %v", err)
@@ -626,5 +634,31 @@ func TestMutateTaskCreateRehomesBotOwnedTaskOutOfHumanDM(t *testing.T) {
 	}
 	if own.Task.Channel != "cos__human" {
 		t.Fatalf("CEO-owned task moved out of the human DM: %q", own.Task.Channel)
+	}
+}
+
+// A finished task is not a work surface (J2-3): the actions that push it back
+// into execution are refused until a human/CEO reopens it. This is the
+// counterpart of the "claim" row above, which used to pin the resurrection.
+func TestMutateTaskClaimRefusesFinishedTask(t *testing.T) {
+	b := newTestBroker(t)
+	b.mu.Lock()
+	b.channels = []teamChannel{
+		{Slug: "general", Name: "general", Members: []string{"pm"}},
+	}
+	b.tasks = []teamTask{
+		{ID: "task-1", Channel: "general", Title: "Task", Owner: "alice", status: "done"},
+	}
+	b.mu.Unlock()
+
+	_, err := b.MutateTask(TaskPostRequest{
+		Action: "claim", ID: "task-1", Channel: "general", CreatedBy: "pm", Owner: "bob",
+	})
+	var mutationErr *TaskMutationError
+	if !errors.As(err, &mutationErr) || mutationErr.Kind != TaskMutationConflict {
+		t.Fatalf("claim on a done task must conflict, got %v", err)
+	}
+	if got := b.TaskByID("task-1"); got == nil || got.status != "done" || got.Owner != "alice" {
+		t.Fatalf("refused claim must change nothing, got %+v", got)
 	}
 }

@@ -33,8 +33,10 @@ func TestArtifactGate_BindsOnSubIssueOfDefinedParent(t *testing.T) {
 	if !errors.As(err, &mutationErr) || mutationErr.Kind != TaskMutationArtifactRequired {
 		t.Fatalf("expected TaskMutationArtifactRequired for the sub-issue, got %v", err)
 	}
-	if !strings.Contains(mutationErr.Message, "sub-issue") {
-		t.Fatalf("gate error must say why it bound: %q", mutationErr.Message)
+	// The gate binds every task now (J2-1), so the message no longer has to
+	// explain an inheritance rule; it must name both ways forward.
+	if !strings.Contains(mutationErr.Message, "artifact_path") || !strings.Contains(mutationErr.Message, "verification=not_required") {
+		t.Fatalf("gate error must name artifact_path and the not_required escape hatch: %q", mutationErr.Message)
 	}
 	if task := b.TaskByID(child.Task.ID); strings.EqualFold(strings.TrimSpace(task.status), "done") {
 		t.Fatalf("gate must roll back the sub-issue's done transition, got %q", task.status)

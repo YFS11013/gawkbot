@@ -241,7 +241,7 @@ func configureServerTools(server *mcp.Server, slug string, channel string, oneOn
 		), handleTeamTasks)
 		mcp.AddTool(server, officeWriteTool(
 			"team_task",
-			"Update the task you are working: claim, comment, complete (pass artifact_path for the deliverable), block with a reason, or cancel. Create binds a new task to this DM.",
+			"Update the task you are working: claim, comment, complete (pass artifact_path for the deliverable — every task needs one, or verification=not_required plus verification_reason when the work ships no file), block with a reason, or cancel. Create binds a new task to this DM.",
 		), handleTeamTask)
 		registerDataTools(server)
 		if isLead || isLibrarian {

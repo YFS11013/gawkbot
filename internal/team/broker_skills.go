@@ -843,6 +843,11 @@ func (b *Broker) createSkillRunTaskLocked(sk *teamSkill, channel, invoker, now s
 		ExecutionMode: "office",
 		CreatedAt:     now,
 		UpdatedAt:     now,
+		// A skill run produces a transcript, not a file. Declaring that here
+		// keeps the done gate (J2-1: no done without an artifact or an
+		// explicit not_required) honest without special-casing the task type
+		// inside the gate itself.
+		ArtifactNotRequired: "not_required: skill run — the invocation transcript is the record (system, " + now + ")",
 	}
 
 	// Run fallible setup first so a failure doesn't leave the broker

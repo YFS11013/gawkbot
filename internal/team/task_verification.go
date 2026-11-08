@@ -467,12 +467,34 @@ func taskArtifactExists(artifact, workDir, wikiRoot string) bool {
 	return resolveTaskArtifactFile(artifact, workDir, wikiRoot) != ""
 }
 
+// taskCompletionProvesDelivery reports whether this completion carries machine
+// evidence that the work actually landed: a DECLARED check (command / artifact /
+// url / wiki_artifact) that just passed. That is a stronger receipt than a named
+// artifact, so the done gate accepts it in place of one (J2-1). A bare
+// kind=none never counts, and neither does a leftover result on a task that no
+// longer declares a check.
+func taskCompletionProvesDelivery(task *teamTask) bool {
+	if task == nil || task.Verification == nil || task.VerificationResult == nil {
+		return false
+	}
+	if !task.VerificationResult.Pass {
+		return false
+	}
+	switch strings.ToLower(strings.TrimSpace(task.VerificationResult.Kind)) {
+	case taskVerificationKindCommand, taskVerificationKindArtifact, taskVerificationKindURL, taskVerificationKindWikiArtifact:
+		return true
+	}
+	return false
+}
+
 // peekTaskDoneArtifact is the unlocked pre-phase for the B5 done-artifact
 // existence gate in MutateTask. It peeks (under lock) the artifact reference
 // this mutation would land done with — body.ArtifactPath when set, else the
 // task's stored artifact — and stats it outside the lock. Returns the
-// reference checked and whether it exists; ("", true) when the task has no
-// Definition (no gate) or cannot be found (downstream handles not-found).
+// reference checked and whether it exists; ("", true) when the task cannot be
+// found (downstream handles not-found). Every task that names an artifact is
+// checked, Definition or not: Journey 2 shipped a phantom
+// team/playbooks/... path on a task with no Definition (J2-1).
 func (b *Broker) peekTaskDoneArtifact(body TaskPostRequest) (string, bool) {
 	id := strings.TrimSpace(body.ID)
 	if id == "" {
@@ -480,7 +502,7 @@ func (b *Broker) peekTaskDoneArtifact(body TaskPostRequest) (string, bool) {
 	}
 	b.mu.Lock()
 	task := b.taskByIDLocked(id)
-	if task == nil || task.Definition == nil {
+	if task == nil {
 		b.mu.Unlock()
 		return "", true
 	}

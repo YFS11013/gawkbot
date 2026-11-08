@@ -3,6 +3,7 @@ package team
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -364,8 +365,10 @@ func TestBrokerTaskLifecycle(t *testing.T) {
 	}
 
 	completed := post(map[string]any{
-		"action": "complete",
-		"id":     created.ID,
+		"action":              "complete",
+		"id":                  created.ID,
+		"verification":        "not_required",
+		"verification_reason": "fixture: no deliverable",
 	})
 	if completed.Status() != "done" {
 		t.Fatalf("expected done task, got %+v", completed)
@@ -695,8 +698,10 @@ func TestBrokerOfficeFeatureTaskForGTMCompletesWithoutReviewAndUnblocksDependent
 	}
 
 	completed := post(map[string]any{
-		"action": "complete",
-		"id":     thesis.ID,
+		"action":              "complete",
+		"id":                  thesis.ID,
+		"verification":        "not_required",
+		"verification_reason": "fixture: no deliverable",
 	})
 	if completed.Status() != "done" || completed.ReviewState() != "not_required" {
 		t.Fatalf("expected thesis task to complete directly without review, got %+v", completed)
@@ -2024,10 +2029,12 @@ func TestBrokerApproveRetainsLocalWorktree(t *testing.T) {
 
 	base := fmt.Sprintf("http://%s", b.Addr())
 	completeBody, _ := json.Marshal(map[string]any{
-		"action":     "complete",
-		"channel":    "general",
-		"id":         task.ID,
-		"created_by": "cos",
+		"action":              "complete",
+		"channel":             "general",
+		"id":                  task.ID,
+		"created_by":          "cos",
+		"verification":        "not_required",
+		"verification_reason": "fixture: no deliverable",
 	})
 	req, _ := http.NewRequest(http.MethodPost, base+"/tasks", bytes.NewReader(completeBody))
 	req.Header.Set("Authorization", "Bearer "+b.Token())
@@ -2039,10 +2046,12 @@ func TestBrokerApproveRetainsLocalWorktree(t *testing.T) {
 	resp.Body.Close()
 
 	approveBody, _ := json.Marshal(map[string]any{
-		"action":     "approve",
-		"channel":    "general",
-		"id":         task.ID,
-		"created_by": "cos",
+		"action":              "approve",
+		"channel":             "general",
+		"id":                  task.ID,
+		"created_by":          "cos",
+		"verification":        "not_required",
+		"verification_reason": "fixture: no deliverable",
 	})
 	req, _ = http.NewRequest(http.MethodPost, base+"/tasks", bytes.NewReader(approveBody))
 	req.Header.Set("Authorization", "Bearer "+b.Token())
@@ -3072,20 +3081,24 @@ func TestBrokerCompleteClosesReviewTaskAndUnblocksDependents(t *testing.T) {
 	}
 
 	reviewReady := post(map[string]any{
-		"action":     "complete",
-		"channel":    "general",
-		"id":         architecture.ID,
-		"created_by": "cos",
+		"action":              "complete",
+		"channel":             "general",
+		"id":                  architecture.ID,
+		"created_by":          "cos",
+		"verification":        "not_required",
+		"verification_reason": "fixture: no deliverable",
 	})
 	if reviewReady.Status() != "review" || reviewReady.ReviewState() != "ready_for_review" {
 		t.Fatalf("expected first complete to move task into review, got %+v", reviewReady)
 	}
 
 	closed := post(map[string]any{
-		"action":     "complete",
-		"channel":    "general",
-		"id":         architecture.ID,
-		"created_by": "cos",
+		"action":              "complete",
+		"channel":             "general",
+		"id":                  architecture.ID,
+		"created_by":          "cos",
+		"verification":        "not_required",
+		"verification_reason": "fixture: no deliverable",
 	})
 	if closed.Status() != "done" || closed.ReviewState() != "approved" {
 		t.Fatalf("expected second complete to close review task, got %+v", closed)
@@ -3172,20 +3185,24 @@ func TestBrokerCreateTaskReusesCompletedDependencyWorktree(t *testing.T) {
 	}
 
 	reviewReady := post(map[string]any{
-		"action":     "complete",
-		"channel":    "general",
-		"id":         first.ID,
-		"created_by": "cos",
+		"action":              "complete",
+		"channel":             "general",
+		"id":                  first.ID,
+		"created_by":          "cos",
+		"verification":        "not_required",
+		"verification_reason": "fixture: no deliverable",
 	})
 	if reviewReady.Status() != "review" || reviewReady.ReviewState() != "ready_for_review" {
 		t.Fatalf("expected first complete to move task into review, got %+v", reviewReady)
 	}
 
 	approved := post(map[string]any{
-		"action":     "approve",
-		"channel":    "general",
-		"id":         first.ID,
-		"created_by": "cos",
+		"action":              "approve",
+		"channel":             "general",
+		"id":                  first.ID,
+		"created_by":          "cos",
+		"verification":        "not_required",
+		"verification_reason": "fixture: no deliverable",
 	})
 	if approved.Status() != "done" || approved.ReviewState() != "approved" {
 		t.Fatalf("expected approve to close task, got %+v", approved)
@@ -3334,10 +3351,12 @@ func TestBrokerUpdatesTaskByIDAcrossChannels(t *testing.T) {
 	})
 
 	completed := post(map[string]any{
-		"action":     "complete",
-		"channel":    "general",
-		"id":         created.ID,
-		"created_by": "human",
+		"action":              "complete",
+		"channel":             "general",
+		"id":                  created.ID,
+		"created_by":          "human",
+		"verification":        "not_required",
+		"verification_reason": "fixture: no deliverable",
 	})
 	if completed.ID != created.ID {
 		t.Fatalf("expected to update %s, got %+v", created.ID, completed)
@@ -3405,30 +3424,36 @@ func TestBrokerCompleteAlreadyDoneTaskStaysApproved(t *testing.T) {
 	}
 
 	reviewReady := post(map[string]any{
-		"action":     "complete",
-		"channel":    "general",
-		"id":         task.ID,
-		"created_by": "cos",
+		"action":              "complete",
+		"channel":             "general",
+		"id":                  task.ID,
+		"created_by":          "cos",
+		"verification":        "not_required",
+		"verification_reason": "fixture: no deliverable",
 	})
 	if reviewReady.Status() != "review" || reviewReady.ReviewState() != "ready_for_review" {
 		t.Fatalf("expected first complete to move task into review, got %+v", reviewReady)
 	}
 
 	approved := post(map[string]any{
-		"action":     "approve",
-		"channel":    "general",
-		"id":         task.ID,
-		"created_by": "cos",
+		"action":              "approve",
+		"channel":             "general",
+		"id":                  task.ID,
+		"created_by":          "cos",
+		"verification":        "not_required",
+		"verification_reason": "fixture: no deliverable",
 	})
 	if approved.Status() != "done" || approved.ReviewState() != "approved" {
 		t.Fatalf("expected approve to close task, got %+v", approved)
 	}
 
 	repeatedComplete := post(map[string]any{
-		"action":     "complete",
-		"channel":    "general",
-		"id":         task.ID,
-		"created_by": "cos",
+		"action":              "complete",
+		"channel":             "general",
+		"id":                  task.ID,
+		"created_by":          "cos",
+		"verification":        "not_required",
+		"verification_reason": "fixture: no deliverable",
 	})
 	if repeatedComplete.Status() != "done" || repeatedComplete.ReviewState() != "approved" {
 		t.Fatalf("expected repeated complete to stay done/approved, got %+v", repeatedComplete)
@@ -3567,9 +3592,11 @@ func TestBrokerMemoryWorkflowCompletionGateAndOverride(t *testing.T) {
 	}
 
 	completeResp, raw := postTask(map[string]any{
-		"action":     "complete",
-		"id":         created.Task.ID,
-		"created_by": "cos",
+		"action":              "complete",
+		"id":                  created.Task.ID,
+		"created_by":          "cos",
+		"verification":        "not_required",
+		"verification_reason": "fixture: no deliverable",
 	})
 	if completeResp.StatusCode != http.StatusConflict {
 		t.Fatalf("expected completion conflict, got status=%d body=%s", completeResp.StatusCode, raw)
@@ -3582,6 +3609,8 @@ func TestBrokerMemoryWorkflowCompletionGateAndOverride(t *testing.T) {
 		"action":                          "complete",
 		"id":                              created.Task.ID,
 		"created_by":                      "cos",
+		"verification":                    "not_required",
+		"verification_reason":             "fixture: no deliverable",
 		"memory_workflow_override":        true,
 		"memory_workflow_override_reason": "Human reviewed and accepted missing memory evidence.",
 	})
@@ -3606,7 +3635,7 @@ func TestBrokerMemoryWorkflowCompletionGateAndOverride(t *testing.T) {
 	}
 }
 
-func TestBrokerMemoryWorkflowCompletionGateRerunsForExistingDoneTask(t *testing.T) {
+func TestBrokerDoneTaskRefusesReassignInsteadOfRerunningGates(t *testing.T) {
 	b := newTestBroker(t)
 	if err := b.StartOnPort(0); err != nil {
 		t.Fatalf("failed to start broker: %v", err)
@@ -3645,14 +3674,19 @@ func TestBrokerMemoryWorkflowCompletionGateRerunsForExistingDoneTask(t *testing.
 		t.Fatalf("decode create: %v", err)
 	}
 	completeResp, raw := postTask(map[string]any{
-		"action":     "complete",
-		"id":         created.Task.ID,
-		"created_by": "cos",
+		"action":              "complete",
+		"id":                  created.Task.ID,
+		"created_by":          "cos",
+		"verification":        "not_required",
+		"verification_reason": "fixture: no deliverable",
 	})
 	if completeResp.StatusCode != http.StatusOK {
 		t.Fatalf("complete status=%d body=%s", completeResp.StatusCode, raw)
 	}
 
+	// This test used to pin "a done-state reassign reruns the memory gate".
+	// Since J2-3 a finished task cannot be reassigned at all — the terminal
+	// guard owns that decision, so the memory gate is never reached.
 	updateResp, raw := postTask(map[string]any{
 		"action":     "reassign",
 		"id":         created.Task.ID,
@@ -3661,10 +3695,13 @@ func TestBrokerMemoryWorkflowCompletionGateRerunsForExistingDoneTask(t *testing.
 		"task_type":  "process_research",
 	})
 	if updateResp.StatusCode != http.StatusConflict {
-		t.Fatalf("expected done-state update to rerun memory gate, got status=%d body=%s", updateResp.StatusCode, raw)
+		t.Fatalf("expected done-state reassign to conflict, got status=%d body=%s", updateResp.StatusCode, raw)
 	}
-	if !strings.Contains(string(raw), "memory workflow incomplete") {
-		t.Fatalf("expected memory workflow gate error, got %s", raw)
+	if !strings.Contains(string(raw), "already done") {
+		t.Fatalf("expected the terminal-state refusal, got %s", raw)
+	}
+	if got := b.TaskByID(created.Task.ID); got == nil || got.Owner != created.Task.Owner || got.status != "done" {
+		t.Fatalf("a refused reassign must change nothing, got %+v", got)
 	}
 }
 
@@ -4108,11 +4145,17 @@ func TestBrokerTaskMemoryWorkflowAcceptsContextToolEventShape(t *testing.T) {
 	}
 }
 
-// TestCompleteWithoutArtifactIsMarkedHollow pins the receipt that makes the
-// legacy "done with nothing to open" path countable: tasks WITHOUT a
-// Definition skip the artifact gate, so the only trace of an empty completion
-// used to be a done-post in chat (ACMER-2757/2764/2785).
-func TestCompleteWithoutArtifactIsMarkedHollow(t *testing.T) {
+// TestCompleteWithoutArtifactIsRefused pins the J2-1 contract: no task —
+// with or without a Definition — reaches done with nothing on record. The old
+// behavior let undefined tasks land done + hollow_completion=true, which is how
+// Journey 2 closed NEX-100/102 with the only "answer" living in chat and left
+// the parent Issue aggregating vapor.
+//
+// A task that genuinely ships no file declares it: verification=not_required
+// plus a reason. That declaration is stamped on the task so the done-post and
+// the parent Issue can tell an accounted-for empty completion from a forgotten
+// one.
+func TestCompleteWithoutArtifactIsRefused(t *testing.T) {
 	b := newTestBroker(t)
 
 	empty, err := b.MutateTask(TaskPostRequest{
@@ -4122,26 +4165,58 @@ func TestCompleteWithoutArtifactIsMarkedHollow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
-	done, err := b.MutateTask(TaskPostRequest{
+	_, err = b.MutateTask(TaskPostRequest{
 		Action: "complete", ID: empty.Task.ID, Channel: empty.Task.Channel, CreatedBy: "human",
 	})
+	var mutationErr *TaskMutationError
+	if !errors.As(err, &mutationErr) || mutationErr.Kind != TaskMutationArtifactRequired {
+		t.Fatalf("done with no artifact must be refused with TaskMutationArtifactRequired, got %v", err)
+	}
+	if stored := b.TaskByID(empty.Task.ID); stored == nil || strings.EqualFold(stored.status, "done") {
+		t.Fatalf("the refusal must roll back the done transition; got %+v", stored)
+	}
+
+	// Declaring the empty completion is the escape hatch, and the reason is
+	// what makes it auditable instead of silent.
+	declared, err := b.MutateTask(TaskPostRequest{
+		Action: "complete", ID: empty.Task.ID, Channel: empty.Task.Channel, CreatedBy: "human",
+		Verification: "not_required", VerificationReason: "answered in chat; nothing ships to the wiki",
+	})
 	if err != nil {
-		t.Fatalf("complete: %v", err)
+		t.Fatalf("complete with verification=not_required: %v", err)
 	}
-	if !done.Task.HollowCompletion {
-		t.Fatalf("a done task with no artifact must be marked hollow; got %+v", done.Task)
+	if !strings.EqualFold(declared.Task.status, "done") {
+		t.Fatalf("declared completion must land done; got %q", declared.Task.status)
 	}
-	wire, err := json.Marshal(done.Task)
+	if !strings.Contains(declared.Task.ArtifactNotRequired, "answered in chat") {
+		t.Fatalf("the declaration must be stamped on the task; got %q", declared.Task.ArtifactNotRequired)
+	}
+	if stored := b.TaskByID(declared.Task.ID); stored == nil || !strings.Contains(stored.ArtifactNotRequired, "human") {
+		t.Fatalf("the declaration (with actor) must survive the mutation; got %+v", stored)
+	}
+	wire, err := json.Marshal(declared.Task)
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
-	if !strings.Contains(string(wire), `"hollow_completion":true`) {
-		t.Errorf("the flag must ride the wire so patrols can count it; got %s", wire)
-	}
-	if stored := b.TaskByID(done.Task.ID); stored == nil || !stored.HollowCompletion {
-		t.Errorf("the flag must survive the mutation itself; got %+v", stored)
+	if !strings.Contains(string(wire), `"artifact_not_required":"not_required: answered in chat`) {
+		t.Errorf("the declaration must ride the wire so the parent Issue can read it; got %s", wire)
 	}
 
+	// not_required without a reason is refused: the whole point is the record.
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "reopen", ID: declared.Task.ID, Channel: declared.Task.Channel, CreatedBy: "human",
+	}); err != nil {
+		t.Fatalf("reopen: %v", err)
+	}
+	_, err = b.MutateTask(TaskPostRequest{
+		Action: "complete", ID: declared.Task.ID, Channel: declared.Task.Channel, CreatedBy: "human",
+		Verification: "not_required",
+	})
+	if !errors.As(err, &mutationErr) || mutationErr.Kind != TaskMutationArtifactRequired {
+		t.Fatalf("not_required without a reason must be refused, got %v", err)
+	}
+
+	// A completion that names an artifact is not hollow.
 	shipped, err := b.MutateTask(TaskPostRequest{
 		Action: "create", Channel: testTeamRoom, Title: "Write the launch brief",
 		CreatedBy: "human",

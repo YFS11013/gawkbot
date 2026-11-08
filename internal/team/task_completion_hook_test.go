@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func newCompletionHookBroker(t *testing.T) *Broker {
@@ -139,9 +140,11 @@ func TestArtifactGate_DonePostAndNoInboxCard(t *testing.T) {
 	}
 }
 
-// Tasks WITHOUT a Definition keep legacy behavior: no artifact gate, but the
-// done-post still fires (without the artifact segment).
-func TestArtifactGate_LegacyTaskWithoutDefinitionUnaffected(t *testing.T) {
+// Tasks WITHOUT a Definition are bound by the artifact gate too (J2-1):
+// Journey 2 closed NEX-100/102 done with nothing to open precisely because the
+// gate only bound defined tasks. A task that truly ships no file declares it,
+// and its done-post fires without the artifact segment.
+func TestArtifactGate_BindsUndefinedTask(t *testing.T) {
 	b := newCompletionHookBroker(t)
 	created, err := b.MutateTask(TaskPostRequest{
 		Action: "create", Channel: "team", Title: "Send the weekly digest",
@@ -151,12 +154,34 @@ func TestArtifactGate_LegacyTaskWithoutDefinitionUnaffected(t *testing.T) {
 		t.Fatalf("create: %v", err)
 	}
 	startPlanning(t, b, created.Task.ID)
-	if err := finishTask(t, b, created.Task.ID, ""); err != nil {
-		t.Fatalf("legacy task must complete without artifact: %v", err)
+
+	err = finishTask(t, b, created.Task.ID, "")
+	var mutationErr *TaskMutationError
+	if !errors.As(err, &mutationErr) || mutationErr.Kind != TaskMutationArtifactRequired {
+		t.Fatalf("an undefined task must not complete empty, got %v", err)
+	}
+
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "complete", ID: created.Task.ID, Channel: "team", CreatedBy: "eng",
+		Verification: verificationNotRequired, VerificationReason: "digest was sent; chat is the record",
+	}); err != nil {
+		t.Fatalf("declared empty completion: %v", err)
 	}
 	task := b.TaskByID(created.Task.ID)
 	if !strings.EqualFold(strings.TrimSpace(task.status), "done") {
 		t.Fatalf("expected done, got %q", task.status)
+	}
+	donePosts := 0
+	for _, msg := range b.messages {
+		if msg.Kind == taskDeliveredMessageKind && msg.SourceTaskID == task.ID {
+			donePosts++
+			if strings.Contains(msg.Content, "artifact:") {
+				t.Fatalf("a declared-empty completion must not claim an artifact: %q", msg.Content)
+			}
+		}
+	}
+	if donePosts != 1 {
+		t.Fatalf("expected exactly one done-post, got %d", donePosts)
 	}
 }
 
@@ -176,6 +201,27 @@ func TestArtifactGate_RejectsInvalidArtifactPath(t *testing.T) {
 	}
 }
 
+// finishDeclaredTask drives a task to done when the fixture intentionally
+// ships nothing: the J2-1 gate needs the not_required declaration, which is
+// exactly what a real chat-only completion now carries.
+func finishDeclaredTask(t *testing.T, b *Broker, taskID, reason string) error {
+	t.Helper()
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "complete", ID: taskID, Channel: "team", CreatedBy: "eng",
+		Verification: verificationNotRequired, VerificationReason: reason,
+	}); err != nil {
+		return err
+	}
+	if cur := b.TaskByID(taskID); cur != nil && !strings.EqualFold(strings.TrimSpace(cur.status), "done") {
+		_, err := b.MutateTask(TaskPostRequest{
+			Action: "approve", ID: taskID, Channel: "team", CreatedBy: "cos",
+			Verification: verificationNotRequired, VerificationReason: reason,
+		})
+		return err
+	}
+	return nil
+}
+
 // Reopen on an owned task lands in Running (executable — the dispatch gate
 // sendTaskUpdate checks) so the owner is re-engaged; an ownerless task lands
 // Ready and dispatches on assignment (same landing as an ownerless create).
@@ -189,7 +235,7 @@ func TestReopen_OwnedTaskReturnsToRunning(t *testing.T) {
 		t.Fatalf("create: %v", err)
 	}
 	startPlanning(t, b, created.Task.ID)
-	if err := finishTask(t, b, created.Task.ID, ""); err != nil {
+	if err := finishDeclaredTask(t, b, created.Task.ID, "checklist lives in chat"); err != nil {
 		t.Fatalf("finish: %v", err)
 	}
 	if _, err := b.MutateTask(TaskPostRequest{Action: "reopen", ID: created.Task.ID, Channel: "team", CreatedBy: "cos"}); err != nil {
@@ -345,5 +391,84 @@ func TestTaskDeliveredContentLine(t *testing.T) {
 	task.Definition = nil
 	if got := taskDeliveredContentLine(task); got != "Close the renewal delivered" {
 		t.Fatalf("title fallback wrong: %q", got)
+	}
+}
+
+// A phantom artifact path is refused on a task with no Definition too (J2-1).
+// Journey 2's NEX-104 closed done pointing at a team/playbooks file that never
+// existed; the existence pre-phase skipped every task without a Definition.
+func TestArtifactGate_RejectsPhantomArtifactWithoutDefinition(t *testing.T) {
+	b := newTestBroker(t)
+	created, err := b.MutateTask(TaskPostRequest{
+		Action: "create", Channel: testTeamRoom, Title: "Write the playbook nobody owns",
+		CreatedBy: "human",
+	})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	b.mu.Lock()
+	for i := range b.tasks {
+		if b.tasks[i].ID == created.Task.ID {
+			b.tasks[i].WorktreePath = t.TempDir()
+		}
+	}
+	b.mu.Unlock()
+
+	_, err = b.MutateTask(TaskPostRequest{
+		Action: "complete", ID: created.Task.ID, Channel: created.Task.Channel,
+		CreatedBy: "human", ArtifactPath: "team/playbooks/does-not-exist.md",
+	})
+	var mutationErr *TaskMutationError
+	if !errors.As(err, &mutationErr) || mutationErr.Kind != TaskMutationArtifactRequired {
+		t.Fatalf("a phantom artifact must be refused, got %v", err)
+	}
+	if !strings.Contains(mutationErr.Message, "does not exist") {
+		t.Fatalf("the error must say the artifact is missing: %q", mutationErr.Message)
+	}
+	if task := b.TaskByID(created.Task.ID); strings.EqualFold(strings.TrimSpace(task.status), "done") {
+		t.Fatalf("the refusal must roll back the done transition, got %q", task.status)
+	}
+}
+
+// A parent must not settle on top of a hollow child (J2-1): the child that
+// shipped nothing leaves the parent aggregating vapor. The child is injected
+// as a legacy row because the gate above prevents new ones.
+func TestParentSettlementBlockedByHollowChild(t *testing.T) {
+	b := newTestBroker(t)
+	now := time.Now().UTC().Format(time.RFC3339)
+	b.mu.Lock()
+	b.tasks = []teamTask{
+		{ID: "task-parent", Title: "Ship the launch", Channel: testTeamRoom, Owner: "human",
+			status: "in_progress", CreatedAt: now, UpdatedAt: now},
+		{ID: "task-child", Title: "Draft the announcement", Channel: testTeamRoom,
+			ParentIssueID: "task-parent", status: "done", HollowCompletion: true,
+			CreatedAt: now, UpdatedAt: now},
+	}
+	b.mu.Unlock()
+
+	_, err := b.MutateTask(TaskPostRequest{
+		Action: "complete", ID: "task-parent", Channel: testTeamRoom, CreatedBy: "human",
+		Verification: verificationNotRequired, VerificationReason: "coordination only",
+	})
+	var mutationErr *TaskMutationError
+	if !errors.As(err, &mutationErr) || mutationErr.Kind != TaskMutationConflict {
+		t.Fatalf("a parent with a hollow child must not settle, got %v", err)
+	}
+	if !strings.Contains(mutationErr.Message, "task-child") {
+		t.Fatalf("the error must name the hollow child: %q", mutationErr.Message)
+	}
+
+	b.mu.Lock()
+	for i := range b.tasks {
+		if b.tasks[i].ID == "task-child" {
+			b.tasks[i].ArtifactNotRequired = "not_required: reply lived in chat (human, " + now + ")"
+		}
+	}
+	b.mu.Unlock()
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "complete", ID: "task-parent", Channel: testTeamRoom, CreatedBy: "human",
+		Verification: verificationNotRequired, VerificationReason: "coordination only",
+	}); err != nil {
+		t.Fatalf("an accounted-for child must not block the parent: %v", err)
 	}
 }

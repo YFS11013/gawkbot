@@ -895,6 +895,16 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		if taskChannel != "" && !b.canAccessChannelLocked(actor, taskChannel) {
 			return TaskResponse{}, taskMutationError(TaskMutationForbidden, "channel access denied", nil)
 		}
+		// A terminal task is not a work surface. Journey 2 (J2-3) canceled
+		// NEX-95 and the same second it came back as in_progress: a queued turn
+		// for the still-open task claimed it (or reassigned it) and
+		// scheduleTaskLifecycleLocked armed a fresh follow-up — the cancel
+		// achieved nothing but a token bill. Only reopen (human/CEO) may revive
+		// a canceled task, and only reopen may make a finished task active
+		// again.
+		if err := rejectTerminalTaskRegressionLocked(task, action); err != nil {
+			return TaskResponse{}, err
+		}
 		appendDetails := false
 		reassignPrevOwner := ""
 		reassignTriggered := false
@@ -1366,20 +1376,65 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		// shape: done, no artifact, the only "answer" was a done-post).
 		if reachedDone {
 			task.HollowCompletion = strings.TrimSpace(task.Artifact) == ""
+			if !task.HollowCompletion {
+				// A later cycle delivered real work: the old "ships nothing"
+				// declaration is stale and must not outlive the artifact.
+				task.ArtifactNotRequired = ""
+			}
 		}
-		// Artifact gate (core-loop B1): a task with a Definition cannot land
-		// in done without a delivered artifact on record. Tasks without a
-		// Definition keep legacy behavior — additive rollout.
-		if reachedDone && b.taskRequiresDeliveredArtifactLocked(task) && strings.TrimSpace(task.Artifact) == "" {
+		// Artifact gate (core-loop B1, Journey 2 J2-1): no task reaches done
+		// with nothing to open. The old gate only bound tasks with a
+		// Definition, so the J2 run landed NEX-100/102 as done +
+		// hollow_completion=true and left the parent Issue waiting on work that
+		// had no artifact at all. A task that genuinely ships nothing (a chat
+		// answer, a config flip) says so explicitly: verification=not_required
+		// plus a reason, which is recorded on the task instead of being
+		// indistinguishable from "forgot".
+		// A passed machine check on this completion is delivery evidence of its
+		// own (the task declared what done means and met it), so the gate binds
+		// only when neither an artifact nor fresh proof exists.
+		notArtifactDone := reachedDone && strings.TrimSpace(task.Artifact) == "" && !taskCompletionProvesDelivery(task)
+		// A declaration can already sit on the task: internal bookkeeping work
+		// (skill runs) stamps one at creation, and a reopened task keeps the
+		// one it earned. The request can add or refresh it, never silently
+		// replace a recorded reason with none.
+		declaredNotRequired := notArtifactDone && strings.TrimSpace(task.ArtifactNotRequired) != ""
+		if notArtifactDone && strings.EqualFold(strings.TrimSpace(body.Verification), verificationNotRequired) {
+			reason := strings.TrimSpace(body.VerificationReason)
+			if reason == "" {
+				rollbackTask()
+				return TaskResponse{}, taskMutationError(TaskMutationArtifactRequired,
+					fmt.Sprintf("task %s: verification=not_required needs verification_reason — say why this %s ships nothing, so the done-post and the parent Issue can carry that instead of an empty artifact.", task.ID, action),
+					nil,
+				)
+			}
+			declaredNotRequired = true
+			task.ArtifactNotRequired = fmt.Sprintf("not_required: %s (%s, %s)", reason, strings.TrimSpace(actor), now)
+		}
+		if notArtifactDone && !declaredNotRequired {
 			rollbackTask()
 			return TaskResponse{}, taskMutationError(
 				TaskMutationArtifactRequired,
 				fmt.Sprintf(
-					"task %s %s, so it cannot reach done without a delivered artifact. Publish the deliverable to the wiki, then retry this %s with artifact_path set to the wiki-relative path (e.g. \"team/playbooks/launch.md\") or the visual-artifact id.",
-					task.ID, taskArtifactGateReason(task), action,
+					"task %s cannot reach done with no artifact. Publish the deliverable to the wiki, then retry this %s with artifact_path set to the wiki-relative path (e.g. \"team/playbooks/launch.md\") or the visual-artifact id. If this work genuinely ships no file, pass verification=not_required with verification_reason.",
+					task.ID, action,
 				),
 				nil,
 			)
+		}
+		// Hollow completion must not settle a parent Issue (J2-1): a child that
+		// landed done with nothing on record leaves the parent aggregating
+		// vapor. Only reachable for legacy rows now — the gate above blocks new
+		// ones — so this is the guard that keeps old state from closing a
+		// parent on top of it.
+		if reachedDone {
+			if blocked := b.hollowChildrenBlockingParentLocked(task); blocked != "" {
+				rollbackTask()
+				return TaskResponse{}, taskMutationError(TaskMutationConflict,
+					fmt.Sprintf("task %s cannot reach done while child %s is done with no artifact and no verification=not_required — fix the child (deliver its artifact) or reopen it, then close the parent.", task.ID, blocked),
+					nil,
+				)
+			}
 		}
 		// B5 knowledge-integrity: the artifact must EXIST, not merely be a
 		// non-empty string — phantom paths are how the v3 run shipped
@@ -1387,7 +1442,7 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		// checked outside the lock in the pre-phase; binding here only when
 		// the reference matches what was checked keeps the gate race-safe
 		// against concurrent artifact rewrites.
-		if reachedDone && b.taskRequiresDeliveredArtifactLocked(task) &&
+		if reachedDone && strings.TrimSpace(task.Artifact) != "" &&
 			strings.TrimSpace(task.Artifact) == doneArtifactRef && !doneArtifactExists {
 			rollbackTask()
 			return TaskResponse{}, taskMutationError(

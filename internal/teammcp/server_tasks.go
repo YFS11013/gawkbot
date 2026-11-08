@@ -142,8 +142,14 @@ func handleTeamTask(ctx context.Context, _ *mcp.CallToolRequest, args TeamTaskAr
 	}
 	if ap := strings.TrimSpace(args.ArtifactPath); ap != "" {
 		// Delivered-artifact reference (core-loop B1). The broker records it
-		// on any mutation; tasks with a Definition are gated on it at done.
+		// on any mutation; every task is gated on it at done.
 		payload["artifact_path"] = ap
+	}
+	if v := strings.TrimSpace(args.Verification); v != "" {
+		// Explicit "this ships nothing" declaration (Journey 2 J2-1). Without
+		// it the broker refuses a done transition that has no artifact.
+		payload["verification"] = v
+		payload["verification_reason"] = strings.TrimSpace(args.VerificationReason)
 	}
 	if action == "create" || action == "define" {
 		// Machine-checkable definition of done. On create it scopes the

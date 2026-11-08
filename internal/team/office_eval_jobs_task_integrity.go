@@ -180,6 +180,18 @@ func evalJobTaskIntegrity(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	// must attach to the PARENT (artifact recorded, parent advanced into
 	// Review for the human's decision), and the lane closes as the child.
 	const healArtifact = "team/accounts/q4-renewal-emails.md"
+	// The reference must be real: every done transition now stats its artifact
+	// (J2-1), so the repair lane publishes the deliverable before claiming it.
+	worker := fx.broker.WikiWorker()
+	if worker == nil {
+		return fmt.Errorf("task-integrity: wiki worker not wired")
+	}
+	if _, _, err := worker.Enqueue(context.Background(), ArchivistAuthor, healArtifact,
+		"# Q4 renewal emails\n\nRepair-lane deliverable for the renewal sequence.\n", "replace",
+		"fixture: repair-lane deliverable"); err != nil {
+		return err
+	}
+	worker.WaitForIdle()
 	if _, err := fx.broker.MutateTask(TaskPostRequest{
 		Action: "complete", ID: child.ID, Channel: child.Channel, CreatedBy: child.Owner, ArtifactPath: healArtifact,
 	}); err != nil {
@@ -242,16 +254,29 @@ func evalJobTaskIntegrity(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		return err
 	}
 	dID := parentD.Task.ID
-	if _, err := fx.broker.MutateTask(TaskPostRequest{Action: "complete", ID: dID, Channel: "general", CreatedBy: "eng"}); err != nil {
+	// (d) is about done-post dedup, not delivery: the completion is declared
+	// empty (J2-1) so the replay assertions below still see a real terminal
+	// transition.
+	const dReason = "eval: double-transition fixture, no deliverable"
+	if _, err := fx.broker.MutateTask(TaskPostRequest{
+		Action: "complete", ID: dID, Channel: "general", CreatedBy: "eng",
+		Verification: verificationNotRequired, VerificationReason: dReason,
+	}); err != nil {
 		return err
 	}
 	if cur := fx.broker.TaskByID(dID); cur != nil && !strings.EqualFold(strings.TrimSpace(cur.Status()), "done") {
-		if _, err := fx.broker.MutateTask(TaskPostRequest{Action: "approve", ID: dID, Channel: "general", CreatedBy: "human"}); err != nil {
+		if _, err := fx.broker.MutateTask(TaskPostRequest{
+			Action: "approve", ID: dID, Channel: "general", CreatedBy: "human",
+			Verification: verificationNotRequired, VerificationReason: dReason,
+		}); err != nil {
 			return err
 		}
 	}
 	// Double-attempt #1: a second terminal verb on the already-done task.
-	if _, err := fx.broker.MutateTask(TaskPostRequest{Action: "approve", ID: dID, Channel: "general", CreatedBy: "human"}); err != nil {
+	if _, err := fx.broker.MutateTask(TaskPostRequest{
+		Action: "approve", ID: dID, Channel: "general", CreatedBy: "human",
+		Verification: verificationNotRequired, VerificationReason: dReason,
+	}); err != nil {
 		return err
 	}
 	// Double-attempt #2: the v3 flap — a legacy path drifts status off done
@@ -262,7 +287,10 @@ func evalJobTaskIntegrity(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		t.status = "review"
 	}
 	fx.broker.mu.Unlock()
-	if _, err := fx.broker.MutateTask(TaskPostRequest{Action: "approve", ID: dID, Channel: "general", CreatedBy: "human"}); err != nil {
+	if _, err := fx.broker.MutateTask(TaskPostRequest{
+		Action: "approve", ID: dID, Channel: "general", CreatedBy: "human",
+		Verification: verificationNotRequired, VerificationReason: dReason,
+	}); err != nil {
 		return err
 	}
 	deliveredPosts := 0

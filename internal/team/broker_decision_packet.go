@@ -917,10 +917,11 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 				// ever wrote anything, v3 [19:04]).
 				if !isPreExecutionLifecycleState(currentState) &&
 					currentState != LifecycleStateApproved &&
-					b.taskRequiresDeliveredArtifactLocked(task) && strings.TrimSpace(task.Artifact) == "" {
+					strings.TrimSpace(task.Artifact) == "" &&
+					strings.TrimSpace(task.ArtifactNotRequired) == "" {
 					return taskMutationError(
 						TaskMutationArtifactRequired,
-						fmt.Sprintf("task %s has a Definition, so it cannot be approved into done without a delivered artifact. Have the owner publish the deliverable to the wiki and complete with artifact_path set, then approve.", taskID),
+						fmt.Sprintf("task %s cannot be approved into done without a delivered artifact. Have the owner publish the deliverable to the wiki and complete with artifact_path set, then approve — or, if the work genuinely ships no file, have the owner complete with verification=not_required and verification_reason first.", taskID),
 						nil,
 					)
 				}
@@ -930,7 +931,6 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 				// computed outside the lock in the pre-phase above.
 				if !isPreExecutionLifecycleState(currentState) &&
 					currentState != LifecycleStateApproved &&
-					b.taskRequiresDeliveredArtifactLocked(task) &&
 					strings.TrimSpace(task.Artifact) != "" &&
 					strings.TrimSpace(task.Artifact) == decisionArtifactRef &&
 					!decisionArtifactExists {

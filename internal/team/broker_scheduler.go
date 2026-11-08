@@ -317,7 +317,11 @@ func (b *Broker) scheduleTaskLifecycleLocked(task *teamTask) {
 		task.ReminderAt = ""
 		task.RecheckAt = ""
 		task.DueAt = ""
-		b.completeSchedulerJobsLocked("task", task.ID, taskChannel)
+		// Channel-less close on purpose (J2-3): a job targeting this task from
+		// another channel is still work on a closed task. Journey 2 found a
+		// surviving task_follow_up after cancel because the task's home channel
+		// had changed since the job was armed.
+		b.completeSchedulerJobsLocked("task", task.ID, "")
 		b.resolveWatchdogAlertsLocked("task", task.ID, taskChannel)
 		return
 	}

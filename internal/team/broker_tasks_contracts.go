@@ -55,10 +55,19 @@ type TaskPostRequest struct {
 	// ArtifactPath records the delivered artifact on the task (core-loop B1):
 	// a wiki-relative path (e.g. "team/playbooks/launch.md") or a
 	// visual-artifact id. Pass it on complete/approve (or any earlier
-	// mutation). A task WITH a Definition cannot reach done until an
-	// artifact is recorded; the gate returns TaskMutationArtifactRequired
-	// explaining exactly this field.
-	ArtifactPath                 string `json:"artifact_path,omitempty"`
+	// mutation). NO task reaches done without either a recorded artifact or
+	// an explicit Verification=not_required + VerificationReason; the gate
+	// returns TaskMutationArtifactRequired explaining exactly these fields.
+	ArtifactPath string `json:"artifact_path,omitempty"`
+	// Verification/VerificationReason are the explicit opt-out from the
+	// artifact requirement (Journey 2 J2-1). Verification accepts the single
+	// value "not_required" — set it when the work genuinely ships no file (a
+	// chat answer, a config flip) and say why in VerificationReason. The pair
+	// is stamped on the task as artifact_not_required so the done-post and
+	// the parent Issue can tell an accounted-for empty completion from a
+	// forgotten one.
+	Verification                 string `json:"verification,omitempty"`
+	VerificationReason           string `json:"verification_reason,omitempty"`
 	MemoryWorkflowOverride       bool   `json:"memory_workflow_override"`
 	MemoryWorkflowOverrideActor  string `json:"memory_workflow_override_actor"`
 	MemoryWorkflowOverrideReason string `json:"memory_workflow_override_reason"`

@@ -759,6 +759,66 @@ func (b *Broker) findReusableTaskLocked(match taskReuseMatch) *teamTask {
 	return nil
 }
 
+// verificationNotRequired is the one accepted TaskPostRequest.Verification
+// value: the caller states the completion ships no artifact at all (J2-1).
+const verificationNotRequired = "not_required"
+
+// rejectTerminalTaskRegressionLocked stops a closed task from being pulled back
+// into active work by anything but reopen. Journey 2 J2-3: cancel landed and
+// the same second the task was in_progress again, because a queued turn still
+// holding the task id claimed it and scheduleTaskLifecycleLocked armed a fresh
+// follow-up — the cancel bought nothing. Canceled stays canceled; done stays
+// done until a human/CEO reopens it on purpose.
+func rejectTerminalTaskRegressionLocked(task *teamTask, action string) error {
+	if task == nil {
+		return nil
+	}
+	action = strings.ToLower(strings.TrimSpace(action))
+	switch strings.ToLower(strings.TrimSpace(task.status)) {
+	case "canceled", "cancelled", "archived":
+		// comment: notes on closed work are fine. cancel: idempotent.
+		// reopen: the one sanctioned way back.
+		switch action {
+		case "comment", "cancel", "reopen":
+			return nil
+		}
+		return taskMutationError(TaskMutationConflict,
+			fmt.Sprintf("task %s is %s — %s is refused on closed work. A human or the CEO must reopen it first.", task.ID, task.status, action), nil)
+	case "done", "completed":
+		// Idempotent closes and review verdicts stay allowed; the actions that
+		// push a finished task back into execution do not.
+		switch action {
+		case "claim", "assign", "reassign", "resume", "block", "review", "submit_for_review":
+			return taskMutationError(TaskMutationConflict,
+				fmt.Sprintf("task %s is already %s — %s is refused on finished work. A human or the CEO must reopen it first.", task.ID, task.status, action), nil)
+		}
+	}
+	return nil
+}
+
+// hollowChildrenBlockingParentLocked names a child of task that is done with
+// no artifact and no not_required declaration (J2-1): a parent closed on top of
+// one aggregates vapor. Returns "" when every child accounts for itself.
+func (b *Broker) hollowChildrenBlockingParentLocked(task *teamTask) string {
+	if task == nil || strings.TrimSpace(task.ID) == "" {
+		return ""
+	}
+	for i := range b.tasks {
+		child := &b.tasks[i]
+		if strings.TrimSpace(child.ParentIssueID) != task.ID || child.ID == task.ID {
+			continue
+		}
+		if !strings.EqualFold(strings.TrimSpace(child.status), "done") && !strings.EqualFold(strings.TrimSpace(child.status), "completed") {
+			continue
+		}
+		if strings.TrimSpace(child.Artifact) != "" || strings.TrimSpace(child.ArtifactNotRequired) != "" {
+			continue
+		}
+		return child.ID
+	}
+	return ""
+}
+
 func isTerminalTeamTaskStatus(status string) bool {
 	switch strings.ToLower(strings.TrimSpace(status)) {
 	case "done", "completed", "canceled", "cancelled", "archived":

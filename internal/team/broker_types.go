@@ -354,6 +354,12 @@ type teamTask struct {
 	// has nothing a later reader can open — whatever it answered lives in chat
 	// only, which is exactly the shape the core loop calls waste.
 	HollowCompletion bool `json:"hollow_completion,omitempty"`
+	// ArtifactNotRequired records an explicit "this work ships nothing"
+	// declaration made at completion time: "not_required: <reason> (<actor>,
+	// <time>)". Without it a done task must carry an Artifact (Journey 2 J2-1);
+	// with it the empty completion is accounted for and does not block a
+	// parent Issue from settling.
+	ArtifactNotRequired string `json:"artifact_not_required,omitempty"`
 	// ChangesRequested is the LATEST request-changes verdict on this task
 	// (any reviewer — human or bot). Stored on the task itself so the
 	// feedback TEXT rides into the owner's next execution packet and wake
@@ -556,6 +562,7 @@ type teamTaskWire struct {
 	Definition           *TaskDefinition         `json:"definition,omitempty"`
 	Artifact             string                  `json:"artifact,omitempty"`
 	HollowCompletion     bool                    `json:"hollow_completion,omitempty"`
+	ArtifactNotRequired  string                  `json:"artifact_not_required,omitempty"`
 	ChangesRequested     *TaskReviewObjection    `json:"changes_requested,omitempty"`
 	HumanObjection       *TaskReviewObjection    `json:"human_objection,omitempty"`
 	HumanNotePending     *TaskHumanNote          `json:"human_note_pending,omitempty"`
@@ -616,6 +623,7 @@ func (t teamTask) MarshalJSON() ([]byte, error) {
 		Definition:           t.Definition,
 		Artifact:             t.Artifact,
 		HollowCompletion:     t.HollowCompletion,
+		ArtifactNotRequired:  t.ArtifactNotRequired,
 		ChangesRequested:     t.ChangesRequested,
 		HumanObjection:       t.HumanObjection,
 		HumanNotePending:     t.HumanNotePending,
@@ -678,6 +686,7 @@ func (t *teamTask) UnmarshalJSON(data []byte) error {
 	t.Definition = w.Definition
 	t.Artifact = w.Artifact
 	t.HollowCompletion = w.HollowCompletion
+	t.ArtifactNotRequired = w.ArtifactNotRequired
 	t.ChangesRequested = w.ChangesRequested
 	t.HumanObjection = w.HumanObjection
 	t.HumanNotePending = w.HumanNotePending
