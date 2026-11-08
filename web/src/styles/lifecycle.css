@@ -4632,6 +4632,32 @@ button.verification-badge {
   margin: 0;
 }
 
+/* Entry triage (P3 7g ①): a question is not a spec. */
+.issue-new-triage {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent, #5b8def);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted, rgba(91, 141, 239, 0.06));
+}
+
+.issue-new-triage-title {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.issue-new-triage-body {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
 /* ── Inbox filter chips ───────────────────────────────────────────── */
 
 .inbox-filter-bar {

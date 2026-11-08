@@ -10,8 +10,15 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { get, getConfig, getLocalProvidersStatus } from "../../api/client";
+import {
+  get,
+  getConfig,
+  getLocalProvidersStatus,
+  postMessage,
+} from "../../api/client";
+import { getHealth } from "../../api/platform";
 import { createTasks } from "../../api/tasks";
+import { looksLikeQuestion } from "../../lib/questionIntent";
 import { router } from "../../lib/router";
 import {
   configuredConnectedRuntimeProviders,
@@ -32,6 +39,9 @@ export function TaskNewForm() {
   const [provider, setProvider] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Entry triage (P3 7g ①): a question is not a spec. Rather than filing an
+  // Issue that can only be closed empty, hold the submit and offer chat.
+  const [questionTriage, setQuestionTriage] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement | null>(null);
   // Synchronous lock. React state updates batch on the next render, so a
   // fast double-click can fire handleSubmit twice before `submitting` flips
@@ -50,6 +60,11 @@ export function TaskNewForm() {
     queryFn: () =>
       get<{ prereqs?: PrereqResult[] } | PrereqResult[]>("/onboarding/prereqs"),
     staleTime: 10_000,
+  });
+  const healthQuery = useQuery({
+    queryKey: ["health"],
+    queryFn: getHealth,
+    staleTime: 30_000,
   });
   const localProvidersQuery = useQuery({
     queryKey: ["task-create-local-providers"],
@@ -77,16 +92,9 @@ export function TaskNewForm() {
     setProvider(availableProviders[0]?.id ?? "");
   }, [availableProviders, provider]);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (submitLockRef.current) return;
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle) {
-      setError("Title is required.");
-      return;
-    }
-
+  async function fileTask(trimmedTitle: string) {
     setError(null);
+    setQuestionTriage(null);
     submitLockRef.current = true;
     setSubmitting(true);
     try {
@@ -125,6 +133,50 @@ export function TaskNewForm() {
     }
   }
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (submitLockRef.current) return;
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      setError("Title is required.");
+      return;
+    }
+    // A bare question is not a spec: it belongs in chat, where the office
+    // answers it and the answer is the delivery. Filling Details means the
+    // human does mean work, so the triage only fires on an empty Details box.
+    if (!details.trim() && looksLikeQuestion(trimmedTitle)) {
+      setError(null);
+      setQuestionTriage(trimmedTitle);
+      return;
+    }
+    void fileTask(trimmedTitle);
+  }
+
+  async function askInChat(question: string) {
+    if (submitLockRef.current) return;
+    const agent =
+      healthQuery.data?.one_on_one_agent?.trim() || assignee.trim() || "cos";
+    const chatChannel = `${agent}__human`;
+    submitLockRef.current = true;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await postMessage(question, chatChannel);
+      setQuestionTriage(null);
+      void router.navigate({
+        to: "/channels/$channelSlug",
+        params: { channelSlug: chatChannel },
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not post the question.",
+      );
+    } finally {
+      submitLockRef.current = false;
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div
       className="app-panel active"
@@ -149,7 +201,11 @@ export function TaskNewForm() {
             ref={titleRef}
             type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              // The triage quotes the submitted text; editing makes it stale.
+              setQuestionTriage(null);
+            }}
             placeholder="What larger outcome should the team spec?"
             required={true}
             data-testid="issue-new-title"
@@ -161,7 +217,10 @@ export function TaskNewForm() {
           <textarea
             id="issue-new-details"
             value={details}
-            onChange={(e) => setDetails(e.target.value)}
+            onChange={(e) => {
+              setDetails(e.target.value);
+              setQuestionTriage(null);
+            }}
             placeholder="Context, desired outcome, constraints, acceptance criteria..."
             data-testid="issue-new-details"
           />
@@ -218,6 +277,43 @@ export function TaskNewForm() {
             )}
           </select>
         </div>
+
+        {questionTriage ? (
+          <div
+            className="issue-new-triage"
+            role="status"
+            data-testid="issue-new-question-triage"
+          >
+            <p className="issue-new-triage-title">
+              This reads like a question, not a task spec.
+            </p>
+            <p className="issue-new-triage-body">
+              Ask it in chat and the office answers there — filing it as an
+              Issue only creates work with no deliverable. Add Details above if
+              you did mean a spec.
+            </p>
+            <div className="issue-new-form-actions">
+              <button
+                type="button"
+                className="issues-new-btn"
+                onClick={() => void askInChat(questionTriage)}
+                disabled={submitting}
+                data-testid="issue-new-ask-chat"
+              >
+                {submitting ? "Posting..." : "Ask in chat"}
+              </button>
+              <button
+                type="button"
+                className="issues-list-retry-btn"
+                onClick={() => void fileTask(questionTriage)}
+                disabled={submitting}
+                data-testid="issue-new-file-anyway"
+              >
+                File it anyway
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         {error ? (
           <p
