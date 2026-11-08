@@ -110,3 +110,32 @@ func TestHealthMemoryBackendReadyReflectsWikiWorker(t *testing.T) {
 		t.Fatalf("expected memory_backend_ready=false when wiki worker is nil; got true")
 	}
 }
+
+// K: the wiki worker is a filesystem git-repo writer, not a memory-backend
+// feature. Gating it on memory_backend=markdown left every /wiki/write* 503ing
+// under gbrain, so bots wrote raw files that were never committed.
+func TestWikiWorkerStartsUnderGBrainBackend(t *testing.T) {
+	t.Setenv("WUPHF_RUNTIME_HOME", t.TempDir())
+	t.Setenv("WUPHF_MEMORY_BACKEND", "gbrain")
+
+	b := newTestBroker(t)
+	b.ensureWikiWorker()
+	if b.WikiWorker() == nil {
+		t.Fatalf("wiki worker must start under the gbrain memory backend; init err: %v", b.WikiInitErr())
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(b.handleHealth))
+	defer srv.Close()
+	resp, err := http.Get(srv.URL)
+	if err != nil {
+		t.Fatalf("get health: %v", err)
+	}
+	defer resp.Body.Close()
+	var got HealthResponse
+	if err := json.NewDecoder(resp.Body).Decode(&got); err != nil {
+		t.Fatalf("decode health: %v", err)
+	}
+	if !got.WikiReady {
+		t.Fatalf("wiki_ready must report the live worker regardless of backend, got false (memory_backend_active=%q)", got.MemoryBackendActive)
+	}
+}

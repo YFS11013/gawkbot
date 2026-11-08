@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/config"
 	"github.com/nex-crm/wuphf/internal/gbrain"
 )
 
@@ -43,11 +42,16 @@ func (b *Broker) ensureGBrainMemoryClient() {
 // boot path reviewable in isolation: read this file end-to-end and you
 // know what happens during the markdown-backend cold start.
 
-// ensureWikiWorker initializes the markdown-backend wiki worker when the
-// resolved memory backend is "markdown". Idempotent on success; on failure
-// (git missing, fsck + backup double-fault, etc.) it logs and returns so
-// the next caller can retry. Never crashes the broker — the worker is
-// advisory; writes simply fail with ErrWorkerStopped until init succeeds.
+// ensureWikiWorker initializes the wiki worker (repo + index + extract
+// pipeline). It runs for EVERY memory backend: the wiki is a filesystem git
+// repo whose commits carry per-bot provenance, and the memory backend is a
+// separate retrieval layer on top of it. Gating this on
+// memory_backend=markdown made `/wiki/write*` answer 503 forever under gbrain
+// while bots fell back to writing raw files that were never committed (K).
+// Idempotent on success; on failure (git missing, fsck + backup double-fault,
+// etc.) it logs and returns so the next caller can retry. Never crashes the
+// broker — the worker is advisory; writes simply fail with ErrWorkerStopped
+// until init succeeds.
 //
 // Retry semantics matter: a transient repo.Init failure (e.g. parent dir
 // permissions flap, git temporarily missing from PATH) used to consume
@@ -55,9 +59,6 @@ func (b *Broker) ensureGBrainMemoryClient() {
 // retry — handlers in broker_notebook.go / broker_review.go invoke this
 // before checking WikiWorker so a 503 self-heals on the next request.
 func (b *Broker) ensureWikiWorker() {
-	if config.ResolveMemoryBackend("") != config.MemoryBackendMarkdown {
-		return
-	}
 	b.wikiInitMu.Lock()
 	defer b.wikiInitMu.Unlock()
 	b.mu.Lock()

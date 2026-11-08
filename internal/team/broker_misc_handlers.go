@@ -24,17 +24,24 @@ type HealthDispatch struct {
 
 // HealthResponse is the stable JSON response served by GET /health.
 type HealthResponse struct {
-	Status              string         `json:"status"`
-	SessionMode         string         `json:"session_mode"`
-	OneOnOneBot         string         `json:"one_on_one_agent"`
-	FocusMode           bool           `json:"focus_mode"`
-	Provider            string         `json:"provider"`
-	ProviderModel       string         `json:"provider_model"`
-	MemoryBackend       string         `json:"memory_backend"`
-	MemoryBackendActive string         `json:"memory_backend_active"`
-	MemoryBackendReady  bool           `json:"memory_backend_ready"`
-	Build               buildinfo.Info `json:"build"`
-	Dispatch            HealthDispatch `json:"dispatch"`
+	Status              string `json:"status"`
+	SessionMode         string `json:"session_mode"`
+	OneOnOneBot         string `json:"one_on_one_agent"`
+	FocusMode           bool   `json:"focus_mode"`
+	Provider            string `json:"provider"`
+	ProviderModel       string `json:"provider_model"`
+	MemoryBackend       string `json:"memory_backend"`
+	MemoryBackendActive string `json:"memory_backend_active"`
+	MemoryBackendReady  bool   `json:"memory_backend_ready"`
+	// WikiReady reports the wiki worker (repo + index + extract pipeline)
+	// independently of the memory backend. The two are separate layers: the
+	// wiki is a filesystem git repo, the memory backend is retrieval on top.
+	// Before the decoupling (K) the worker only started under
+	// memory_backend=markdown, so a gbrain office had no way to tell that
+	// every /wiki/write* was answering 503.
+	WikiReady bool           `json:"wiki_ready"`
+	Build     buildinfo.Info `json:"build"`
+	Dispatch  HealthDispatch `json:"dispatch"`
 }
 
 func (b *Broker) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -55,9 +62,10 @@ func (b *Broker) handleHealth(w http.ResponseWriter, r *http.Request) {
 	// == nil because repo.Init failed at startup. Without this gate,
 	// /health reported ready while every /notebook/* and /review/* call
 	// returned 503, masking the failure from operators and the web UI.
+	wikiReady := b.WikiWorker() != nil
 	ready := memoryStatus.ActiveKind != config.MemoryBackendNone
 	if memoryStatus.ActiveKind == config.MemoryBackendMarkdown {
-		ready = b.WikiWorker() != nil
+		ready = wikiReady
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -71,6 +79,7 @@ func (b *Broker) handleHealth(w http.ResponseWriter, r *http.Request) {
 		MemoryBackend:       memoryStatus.SelectedKind,
 		MemoryBackendActive: memoryStatus.ActiveKind,
 		MemoryBackendReady:  ready,
+		WikiReady:           wikiReady,
 		Build:               buildinfo.Current(),
 		Dispatch:            HealthDispatch{MessageSubscribers: subs, Members: members},
 	})
