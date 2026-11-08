@@ -83,7 +83,7 @@ func newWorkflowJobScheduler(t *testing.T, broker schedulerBroker, resolve func(
 	return &watchdogScheduler{
 		broker:                  broker,
 		clock:                   newManualClock(time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)),
-		deliverTask:             func(officeActionLog, teamTask) {},
+		deliverTask:             func(officeActionLog, teamTask) bool { return true },
 		resolveWorkflowProvider: resolve,
 	}
 }

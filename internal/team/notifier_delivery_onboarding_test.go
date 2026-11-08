@@ -63,3 +63,44 @@ func TestIsDeterministicPhase2CEODM_GatesCEODMDuringPhase2(t *testing.T) {
 		})
 	}
 }
+
+// TestSendTaskUpdateReportsLifecycleGate pins the return value the watchdog now
+// reads: a wake refused by the lifecycle gate must report false, else the
+// scheduler cannot tell "owner was woken" from "nothing happened".
+func TestSendTaskUpdateReportsLifecycleGate(t *testing.T) {
+	b := newTestBroker(t)
+	l := &Launcher{broker: b}
+	refused := l.sendTaskUpdate(
+		notificationTarget{Slug: "eng"},
+		officeActionLog{Kind: "watchdog_alert", Channel: "general", Actor: "watchdog"},
+		teamTask{ID: "t1", Channel: "general", Owner: "eng", LifecycleState: LifecycleStateDrafting},
+		"body",
+	)
+	if refused {
+		t.Fatal("a lifecycle gate that drops the wake must report false")
+	}
+}
+
+// TestDeliverTaskNotificationReportsDispatchedWake is the positive half of the
+// same contract: when the owner's wake really is queued, the watchdog must see
+// true and stay quiet (no escalation message on top of real work).
+func TestDeliverTaskNotificationReportsDispatchedWake(t *testing.T) {
+	b := newTestBroker(t)
+	l := &Launcher{broker: b}
+	ok := l.deliverTaskNotification(
+		officeActionLog{Kind: "watchdog_alert", Channel: "general", Actor: "watchdog"},
+		teamTask{ID: "t1", Channel: "general", Owner: "eng", LifecycleState: LifecycleStateRunning},
+	)
+	if !ok {
+		t.Fatal("a queued owner wake must report true")
+	}
+	queued := 0
+	l.headless.mu.Lock()
+	for _, q := range l.headless.queues {
+		queued += len(q)
+	}
+	l.headless.mu.Unlock()
+	if queued == 0 {
+		t.Fatal("reporting true without a queued turn would let the watchdog skip escalation silently")
+	}
+}

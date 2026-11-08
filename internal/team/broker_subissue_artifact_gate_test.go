@@ -145,8 +145,9 @@ func TestProcessTaskJob_TaskRetryIsOneShot(t *testing.T) {
 	s := &watchdogScheduler{
 		broker: b,
 		clock:  newManualClock(time.Date(2026, 11, 7, 7, 0, 0, 0, time.UTC)),
-		deliverTask: func(action officeActionLog, task teamTask) {
+		deliverTask: func(action officeActionLog, task teamTask) bool {
 			delivered++
+			return true
 		},
 	}
 	s.processTaskJob(schedulerJob{
@@ -188,8 +189,9 @@ func TestProcessTaskJob_TaskRetryClosesOnBlocked(t *testing.T) {
 	s := &watchdogScheduler{
 		broker: b,
 		clock:  newManualClock(time.Date(2026, 11, 7, 7, 0, 0, 0, time.UTC)),
-		deliverTask: func(action officeActionLog, task teamTask) {
+		deliverTask: func(action officeActionLog, task teamTask) bool {
 			delivered++
+			return true
 		},
 	}
 	slug := normalizeSchedulerSlug("task_retry", "team", "task", "JOURN-93")

@@ -120,16 +120,26 @@ func (l *Launcher) deliverMessageNotification(msg channelMessage) {
 	_ = delayed
 }
 
-func (l *Launcher) deliverTaskNotification(action officeActionLog, task teamTask) {
+// deliverTaskNotification reports whether at least one wake actually went out.
+// A false return is the difference between "the owner was told" and "the
+// ledger claims it was": the watchdog escalates the refused case in-channel
+// instead of letting a stalled task go silent (Journey 2).
+func (l *Launcher) deliverTaskNotification(action officeActionLog, task teamTask) bool {
 	immediate, delayed := l.taskNotificationTargets(action, task)
 	if len(immediate) == 0 && len(delayed) == 0 {
-		return
+		return false
 	}
 	content := l.taskNotificationContent(action, task)
+	delivered := false
 	for _, target := range immediate {
-		l.sendTaskUpdate(target, action, task, content)
+		if l.sendTaskUpdate(target, action, task, content) {
+			delivered = true
+		}
 	}
 	for _, target := range delayed {
+		// Delayed targets are real wakes on a timer; count them as delivered so
+		// the watchdog does not escalate on top of a scheduled CEO head start.
+		delivered = true
 		go func(target notificationTarget, action officeActionLog, task teamTask) {
 			time.Sleep(ceoHeadStartDelay)
 			if !l.shouldDeliverDelayedTaskNotification(target.Slug, action, task) {
@@ -138,6 +148,7 @@ func (l *Launcher) deliverTaskNotification(action officeActionLog, task teamTask
 			l.sendTaskUpdate(target, action, task, content)
 		}(target, action, task)
 	}
+	return delivered
 }
 
 func (l *Launcher) taskForAction(action officeActionLog) (teamTask, bool) {
@@ -159,7 +170,7 @@ func (l *Launcher) taskNotificationContent(action officeActionLog, task teamTask
 	return l.notifyCtx().TaskNotificationContent(action, task)
 }
 
-func (l *Launcher) sendTaskUpdate(target notificationTarget, action officeActionLog, task teamTask, content string) {
+func (l *Launcher) sendTaskUpdate(target notificationTarget, action officeActionLog, task teamTask, content string) bool {
 	// Approval gate (Phase 4): refuse to dispatch execution work to bots
 	// for tasks that are not in an executable lifecycle state. Only Running
 	// and Approved tasks may trigger bot execution turns. Drafting, Intake,
@@ -171,7 +182,7 @@ func (l *Launcher) sendTaskUpdate(target notificationTarget, action officeAction
 	// wake to answer or reopen (done-integrity fix family).
 	if action.Kind != taskFollowUpActionKind &&
 		task.LifecycleState != "" && !isExecutableTeamTaskStatus(task.LifecycleState) {
-		return
+		return false
 	}
 	// Scoped interview gate (v3 fix family #2): while THIS bot waits on
 	// its own human interview, its current turn is parked in the
@@ -180,7 +191,7 @@ func (l *Launcher) sendTaskUpdate(target notificationTarget, action officeAction
 	// keeps working (the old office-wide drop wedged the whole office
 	// behind one buried card, [19:23:59]).
 	if l.turnParkedOnInterview(target) {
-		return
+		return false
 	}
 	// The channel this bot is told to reply in. A task with no channel used
 	// to resolve to "general", so the packet literally instructed the bot to
@@ -207,12 +218,13 @@ func (l *Launcher) sendTaskUpdate(target notificationTarget, action officeAction
 			ContextUsed: contextUsed,
 			EnqueuedAt:  time.Now(),
 		})
-		return
+		return true
 	}
 	if l.answerSessionMemberWithoutATurn(target.Slug, notification, channel) {
-		return
+		return true
 	}
 	l.paneDispatch().Enqueue(target.Slug, target.PaneTarget, notification)
+	return true
 }
 
 // activeHeadlessSlugs returns the slugs that have non-empty headless

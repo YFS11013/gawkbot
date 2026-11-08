@@ -66,6 +66,10 @@ type schedulerBroker interface {
 	RecordAction(kind, source, channel, actor, summary, related string, signalIDs []string, decisionID string) error
 	ResumeTask(id, by, note string) (teamTask, bool, error)
 	PostAutomationMessage(from, channel, title, body, alertID, source, displayName string, ccSlugs []string, replyTo string) (channelMessage, bool, error)
+	// PostSystemMessage and ScheduleNoTraceRetry back the visible escalation a
+	// refused wake leaves behind (escalateRefusedWake).
+	PostSystemMessage(channel, content, kind string)
+	ScheduleNoTraceRetry(taskID string) error
 	// CreateRoutineTask lands an agent routine as a real task so the run has an
 	// artifact carrier; RoutineTaskForSignal dedupes a replayed scheduler tick.
 	// Both are only ever called from the routine fire path.
@@ -81,9 +85,12 @@ type schedulerBroker interface {
 // watchdogScheduler runs the periodic broker-driven watchdog loop. One
 // goroutine started by Start; drained by Stop via stopCh + done WaitGroup.
 type watchdogScheduler struct {
-	broker      schedulerBroker
-	clock       clock
-	deliverTask func(officeActionLog, teamTask)
+	broker schedulerBroker
+	clock  clock
+	// deliverTask wakes the task's owner for this action and reports whether a
+	// turn (or pane message) actually went out. false means every delivery path
+	// refused — see escalateRefusedWake.
+	deliverTask func(officeActionLog, teamTask) bool
 
 	// operatorRunRecorded, when set, fires after an operator routine's async
 	// fire has recorded its run (scheduler_operator_routines.go). Test seam:
@@ -326,13 +333,19 @@ func (w *watchdogScheduler) processTaskJob(job schedulerJob) {
 	signalIDs, decisionID := w.recordLedger(task.Channel, alertKind, task.ID, task.Owner, summary, task.SourceSignalID)
 	_ = w.broker.RecordAction("watchdog_alert", "watchdog", task.Channel, "watchdog", truncate(summary, 140), task.ID, signalIDs, decisionID)
 	if w.deliverTask != nil {
-		w.deliverTask(officeActionLog{
+		woke := w.deliverTask(officeActionLog{
 			Kind:      "watchdog_alert",
 			Source:    "watchdog",
 			Channel:   task.Channel,
 			Actor:     "watchdog",
 			RelatedID: task.ID,
 		}, task)
+		if !woke {
+			// A wired delivery path that refused is the silent case worth
+			// escalating. A nil hook means no launcher at all (eval harnesses,
+			// bare fixtures) — nothing to report and nobody to retry for.
+			w.escalateRefusedWake(task, summary)
+		}
 	}
 	if strings.EqualFold(strings.TrimSpace(job.Kind), "task_retry") {
 		// One shot. The retry exists to wake the owner sooner than the hourly
@@ -344,6 +357,27 @@ func (w *watchdogScheduler) processTaskJob(job schedulerJob) {
 	}
 	nextRun := w.clock.Now().UTC().Add(time.Duration(config.ResolveTaskReminderInterval()) * time.Minute)
 	_ = w.broker.UpdateSchedulerJobState(job.Slug, nextRun, "scheduled")
+}
+
+// escalateRefusedWake makes a refused owner wake visible instead of a ledger
+// entry nobody reads. Journey 2 (2026-11-07) stalled on exactly this: the
+// recheck dispatched, wrote signals.task_stalled, and no turn, message or card
+// ever reached the human — the task sat until the run's stopwatch ended. When
+// every delivery path declines, say so in the channel and arm a retry so the
+// owner is woken on the next tick instead of the next hourly follow-up.
+func (w *watchdogScheduler) escalateRefusedWake(task teamTask, summary string) {
+	if w == nil || w.broker == nil {
+		return
+	}
+	owner := strings.TrimSpace(task.Owner)
+	channel := normalizeChannelSlug(task.Channel)
+	note := fmt.Sprintf("Watchdog: %s No turn could be dispatched to wake %s — retrying shortly.",
+		strings.TrimSpace(summary), strings.TrimSpace("@"+owner))
+	if owner == "" {
+		note = fmt.Sprintf("Watchdog: %s No turn could be dispatched and the task has no owner to wake.", strings.TrimSpace(summary))
+	}
+	w.broker.PostSystemMessage(channel, note, "watchdog_alert")
+	_ = w.broker.ScheduleNoTraceRetry(task.ID)
 }
 
 func (w *watchdogScheduler) processRequestJob(job schedulerJob) {

@@ -2655,10 +2655,11 @@ func TestProcessDueTaskJobResumesRateLimitedBlockedTask(t *testing.T) {
 	s := &watchdogScheduler{
 		broker: b,
 		clock:  clock,
-		deliverTask: func(action officeActionLog, task teamTask) {
+		deliverTask: func(action officeActionLog, task teamTask) bool {
 			delivered++
 			deliveredAction = action
 			deliveredTask = task
+			return true
 		},
 	}
 	s.processTaskJob(schedulerJob{

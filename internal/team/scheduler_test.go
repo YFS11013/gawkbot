@@ -12,6 +12,7 @@ package team
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -53,7 +54,7 @@ func TestSchedulerProcessOnce_TaskUnclaimedFiresAlert(t *testing.T) {
 	sched := &watchdogScheduler{
 		broker:      b,
 		clock:       newManualClock(time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)),
-		deliverTask: func(officeActionLog, teamTask) { delivered++ },
+		deliverTask: func(officeActionLog, teamTask) bool { delivered++; return true },
 	}
 	sched.processOnce()
 
@@ -80,7 +81,7 @@ func TestSchedulerProcessOnce_TaskOwnedFiresStalled(t *testing.T) {
 	sched := &watchdogScheduler{
 		broker:      b,
 		clock:       newManualClock(time.Now()),
-		deliverTask: func(officeActionLog, teamTask) {},
+		deliverTask: func(officeActionLog, teamTask) bool { return true },
 	}
 	sched.processOnce()
 
@@ -98,7 +99,7 @@ func TestSchedulerProcessOnce_DoneTaskMarksJobDone(t *testing.T) {
 		Slug: "j1", Channel: "team", TargetType: "task", TargetID: "t1",
 	}}
 
-	sched := &watchdogScheduler{broker: b, clock: newManualClock(time.Now()), deliverTask: func(officeActionLog, teamTask) {}}
+	sched := &watchdogScheduler{broker: b, clock: newManualClock(time.Now()), deliverTask: func(officeActionLog, teamTask) bool { return true }}
 	sched.processOnce()
 
 	if len(b.alerts) != 0 {
@@ -117,7 +118,7 @@ func TestSchedulerProcessOnce_BlockedTaskSkipsAlert(t *testing.T) {
 	b.dueJobs = []schedulerJob{{
 		Slug: "j1", Channel: "team", TargetType: "task", TargetID: "t1",
 	}}
-	sched := &watchdogScheduler{broker: b, clock: newManualClock(time.Now()), deliverTask: func(officeActionLog, teamTask) {}}
+	sched := &watchdogScheduler{broker: b, clock: newManualClock(time.Now()), deliverTask: func(officeActionLog, teamTask) bool { return true }}
 	sched.processOnce()
 	if len(b.alerts) != 0 {
 		t.Errorf("blocked tasks must not trigger watchdog reminders; got %+v", b.alerts)
@@ -137,7 +138,7 @@ func TestSchedulerProcessOnce_RequestActiveFiresAlertAndPostsAutomation(t *testi
 	b.dueJobs = []schedulerJob{{
 		Slug: "j1", Channel: "team", TargetType: "request", TargetID: "r1",
 	}}
-	sched := &watchdogScheduler{broker: b, clock: newManualClock(time.Now()), deliverTask: func(officeActionLog, teamTask) {}}
+	sched := &watchdogScheduler{broker: b, clock: newManualClock(time.Now()), deliverTask: func(officeActionLog, teamTask) bool { return true }}
 	sched.processOnce()
 
 	if len(b.alerts) != 1 || b.alerts[0].kind != "request_waiting" {
@@ -156,7 +157,7 @@ func TestSchedulerProcessOnce_RequestInactiveMarksJobDone(t *testing.T) {
 	b.dueJobs = []schedulerJob{{
 		Slug: "j1", Channel: "team", TargetType: "request", TargetID: "r1",
 	}}
-	sched := &watchdogScheduler{broker: b, clock: newManualClock(time.Now()), deliverTask: func(officeActionLog, teamTask) {}}
+	sched := &watchdogScheduler{broker: b, clock: newManualClock(time.Now()), deliverTask: func(officeActionLog, teamTask) bool { return true }}
 	sched.processOnce()
 	if len(b.jobStateUpdates) != 1 || b.jobStateUpdates[0].status != "done" {
 		t.Errorf("inactive request job should be marked done; got %+v", b.jobStateUpdates)
@@ -168,7 +169,7 @@ func TestSchedulerProcessOnce_UnknownTargetTypeReschedules(t *testing.T) {
 	b.dueJobs = []schedulerJob{{
 		Slug: "j1", Channel: "team", TargetType: "mystery", TargetID: "x",
 	}}
-	sched := &watchdogScheduler{broker: b, clock: newManualClock(time.Now()), deliverTask: func(officeActionLog, teamTask) {}}
+	sched := &watchdogScheduler{broker: b, clock: newManualClock(time.Now()), deliverTask: func(officeActionLog, teamTask) bool { return true }}
 	sched.processOnce()
 	if len(b.jobStateUpdates) != 1 || b.jobStateUpdates[0].status != "scheduled" {
 		t.Errorf("unknown target type should reschedule; got %+v", b.jobStateUpdates)
@@ -289,7 +290,7 @@ func TestSchedulerStopBeforeStart_DisablesLaterStart(t *testing.T) {
 		clock:        newManualClock(time.Now()),
 		initialDelay: time.Hour,
 		pollEvery:    time.Hour,
-		deliverTask:  func(officeActionLog, teamTask) {},
+		deliverTask:  func(officeActionLog, teamTask) bool { return true },
 	}
 	w.Stop() // before Start
 	w.Start(context.Background())
@@ -363,7 +364,7 @@ func TestSchedulerStartStop_DeterministicTickAndShutdown(t *testing.T) {
 		clock:        clk,
 		initialDelay: 15 * time.Second,
 		pollEvery:    20 * time.Second,
-		deliverTask:  func(officeActionLog, teamTask) {},
+		deliverTask:  func(officeActionLog, teamTask) bool { return true },
 		onTickDone:   tickDone,
 	}
 	ctx, cancel := context.WithCancel(context.Background())
@@ -482,6 +483,8 @@ func (c *manualClock) Advance(d time.Duration) {
 // rather than on a real Broker fixture (which would require dragging in
 // JSON state files and the full broker init).
 type schedulerFixtureBroker struct {
+	systemMessages   []string
+	retriesArmed     []string
 	tasks            []teamTask
 	requests         []humanInterview
 	dueJobs          []schedulerJob
@@ -602,6 +605,15 @@ func (b *schedulerFixtureBroker) RoutineTaskForSignal(signal string) (string, bo
 	return id, ok
 }
 
+func (b *schedulerFixtureBroker) PostSystemMessage(_, content, _ string) {
+	b.systemMessages = append(b.systemMessages, content)
+}
+
+func (b *schedulerFixtureBroker) ScheduleNoTraceRetry(taskID string) error {
+	b.retriesArmed = append(b.retriesArmed, taskID)
+	return nil
+}
+
 func (b *schedulerFixtureBroker) SetSchedulerJob(_ schedulerJob) error { return nil }
 func (b *schedulerFixtureBroker) SchedulerJobControl(_ string, defaultInterval time.Duration) (bool, time.Duration) {
 	return true, defaultInterval
@@ -658,6 +670,8 @@ func (b *recordingLedgerBroker) CreateRoutineTask(TaskPostRequest) (TaskResponse
 	return TaskResponse{}, nil
 }
 func (b *recordingLedgerBroker) RoutineTaskForSignal(string) (string, bool) { return "", false }
+func (b *recordingLedgerBroker) PostSystemMessage(string, string, string)   {}
+func (b *recordingLedgerBroker) ScheduleNoTraceRetry(string) error          { return nil }
 func (b *recordingLedgerBroker) SetSchedulerJob(schedulerJob) error         { return nil }
 func (b *recordingLedgerBroker) SchedulerJobControl(_ string, defaultInterval time.Duration) (bool, time.Duration) {
 	return true, defaultInterval
@@ -749,7 +763,7 @@ func TestLauncher_KillDrainsScheduler(t *testing.T) {
 		clock:        clk,
 		initialDelay: time.Hour, // intentionally never released by the manual clock
 		pollEvery:    time.Hour,
-		deliverTask:  func(officeActionLog, teamTask) {},
+		deliverTask:  func(officeActionLog, teamTask) bool { return true },
 	}
 	l := &Launcher{schedulerWorker: sched}
 	sched.Start(context.Background())
@@ -776,5 +790,61 @@ func TestLauncher_KillDrainsScheduler(t *testing.T) {
 	case <-exited:
 	case <-time.After(2 * time.Second):
 		t.Fatalf("scheduler goroutine did not exit within 2s after Kill — Kill is not draining the scheduler")
+	}
+}
+
+// TestSchedulerRefusedWakePostsVisibleEscalation pins J2-4: when every delivery
+// path declines the watchdog's owner wake, the office must say so in the task
+// channel and arm a retry. Journey 2 (2026-11-07) stalled with only a
+// signals.task_stalled row to show for it.
+func TestSchedulerRefusedWakePostsVisibleEscalation(t *testing.T) {
+	b := newSchedulerFixtureBroker(t)
+	b.tasks = []teamTask{{
+		ID: "t1", Channel: "team", Title: "do thing", Owner: "eng", status: "in_progress",
+	}}
+	b.dueJobs = []schedulerJob{{
+		Slug: "j1", Channel: "team", Kind: "recheck", TargetType: "task", TargetID: "t1",
+	}}
+	sched := &watchdogScheduler{
+		broker:      b,
+		clock:       newManualClock(time.Date(2026, 11, 7, 19, 0, 0, 0, time.UTC)),
+		deliverTask: func(officeActionLog, teamTask) bool { return false },
+	}
+	sched.processOnce()
+
+	if len(b.systemMessages) != 1 {
+		t.Fatalf("refused wake posted %d messages, want 1", len(b.systemMessages))
+	}
+	if !strings.Contains(b.systemMessages[0], "No turn could be dispatched") {
+		t.Fatalf("escalation must name the refused wake, got %q", b.systemMessages[0])
+	}
+	if !strings.Contains(b.systemMessages[0], "@eng") {
+		t.Fatalf("escalation must name the owner, got %q", b.systemMessages[0])
+	}
+	if len(b.retriesArmed) != 1 || b.retriesArmed[0] != "t1" {
+		t.Fatalf("refused wake must arm a retry for t1, got %v", b.retriesArmed)
+	}
+}
+
+func TestSchedulerDeliveredWakeStaysQuiet(t *testing.T) {
+	b := newSchedulerFixtureBroker(t)
+	b.tasks = []teamTask{{
+		ID: "t1", Channel: "team", Title: "do thing", Owner: "eng", status: "in_progress",
+	}}
+	b.dueJobs = []schedulerJob{{
+		Slug: "j1", Channel: "team", Kind: "recheck", TargetType: "task", TargetID: "t1",
+	}}
+	sched := &watchdogScheduler{
+		broker:      b,
+		clock:       newManualClock(time.Date(2026, 11, 7, 19, 0, 0, 0, time.UTC)),
+		deliverTask: func(officeActionLog, teamTask) bool { return true },
+	}
+	sched.processOnce()
+
+	if len(b.systemMessages) != 0 {
+		t.Fatalf("a delivered wake must not escalate, got %v", b.systemMessages)
+	}
+	if len(b.retriesArmed) != 0 {
+		t.Fatalf("a delivered wake must not arm a retry, got %v", b.retriesArmed)
 	}
 }
