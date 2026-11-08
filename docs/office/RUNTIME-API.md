@@ -812,6 +812,19 @@ POST /skills/compile {"dry_run":true,"scope_path":"team/companies"}
 
 **运维注意**：`mtimeCache` 是进程内状态，首次 Scan 时从磁盘加载。手工改 `skills-scan-cache.json` 后**必须重启 broker** 才会生效（第二次 Scan 起只用内存）。
 
+**读数口径（2026-11-08 复核）**：`matched=0` 只表示"没有一篇 p≥0.50 被送去写正文"，**不等于"全部被拒"**。同一棵 75 篇的树在主办公室实测：
+
+```
+POST /skills/compile {"dry_run":true}
+→ {"scanned":75,"matched":0,"proposed":0,"rejected_by_guard":0,"duration_ms":2406}
+→ errors: 3 条 uncertain（p=0.40 / 0.41 / 0.34，全在 0.30–0.50 的"不判"带）
+```
+
+- **72 篇是缓存命中**（`wiki/.git/skills-scan-cache.json` 正好 72 条），根本没调用模型；真跑 gate 的只有 3 篇。热缓存一轮 ≈2.4 s，冷跑才是 75 × 0.50 s ≈ 37.8 s —— 两种耗时都正常，别用它反推"有多少篇真判过"。
+- 这 72 条是 **14.8 时代 qwen 文本判定**的结论（cache `version: 2`，不记模型）。11 篇 `source_articles` 正例里 `candidate-prep`、`meeting-prep`、`style-digest`、`task`、`smoke-clean-context-review-lane` 全在缓存里被标成"非技能"——**新 gate 从未复判过它们**。所以热缓存下的 `matched=0` 不能当 gate 的质量证据；要基线就先备份缓存、删条目、重启 broker 再跑（75 次调用 ≈40 s，约 $0.004）。
+- `rejected_by_guard` 是内容守卫的计数器，与 gate 的拒绝无关，不要混读。
+- 3 篇 drills/core-loop 文章长期停在 0.30–0.50，每轮重试（≈1.5 s + $0.00016/轮），不会自行收敛成是/否。
+
 ### 14.10 生成物移出扫描范围（2026-11-07）
 
 `team/opencode-models-YYYY-MM-DD.md` 是 `model-snapshot.ps1` 每天写的模型清单（同样的 460 个 id 加一张变动表）。它不是流程，而且内容每天变，所以**每天都会被判一次**——它也是 14.9 校准里唯一的假阳性（p=0.71，其余非技能都 ≤0.22）。
