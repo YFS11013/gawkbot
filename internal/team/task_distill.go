@@ -70,10 +70,14 @@ func taskDistillInsight(task teamTask, res *TaskVerificationResult) string {
 
 // queueTaskDistillation schedules distillation off the mutation hot path.
 func (b *Broker) queueTaskDistillation(taskID string) {
-	go func() {
+	// Tracked, not bare: the distillation writes learning records into the
+	// runtime home, and an untracked goroutine for it lands writes after
+	// Stop returns — the same hazard trackBackground exists for. It also
+	// made TempDir teardown flaky: RemoveAll raced a distill write.
+	b.trackBackground(func() {
 		defer recoverPanicTo("distillCompletedTask", "task="+taskID)
 		b.distillCompletedTask(taskID)
-	}()
+	})
 }
 
 // distillCompletedTask writes one learning record for a verified-done task.

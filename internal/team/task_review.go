@@ -35,10 +35,13 @@ const taskReviewSignalPrefix = "review:"
 // queueTaskReview schedules the clean-context review of a delivered artifact.
 // Called from the done branch of MutateTask, after b.mu is released.
 func (b *Broker) queueTaskReview(taskID string) {
-	go func() {
+	// Tracked so Stop drains it: the review lane creates tasks and writes
+	// state, which must not land after the broker (or a test's temp home)
+	// is gone.
+	b.trackBackground(func() {
 		defer recoverPanicTo("reviewCompletedTask", "task="+taskID)
 		b.reviewCompletedTask(taskID)
-	}()
+	})
 }
 
 // reviewCompletedTask opens one review task per delivered task. Idempotent:

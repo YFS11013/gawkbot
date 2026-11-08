@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -8,9 +9,14 @@ import {
   postTaskReject,
   postTaskResume,
 } from "../../api/lifecycle";
+import {
+  type DeliveryGateValue,
+  deliveryGateRefusal,
+} from "../../lib/deliveryGate";
 import type { InboxItem } from "../../lib/types/inbox";
 import type { DecisionPacket } from "../../lib/types/lifecycle";
 import { DecisionPacketView } from "./DecisionPacketView";
+import { DeliveryGateDialog } from "./DeliveryGateDialog";
 
 interface DecisionPacketRouteProps {
   taskId: string;
@@ -78,15 +84,35 @@ export function DecisionPacketRoute({
     }
   }
 
+  // Set when an Approve was refused for landing done with nothing to open.
+  // The gate's own sentence names an escape hatch, so the dialog is the only
+  // place it can actually be used (J2-5).
+  const [deliveryGate, setDeliveryGate] = useState<{
+    message: string;
+  } | null>(null);
+  const [approveComment, setApproveComment] = useState<string | undefined>(
+    undefined,
+  );
+
   const decisionMutation = useMutation({
     mutationFn: ({
       action,
       comment,
+      delivery,
     }: {
       action: DecisionAction;
       comment?: string;
-    }) => postDecision(taskId, action, comment),
+      delivery?: DeliveryGateValue;
+    }) => postDecision(taskId, action, comment, delivery),
+    onError: (err: unknown, input) => {
+      if (input.action !== "approve") return;
+      const refusal = deliveryGateRefusal(err);
+      if (!refusal) return;
+      setApproveComment(input.comment);
+      setDeliveryGate({ message: refusal.message });
+    },
     onSuccess: () => {
+      setDeliveryGate(null);
       // Record the cursor first so the badge math reflects the new
       // last-seen-at on the next refresh, then invalidate the cached
       // queries so the inbox + packet re-fetch.
@@ -197,6 +223,7 @@ export function DecisionPacketRoute({
       : packet;
 
   return (
+    <>
     <DecisionPacketView
       packet={effectivePacket}
       isStreaming={isStreaming}
@@ -217,6 +244,21 @@ export function DecisionPacketRoute({
         }
       }}
     />
+    <DeliveryGateDialog
+      open={deliveryGate !== null}
+      message={deliveryGate?.message ?? ""}
+      actionLabel="Approve"
+      busy={decisionMutation.isPending}
+      onSubmit={(delivery) => {
+        decisionMutation.mutate({
+          action: "approve",
+          comment: approveComment,
+          delivery,
+        });
+      }}
+      onClose={() => setDeliveryGate(null)}
+    />
+    </>
   );
 }
 

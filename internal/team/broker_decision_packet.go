@@ -779,6 +779,19 @@ func decisionActorFromSlug(slug string) decisionActor {
 	return decisionActor{slug: slug, isHuman: slug != "" && isHumanMessageSender(slug)}
 }
 
+// DecisionDelivery is the caller's answer to the "done means delivered"
+// gate on the decision path. The Approve button in the UI posts to
+// /tasks/{id}/decision, not /tasks, so without these fields a human
+// approving genuinely file-less work had no way to satisfy the gate the
+// error message told them about — a dead end (J2-5). Either name the
+// artifact the approve should land with, or declare that this completion
+// ships nothing (verification=not_required + reason).
+type DecisionDelivery struct {
+	ArtifactPath       string
+	Verification       string
+	VerificationReason string
+}
+
 // RecordTaskDecisionWithComment is the same as RecordTaskDecision but
 // also appends an optional human-authored comment to the Decision
 // Packet's spec.feedback log. The feedback append, the lifecycle
@@ -792,7 +805,7 @@ func (b *Broker) RecordTaskDecisionWithComment(taskID, rawAction, comment, autho
 	if actorSlug == "" {
 		actorSlug = "human"
 	}
-	return b.recordTaskDecisionInternal(taskID, rawAction, decisionActorFromSlug(actorSlug), comment)
+	return b.recordTaskDecisionInternal(taskID, rawAction, decisionActorFromSlug(actorSlug), comment, DecisionDelivery{})
 }
 
 // RecordTaskDecision records a decision attributed to actorSlug. When
@@ -801,14 +814,14 @@ func (b *Broker) RecordTaskDecisionWithComment(taskID, rawAction, comment, autho
 // requestActor.Slug; internal callers (timeout sweeper, tests) can
 // pass "" to opt into the system fallback.
 func (b *Broker) RecordTaskDecision(taskID, rawAction, actorSlug string) error {
-	return b.recordTaskDecisionInternal(taskID, rawAction, decisionActorFromSlug(actorSlug), "")
+	return b.recordTaskDecisionInternal(taskID, rawAction, decisionActorFromSlug(actorSlug), "", DecisionDelivery{})
 }
 
 // recordTaskDecisionInternal is the shared chokepoint behind
 // RecordTaskDecision and RecordTaskDecisionWithComment. It transitions
 // the lifecycle, stamps the packet, optionally appends a FeedbackItem,
 // then persists / emits / broadcasts — all inside one locked section.
-func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor decisionActor, comment string) error {
+func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor decisionActor, comment string, delivery DecisionDelivery) error {
 	if b == nil {
 		return fmt.Errorf("record decision: nil broker")
 	}
@@ -857,7 +870,11 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 	var decisionArtifactRef string
 	decisionArtifactExists := true
 	if action == RecordDecisionApprove {
-		decisionArtifactRef, decisionArtifactExists = b.peekTaskDoneArtifact(TaskPostRequest{Action: "approve", ID: taskID})
+		// A delivery supplied with the decision is what the approve would
+		// land with, so the existence check must stat THAT reference.
+		decisionArtifactRef, decisionArtifactExists = b.peekTaskDoneArtifact(TaskPostRequest{
+			Action: "approve", ID: taskID, ArtifactPath: strings.TrimSpace(delivery.ArtifactPath),
+		})
 	}
 	// TODO(v1.1): auto-merge evaluator — once a safe-class definition
 	// (e.g. wiki-only edits with all green checks and zero
@@ -882,6 +899,11 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 		// to Running (start work) instead of Approved (terminal); see
 		// lifecycleStateForDecisionAction for the rationale.
 		var currentState LifecycleState
+		// Delivery the approve would land with (J2-5), resolved from the
+		// request plus what the task already carries. Held outside the task
+		// so a refusal leaves no half-written declaration behind.
+		var effectiveArtifact, effectiveNotRequired string
+		resolvedDelivery := false
 		if task := b.findTaskByIDLocked(taskID); task != nil {
 			currentState = task.LifecycleState
 			// Human-sovereignty gate (mirrors MutateTask): an open human
@@ -910,6 +932,33 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 						nil,
 					)
 				}
+				// Resolve the delivery the approve would land with BEFORE the
+				// gates, without touching the task yet: a refusal must leave
+				// no half-written declaration behind (the task list is
+				// persisted from memory by OnDecisionRecorded).
+				effectiveArtifact = strings.TrimSpace(task.Artifact)
+				effectiveNotRequired = strings.TrimSpace(task.ArtifactNotRequired)
+				resolvedDelivery = true
+				if path := strings.TrimSpace(delivery.ArtifactPath); path != "" {
+					if err := validateTaskArtifactPath(path); err != nil {
+						return taskMutationError(TaskMutationInvalid, err.Error(), err)
+					}
+					effectiveArtifact = path
+					// A real deliverable retires an earlier "ships nothing"
+					// declaration, exactly like the MutateTask gate.
+					effectiveNotRequired = ""
+				}
+				if strings.EqualFold(strings.TrimSpace(delivery.Verification), verificationNotRequired) {
+					reason := strings.TrimSpace(delivery.VerificationReason)
+					if reason == "" {
+						return taskMutationError(
+							TaskMutationArtifactRequired,
+							fmt.Sprintf("task %s: verification=not_required needs verification_reason — say why approving this ships nothing, so the done record carries the reason instead of an empty artifact.", taskID),
+							nil,
+						)
+					}
+					effectiveNotRequired = fmt.Sprintf("not_required: %s (%s, %s)", reason, actorSlug, time.Now().UTC().Format(time.RFC3339))
+				}
 				// (2) An approve that WOULD terminalize a defined task with
 				// no delivered artifact is rejected — the B1 artifact gate
 				// must bind on the decision path too, not only on MutateTask
@@ -917,8 +966,8 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 				// ever wrote anything, v3 [19:04]).
 				if !isPreExecutionLifecycleState(currentState) &&
 					currentState != LifecycleStateApproved &&
-					strings.TrimSpace(task.Artifact) == "" &&
-					strings.TrimSpace(task.ArtifactNotRequired) == "" {
+					effectiveArtifact == "" &&
+					effectiveNotRequired == "" {
 					return taskMutationError(
 						TaskMutationArtifactRequired,
 						fmt.Sprintf("task %s cannot be approved into done without a delivered artifact. Have the owner publish the deliverable to the wiki and complete with artifact_path set, then approve — or, if the work genuinely ships no file, have the owner complete with verification=not_required and verification_reason first.", taskID),
@@ -931,8 +980,8 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 				// computed outside the lock in the pre-phase above.
 				if !isPreExecutionLifecycleState(currentState) &&
 					currentState != LifecycleStateApproved &&
-					strings.TrimSpace(task.Artifact) != "" &&
-					strings.TrimSpace(task.Artifact) == decisionArtifactRef &&
+					effectiveArtifact != "" &&
+					effectiveArtifact == decisionArtifactRef &&
 					!decisionArtifactExists {
 					return taskMutationError(
 						TaskMutationArtifactRequired,
@@ -940,6 +989,17 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 						nil,
 					)
 				}
+			}
+		}
+		// The gates passed: commit the resolved delivery onto the task so the
+		// terminal approve carries the artifact or the declaration it was
+		// approved with (J2-5). Pre-execution approves start work rather than
+		// terminalize, and an idempotent approve changes nothing.
+		if !isPreExecutionLifecycleState(currentState) && currentState != LifecycleStateApproved {
+			if t := b.findTaskByIDLocked(taskID); t != nil && (resolvedDelivery || action == RecordDecisionApprove) {
+				t.Artifact = effectiveArtifact
+				t.ArtifactNotRequired = effectiveNotRequired
+				t.HollowCompletion = effectiveArtifact == ""
 			}
 		}
 		target, reason = lifecycleStateForDecisionAction(action, currentState)

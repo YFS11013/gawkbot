@@ -471,7 +471,14 @@ func (b *Broker) handleTaskCancel(w http.ResponseWriter, r *http.Request, actor 
 
 // handleTaskDecision serves POST /tasks/{id}/decision. Body shape:
 //
-//	{"action": "approve" | "request_changes" | "defer", "comment": "<optional reviewer note>"}
+//	{"action": "approve" | "request_changes" | "defer", "comment": "<optional reviewer note>",
+//	 "artifact_path": "<wiki-relative deliverable>",
+//	 "verification": "not_required", "verification_reason": "<why nothing ships>"}
+//
+// The delivery fields are how a human's Approve answers the "done means
+// delivered" gate: this endpoint is the second door into done and it sends
+// no artifact of its own, so without them the 409 this gate returns names an
+// escape hatch the caller could not reach (J2-5).
 //
 // When comment is non-empty, it's appended to the Decision Packet's
 // spec.feedback log so the human's review note becomes part of the
@@ -499,6 +506,10 @@ func (b *Broker) handleTaskDecision(w http.ResponseWriter, r *http.Request, acto
 		// human value clears the Plan-mode approval gate below; bots that omit
 		// it fall back to "owner" and are blocked.
 		CreatedBy string `json:"created_by,omitempty"`
+		// Delivery fields (J2-5) — see DecisionDelivery.
+		ArtifactPath       string `json:"artifact_path,omitempty"`
+		Verification       string `json:"verification,omitempty"`
+		VerificationReason string `json:"verification_reason,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json body"})
@@ -546,7 +557,12 @@ func (b *Broker) handleTaskDecision(w http.ResponseWriter, r *http.Request, acto
 			dActor = decisionActor{slug: bodyAuthor, isHuman: true}
 		}
 	}
-	if err := b.recordTaskDecisionInternal(id, action, dActor, comment); err != nil {
+	delivery := DecisionDelivery{
+		ArtifactPath:       strings.TrimSpace(body.ArtifactPath),
+		Verification:       strings.TrimSpace(body.Verification),
+		VerificationReason: strings.TrimSpace(body.VerificationReason),
+	}
+	if err := b.recordTaskDecisionInternal(id, action, dActor, comment, delivery); err != nil {
 		if errors.Is(err, ErrUnknownDecisionAction) {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return

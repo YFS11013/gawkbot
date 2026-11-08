@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DecisionPacket } from "../lib/types/lifecycle";
 import * as client from "./client";
-import { getDecisionPacket } from "./lifecycle";
+import { getDecisionPacket, postDecision } from "./lifecycle";
 
 /**
  * Minimal valid packet the broker would return at the top level of
@@ -111,5 +111,59 @@ describe("getDecisionPacket normalizer", () => {
 
     expect(packet.title).toBe("Kept title");
     expect(packet.ownerSlug).toBe("kept-owner");
+  });
+});
+
+/**
+ * The Approve button posts here, so the delivery the done gate demands has to
+ * ride the decision body (J2-5). Before this, a 409 told the human to pass
+ * verification=not_required and the decision endpoint had nowhere to put it.
+ */
+describe("postDecision delivery", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("sends the artifact path when the gate asks for a deliverable", async () => {
+    const postSpy = vi.spyOn(client, "post").mockResolvedValue({ ok: true });
+
+    await postDecision("task-7", "approve", "looks good", {
+      artifactPath: " team/playbooks/launch.md ",
+    });
+
+    expect(postSpy).toHaveBeenCalledWith("/tasks/task-7/decision", {
+      action: "approve",
+      created_by: "human",
+      comment: "looks good",
+      artifact_path: "team/playbooks/launch.md",
+    });
+  });
+
+  it("sends the declared empty completion with its reason", async () => {
+    const postSpy = vi.spyOn(client, "post").mockResolvedValue({ ok: true });
+
+    await postDecision("task-8", "approve", undefined, {
+      verification: "not_required",
+      verificationReason: " the answer lived in chat ",
+    });
+
+    expect(postSpy).toHaveBeenCalledWith("/tasks/task-8/decision", {
+      action: "approve",
+      created_by: "human",
+      verification: "not_required",
+      verification_reason: "the answer lived in chat",
+    });
+  });
+
+  it("omits delivery keys when the caller supplies none", async () => {
+    const postSpy = vi.spyOn(client, "post").mockResolvedValue({ ok: true });
+
+    await postDecision("task-9", "request_changes", "needs work");
+
+    expect(postSpy).toHaveBeenCalledWith("/tasks/task-9/decision", {
+      action: "request_changes",
+      created_by: "human",
+      comment: "needs work",
+    });
   });
 });

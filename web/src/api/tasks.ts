@@ -406,6 +406,14 @@ export interface UpdateTaskStatusOptions {
   memoryWorkflowOverrideActor?: string;
   memoryWorkflowOverrideReason?: string;
   overrideReason?: string;
+  /**
+   * Delivery for a complete/approve. The broker refuses a done transition
+   * with nothing to open, so the caller either names the artifact or
+   * declares that this completion ships no file (J2-5).
+   */
+  artifactPath?: string;
+  verification?: string;
+  verificationReason?: string;
 }
 
 export function updateTaskStatus(
@@ -435,6 +443,13 @@ export function updateTaskStatus(
   if (overrideReason) {
     body.memory_workflow_override_reason = overrideReason;
     body.override_reason = overrideReason;
+  }
+  const artifactPath = options?.artifactPath?.trim();
+  if (artifactPath) body.artifact_path = artifactPath;
+  if (options?.verification) {
+    body.verification = options.verification;
+    const verificationReason = options.verificationReason?.trim();
+    if (verificationReason) body.verification_reason = verificationReason;
   }
   return trackOn(post<TaskResponse>("/tasks", body), "task_status_changed", {
     action,

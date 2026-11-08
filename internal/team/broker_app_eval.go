@@ -108,10 +108,10 @@ func (b *Broker) queueAppAcceptanceEval(taskID string) {
 	if taskID == "" {
 		return
 	}
-	go func() {
+	b.trackBackground(func() {
 		defer recoverPanicTo("appAcceptanceEval", "task="+taskID)
 		b.evaluateAppAcceptanceForTask(taskID)
-	}()
+	})
 }
 
 // appAcceptanceDecision is the strict shape the judge LLM must return.

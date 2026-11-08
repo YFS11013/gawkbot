@@ -917,6 +917,41 @@ html[data-theme="nex"]
   justify-content: flex-end;
 }
 
+/* ─── Delivery gate (the "done means delivered" refusal, J2-5) ─── */
+.delivery-gate-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+.delivery-gate-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.delivery-gate-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 14px;
+}
+.delivery-gate-field label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.delivery-gate-hint {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+.delivery-gate-error {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--red);
+}
+
 /* ─── Runtime strip (pills under channel header) ─── */
 .runtime-strip {
   display: flex;

@@ -27,9 +27,13 @@ package team
 // used elsewhere in the team package.
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -846,5 +850,105 @@ func TestDecisionApproveRefusesDoneWithoutArtifact(t *testing.T) {
 	}
 	if task := b.TaskByID(taskID); task == nil || !strings.EqualFold(task.status, "done") {
 		t.Fatalf("expected done after approve, got %+v", task)
+	}
+}
+
+// The Approve button posts to /tasks/{id}/decision and the gate tells a human
+// to "complete with verification=not_required" — an endpoint they were never
+// posting to. J2-5: the decision body carries the delivery (artifact path or
+// the declaration) so the gate stops being a dead end.
+func TestDecisionApproveCarriesDeliveryFromHTTP(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("WUPHF_RUNTIME_HOME", dir)
+	b := newTestBroker(t)
+	if err := b.StartOnPort(0); err != nil {
+		t.Fatalf("failed to start broker: %v", err)
+	}
+	defer b.Stop()
+	const taskID = "task-review-http-delivery"
+	seedTaskInState(t, b, taskID, LifecycleStateReview)
+	b.mu.Lock()
+	for i := range b.tasks {
+		if b.tasks[i].ID == taskID {
+			b.tasks[i].ArtifactNotRequired = ""
+		}
+	}
+	b.mu.Unlock()
+
+	post := func(body map[string]any) (int, string) {
+		t.Helper()
+		raw, _ := json.Marshal(body)
+		req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("http://%s/tasks/%s/decision", b.Addr(), taskID), bytes.NewReader(raw))
+		req.Header.Set("Authorization", "Bearer "+b.Token())
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("post decision: %v", err)
+		}
+		out, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		return resp.StatusCode, string(out)
+	}
+
+	status, body := post(map[string]any{"action": "approve", "created_by": "human"})
+	if status != http.StatusConflict || !strings.Contains(body, "artifact") {
+		t.Fatalf("bare approve must be refused with the delivery gate, got %d %s", status, body)
+	}
+	status, body = post(map[string]any{
+		"action": "approve", "created_by": "human", "verification": "not_required",
+	})
+	if status != http.StatusConflict || !strings.Contains(body, "verification_reason") {
+		t.Fatalf("declaration without a reason must be refused, got %d %s", status, body)
+	}
+	if task := b.TaskByID(taskID); task == nil || strings.TrimSpace(task.ArtifactNotRequired) != "" {
+		t.Fatalf("a refused declaration must not write onto the task, got %+v", task)
+	}
+	status, body = post(map[string]any{
+		"action": "approve", "created_by": "human",
+		"verification": "not_required", "verification_reason": "the answer lived in chat",
+	})
+	if status != http.StatusOK {
+		t.Fatalf("declared approve must succeed, got %d %s", status, body)
+	}
+	task := b.TaskByID(taskID)
+	if task == nil || !strings.EqualFold(task.status, "done") {
+		t.Fatalf("expected done, got %+v", task)
+	}
+	if !strings.Contains(task.ArtifactNotRequired, "the answer lived in chat") ||
+		!strings.HasPrefix(task.ArtifactNotRequired, "not_required: ") ||
+		!task.HollowCompletion {
+		t.Fatalf("declaration must be stamped on the task, got %+v", task)
+	}
+}
+
+// A phantom artifact supplied with the approve is refused and leaves the task
+// alone — the supplied path wins the existence check, not the one already on
+// the task.
+func TestDecisionApproveRefusesPhantomSuppliedArtifact(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("WUPHF_RUNTIME_HOME", dir)
+	b := newTestBroker(t)
+	const taskID = "task-review-phantom-delivery"
+	seedTaskInState(t, b, taskID, LifecycleStateReview)
+	// Give the task a root to stat against, otherwise existence degrades open
+	// (no wiki backend, no worktree) and any path would pass.
+	worktree := t.TempDir()
+	b.mu.Lock()
+	for i := range b.tasks {
+		if b.tasks[i].ID == taskID {
+			b.tasks[i].WorktreePath = worktree
+		}
+	}
+	b.mu.Unlock()
+
+	err := b.recordTaskDecisionInternal(taskID, string(RecordDecisionApprove), decisionActor{slug: "human", isHuman: true}, "",
+		DecisionDelivery{ArtifactPath: "team/accounts/never-written.md"})
+	var mutationErr *TaskMutationError
+	if !errors.As(err, &mutationErr) || mutationErr.Kind != TaskMutationArtifactRequired {
+		t.Fatalf("phantom supplied artifact must be refused, got %v", err)
+	}
+	task := b.TaskByID(taskID)
+	if task == nil || strings.EqualFold(task.status, "done") || strings.TrimSpace(task.Artifact) != "" {
+		t.Fatalf("the refusal must leave the task untouched, got %+v", task)
 	}
 }

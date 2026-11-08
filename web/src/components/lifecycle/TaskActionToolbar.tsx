@@ -2,7 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 
 import { type TaskStatusAction, updateTaskStatus } from "../../api/tasks";
+import {
+  type DeliveryGateValue,
+  deliveryGateRefusal,
+} from "../../lib/deliveryGate";
 import type { LifecycleState } from "../../lib/types/lifecycle";
+import { DeliveryGateDialog } from "./DeliveryGateDialog";
 import { ReopenTaskButton } from "./ReopenTaskButton";
 import { StartParkedTaskButton } from "./TaskDocument";
 
@@ -159,6 +164,14 @@ export function TaskActionToolbar({
     reason: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Set when the broker refused a done-ward action for having nothing to
+  // open (J2-5). The dialog answers it with an artifact path or a declared
+  // empty completion, then retries the same verb.
+  const [deliveryGate, setDeliveryGate] = useState<{
+    action: TaskStatusAction;
+    label: string;
+    message: string;
+  } | null>(null);
 
   // Focus the reason input when the reason row opens (a danger action was
   // clicked). Keyed on the action id so it fires on open, not on every
@@ -179,16 +192,34 @@ export function TaskActionToolbar({
   const canArchive = lifecycleState !== "archived";
 
   const statusMutation = useMutation({
-    mutationFn: (input: { action: TaskStatusAction; reason?: string }) =>
+    mutationFn: (input: {
+      action: TaskStatusAction;
+      reason?: string;
+      delivery?: DeliveryGateValue;
+    }) =>
       updateTaskStatus(taskId, input.action, channel, "human", {
         overrideReason: input.reason,
+        artifactPath: input.delivery?.artifactPath,
+        verification: input.delivery?.verification,
+        verificationReason: input.delivery?.verificationReason,
       }),
     onSuccess: () => {
       setPendingReason(null);
+      setDeliveryGate(null);
       setError(null);
       onAfterAction();
     },
-    onError: (err: unknown) => {
+    onError: (err: unknown, input) => {
+      const refusal = deliveryGateRefusal(err);
+      if (refusal) {
+        const def = actions.find((a) => a.action === input.action);
+        setDeliveryGate({
+          action: input.action,
+          label: def?.label ?? "Approve",
+          message: refusal.message,
+        });
+        return;
+      }
       setError(err instanceof Error ? err.message : "Action failed.");
     },
   });
@@ -319,6 +350,18 @@ export function TaskActionToolbar({
           {error}
         </span>
       ) : null}
+
+      <DeliveryGateDialog
+        open={deliveryGate !== null}
+        message={deliveryGate?.message ?? ""}
+        actionLabel={deliveryGate?.label ?? "Approve"}
+        busy={statusMutation.isPending}
+        onSubmit={(delivery) => {
+          if (!deliveryGate) return;
+          statusMutation.mutate({ action: deliveryGate.action, delivery });
+        }}
+        onClose={() => setDeliveryGate(null)}
+      />
     </div>
   );
 }

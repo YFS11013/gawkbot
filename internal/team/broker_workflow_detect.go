@@ -62,10 +62,10 @@ func (b *Broker) queueWorkflowAppDetection(taskID string) {
 	if taskID == "" {
 		return
 	}
-	go func() {
+	b.trackBackground(func() {
 		defer recoverPanicTo("detectWorkflowApp", "task="+taskID)
 		b.detectWorkflowAppForTask(taskID)
-	}()
+	})
 }
 
 // workflowDetectDecision is the strict shape the judge LLM must return.

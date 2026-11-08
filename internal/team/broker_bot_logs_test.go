@@ -19,6 +19,11 @@ import (
 func newTestBroker(t *testing.T) *Broker {
 	t.Helper()
 	b := NewBrokerAt(filepath.Join(t.TempDir(), "broker-state.json"))
+	// Drain tracked background hooks before the test's TempDir is removed.
+	// Without this, a post-completion hook (distillation, review lane) can
+	// land a write while RemoveAll runs, which surfaced as
+	// "TempDir RemoveAll cleanup: The directory is not empty".
+	t.Cleanup(b.Stop)
 	seedTestTeamRoom(b)
 	seedTestLegacyRoom(b)
 	return b

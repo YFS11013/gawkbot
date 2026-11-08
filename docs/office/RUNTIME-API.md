@@ -1023,3 +1023,18 @@ Journey 2 暴露的两个缺陷（`core-loop-runs/2026-11-08-journey2/scorecard.
 
 **夹具影响**：`office-eval` 里那些不以交付为考察对象的 job（lifecycle-basic、dependency-handoff、grounding 的停单/便条、human-sovereignty、live-paths 的 reopen 段、task-integrity 的双重重放段）现在显式声明 `not_required`；`task-integrity` 的自愈交付则改成先真正写进 wiki 再 complete（引用必须真实）。同一规则也让「done 任务被 reassign 触发 memory-gate 重跑」这条旧断言失效——现在 reassign 在终态直接被拒。
 测试：`TestCompleteWithoutArtifactIsRefused`、`TestArtifactGate_BindsUndefinedTask`、`TestArtifactGate_RejectsPhantomArtifactWithoutDefinition`、`TestParentSettlementBlockedByHollowChild`、`TestCancelClosesJobsAcrossChannels`（去掉频道修复即失败）、`TestCanceledTaskRefusesRevivalActions`。
+
+**J2-5：决策路径上的同一条门槛，原本是死路（同日补）。** J2-1 只接了 `POST /tasks` 与 MCP，两个入口都有 `verification` / `verification_reason`；人点的「Approve」走的是 `POST /tasks/{id}/decision`，那个请求体只有 `action` / `comment` / `created_by`，服务端 `recordTaskDecisionInternal(taskID, rawAction, actor, comment)` 也没有这两个参数。于是人批准一件真的没有文件的工作时会拿到 409，错误里写着的两条出路在这个端点上根本无处可放——UI 里 `artifact_path` 出现次数为 0，`updateTaskStatus` / `postDecision` 都不带产物字段。
+
+现在：
+
+| 层 | 变化 |
+|---|---|
+| 决策端点 | 请求体新增 `artifact_path` / `verification` / `verification_reason`（`broker_inbox_handler.go`）；存在性检查对**随决策提交的**路径生效 |
+| 决策内核 | `recordTaskDecisionInternal(…, delivery DecisionDelivery)`；声明与产物在 gate **之前**解析成 effective 值，拒绝时任务上不留半截声明；放行后才落 `Artifact` / `ArtifactNotRequired` / `HollowCompletion` |
+| 前端 API | `updateTaskStatus(…, { artifactPath, verification, verificationReason })`、`postDecision(taskId, action, comment?, delivery?)` |
+| 前端 UI | `DeliveryGateDialog`：409 命中产物门槛时弹「贴产物路径」/「这次没有文件 + 理由」两选一；接在 `TaskActionToolbar`（Mark done / Approve）与 `DecisionPacketRoute`（决策卡 Approve） |
+
+判据：无产物任务在决策卡上批准 → 409 且任务不动；补一句理由再点 → 200、`artifact_not_required` 落盘、`hollow_completion=true`；写不存在的路径 → 409 "does not exist"。测试：`TestDecisionApproveCarriesDeliveryFromHTTP`（真 HTTP handler）、`TestDecisionApproveRefusesPhantomSuppliedArtifact`、`TaskActionToolbar.test.tsx`（三例：弹窗、缺理由拦截、非本门禁错误仍走行内横幅）、`lifecycle.test.ts` 的 `postDecision delivery` 三例。
+
+**顺带修掉全量测试的间歇性 `TempDir RemoveAll` 失败。** `queueTaskDistillation` / `queueTaskReview` / `queueWorkflowAppDetection` / `queueAppAcceptanceEval` 四条完成钩子用的是裸 `go func()`，不受 `bgWG` 管理：`Stop` 不等它们，于是钩子在测试目录被删之后仍往 runtime home 写，表现成 `TempDir RemoveAll cleanup: The directory is not empty`（隔离跑必过、全量约每三次撞一次）。四条统一改为 `b.trackBackground`——这本来是给「Stop 之后不能再落盘」准备的机制。测试侧 `newTestBroker` / `newCompletionHookBroker` 注册 `t.Cleanup(b.Stop)` 把钩子排干。

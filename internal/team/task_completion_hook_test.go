@@ -13,6 +13,9 @@ func newCompletionHookBroker(t *testing.T) *Broker {
 	t.Helper()
 	t.Setenv("HOME", t.TempDir())
 	b := newBrokerWithTeamRoom(filepath.Join(t.TempDir(), "state.json"))
+	// Completion fires tracked background lanes (distillation, review,
+	// workflow detection). Drain them before the temp homes are removed.
+	t.Cleanup(b.Stop)
 	b.mu.Lock()
 	b.members = []officeMember{
 		{Slug: "cos", Name: "CEO"},

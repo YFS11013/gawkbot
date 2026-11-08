@@ -11,6 +11,7 @@
  */
 
 import { trackOn } from "../lib/analytics";
+import type { DeliveryGateValue } from "../lib/deliveryGate";
 import {
   getDecisionPacketMock,
   getInboxPayloadMock,
@@ -266,6 +267,7 @@ export async function postDecision(
   taskId: string,
   action: DecisionAction,
   comment?: string,
+  delivery?: DeliveryGateValue,
 ): Promise<{ taskId: string; action: string; status: string }> {
   if (USE_MOCKS) {
     return Promise.resolve({ taskId, action, status: "recorded-mock" });
@@ -274,10 +276,25 @@ export async function postDecision(
   // local UI shares the broker token with bots, so the broker cannot tell
   // them apart by auth; this explicit signal is what clears the Plan-mode
   // human-only approval gate (mirrors the team_task created_by field).
-  const body: { action: DecisionAction; comment?: string; created_by: string } =
-    { action, created_by: "human" };
+  const body: {
+    action: DecisionAction;
+    comment?: string;
+    created_by: string;
+    artifact_path?: string;
+    verification?: string;
+    verification_reason?: string;
+  } = { action, created_by: "human" };
   const trimmed = (comment ?? "").trim();
   if (trimmed) body.comment = trimmed;
+  // The decision endpoint is the Approve button's posting target, so the
+  // delivery the broker's done gate demands has to ride THIS body (J2-5).
+  const artifactPath = delivery?.artifactPath?.trim();
+  if (artifactPath) body.artifact_path = artifactPath;
+  if (delivery?.verification) {
+    body.verification = delivery.verification;
+    const reason = delivery.verificationReason?.trim();
+    if (reason) body.verification_reason = reason;
+  }
   return trackOn(
     post(`/tasks/${encodeURIComponent(taskId)}/decision`, body),
     "decision_submitted",
