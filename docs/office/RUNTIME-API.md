@@ -957,7 +957,7 @@ routine gate FAILED:
 
 验证：手工跑 `powershell -NoProfile -File ~/.wuphf/data/broker-watchdog.ps1` 两次，日志出现一次 `routine gate skipped: WUPHF-RoutineScorecard disabled by expected state`，`logs/watchdog-routine.state` 内容为 `SKIP`，第二次运行不再新增；thesis gate 不再出现 `skipped`，且不写状态文件（= `--score --dry-run` 通过）。
 
-### 14.12 回合换模型重试（fallback），2026-11-08
+### 14.14 回合换模型重试（fallback），2026-11-08
 
 14.11 之后办公室每个回合固定用 `WUPHF_OPENCODE_MODEL` 一个模型（当时是 `opencode-go/crouton-alpha-free`）。模型上游挂掉、限流，或 **id 本身写错**时，回合死掉后办公室就安静了，等人发现。队列里原有的两样东西都救不了这个形状：
 
