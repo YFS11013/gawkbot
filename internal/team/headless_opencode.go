@@ -124,7 +124,10 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 	// office system prompt alone exceeds it (same class of bug as the
 	// claude --append-system-prompt argv overflow, upstream issue #1240).
 	// `opencode run` with no positional prompt reads from stdin.
-	args := buildHeadlessOpencodeArgs(config.ResolveOpencodeModel())
+	// A fallback retry carries its model on the context; the env only names the
+	// primary. See headless_model_fallback.go.
+	model := firstNonEmpty(headlessModelOverride(ctx), config.ResolveOpencodeModel())
+	args := buildHeadlessOpencodeArgs(model)
 	cmd := headlessOpencodeCommandContext(ctx, "opencode", args...)
 	cmd.Stdin = strings.NewReader(promptText)
 	cmd.Dir = workspaceDir

@@ -175,6 +175,12 @@ type headlessCodexTurn struct {
 	// TransientRetries only budgets the immediate same-turn reconnect retries
 	// in runHeadlessCodexQueue (see headlessCodexTransientTurnRetryLimit).
 	TransientRetries int
+	// ModelOverride pins THIS turn to a model other than the configured one.
+	// Set only by the queue's model-fallback retry (see
+	// headless_model_fallback.go): the primary kept failing, so the turn gets
+	// one attempt on WUPHF_HEADLESS_MODEL_FALLBACK before the normal failure
+	// path runs.
+	ModelOverride string
 	// FromHuman marks turns originating from a real person's chat message
 	// (channel post or DM, tagged or not). Human-originated turns bypass
 	// the lead queue-hold, the lead queue cap, the same-task dedup drop,

@@ -1013,6 +1013,12 @@ func codexToolProgressDetail(toolName string) string {
 // the BotProfilePanel save flow keeps Model and Kind aligned, but
 // belt-and-suspenders matches how headlessClaudeModel reads its binding.
 func (l *Launcher) codexModelForBot(ctx context.Context, slug string) string {
+	// A fallback retry carries its model on the context. It outranks every
+	// configured model: this attempt exists BECAUSE the configured one just
+	// failed before emitting anything.
+	if model := headlessModelOverride(ctx); model != "" {
+		return model
+	}
 	// Per-task model wins over the bot binding (the model lives on the task,
 	// not the bot). Only when the task's provider is codex.
 	if model := l.taskModelForKind(ctx, slug, provider.KindCodex); model != "" {

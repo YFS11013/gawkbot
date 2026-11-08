@@ -627,6 +627,24 @@ func (l *Launcher) runHeadlessCodexQueue(lane headlessLane, stop <-chan struct{}
 				l.emitHeadlessReconnecting(slug, turn, startedAt)
 				l.updateHeadlessProgress(slug, "active", "queued", "connection dropped — retrying", headlessProgressMetrics{})
 				l.enqueueHeadlessCodexTurnRecord(slug, retryTurn)
+			case isTransientProviderError(err) && headlessTurnFallbackModel(turn) != "":
+				// Same-model reconnects are exhausted and the pipe/model is
+				// still failing. One attempt on the configured fallback model,
+				// then the normal failure path: a broken model id and a dead
+				// upstream both land here ("exit status 1" with no detail is
+				// what opencode prints for an unknown model).
+				fallback := headlessTurnFallbackModel(turn)
+				appendHeadlessCodexLog(slug, fmt.Sprintf("error: %v", err))
+				retryTurn := turn
+				retryTurn.ModelOverride = fallback
+				// No same-model budget left on the fallback attempt: one try,
+				// then recover — otherwise a dead fallback doubles the wait.
+				retryTurn.TransientRetries = headlessCodexTransientTurnRetryLimit
+				retryTurn.EnqueuedAt = time.Now()
+				appendHeadlessCodexLog(slug, "model-fallback: switching this turn to "+fallback)
+				l.emitHeadlessReconnecting(slug, turn, startedAt)
+				l.updateHeadlessProgress(slug, "active", "queued", "model unavailable — retrying on fallback", headlessProgressMetrics{})
+				l.enqueueHeadlessCodexTurnRecord(slug, retryTurn)
 			default:
 				appendHeadlessCodexLog(slug, fmt.Sprintf("error: %v", err))
 				detail := err.Error()
@@ -953,6 +971,7 @@ func (l *Launcher) beginHeadlessCodexTurn(lane headlessLane) (headlessCodexTurn,
 	// (model / effort / provider / workspace) resolve THIS turn's task even when
 	// the bot has several tasks in flight at once. See headless_runtime.go.
 	turnCtx = withHeadlessTurnTaskID(turnCtx, turn.TaskID)
+	turnCtx = withHeadlessModelOverride(turnCtx, turn.ModelOverride)
 	startedAt := time.Now()
 	// Launch-param record (V3-N5): the active turn carries the working
 	// directory the runner will execute in — the task worktree when this
