@@ -664,6 +664,45 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 			b.emitTaskTransitionAutoNotebook(existing, beforeStatus, actor)
 			return TaskResponse{Task: *existing}, nil
 		}
+		// Delivered-duplicate guard (Journey 2 J2-6). The reuse lookup above
+		// answers nil for every terminal row, so re-issuing work that already
+		// shipped created a fresh task and the office redid it (NEX-100/102
+		// done → NEX-148/150 re-created). Refuse instead of merging: merging
+		// would silently swallow the new request, and the delivered task is
+		// reopenable if the work really needs another pass. Sub-issues get the
+		// same treatment from applySubIssueCreateRulesLocked, which can name
+		// the done sibling.
+		//
+		// Scoped to BOT-authored creates on purpose. Humans (the new-task form,
+		// an app edit session) and internal actors (routines fire the same
+		// title every slot; self-heal/incident lanes repeat too) re-create the
+		// same title by design — blocking them would break scheduled work. The
+		// defect this guards against is autonomous re-planning, which is bot
+		// authored.
+		if !body.AllowDuplicate &&
+			strings.TrimSpace(body.ParentIssueID) == "" &&
+			!isInternalTaskActor(actor) &&
+			!isHumanMessageSender(actor) {
+			if delivered := b.findDeliveredTaskLocked(taskReuseMatch{
+				Channel: channel,
+				Title:   strings.TrimSpace(body.Title),
+				Owner:   strings.TrimSpace(body.Owner),
+			}); delivered != nil {
+				rollbackTask()
+				return TaskResponse{}, taskMutationError(
+					TaskMutationConflict,
+					fmt.Sprintf(
+						"task %q already shipped as %s (%s, owner %s) — reopen %s instead of re-creating it, or pass allow_duplicate=true if this is genuinely new work",
+						strings.TrimSpace(body.Title),
+						delivered.ID,
+						delivered.status,
+						strings.TrimSpace(delivered.Owner),
+						delivered.ID,
+					),
+					nil,
+				)
+			}
+		}
 		// Allocate the task ID before choosing the channel so we can
 		// name the per-task channel "task-<id>" deterministically.
 		b.counter++
@@ -748,7 +787,7 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		// Sub-issue create rules (force issue type, one-level-deep nesting,
 		// plan-gate, shallow + sibling-dedup guards) live in
 		// applySubIssueCreateRulesLocked to keep this file under the size budget.
-		if err := b.applySubIssueCreateRulesLocked(&task, actor); err != nil {
+		if err := b.applySubIssueCreateRulesLocked(&task, actor, body.AllowDuplicate); err != nil {
 			rollbackTask()
 			return TaskResponse{}, err
 		}

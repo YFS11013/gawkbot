@@ -165,6 +165,11 @@ func handleTeamTask(ctx context.Context, _ *mcp.CallToolRequest, args TeamTaskAr
 		if parentID := strings.TrimSpace(args.ParentIssueID); parentID != "" {
 			payload["parent_issue_id"] = parentID
 		}
+		if args.AllowDuplicate {
+			// Opt-out of the delivered-duplicate guard (J2-6): by default a
+			// create that matches work already shipped is refused.
+			payload["allow_duplicate"] = true
+		}
 		if effort := strings.TrimSpace(args.Effort); effort != "" {
 			payload["effort"] = effort
 		}

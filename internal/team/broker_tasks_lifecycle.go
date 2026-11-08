@@ -763,6 +763,60 @@ func (b *Broker) findReusableTaskLocked(match taskReuseMatch) *teamTask {
 // value: the caller states the completion ships no artifact at all (J2-1).
 const verificationNotRequired = "not_required"
 
+// isDeliveredTeamTaskStatus reports whether a task actually shipped. Canceled
+// and archived work did NOT, which is why the delivered-duplicate guards below
+// treat them differently from done (J2-3: after a cancel, rebuilding the same
+// work must stay legal).
+func isDeliveredTeamTaskStatus(status string) bool {
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "done", "completed":
+		return true
+	default:
+		return false
+	}
+}
+
+// findDeliveredTaskLocked returns the task that ALREADY shipped the work a
+// create is about to re-do.
+//
+// findReusableTaskLocked deliberately skips terminal rows, so a re-issued
+// request fell straight through to a brand-new task. Journey 2 J2-6 is exactly
+// that: `NEX-100` (renewal emails) and `NEX-102` (account briefs) were `done`,
+// the parent was re-split anyway, and `NEX-148`/`NEX-150` redid the same work —
+// four hollow completions where two deliveries existed.
+//
+// Unlike reuse this NEVER merges into the done task (that would swallow the new
+// request silently and leave nobody working); the caller refuses the create and
+// tells the caller to reopen the delivered task or opt in explicitly.
+func (b *Broker) findDeliveredTaskLocked(match taskReuseMatch) *teamTask {
+	title := strings.TrimSpace(match.Title)
+	if title == "" {
+		return nil
+	}
+	owner := strings.TrimSpace(match.Owner)
+	channel := strings.TrimSpace(match.Channel)
+	for i := range b.tasks {
+		task := &b.tasks[i]
+		if !isDeliveredTeamTaskStatus(task.status) {
+			continue
+		}
+		if !titlesAreSimilar(task.Title, title) {
+			continue
+		}
+		// Strict owner equality (unlike reuse's taskOwnerMatches, which also
+		// accepts an unowned task): what somebody else delivered must not
+		// block a create addressed to a different owner.
+		if owner != "" && strings.TrimSpace(task.Owner) != owner {
+			continue
+		}
+		if channel != "" && strings.TrimSpace(task.Channel) != channel {
+			continue
+		}
+		return task
+	}
+	return nil
+}
+
 // rejectTerminalTaskRegressionLocked stops a closed task from being pulled back
 // into active work by anything but reopen. Journey 2 J2-3: cancel landed and
 // the same second the task was in_progress again, because a queued turn still

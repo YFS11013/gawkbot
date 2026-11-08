@@ -68,6 +68,12 @@ type TaskPostRequest struct {
 	// forgotten one.
 	Verification                 string `json:"verification,omitempty"`
 	VerificationReason           string `json:"verification_reason,omitempty"`
+	// AllowDuplicate opts OUT of the delivered-duplicate guard (J2-6): a create
+	// whose title matches a task that already shipped is refused, because the
+	// office otherwise redoes delivered work (NEX-100/102 → NEX-148/150). Set
+	// this only for work that is genuinely new and merely shares the title —
+	// the normal answer is to reopen the delivered task instead.
+	AllowDuplicate               bool   `json:"allow_duplicate,omitempty"`
 	MemoryWorkflowOverride       bool   `json:"memory_workflow_override"`
 	MemoryWorkflowOverrideActor  string `json:"memory_workflow_override_actor"`
 	MemoryWorkflowOverrideReason string `json:"memory_workflow_override_reason"`

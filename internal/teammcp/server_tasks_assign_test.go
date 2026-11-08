@@ -69,3 +69,35 @@ func TestTeamTaskClaimTakesItForMe(t *testing.T) {
 		t.Errorf("owner = %q, want the caller (claim must ignore the owner arg)", o)
 	}
 }
+
+// The delivered-duplicate opt-out (J2-6) only works if the MCP arg reaches the
+// broker under the key its wire struct reads. Default creates must NOT send it,
+// so a normal create still hits the guard.
+func TestTeamTaskCreateForwardsAllowDuplicateOnlyWhenSet(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("WUPHF_AGENT_SLUG", "cos")
+
+	send := func(args TeamTaskArgs) map[string]any {
+		t.Helper()
+		var got map[string]any
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewDecoder(r.Body).Decode(&got)
+			_ = json.NewEncoder(w).Encode(map[string]any{"task": map[string]any{"id": "OFFICE-1"}})
+		}))
+		defer srv.Close()
+		withBrokerURL(t, srv.URL)
+		if _, _, err := handleTeamTask(context.Background(), nil, args); err != nil {
+			t.Fatalf("handleTeamTask: %v", err)
+		}
+		return got
+	}
+
+	plain := send(TeamTaskArgs{Action: "create", Channel: "general", Title: "Ship the welcome email", MySlug: "cos"})
+	if _, ok := plain["allow_duplicate"]; ok {
+		t.Fatalf("a default create must not opt out of the delivered-duplicate guard: %v", plain)
+	}
+	opted := send(TeamTaskArgs{Action: "create", Channel: "general", Title: "Ship the welcome email", MySlug: "cos", AllowDuplicate: true})
+	if opted["allow_duplicate"] != true {
+		t.Fatalf("allow_duplicate must reach the broker as true, got %v", opted)
+	}
+}

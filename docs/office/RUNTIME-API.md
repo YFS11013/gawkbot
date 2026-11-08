@@ -1038,3 +1038,39 @@ Journey 2 暴露的两个缺陷（`core-loop-runs/2026-11-08-journey2/scorecard.
 判据：无产物任务在决策卡上批准 → 409 且任务不动；补一句理由再点 → 200、`artifact_not_required` 落盘、`hollow_completion=true`；写不存在的路径 → 409 "does not exist"。测试：`TestDecisionApproveCarriesDeliveryFromHTTP`（真 HTTP handler）、`TestDecisionApproveRefusesPhantomSuppliedArtifact`、`TaskActionToolbar.test.tsx`（三例：弹窗、缺理由拦截、非本门禁错误仍走行内横幅）、`lifecycle.test.ts` 的 `postDecision delivery` 三例。
 
 **顺带修掉全量测试的间歇性 `TempDir RemoveAll` 失败。** `queueTaskDistillation` / `queueTaskReview` / `queueWorkflowAppDetection` / `queueAppAcceptanceEval` 四条完成钩子用的是裸 `go func()`，不受 `bgWG` 管理：`Stop` 不等它们，于是钩子在测试目录被删之后仍往 runtime home 写，表现成 `TempDir RemoveAll cleanup: The directory is not empty`（隔离跑必过、全量约每三次撞一次）。四条统一改为 `b.trackBackground`——这本来是给「Stop 之后不能再落盘」准备的机制。测试侧 `newTestBroker` / `newCompletionHookBroker` 注册 `t.Cleanup(b.Stop)` 把钩子排干。
+
+### 14.16 不重做已交付的活（J2-6，2026-11-08）
+
+scorecard §4.5 的那半句缺陷已经说得很准：**「重投路径不查同题任务是否已完成，去重只覆盖同一 active 回合」**。`NEX-100`（续约邮件，ae）/ `NEX-102`（账户简报，analyst）在 `10:56:04Z` 建、随后 `done`；`11:21:58Z` 办公室又在同一个父 Issue `NEX-95` 下建了 `NEX-148` / `NEX-150`，把同一件事重做了一遍（两条新任务同样 `hollow_completion=true`）。四个空壳完成，换来两个已有的交付。
+
+根因是三处「终态即忽略」：
+
+| 位置 | 旧行为 | 后果 |
+|---|---|---|
+| `findReusableTaskLocked`（`broker_tasks_lifecycle.go`） | `isTerminalTeamTaskStatus` 直接 `continue` | `POST /tasks` create 与 `EnsureTask` 对已 done 的同题任务视而不见，直接新建 |
+| 子任务兄弟去重（`applySubIssueCreateRulesLocked`） | 终态兄弟 `continue` | 父 Issue 下已交付的 lane 不能被 `NEX-148/150` 这类重述挡住 |
+| 父 Issue 自身的已交付面 | 无此概念 | 父 Issue 的每条 lane 都交付完了，仍可再拆一轮 |
+
+**为什么不能直接把终态纳入复用**：把 create 合并进一条 `done` 任务，等于把新请求**静默吞掉**——没人会去干活，任务看起来还是 done。所以新路径是**拒绝 + 点名已有的那条**，让人/办公室自己选：reopen 它，或者用 opt-out 明确承认这是新活。
+
+修复（`findDeliveredTaskLocked`、`applySubIssueCreateRulesLocked`、`refuseNewLaneUnderDeliveredParentLocked`）：
+
+| 场景 | 结果 |
+|---|---|
+| 顶层 create，同题 + 同 owner + 同频道已有 `done` 任务 | 拒（`conflict`）：`task "…" already shipped as NEX-100 (done, owner ae) — reopen NEX-100 instead of re-creating it, or pass allow_duplicate=true…` |
+| 子任务 create，父下同题兄弟已 `done` | 拒，点名兄弟 ID；`allow_duplicate=true` 放行 |
+| 子任务 create，父下**每一条**已有 lane 都已 `done` | 拒：`parent NEX-95 has already delivered every lane it had (…)`；`allow_duplicate=true` 放行 |
+| 兄弟/父 lane 是 `canceled` / `archived` | 不算交付，仍可重建（J2-3：取消之后重做必须合法） |
+| 同题但不同 owner | 不拦（换人=换活） |
+
+范围：门禁在 `POST /tasks` 的 create 分支与子任务守卫上，也就是 MCP `team_task action=create` 走的那条路。`POST /task-plan`（人的新建表单与批量计划）**不在**门禁内——那是人显式列出的计划，是否重做由人决定。
+
+`allow_duplicate` 是唯一的 opt-out，wire key 与 MCP 入参同名（`internal/teammcp/server_types.go`、`server_tasks.go`）。**默认 create 不带它**，所以门槛默认生效。
+
+**歧义必须说清**：标题匹配用的是 `titlesAreSimilar`（归一化精确 key 或 Jaccard ≥ 0.85），而 J2 的真实两条重述是**换词 + 换 owner** 的中文标题——`为 Acme… 起草定制续约邮件` vs `起草三封定制续约邮件：Acme / Brightline / Corti Labs`，token 相似度 0.57；`整理三客户续约账户简报` vs `产出三份账户简报：…`，约 0.1（中文没有空格，整段汉字成一个 token；见 `task_title_similarity.go`）。所以**真正挡住 J2 那个形状的是父级「每条 lane 都交付完了」这条判据**，不是标题相似度。标题相似度只能挡字节级/词序级的重述。
+
+代价（有意保留、已用测试钉住）：父 Issue 的 lane 若一条条地建、且前一条在创建下一条之前就已 done，下一条需要显式 `allow_duplicate=true`。正常情况下 lane 在计划批准后一次性建出来，这个顺序场景少见，而错误消息把该传什么写全了。
+
+实机（journey2，:7910，`gawkbot-j26.exe`）：顶层 `NEX-375` 建 → approve → complete（`artifact_path=team/emails/renewals-q3-q4.md`）→ 同题再 create 得到 409 `task "…" already shipped as NEX-375 (done, owner ae) — reopen NEX-375 instead of re-creating it, or pass allow_duplicate=true…`，带 `allow_duplicate` 得 `NEX-379`。子任务：父 `NEX-381` 的下游 lane `NEX-384` done 后再建 lane 得 409 `parent NEX-381 has already delivered every lane it had (NEX-384)…`，带 `allow_duplicate` 得 `NEX-387`。探针任务已全部 cancel，journey2 已 `paused`。
+
+测试：`TestCreateRefusesRedoOfDeliveredTask`、`TestCreateAllowsRedoAfterCancelAndForOtherOwner`、`TestSubIssueRefusesRedoOfDeliveredSibling`、`TestSubIssueRefusesNewLaneUnderDeliveredParent`、`TestNewLaneAfterDeliveryRequiresOptIn`、`TestTeamTaskCreateForwardsAllowDuplicateOnlyWhenSet`。
