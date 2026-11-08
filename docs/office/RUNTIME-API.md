@@ -14,7 +14,7 @@
 | 建单（绕开 CoS 的唯一可靠链路） | `POST /tasks {"action":"create","title","details","owner","created_by":"human"}`，**不带 channel** |
 | 关单 | `POST /tasks {"action":"complete","id":"ACMER-NNNN","created_by":"human"}` |
 | 停单（终态，不会被再唤醒） | `POST /tasks/{id}/cancel {"reason":"..."}`，返回 `{"task":…,"changed":bool}`；已终态再调返回 `changed=false` |
-| 数「空壳完成」 | 在 `GET /tasks?...` 的结果里筛 `status=done && artifact 为空`；2026-11-01 起新关的单还会带 `hollow_completion=true`（同一事实的显式标记，历史任务没有该字段） |
+| 数「空壳完成」 | `status=done && artifact 为空 && artifact_not_required 为空`（`hollow_completion=true` 是同一事实的显式标记）。2026-11-08 起新关的单**不可能**落到这个形状：done 必须带已校验的 `artifact_path`，或显式 `verification=not_required` + `verification_reason`（落在 `artifact_not_required`），见 §14.15 |
 
 `complete` 走 `MutateTask`（`internal/team/broker_tasks_mutation_service.go`，done 转换处理在 `reachedDone` 分支）。
 
@@ -994,3 +994,32 @@ $env:WUPHF_HEADLESS_MODEL_FALLBACK = 'opencode-go/iceman-contributor-free'
 备选**也走 opencode-go 的 free 档**：回退只在主模型已经出事时才跑，不该引入第二个账单主体。三个 free 候选里 crouton 是主模型，`beam-free` 长输出会在中英文之间乱跳（14.11 实测），所以选 `iceman-contributor-free`（单模型、temperature 0、探活 9.2 s）。代价要说清：它也是 skill judge 的同一个模型，且通过的技能正例只有 3/11（14.11 表）——**能出话，但不保证质量**；回退回合仍会走正常的 manifest / 投递路径，所以质量差的输出照样可见、可追。
 
 不配该变量 = 完全回到旧行为（同模型重试两次后失败）。`codex` 运行时同样读这个覆盖；claude / cli-agent / openai-compat 未接（回退 model id 与它们的 provider 不通用）。
+
+### 14.15 done 必须有产物、cancel 必须真的停（2026-11-08）
+
+Journey 2 暴露的两个缺陷（`core-loop-runs/2026-11-08-journey2/scorecard.md` §4 的 J2-1 / J2-3），同批修。
+
+**J2-1：done 与产物脱钩。** 旧 gate 只绑「有 Definition（或父有 Definition）」的任务，于是 `NEX-100/102/148/150` 全部 `done + hollow_completion=true`，父 Issue 等着一件不存在的东西；`NEX-104` 还指向一个从不存在的 `team/playbooks/…md`——存在性检查在 `peekTaskDoneArtifact` 里对无 Definition 任务直接早退。
+
+修复后的判据（`reachedDone` 分支，`broker_tasks_mutation_service.go`）：
+
+| 场景 | 结果 |
+|---|---|
+| 带 `artifact_path`，文件存在 | 放行；`hollow_completion=false` |
+| 带 `artifact_path`，文件不存在（wiki 或任务 worktree 都没有） | 拒（`artifact_required`，"does not exist in the wiki"）——**现在对无 Definition 的任务同样生效** |
+| 无产物、无声明 | 拒（`artifact_required`），错误里同时给两条出路 |
+| 无产物、`verification=not_required` + `verification_reason` | 放行；理由与 actor、时间戳落到 `artifact_not_required`（`not_required: <理由> (<actor>, <time>)`），随任务 wire 一起暴露 |
+| `verification=not_required` 但没理由 | 拒 |
+| 父 Issue 结算时仍有 `done && artifact 空 && artifact_not_required 空` 的子任务 | 拒（`conflict`），错误点名子任务 ID |
+
+声明可以来自请求，也可以已经落在任务上：`skill_run` 这类内部记账任务在创建时就带 `not_required: skill run — the invocation transcript is the record`（技能回合的产物是对话记录，不是文件），reopen 后的任务保留它原有的声明；一旦真的交付了产物，声明被清掉。MCP 侧 `team_task` 新增两个入参 `verification` / `verification_reason`（`internal/teammcp/server_types.go`、`server_tasks.go` 透传）。
+
+**J2-3：取消不撤销已排的派活。** `NEX-95` `POST /tasks/{id}/cancel` 返回 `{"changed":true}` 后，同一秒状态回到 `in_progress`，6 秒后起了一个 11 次工具调用的回合。两个洞：
+
+1. 终态收尾按**任务当前频道**关 job（`completeSchedulerJobsLocked("task", id, taskChannel)`）；任务换过 home 之后，留在旧频道里的 `task_follow_up` / `recheck` 不会被关。现在终态一律传空频道，关掉所有指向该任务的 job。
+2. 状态可被拉回：`claim`/`assign` 无条件写 `in_progress`，`reassign` 只跳过 done/review，`resume`/`block`/`review` 也都能把终态任务拉回执行；计划刷新（`refreshPlannedTaskBlockStateLocked`）同样不看终态。现在 `rejectTerminalTaskRegressionLocked` 在 `MutateTask` 的既有任务分支统一拦：`canceled/cancelled/archived` 只允许 `comment`/`cancel`/`reopen`；`done/completed` 拒绝 `claim/assign/reassign/resume/block/review`。`reopen` 是唯一合法的复活路径。
+
+**触发链（可解释实测）**：scheduler 取到已到期的 follow-up job 之后、在锁外派回合；同一时刻 cancel 落锁关 job。被派出的回合仍按旧快照跑，调 `claim` 把任务写回 `in_progress`，`scheduleTaskLifecycleLocked` 又装了一个新的 `task_follow_up`——`scheduler.json` 里那唯一一条 `task_follow_up` 正是重装出来的那条，而不是漏关的旧 job。所以两侧都要修：关 job 关全部频道，状态回退一律拒绝。
+
+**夹具影响**：`office-eval` 里那些不以交付为考察对象的 job（lifecycle-basic、dependency-handoff、grounding 的停单/便条、human-sovereignty、live-paths 的 reopen 段、task-integrity 的双重重放段）现在显式声明 `not_required`；`task-integrity` 的自愈交付则改成先真正写进 wiki 再 complete（引用必须真实）。同一规则也让「done 任务被 reassign 触发 memory-gate 重跑」这条旧断言失效——现在 reassign 在终态直接被拒。
+测试：`TestCompleteWithoutArtifactIsRefused`、`TestArtifactGate_BindsUndefinedTask`、`TestArtifactGate_RejectsPhantomArtifactWithoutDefinition`、`TestParentSettlementBlockedByHollowChild`、`TestCancelClosesJobsAcrossChannels`（去掉频道修复即失败）、`TestCanceledTaskRefusesRevivalActions`。
