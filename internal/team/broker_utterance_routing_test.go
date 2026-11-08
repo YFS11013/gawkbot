@@ -303,3 +303,25 @@ func TestBotAwaitingInterviewAnswerScopesToAsker(t *testing.T) {
 		t.Fatalf("asker must resume once the interview resolves")
 	}
 }
+
+// TestBlockingRequestGateLetsBotReportsThrough pins the split the gate must
+// make: a pending decision parks the human's chat in that channel, never the
+// office's own output. Journey 2 (2026-11-08) showed the old rule discarding a
+// finished turn (1013 chars) plus the very line explaining the blockage.
+func TestBlockingRequestGateLetsBotReportsThrough(t *testing.T) {
+	t.Parallel()
+	b := newUtteranceTestBroker(t)
+	if _, err := b.CreateRequest(humanInterview{
+		Kind: "approval", From: "eng", Channel: "task-acme",
+		Title: "Approve the send", Question: "Send the renewal emails now?",
+		Blocking: true, Required: true,
+	}); err != nil {
+		t.Fatalf("create blocking approval: %v", err)
+	}
+	if _, err := b.PostMessage("eng", "task-acme", "Draft ready: 3 of 3 emails.", nil, ""); err != nil {
+		t.Fatalf("a bot's work report must land while the card waits: %v", err)
+	}
+	if _, err := b.PostMessage("you", "task-acme", "Chatting past the gate.", nil, ""); err == nil {
+		t.Fatal("the human's own chat must still wait for the answer")
+	}
+}

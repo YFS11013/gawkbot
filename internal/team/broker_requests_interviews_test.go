@@ -1395,3 +1395,48 @@ func TestCancelActiveHumanInterviewsLocked_RetiresEveryStackedAsk(t *testing.T) 
 		t.Fatalf("cos must no longer count as awaiting an answer")
 	}
 }
+
+// TestBlockingRequestGateLetsBotHTTPPostsThrough covers the broker-token path
+// the office actually uses for MCP/tool posts: a pending card parks the
+// human's chat, but a bot's message in that channel still lands. A broker
+// token that posts AS the human stays gated — otherwise the gate is a no-op.
+func TestBlockingRequestGateLetsBotHTTPPostsThrough(t *testing.T) {
+	b := newTestBroker(t)
+	ensureTestMemberAccess(b, "general", "cos", "CEO")
+	ensureTestMemberAccess(b, "general", "human", "Human")
+	if err := b.StartOnPort(0); err != nil {
+		t.Fatalf("failed to start broker: %v", err)
+	}
+	defer b.Stop()
+	base := fmt.Sprintf("http://%s", b.Addr())
+
+	if _, err := b.CreateRequest(humanInterview{
+		Kind: "approval", From: "cos", Channel: "general",
+		Title: "Approve the send", Question: "Send the renewal emails now?",
+		Blocking: true, Required: true,
+	}); err != nil {
+		t.Fatalf("create blocking approval: %v", err)
+	}
+
+	post := func(from, content string) int {
+		t.Helper()
+		body, _ := json.Marshal(map[string]any{"from": from, "channel": "general", "content": content})
+		req, _ := http.NewRequest(http.MethodPost, base+"/messages", bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+b.Token())
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("post as %q failed: %v", from, err)
+		}
+		defer resp.Body.Close()
+		io.Copy(io.Discard, resp.Body)
+		return resp.StatusCode
+	}
+
+	if code := post("cos", "Draft ready: 3 of 3 emails, awaiting your approval."); code != http.StatusOK {
+		t.Fatalf("bot post in a parked channel = %d, want 200", code)
+	}
+	if code := post("you", "Chatting past the gate."); code != http.StatusConflict {
+		t.Fatalf("human post in a parked channel = %d, want 409", code)
+	}
+}

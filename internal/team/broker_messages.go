@@ -62,6 +62,22 @@ func (b *Broker) handleAutomationNotifications(w http.ResponseWriter, r *http.Re
 	})
 }
 
+// postActorMustWaitForRequests reports whether this poster is somebody whose
+// chat a blocking request parks. A human session always waits. A broker token
+// (bots, relay, scheduler, MCP) keeps posting work results in the same channel
+// — unless it speaks as the human, because that impersonation must not buy the
+// human's chat a way past their own unanswered card.
+func (b *Broker) postActorMustWaitForRequests(r *http.Request, from string) bool {
+	actor, ok := requestActorFromContext(r.Context())
+	if !ok {
+		return true
+	}
+	if actor.Kind == requestActorKindHuman {
+		return true
+	}
+	return isHumanMessageSender(from)
+}
+
 func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		From    string   `json:"from"`
@@ -100,10 +116,16 @@ func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 
 	b.mu.Lock()
 	// The blocking-request chat gate is CHANNEL-scoped: a pending approval
-	// in task A's channel parks chat there until answered, but the human
-	// keeps talking everywhere else. The old office-wide 409 meant one
+	// in task A's channel parks HUMAN chat there until answered, but the
+	// human keeps talking everywhere else. The old office-wide 409 meant one
 	// buried card silenced the whole office (v3 fix family #2).
-	if firstBlockingRequestInChannel(b.requests, body.Channel) != nil {
+	//
+	// It parks the human's own typing, not the office's output. Blocking bot
+	// posts made a card swallow everything the office did next: Journey 2
+	// (2026-11-08) had cos produce 1013 chars whose relay flush AND fallback
+	// were both refused here, including the line explaining that the channel
+	// was parked — the human saw a dead office instead of a pending decision.
+	if b.postActorMustWaitForRequests(r, body.From) && firstBlockingRequestInChannel(b.requests, body.Channel) != nil {
 		b.mu.Unlock()
 		http.Error(w, "request pending in this channel; answer required before chat resumes here", http.StatusConflict)
 		return
@@ -529,8 +551,10 @@ func (b *Broker) PostSystemMessage(channel, content, kind string) {
 func (b *Broker) PostMessage(from, channel, content string, tagged []string, replyTo string) (channelMessage, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	// Channel-scoped gate — see handlePostMessage for the rationale.
-	if firstBlockingRequestInChannel(b.requests, channel) != nil {
+	// Channel-scoped gate — see handlePostMessage for the rationale. Only the
+	// human's own posts wait on a decision; bots keep reporting here, because a
+	// pending card must not swallow the work that continues around it.
+	if isHumanMessageSender(from) && firstBlockingRequestInChannel(b.requests, channel) != nil {
 		return channelMessage{}, fmt.Errorf("request pending in this channel; answer required before chat resumes here")
 	}
 	// A post with no channel goes to the SENDER's own DM. It used to be
