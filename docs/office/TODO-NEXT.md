@@ -9,16 +9,16 @@
 
 | # | 条目 | 需要什么 | 卡在哪 |
 |---|---|---|---|
-| B | P2 #5 digest 的 `actual` 实际值来源 | **人拍板来源** | 一手（央行/统计局）/ FF 发布后页面 / 新闻标题，成本与准确性成反比 |
+| B | P2 #5 digest 的 `actual` 实际值来源 | ✅ **已完成（2026-11-08，选一手来源）** | 桥直连 BLS v1 API 取官方指数算 m/m，与发布表逐条核对（CPI 0.6 / Core CPI 0.3 / PPI 1.3 / Core PPI 0.7）；见 `RUNTIME-API.md` §13.7 与 §5 |
 | D | ~~P3 #7c Windows 包级测试红~~ | ✅ 2026-11-02 拍板「Windows 一等公民」；判据扩到全仓，`go test ./...` 45 包 0 红（§7c 收口）。多 workspace spawn 已在 Windows 实现（`spawn_common.go` + `spawn_windows.go`，DETACHED_PROCESS 起子进程），见 §7c 收口条目 | — |
 | E | ~~P3 #7e 后续：Windows 用 Job Object 收口~~ ✅ 2026-11-03 | — | 见 §7e「同类隐患已收口」：`startHeadlessProcess` 把每个 headless 子进程塞进 `KILL_ON_JOB_CLOSE` 的 job，`terminateHeadlessProcessPID` 先 `taskkill /T` 再 `TerminateJobObject` |
-| F | P3 #8 清理：空仓库 `YFS11013/gawkbot-office`、3 个 exe 备份 | 前者需 `gh auth refresh -s delete_repo` | 备份 ~88 MB/个，删前确认不需要回滚点 |
+| F | P3 #8 清理：空仓库 `YFS11013/gawkbot-office`、3 个 exe 备份 | **exe 已删（2026-11-08）**；仓库仍需 `gh auth refresh -s delete_repo` | 删了 `code/gawkbot/gawkbot-new.exe`（84.3 MB, 11-01）与 `Downloads/gawkbot_0.240.1_windows_amd64/gawkbot.exe`（64.5 MB, 10-23），保留最近一个 `code/gawkbot/gawkbot-fix.exe`（跑着的那个）。空仓库未动 |
 | G | P0 #1 forex-watch 16:30 自动简报 | **等时间** | `next_run=2026-11-02T08:30:00Z`（周一 16:30 北京），现在无法验 |
-| I | P3 7g 空壳完成链的 ① 入口分流 / ③ 同题合并 | **人拍板** | ② 已做（done 且无 artifact → `hollow_completion=true`）；①③ 改用户可见流程 |
+| I | P3 7g 空壳完成链的 ① 入口分流 / ③ 同题合并 | ✅ **① 与 ③ 均已收口（2026-11-08）** | ② done 且无 artifact → `hollow_completion=true`；① `/tasks/new` 表单对「Details 为空 + 疑问句标题」先拦下，给「Ask in chat」（发到办公室 DM）与「File it anyway」两个出口；③ 由 J2-6 的「已交付拒绝 + allow_duplicate」覆盖，不再另做窗口期复用 |
 | H | ~~P0 #0 基金周报（11-07）会被 `wiki_artifact` 校验打回~~ ✅ 已修（`b7231a0`） | — | 校验器现在把 `ra_<16 hex>`（含 `.html` 形式）解析成 `visual-artifacts/<id>.html` 再 stat（`task_verification.go` wiki_artifact 分支，`rich_artifact.go` 新增 `visualArtifactWikiRelPath`/`visualArtifactIDRef`）；测试 `TestRunTaskVerification_WikiArtifact` 增加 3 例。端到端待 11-07 首次触发确认 |
 | J | ~~候选场景（独立审阅回合 / 广度研究拆只读子代理 / 数值断言检查单 / 按技能路由模型）~~ 
 | L | **核心循环 Journey 1 首次实测**（人给一条带 Goal/Deliverables/Success criteria 的任务，逐段按 rubric 记分） | ✅ **2026-11-07 已跑（6/10，v1 基线 5/10）** | 结果见 `DESIGN-DECISIONS.md` §9.7；证据在 `core-loop-runs/2026-11-07/`（预注册 `prereg.md`、观察 `observations.md`、评分卡 `scorecard.md`、快照 `snapshots/`）。F2–F6 未命中；三个结构性问题：①人给任务 → wiki 的授权往返（`artifact_path` 为空 + composer 消息是 `system`）②回合结束未收口时无短周期重投（65 分钟空转）③子任务 bot 不能向父频道报告（403，阻塞信息不可见）。下一轮按 §9.7 的 P0/P1/P2 修完再跑 Journey 2 |
-| K | **`memory_backend=gbrain` 时 wiki 写入全挂** | **人拍板**：补 gbrain 写路径，还是在启动时拒绝 gbrain+wiki 并存 | `ensureWikiWorker` 首行 `if ResolveMemoryBackend() != markdown { return }`，worker 恒为 nil → `/wiki/write*` 一律 503；gbrain MCP 不可达（`initialize: EOF`）时 bot 只能绕开写门禁直接写盘，产物不 commit（`git status` 里是 `??`）。同一个二进制换个父进程环境（PATH 里有 gbrain + embedding key）就会从 markdown 变 gbrain，表现为「重启后 wiki 突然不能写」。本轮实测：未设变量重启 → 503；`WUPHF_MEMORY_BACKEND=markdown` 重启 → 三端点恢复。见 `RUNTIME-API.md` §10 |
+| K | **`memory_backend=gbrain` 时 wiki 写入全挂** | ✅ **2026-11-08 拍板「解耦 wiki worker 与 memory backend」并已修**（`ensureWikiWorker` 不再看 backend；新增 `/health.wiki_ready`；见 `RUNTIME-API.md` §14.17） | `ensureWikiWorker` 首行 `if ResolveMemoryBackend() != markdown { return }`，worker 恒为 nil → `/wiki/write*` 一律 503；gbrain MCP 不可达（`initialize: EOF`）时 bot 只能绕开写门禁直接写盘，产物不 commit（`git status` 里是 `??`）。同一个二进制换个父进程环境（PATH 里有 gbrain + embedding key）就会从 markdown 变 gbrain，表现为「重启后 wiki 突然不能写」。本轮实测：未设变量重启 → 503；`WUPHF_MEMORY_BACKEND=markdown` 重启 → 三端点恢复。见 `RUNTIME-API.md` §10 |
 **✅ 审阅回合已落地（2026-11-01）**；其余三项仍待人挑 | — | 判据见 `DESIGN-DECISIONS.md` §10 判据 2；来源与推导链见 `RESEARCH-2026-11-01-multi-agent.md`（S3 的「每 PR 2 bug、58% 严重」）。实现与接口见 `RUNTIME-API.md` §1.2：done + 机检通过 → 自动开审阅任务（非作者，`review:<任务ID>` 幂等），交付 `team/reviews/<任务ID>.md`；写授权走 `POST /wiki/write-task`（任务声明的 `artifact_path` 即范围）。实测 `ACMER-2847`→`ACMER-2852`（0/3 通过、2 阻断）、`ACMER-2893`→`ACMER-2899`（新写入口落盘 5551 字节、`verification.pass=true`）。关闭开关 `WUPHF_TASK_REVIEWER=off`。其余候选场景的展开（画面/证据/卡点/优先级）见 `USE-CASES-2026-11-01.md` |
 
 已完成、只在正文留档的：P0 #2 停用门禁、P2 #6 `/notebook/*`、P3 #7 测试包编译、P3 7d/7e 两个根因。
@@ -136,13 +136,18 @@
 
 ## P2 — 数据缺口（决定“预期差”能不能恢复）
 
-### 5. 已公布事件的实际值来源
-- 现状：digest 只有前值/预期，没有 actual；预期差段在 artifact 里是占位。
-- 候选来源（按可靠性排序）：
-  1. 央行/统计局文本（一手，但每个国家一条抓取逻辑）
-  2. FF 发布后页面的 actual 字段（需要新的解析路径，XML 不提供）
-  3. 新闻标题里的数字（当前模型就用这个拼，正是单位混用的来源）
-- **验收**：digest 里出现 `actual` 字段，且与一手来源逐条对齐 ≥ 3 个事件。
+### 5. ~~已公布事件的实际值来源~~ ✅ 已完成（2026-11-08，选一手来源）
+- 现状（修复前）：digest 只有前值/预期，没有 actual；预期差段在 artifact 里是占位。**FF 周历 XML 里 `<actual>` 节点数为 0**（实测），所以过去的「实际值」只能从新闻标题拼——就是单位混用的来源。
+- 拍板：走**一手来源（央行/统计局）**，一个序列一条抓取逻辑，不再解析 FF 页面、不再拼新闻数字。
+- 做法：`~/.wuphf/data/forex-bridge.py` 新增 `primary_actuals()` —— BLS v1 公开 API（无 key，25 序列/天/IP）取官方指数水平，桥自己算 `(cur/prev-1)*100` 并 `ROUND_HALF_UP` 到 0.1；缓存 6h（`bls_actuals.json`）；映射见 `RUNTIME-API.md` §13.7。
+- **验收（2026-11-09 实测，`~/.wuphf/wiki/team/forex-bridge-digest.md`）**：四个事件都出现 actual，且与 BLS 发布文本/表格逐条对齐 ——
+  - `CPI m/m` 0.6%（`cpi.t01` Aug→Sept 0.6；正文 "increased 0.6 percent"）
+  - `Core CPI m/m` 0.3%（正文 "less food and energy rose 0.3 percent"）
+  - `PPI m/m` 1.3%（`ppi.t01` FD 4 末列 1.3；正文 "final demand increased 1.3 percent"）
+  - `Core PPI m/m` 0.7%（`ppi.t01` FD 49104 末列 0.7）
+  四个序列与 FF 前值的口径差全为 0.0（digest 只在非零时才打 `口径差`）。
+- 踩过的坑：`WPSFD4131` 看着像「最终需求除食品能源」，实际算 0.2%，发布表是 0.7%；正解是 `WPSFD49104`。序列 ID 必须拿发布表核，不能凭命名猜。
+- 未接来源：GBP GDP（ONS）、USD Claims（DoL 539 需要季节性调整）、央行讲话/纪要——这些事件 digest 不写实际值，尾注要求写「实际值未收录」。DoL ETS 的 `ar539.csv` 试过：13 MB 全州明细、无全国行、且是未季调，与新闻口径不可比，放弃。
 
 ### 5b. ~~简报挂到 team_task（打通蒸馏）~~ ✅ 已完成（2026-11-01）
 - 做法（引擎侧，不依赖 CoS）：
@@ -266,14 +271,16 @@
 - **已修（2026-11-02）**：`TestObsidianWatcher_NotifyWriteFiltersOwnEvents` 全量跑稳定红的问题。根因不在产品侧——self-write 过滤一直是对的，是测试**在自己的第二个写入开始前，第一个写入的回调还没提交完**。`waitForHEADChange` 在第一个 commit 就返回；`fire()` 此时可能已通过 `recent` 检查、正在跑 git，而 git 比任何「HEAD 静默」窗口都慢，所以 HEAD 看着稳定、commit 仍在飞行，落地时正好落进 `requireHEADStable` 的观察窗。修复是加 `waitWatcherIdle`（等同包的可观测状态：`timers` 为空 + `pending.Wait()` + 复查），在两个 fixture 的第一步之后调用。先试过「等 HEAD 静默 200ms」的版本，`-count=3` 仍 1/3 红，证明要等的是回调而不是 HEAD。验证：`-count=3` 绿，`go test ./internal/team -count=1` 全量 **ok 555s**（此前两次全量分别红在 `490945f → bedcb3f`、`46692f1 → 65a8bbd`）。
 - 同类已修（2026-11-01）：app 提案审批后建 App Builder 任务也把空频道默认成 `#general`（`broker_apps_proposal.go`）。现在按「提案所在房间 → 建者（app-builder）的主场 → 记日志放弃」解析；提案房间在审批前退役（`#general` 退役、成员删除带走 DM）时不再把任务和错误消息塞进死房间。新增 `TestProposeAppApprovalSurvivesARetiredRoom`。
 
-### 7g. 空壳完成（2026-11-01 诊断；② 已落地，①/③ 待拍板）
+### 7g. 空壳完成（2026-11-01 诊断；② 已落地，① 已做，③ 并入 J2-6）
 - 复发三次同款：`ACMER-2757`（10-31，跑满 10 分钟超时）→ `ACMER-2764`（stuck 重试，补答后关单）→ `ACMER-2785`（11-01，24 秒关单，正文只有一句「已完成」）。
 - 链路：**问题被建成了 Issue**（`created_by=human`、`task_type=issue`、`title==details`，没有 Definition）→ 完成零门槛（`spec {}`）→ 一次 `team_task complete` 即 done → 完成 hook 广播 `delivered`，频道里没有正文 → 下一轮把它当「已答」的证据（`ses_e6aa388e4ffe65ZEW1dTv7z8qQ` 的推理原文：*"The answer was already posted in chat."*）。
 - 结构原因：artifact 门禁只对**有 Definition** 的任务生效（`broker_tasks_mutation_service.go` 的 artifact gate），人工/对话框建的 Issue 全是 `Definition=nil`；`wiki_artifact` 强制校验只挂在 agent_routine 生成的任务上。
 - **已做（②，`broker_types.go` + `broker_tasks_mutation_service.go`）**：任务转到 done 且 `artifact` 为空时，打 `hollow_completion=true` 上线（`teamTask.HollowCompletion`，wire 键 `hollow_completion`）。不改完成语义，只让这类完成可被计数。测试 `TestCompleteWithoutArtifactIsMarkedHollow`（空完成=true、带 artifact=false、字段上线）。
 - 巡检口径：`curl /tasks?all_channels=true&include_done=true` 里 `status=done && (hollow_completion || artifact 为空)` 的条数。历史任务没有该字段，等价于 `artifact` 为空——2026-11-01 实测 52 个 done 里 47 个如此。
 - 部署冒烟样例：`ACMER-2789`（`smoke: hollow_completion 验证`）是上线验证用的，不是第五次事故，数数时忽略它。二进制 16:30 构建、16:36 起由看门狗拉起（PID 39216，`provider_model=opencode-go/beam-free`）。**同类的部署冒烟还有 `ACMER-3290` / `ACMER-3295`**（2026-11-03 Job Object 上线验证，`created_by=system`），数空壳完成时一并忽略。
-- **待拍板**：① 疑问句不进 Issue（UI 入口分流或 `task_type=question`）；③ 同题窗口期内复述+引用旧任务而不是新建。两条都改用户可见流程，未动。
+- **① 已做（2026-11-08，前端入口分流）**：`/tasks/new` 提交时若 **Details 为空**且标题是疑问句（`?`/`？` 结尾、CJK 疑问开头词或句末「吗/呢」、Latin 首词 who/what/how/is/can…，见 `web/src/lib/questionIntent.ts`）→ 不建 Issue，改出 `issue-new-question-triage` 面板，两个出口：「Ask in chat」把原句 `postMessage` 到 `<one_on_one_agent>__human`（无 One-on-One 时退回调 assignee，再退 `cos`）并跳到该频道；「File it anyway」照旧建单。Details 一填就不再拦——验收标准里合法地会有问句。只做入口，服务端仍允许 question 型 Issue（MCP/API 直接建单不受影响），因为坏的是默认路径而不是能力。测试：`questionIntent.test.ts` + `TaskNewForm.test.tsx`（拦下 / 坚持建 / 转聊天）。
+- **③ 不再单独做，由 J2-6 覆盖**：已交付的同题 create 直接 409 点名，父 Issue 每条 lane 都交付后建新 lane 同样拒绝；比「窗口期复用旧任务」更硬，也不再需要窗口概念。
+- 备注：`task_type=question` 这条备选未采——Issue 里没有「答题」的终态与产物语义，加一个类型只会把同一问题推向另一条死路。
 
 ### 7h. 有 shell 的 bot 可以直接写 wiki 文件，绕过所有写入门禁（2026-11-01 发现）
 - 现象：`/wiki/write-task` 明确拒绝了 `team/reviews/…` 以外的路径（`wiki write-task refused` 有日志），但 cos 仍把 `reviews/ACMER-2832.md`、`reviews/ACMER-2847.md` 写进了 `~/.wuphf/wiki/`，git 里以 `recover from crashed write` / `external edit` 形式出现。

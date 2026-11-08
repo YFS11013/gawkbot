@@ -608,6 +608,24 @@ python scripts/office/check_theses.py --report --emit # team/theses/week-2026-11
 
 `scanSkippedDirs` 已加 `team/theses/`：一张周页是某一周的记录，不是可复用方法；不加就会给每周生成一个以日期命名的 skill（`team/prep/`、`team/routines/` 各踩过一次）。
 
+### 13.7 实际值只取一手来源（P2 #5 / B，2026-11-08）
+
+FF 的周历 XML **根本没有 `<actual>` 节点**（2026-11-08 实测 0 个），所以过去每一处「实际值」都是 bot 从新闻标题里拼的——正是单位混用的来源。现在桥自己算：
+
+| FF 事件（country + title） | 一手来源 | 序列 | 2026-09 核对 |
+|---|---|---|---|
+| USD `CPI m/m` | BLS CPI-U 全项（SA） | `CUSR0000SA0` | 0.6%（发布文本 "increased 0.6 percent"，`cpi.t01` Aug→Sept 列 0.6） |
+| USD `Core CPI m/m` | BLS CPI-U 除食品能源（SA） | `CUSR0000SA0L1E` | 0.3%（"less food and energy rose 0.3 percent"，表 0.3） |
+| USD `PPI m/m` | BLS 最终需求 PPI（SA） | `WPSFD4` | 1.3%（"final demand increased 1.3 percent"，`ppi.t01` FD 4 末列 1.3） |
+| USD `Core PPI m/m` | BLS 最终需求除食品能源（SA） | `WPSFD49104` | 0.7%（`ppi.t01` FD 49104 末列 0.7） |
+
+- **算出来的数，不是抄来的数**：BLS v1 公开 API（无需 key，25 序列/天/IP）给指数水平，桥取最近两个月算 `(cur/prev-1)*100` 并 `ROUND_HALF_UP` 到 0.1——与发布表一致。**序列 ID 会咬人**：`WPSFD4131` 不是「最终需求除食品能源」，它算出来 0.2%，而发布表是 0.7%；正确的是 `WPSFD49104`。这条差异就是必须拿发布表核的原因。
+- **缓存 6h**（`~/.wuphf/data/bls_actuals.json`）：桥每 6h 跑一次，BLS 每天只给 25 次/序列；取不到就退回上一份缓存，再取不到就整段不写实际值。
+- **`actual` / `actual_period` / `actual_source` / `actual_is_event`** 挂在 `forex_bridge.json` 的 `calendar.events[]` 上。`actual_is_event` 为真只有当事件已过**且**其覆盖月份正是已发布月份；否则 digest 写「上次实际」，绝不把上个月的数当今天的。
+- **digest 与简报**都写：digest 顶部一行汇总 + 每个事件行内 `实际/上次实际 X（period，BLS）`；简报 `## 四、实际值（一手来源）与预期差` 在事件公布后自动算 `实际 - 预期`（`<x` 这类带比较符的值跳过，不猜）。
+- **口径比对**：事件行会带 `与 FF 前值口径差 ±x pp`，只在非零时出现。2026-11-08 四个序列全部 0.0（FF 前值与一手来源一致），这也是选择 `WPSFD49104` 后的验证。
+- 未接来源的事件（GBP GDP、USD Claims、央行讲话）**不写实际值**：digest 尾注要求写「实际值未收录」，禁止凭记忆补写。
+
 
 ## 14. skill-compile 的判定成本：为什么告警日志比告警本身贵
 
@@ -1074,3 +1092,19 @@ scorecard §4.5 的那半句缺陷已经说得很准：**「重投路径不查�
 实机（journey2，:7910，`gawkbot-j26.exe`）：顶层 `NEX-375` 建 → approve → complete（`artifact_path=team/emails/renewals-q3-q4.md`）→ 同题再 create 得到 409 `task "…" already shipped as NEX-375 (done, owner ae) — reopen NEX-375 instead of re-creating it, or pass allow_duplicate=true…`，带 `allow_duplicate` 得 `NEX-379`。子任务：父 `NEX-381` 的下游 lane `NEX-384` done 后再建 lane 得 409 `parent NEX-381 has already delivered every lane it had (NEX-384)…`，带 `allow_duplicate` 得 `NEX-387`。探针任务已全部 cancel，journey2 已 `paused`。
 
 测试：`TestCreateRefusesRedoOfDeliveredTask`、`TestCreateAllowsRedoAfterCancelAndForOtherOwner`、`TestSubIssueRefusesRedoOfDeliveredSibling`、`TestSubIssueRefusesNewLaneUnderDeliveredParent`、`TestNewLaneAfterDeliveryRequiresOptIn`、`TestTeamTaskCreateForwardsAllowDuplicateOnlyWhenSet`（MCP 只在显式设置时下发 `allow_duplicate`）、`TestCreateAllowsRepeatFromSystemAndHumanActors`（routine 的 `system` actor 与人新建表单不被挡）。
+
+### 14.17 wiki 与 memory backend 解耦（K，2026-11-08）
+
+`ensureWikiWorker` 首行原本是 `if ResolveMemoryBackend("") != markdown { return }`，于是 `memory_backend=gbrain` 的办公室**永远没有 wiki worker**：`/wiki/write*`、`/notebook/*`、`/review/*` 一律 503 `worker stopped`，bot 的绕法只有直接写盘——产物不进 git、`git status` 里是 `??`、provenance 页脚与提取循环全部缺席。
+
+这是把两个独立层错绑在一起：wiki 是 `<runtime>/wiki` 里的 **文件系统 git repo**（每次写入按 bot 身份 commit），memory backend 是**检索层**（markdown / gbrain / 无），二者只在「检索索引从 wiki 里读」这一点上相邻，而索引后端本来就有自己的开关（`WUPHF_WIKI_BACKEND`、`newWikiIndexForBackend`）。
+
+现在：
+
+| 项 | 之前 | 之后 |
+|---|---|---|
+| `ensureWikiWorker` | 只在 `memory_backend=markdown` 时启动 | 任何 backend 都启动（失败仍只记 `wikiInitErr`，不致命） |
+| `/health.memory_backend_*` | markdown 下 `memory_backend_ready` 兼作 wiki 探针 | 保持原义；markdown 下仍与 worker 绑定（既有语义不破） |
+| `/health.wiki_ready` | 无 | 新增：worker 是否就绪，与 backend 无关——gbrain 办公室终于能看见 wiki 挂了 |
+
+判据：`WUPHF_MEMORY_BACKEND=gbrain` 启动后 `WikiWorker() != nil`、`/health.wiki_ready=true`、`/wiki/write` 200 且产物进 git。测试：`TestWikiWorkerStartsUnderGBrainBackend`（同时断言 `wiki_ready`），既有 `TestHealthMemoryBackendReadyReflectsWikiWorker` 保持绿。
