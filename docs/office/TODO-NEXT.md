@@ -36,6 +36,13 @@
 
 补充事实（同一轮）：办公室被放行后**重做已完成的任务**（`NEX-148/150` 对应已 done 的 `NEX-100/102`）——重投路径不查同题任务是否已完成，去重只覆盖同一 active 回合。
 
+### 2026-11-08 复核（模型切换后）
+
+- **J2-2 仍在**：journey2 上 `cos` 回合 `status=ok final_chars=837` / `871`，`cos__human` 无一条正文；同一时段 `ae` 的 4 条消息全部投递。与模型无关，是投递闸门。
+- **主办公室未隔离 opencode 数据目录**：`isolateOpencodeDataHome` 依赖 `WUPHF_RUNTIME_HOME`，主办公室取不到 → 回退共享 `~/.local/share/opencode/log/opencode.log`（120 MB，回合日志与用户自己的 CLI 混写）。journey1/2 因有独立 runtime home 而隔离。是否给主办公室也开隔离待定：单实例下无竞态风险，只影响日志可读性与 auth 轮换边界。
+- **`bear/deepseek-chat` 自述“plan 阶段、需批准”**：主办公室核验回合（`ACMER-3396`）正文投递成功，但模型自称在 plan 阶段等批准，而 `GET /requests` 为空——无对应审批卡。若后续以“等批准”为由不出活，属模型行为而非闸门，需单独记录。
+- **模型实测（真实办公室回合）**：`bear/deepseek-chat` 21s/220 字、48s/871 字、46s/203 字，工具调用 6.6–34.7s；`openrouter/qwen/qwen3.5-122b-a10b` 12–20s 文本；`local/qwen3.5-122b` 93s；`opencode-go/crouton-alpha-free` 42–142s。bear 的 qwen 系模型统一报 `System message must be at the beginning`（模型级，deepseek 系正常）。
+
 ## 已完成 — 工作树回归修复（2026-10-30 22:05）
 - `/apps/integrations/call` 路由被误删 → 恢复注册；新增的 `/apps/fetch` 独立注册并带 `requireAuth`。
 - `web/package.json` 误删 `remark-gfm`（8+ 文件仍 import）→ 恢复，与 `remark-breaks` 并存。
