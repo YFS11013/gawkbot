@@ -956,3 +956,41 @@ routine gate FAILED:
 - **缺 `enabled` 字段不等于停用**。第一版用 `[bool]$t.enabled`，而 `WUPHF-ThesisReview` 在 manifest 里根本没有 `enabled` 字段——结果一个**正常工作**的 thesis gate 被静默停掉。实测发现（日志出现 `thesis gate skipped`），改为 `PSObject.Properties['enabled']` 存在性判断。
 
 验证：手工跑 `powershell -NoProfile -File ~/.wuphf/data/broker-watchdog.ps1` 两次，日志出现一次 `routine gate skipped: WUPHF-RoutineScorecard disabled by expected state`，`logs/watchdog-routine.state` 内容为 `SKIP`，第二次运行不再新增；thesis gate 不再出现 `skipped`，且不写状态文件（= `--score --dry-run` 通过）。
+
+### 14.12 回合换模型重试（fallback），2026-11-08
+
+14.11 之后办公室每个回合固定用 `WUPHF_OPENCODE_MODEL` 一个模型（当时是 `opencode-go/crouton-alpha-free`）。模型上游挂掉、限流，或 **id 本身写错**时，回合死掉后办公室就安静了，等人发现。队列里原有的两样东西都救不了这个形状：
+
+- `transient-retry` 只在**同一个模型**上重连，最多 2 次（`headless_codex_queue.go`）；
+- `recoverFailedHeadlessTurn` 走的是任务恢复阶梯（重试提示词 → BlockTask），也不换模型。
+
+机制**是 wuphf 自己的**，不是 opencode 的能力：opencode CLI 只接受单个 `--model`，失败即非零退出，没有回退链；`internal/provider/opencode.go` 的单发路径同样不重试（那里唯一的 "fallback" 字样是条注释）。
+
+**接入**（`0ebd90e`）：
+
+| 位置 | 作用 |
+|---|---|
+| `internal/team/headless_model_fallback.go` | 读 `WUPHF_HEADLESS_MODEL_FALLBACK`；`withHeadlessModelOverride` / `headlessModelOverride`（**ctx 值**，不是环境变量——一个进程里多个 bot 并发跑回合，改 env 会把别人的回合一起改道） |
+| `headless_codex_queue.go` | 同模型重试用尽且仍是 transient 类错误时，把回合标 `ModelOverride` 重新入队；同时把 `TransientRetries` 置满，**回退只试一次、不链第三个模型** |
+| `headless_opencode.go` / `headless_codex_runner.go` | 取模型时 override 优先（`buildHeadlessOpencodeArgs` / `codexModelForBot`） |
+
+失败形态判据沿用既有 `isTransientProviderError`：连接断开、5xx、以及 `bareExitStatusPattern` 里的裸 `exit status 1`——未知 model id 正是这个形状（opencode 把错误流成正文后以 1 退出）。
+
+**实机验证**（journey2，主模型故意设 `bogus/nonexistent-model`，fallback `bear/deepseek-chat`）：
+
+```
+20:26:37 error: exit status 1 → transient-retry 1/2
+20:26:40 error: exit status 1 → transient-retry 2/2
+20:26:43 error: exit status 1 → model-fallback: switching this turn to bear/deepseek-chat
+20:28:24 status=ok provider=opencode total_ms=100947 final_chars=510   # 正文正常投递
+```
+
+**运行配置**（`~/.wuphf/data/broker-watchdog.ps1`，`Restart-Broker` 内、紧接 `WUPHF_OPENCODE_MODEL` 之后）：
+
+```powershell
+$env:WUPHF_HEADLESS_MODEL_FALLBACK = 'opencode-go/iceman-contributor-free'
+```
+
+备选**也走 opencode-go 的 free 档**：回退只在主模型已经出事时才跑，不该引入第二个账单主体。三个 free 候选里 crouton 是主模型，`beam-free` 长输出会在中英文之间乱跳（14.11 实测），所以选 `iceman-contributor-free`（单模型、temperature 0、探活 9.2 s）。代价要说清：它也是 skill judge 的同一个模型，且通过的技能正例只有 3/11（14.11 表）——**能出话，但不保证质量**；回退回合仍会走正常的 manifest / 投递路径，所以质量差的输出照样可见、可追。
+
+不配该变量 = 完全回到旧行为（同模型重试两次后失败）。`codex` 运行时同样读这个覆盖；claude / cli-agent / openai-compat 未接（回退 model id 与它们的 provider 不通用）。
