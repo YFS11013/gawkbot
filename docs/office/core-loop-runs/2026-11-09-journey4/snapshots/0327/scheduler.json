@@ -1,0 +1,118 @@
+{
+ "jobs": [
+  {
+   "slug": "one-relay-events",
+   "label": "One relay events",
+   "interval_minutes": 1,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "request_follow_up",
+   "label": "Request follow-up reminders",
+   "interval_minutes": 60,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "review-expiry",
+   "label": "Review expiry sweep",
+   "interval_minutes": 10,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "wiki-archive-sweep",
+   "label": "Wiki archive sweep",
+   "interval_minutes": 1440,
+   "next_run": "2026-11-10T03:20:46Z",
+   "last_run": "2026-11-09T03:20:46Z",
+   "status": "sleeping",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "task_follow_up",
+   "label": "Task follow-up reminders",
+   "interval_minutes": 60,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "task_recheck",
+   "label": "Task recheck cadence",
+   "interval_minutes": 15,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "task_reminder",
+   "label": "Task reminder cadence",
+   "interval_minutes": 30,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "task-follow-up:cos--human:journ-9",
+   "kind": "task_follow_up",
+   "label": "Follow up on ICP 假设与首触点邮件：一页式验证包",
+   "target_type": "task",
+   "target_id": "JOURN-9",
+   "channel": "cos__human",
+   "interval_minutes": 0,
+   "due_at": "2026-11-09T04:25:21Z",
+   "next_run": "2026-11-09T04:25:21Z",
+   "status": "scheduled",
+   "payload": "Goal: 在下周一之前，给出一页「我们该把 SMB 续费触达讲给谁听」的可验证假设，外加一封可直接审稿的首触点邮件样例；不需要发信、不需要接触真实客户。\n\nDeliverables:\n1. `team/research/icp-hypothesis-2026q4.md`：3 条 ICP 假设，每条写清「凭什么这么假设」「怎么在两周内证伪」，允许标 unknown，但必须写清缺什么。\n2. `team/emails/first-touch-sample.md`：一封 ≤180 词的首触点邮件样例，收件人是 20 席 SaaS 公司的续费决策人；不得编造客户事实，缺字段用占位符。\n\nSuccess criteria:\n- 两个文件都在给定路径、wiki 可读；\n- 每个数字有来源或明确 unknown，没有编造；\n- 邮件与假设口径一致（假设里说「价格敏感存疑」，邮件里就不能拿折扣当钩子）；\n- 完成后在对话里给两个链接。\n\nConstraints: 不要发任何邮件；不要建客户表；不要申请外部账号。证据不足时先写假设+验证动作，不要停下来问人。",
+   "enabled": false
+  },
+  {
+   "slug": "request-follow-up:cos--human:request-12",
+   "kind": "request_follow_up",
+   "label": "Follow up on Start work on ICP 假设与首触点邮件：一页式验证包?",
+   "target_type": "request",
+   "target_id": "request-12",
+   "channel": "cos__human",
+   "interval_minutes": 0,
+   "last_run": "2026-11-09T03:25:21Z",
+   "status": "done",
+   "payload": "@cos wants to start work on ICP 假设与首触点邮件：一页式验证包 (JOURN-9).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\n## 计划：JOURN-9 一页式验证包 **目标**：下周一前，交付 2 个 wiki 文件：3 条可证伪 ICP 假设 + 1 封可审稿首触点邮件。不发信、不建客户表、不申请外部账号。证据不足处明确标 `unknown` / 缺口。 **现状**：wiki 检索 `icp 假设与首触点邮件` 无命中，无可直接引用的客户/定价/续费数据，一切数字默认标 unknown，不得编造。 ### 执行步骤（计划批准后才创建，当前只规划） 1. **@analyst** — 起草 `team/research/icp-hypothesis-2026q4.md`：3 条 ICP 假设，每条含「凭什么假设 / 两周内怎么证伪 / 缺什么数据」；无来源数字一律写 unknown，不填占位数字。 2. **@ae** — 起草 `team/emails/first-touch-sample.md`：≤180 词，收件人=20 席 SaaS 公司续费决策人，缺字段用 `{{占位符}}`；钩子只用假设里已证实的口径（如假设说「价格敏感存疑」，邮件禁用折扣钩子）。 3. **@cos** — 终检：两文件…",
+   "enabled": false,
+   "closed_at": "2026-11-09T03:25:21Z"
+  },
+  {
+   "slug": "task-follow-up:analyst--cos:journ-16",
+   "kind": "task_follow_up",
+   "label": "Follow up on 起草 ICP 假设文件 team/research/icp-hypothesis-2026q4.md",
+   "target_type": "task",
+   "target_id": "JOURN-16",
+   "channel": "analyst__cos",
+   "interval_minutes": 0,
+   "due_at": "2026-11-09T04:26:07Z",
+   "next_run": "2026-11-09T04:26:07Z",
+   "status": "scheduled",
+   "payload": "任务：起草一页式 ICP 假设验证包。输出到 team/research/icp-hypothesis-2026q4.md。包含 3 条 ICP 假设，每条必须写清：归属人群定义、凭什么这么假设、两周内如何证伪（可立即执行的验证动作）、缺什么数据（缺失处标 unknown，不要编造）。无 CRM 历史和定价数据时，缺口用 [NEEDS CONFIRMATION] 标记，数字一律 unknown。目标：下周一前可审稿。\n\n计划已批准，按定义开工：交付 team/research/icp-hypothesis-2026q4.md，3 条假设每条含凭什么假设、两周证伪动作、缺口，数字无来源一律标 unknown，禁止编造。下周一前交付。",
+   "enabled": false
+  },
+  {
+   "slug": "task-follow-up:ae--cos:journ-18",
+   "kind": "task_follow_up",
+   "label": "Follow up on 起草首触点邮件样例 team/emails/first-touch-sample.md",
+   "target_type": "task",
+   "target_id": "JOURN-18",
+   "channel": "ae__cos",
+   "interval_minutes": 0,
+   "due_at": "2026-11-09T04:27:16Z",
+   "next_run": "2026-11-09T04:27:16Z",
+   "status": "scheduled",
+   "payload": "任务：起草一封可直接审稿的首触点邮件样例。输出到 team/emails/first-touch-sample.md。收件人是 20 席 SaaS 公司的续费决策人，正文 ≤180 词。不得编造客户事实，缺字段用 {{占位符}}。钩子必须与 ICP 假设口径一致（若假设称价格敏感存疑，则邮件禁用折扣/降价钩子）。邮件仅为样例，不发送。\n\n草稿已备好并存入笔记本 agents/ae/notebook/2026-11-09-first-touch-sample-draft-journ-18.md（98 词，保守钩子不用折扣）。落盘 team/emails/first-touch-sample.md 时被 broker 403 挡住：任务未声明 artifact_path，需 human_request。@cos 请为 JOURN-18 补 artifact_scope 或给 wiki 写入授权，我立刻落盘。",
+   "enabled": false
+  }
+ ]
+}

@@ -1,0 +1,24 @@
+Launching WUPHF Office web view... the browser is the team now.
+2026/11/09 11:20:44 WARNING wiki: gbrain unavailable (wiki_index_gbrain_entity: connect: connect gbrain mcp: calling "initialize": EOF); falling back to the in-memory index. Facts will NOT persist across restarts. Install gbrain, or set WUPHF_WIKI_BACKEND=memory to silence this.
+2026/11/09 11:20:45 wiki lint cron: disabled (set WUPHF_LINT_CRON=HH:MM to enable a daily run)
+2026/11/09 11:20:45 INFO skill_compile cron: started interval=30m0s
+2026/11/09 11:20:45 wiki_index: boot reconcile complete
+2026/11/09 11:20:45 INFO skill_crud: backfilled missing SKILL.md from broker state name=app-building path=team/skills/app-building.md
+2026/11/09 11:20:46 INFO skill_crud: backfilled missing SKILL.md from broker state name=wiki-maintenance path=team/skills/wiki-maintenance.md
+2026/11/09 11:20:46 INFO skill_crud: backfilled missing SKILL.md from broker state name=data-modeling path=team/skills/data-modeling.md
+2026/11/09 11:20:46 INFO skill_consolidation_migration: no overlapping clusters found
+2026/11/09 11:20:46 [transport] share: registered (human-share)
+
+  Web UI:  http://127.0.0.1:7911
+  Broker:  http://127.0.0.1:7910
+  Press Ctrl+C to stop.
+
+2026/11/09 11:21:01 scheduler: loop started (poll=20s)
+2026/11/09 11:21:16 onboarding: wiki materialized blueprint=ai-revops dirs=5 articles_created=5 articles_skipped=0
+2026/11/09 11:21:17 onboarding: wiki bootstrap committed 7126c6b (blueprint=ai-revops)
+2026/11/09 11:21:17 onboarding: getting-started pages committed 6ccc33e
+2026/11/09 11:26:59 wiki write-task refused: task=JOURN-18 slug=ae path=team/emails/first-touch-sample.md: task JOURN-18 declares no artifact_path; pass human_request instead
+2026/11/09 11:27:08 wiki write-task refused: task=JOURN-16 slug=analyst path=team/research/icp-hypothesis-2026q4.md: task JOURN-16 declares no artifact_path; pass human_request instead
+2026/11/09 11:29:57 wiki write-task refused: task=JOURN-16 slug=analyst path=team/research/icp-hypothesis-2026q4.md: task JOURN-16 declares no artifact_path; pass human_request instead
+2026/11/09 11:31:01 scheduler: heartbeat (uptime=10m0s, poll=20s)
+2026/11/09 11:41:01 scheduler: heartbeat (uptime=20m0s, poll=20s)

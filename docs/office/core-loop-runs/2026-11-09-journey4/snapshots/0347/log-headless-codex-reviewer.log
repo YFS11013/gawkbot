@@ -1,0 +1,2 @@
+[2026-11-09T11:21:11+08:00] queue-park: at concurrency cap, deferring lane until a slot frees
+[2026-11-09T11:21:43+08:00] error: headless codex turn cancelled so newer queued work can run

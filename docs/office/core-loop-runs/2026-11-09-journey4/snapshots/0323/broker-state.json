@@ -1,0 +1,964 @@
+{
+ "channel_store": {
+  "channels": [
+   {
+    "id": "c616cc12-e827-430a-bdfe-e8cc9e5faf98",
+    "name": "DM: human & cos",
+    "slug": "cos__human",
+    "type": "D",
+    "created_by": "human",
+    "created_at": "2026-11-09T03:20:43Z",
+    "updated_at": "2026-11-09T03:20:43Z"
+   },
+   {
+    "id": "e715472c-19ce-4980-aed1-d305ab89d475",
+    "name": "DM: human & revops",
+    "slug": "human__revops",
+    "type": "D",
+    "created_by": "human",
+    "created_at": "2026-11-09T03:21:10Z",
+    "updated_at": "2026-11-09T03:21:10Z"
+   },
+   {
+    "id": "b40eb322-84c2-48da-8baa-98b2c0f7bd76",
+    "name": "DM: human & analyst",
+    "slug": "analyst__human",
+    "type": "D",
+    "created_by": "human",
+    "created_at": "2026-11-09T03:21:10Z",
+    "updated_at": "2026-11-09T03:21:10Z"
+   },
+   {
+    "id": "5dc2aeb5-ec7c-429e-8326-555cdce6b0f7",
+    "name": "DM: human & ae",
+    "slug": "ae__human",
+    "type": "D",
+    "created_by": "human",
+    "created_at": "2026-11-09T03:21:10Z",
+    "updated_at": "2026-11-09T03:21:10Z"
+   },
+   {
+    "id": "4d9e19bd-f87a-47e6-af97-59c189caa641",
+    "name": "DM: human & reviewer",
+    "slug": "human__reviewer",
+    "type": "D",
+    "created_by": "human",
+    "created_at": "2026-11-09T03:21:10Z",
+    "updated_at": "2026-11-09T03:21:10Z"
+   }
+  ],
+  "members": [
+   {
+    "channel_id": "c616cc12-e827-430a-bdfe-e8cc9e5faf98",
+    "slug": "human",
+    "mention_count": 0,
+    "notify_level": "all",
+    "joined_at": "2026-11-09T03:20:43Z"
+   },
+   {
+    "channel_id": "c616cc12-e827-430a-bdfe-e8cc9e5faf98",
+    "slug": "cos",
+    "mention_count": 0,
+    "notify_level": "all",
+    "joined_at": "2026-11-09T03:20:43Z"
+   },
+   {
+    "channel_id": "e715472c-19ce-4980-aed1-d305ab89d475",
+    "slug": "human",
+    "mention_count": 0,
+    "notify_level": "all",
+    "joined_at": "2026-11-09T03:21:10Z"
+   },
+   {
+    "channel_id": "e715472c-19ce-4980-aed1-d305ab89d475",
+    "slug": "revops",
+    "mention_count": 0,
+    "notify_level": "all",
+    "joined_at": "2026-11-09T03:21:10Z"
+   },
+   {
+    "channel_id": "b40eb322-84c2-48da-8baa-98b2c0f7bd76",
+    "slug": "human",
+    "mention_count": 0,
+    "notify_level": "all",
+    "joined_at": "2026-11-09T03:21:10Z"
+   },
+   {
+    "channel_id": "b40eb322-84c2-48da-8baa-98b2c0f7bd76",
+    "slug": "analyst",
+    "mention_count": 0,
+    "notify_level": "all",
+    "joined_at": "2026-11-09T03:21:10Z"
+   },
+   {
+    "channel_id": "5dc2aeb5-ec7c-429e-8326-555cdce6b0f7",
+    "slug": "human",
+    "mention_count": 0,
+    "notify_level": "all",
+    "joined_at": "2026-11-09T03:21:10Z"
+   },
+   {
+    "channel_id": "5dc2aeb5-ec7c-429e-8326-555cdce6b0f7",
+    "slug": "ae",
+    "mention_count": 0,
+    "notify_level": "all",
+    "joined_at": "2026-11-09T03:21:10Z"
+   },
+   {
+    "channel_id": "4d9e19bd-f87a-47e6-af97-59c189caa641",
+    "slug": "human",
+    "mention_count": 0,
+    "notify_level": "all",
+    "joined_at": "2026-11-09T03:21:10Z"
+   },
+   {
+    "channel_id": "4d9e19bd-f87a-47e6-af97-59c189caa641",
+    "slug": "reviewer",
+    "mention_count": 0,
+    "notify_level": "all",
+    "joined_at": "2026-11-09T03:21:10Z"
+   }
+  ],
+  "messages": [],
+  "counter": 0
+ },
+ "messages": [
+  {
+   "id": "msg-1",
+   "from": "cos",
+   "channel": "cos__human",
+   "content": "I am Chief of Staff. Hand me the boring part: I read the threads, chase the follow ups, and do the menial work, and when you want a screen to manage the outcome I build you a microapp for it. You can also show me a workflow once on a screenshare and I will handle it from then on. Anything that leaves this office waits for your approval first.\n\nSo, what are you trying to get done? Give me the goal and I will plan the first thing. If the work needs more bots, I will propose them as we go.",
+   "tagged": null,
+   "timestamp": "2026-11-09T03:21:10Z"
+  },
+  {
+   "id": "msg-2",
+   "from": "revops",
+   "channel": "human__revops",
+   "content": "已接手 CRM 清洁普查，先查接入系统与数据现状，再执行去重与归属补全。",
+   "tagged": [],
+   "timestamp": "2026-11-09T03:21:30Z"
+  },
+  {
+   "id": "msg-3",
+   "from": "ae",
+   "channel": "ae__human",
+   "content": "起草第一封跟进序列 — 3 封重激活邮件，提交审核。",
+   "tagged": [],
+   "timestamp": "2026-11-09T03:21:41Z"
+  },
+  {
+   "id": "msg-4",
+   "from": "analyst",
+   "channel": "analyst__human",
+   "content": "在看管线真实数了，先定干净口径再跑第一版基线。",
+   "tagged": [],
+   "timestamp": "2026-11-09T03:21:41Z"
+  },
+  {
+   "id": "msg-5",
+   "from": "system",
+   "channel": "hygiene",
+   "kind": "issue_lifecycle",
+   "title": "Run the first CRM hygiene sweep",
+   "content": "Issue ai-revops-1 updated: Run the first CRM hygiene sweep",
+   "tagged": [
+    "cos",
+    "revops"
+   ],
+   "timestamp": "2026-11-09T03:21:43Z",
+   "source_task_id": "ai-revops-1",
+   "payload": {
+    "actor": "system",
+    "channel": "hygiene",
+    "from_state": "running",
+    "owner": "revops",
+    "task_id": "ai-revops-1",
+    "title": "Run the first CRM hygiene sweep",
+    "to_state": "canceled",
+    "transition": "generic"
+   }
+  },
+  {
+   "id": "msg-6",
+   "from": "system",
+   "channel": "pipeline",
+   "kind": "issue_lifecycle",
+   "title": "Establish the pipeline-truth baseline",
+   "content": "Issue ai-revops-2 updated: Establish the pipeline-truth baseline",
+   "tagged": [
+    "cos",
+    "analyst"
+   ],
+   "timestamp": "2026-11-09T03:21:43Z",
+   "source_task_id": "ai-revops-2",
+   "payload": {
+    "actor": "system",
+    "channel": "pipeline",
+    "from_state": "running",
+    "owner": "analyst",
+    "task_id": "ai-revops-2",
+    "title": "Establish the pipeline-truth baseline",
+    "to_state": "canceled",
+    "transition": "generic"
+   }
+  },
+  {
+   "id": "msg-7",
+   "from": "system",
+   "channel": "outreach",
+   "kind": "issue_lifecycle",
+   "title": "Draft the first follow-up sequence",
+   "content": "Issue ai-revops-3 updated: Draft the first follow-up sequence",
+   "tagged": [
+    "cos",
+    "ae"
+   ],
+   "timestamp": "2026-11-09T03:21:43Z",
+   "source_task_id": "ai-revops-3",
+   "payload": {
+    "actor": "system",
+    "channel": "outreach",
+    "from_state": "running",
+    "owner": "ae",
+    "task_id": "ai-revops-3",
+    "title": "Draft the first follow-up sequence",
+    "to_state": "canceled",
+    "transition": "generic"
+   }
+  },
+  {
+   "id": "msg-8",
+   "from": "system",
+   "channel": "review",
+   "kind": "issue_lifecycle",
+   "title": "Set the hygiene scorecard and review cadence",
+   "content": "Issue ai-revops-4 updated: Set the hygiene scorecard and review cadence",
+   "tagged": [
+    "cos",
+    "reviewer"
+   ],
+   "timestamp": "2026-11-09T03:21:43Z",
+   "source_task_id": "ai-revops-4",
+   "payload": {
+    "actor": "system",
+    "channel": "review",
+    "from_state": "running",
+    "owner": "reviewer",
+    "task_id": "ai-revops-4",
+    "title": "Set the hygiene scorecard and review cadence",
+    "to_state": "canceled",
+    "transition": "generic"
+   }
+  },
+  {
+   "id": "msg-10",
+   "from": "system",
+   "channel": "cos__human",
+   "kind": "issue_created",
+   "title": "ICP 假设与首触点邮件：一页式验证包",
+   "content": "Issue created: JOURN-9 — ICP 假设与首触点邮件：一页式验证包",
+   "tagged": [
+    "cos",
+    "human"
+   ],
+   "timestamp": "2026-11-09T03:21:55Z",
+   "source_task_id": "JOURN-9",
+   "payload": {
+    "channel": "cos__human",
+    "created_by": "human",
+    "lifecycle_state": "planning",
+    "owner": "cos",
+    "task_id": "JOURN-9",
+    "title": "ICP 假设与首触点邮件：一页式验证包"
+   }
+  },
+  {
+   "id": "msg-11",
+   "from": "cos",
+   "channel": "cos__human",
+   "content": "## 计划：JOURN-9 一页式验证包\n\n**目标**：下周一前，交付 2 个 wiki 文件：3 条可证伪 ICP 假设 + 1 封可审稿首触点邮件。不发信、不建客户表、不申请外部账号。证据不足处明确标 `unknown` / 缺口。\n\n**现状**：wiki 检索 `icp 假设与首触点邮件` 无命中，无可直接引用的客户/定价/续费数据，一切数字默认标 unknown，不得编造。\n\n### 执行步骤（计划批准后才创建，当前只规划）\n\n1.  **@analyst** — 起草 `team/research/icp-hypothesis-2026q4.md`：3 条 ICP 假设，每条含「凭什么假设 / 两周内怎么证伪 / 缺什么数据」；无来源数字一律写 unknown，不填占位数字。\n2.  **@ae** — 起草 `team/emails/first-touch-sample.md`：≤180 词，收件人=20 席 SaaS 公司续费决策人，缺字段用 `{{占位符}}`；钩子只用假设里已证实的口径（如假设说「价格敏感存疑」，邮件禁用折扣钩子）。\n3.  **@cos** — 终检：两文件路径正确且 wiki 可读、无编造数字、假设与邮件口径一致、汇总双链接发对话里，完成 parent Issue。\n\n### 拟建子任务（互不重叠）\n- `JOURN-9-1` owner `@analyst`, type `research`：ICP 假设文件\n- `JOURN-9-2` owner `@ae`, type `follow_up`：首触点邮件样例\n- 验收由 @cos 在 parent 聚合，不独立建 review 子任务\n\n### 访问/连接需求\n无。仅需 wiki 读写（`team/research/`、`team/emails/` 两路径）+ `team_task` 跟踪。无需 Gmail/CRM/任何外部账号。\n\n### 验收标准\n- 两个文件在给定路径、wiki 可读\n- 每个数字有来源或标 unknown，无编造\n- 邮件钩子与假设口径一致\n- 完成后对话里给出双链接\n\n### 风险/开放点\n- 无 CRM 历史 ⇒ 假设初始可信度低，靠「两周证伪动作」补齐\n- 产品定价/续费政策 unknown ⇒ 邮件禁用价格承诺\n- 下周一为硬截止，证伪动作只列可立即执行的验证，不延伸到真实触达\n\n本轮计划模式：未建子任务、未写文件，待批准后执行。",
+   "tagged": [],
+   "timestamp": "2026-11-09T03:22:22Z"
+  },
+  {
+   "id": "msg-13",
+   "from": "system",
+   "channel": "cos__human",
+   "kind": "human_request_raised",
+   "title": "Start work on ICP 假设与首触点邮件：一页式验证包?",
+   "content": "❓ @cos asks you (request request-12): @cos wants to start work on ICP 假设与首触点邮件：一页式验证包 (JOURN-9).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\n## 计划：JOURN-9 一页式验证包 **目标**：下周一前，交付 2 个 wiki 文件：3 条可证伪 ICP 假设 + 1 封可审稿首触点邮件。不发信、不建客户表、不申请外部账号。证据不足处明确标 `unknown` / 缺口。 **现状**：wiki 检索 `icp 假设与首触点邮件` 无命中，无可直接引用的客户/定价/续费数据，一切数字默认标 unknown，不得编造。 ### 执行步骤（计划批准后才创建，当前只规划） 1. **@analyst** — 起草 `team/research/icp-hypothesis-2026q4.md`：3 条 ICP 假设，每条含「凭什么假设 / 两周内怎么证伪 / 缺什么数据」；无来源数字一律写 unknown，不填占位数字。 2. **@ae** — 起草 `team/emails/first-touch-sample.md`：≤180 词，收件人=20 席 SaaS 公司续费决策人，缺字段用 `{{占位符}}`；钩子只用假设里已证实的口径（如假设说「价格敏感存疑」，邮件禁用折扣钩子）。 3. **@cos** — 终检：两文件…\nAnswer it here, or reply in this thread.",
+   "tagged": null,
+   "timestamp": "2026-11-09T03:22:26Z",
+   "payload": {
+    "request_id": "request-12",
+    "from": "cos",
+    "question": "@cos wants to start work on ICP 假设与首触点邮件：一页式验证包 (JOURN-9).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\n## 计划：JOURN-9 一页式验证包 **目标**：下周一前，交付 2 个 wiki 文件：3 条可证伪 ICP 假设 + 1 封可审稿首触点邮件。不发信、不建客户表、不申请外部账号。证据不足处明确标 `unknown` / 缺口。 **现状**：wiki 检索 `icp 假设与首触点邮件` 无命中，无可直接引用的客户/定价/续费数据，一切数字默认标 unknown，不得编造。 ### 执行步骤（计划批准后才创建，当前只规划） 1. **@analyst** — 起草 `team/research/icp-hypothesis-2026q4.md`：3 条 ICP 假设，每条含「凭什么假设 / 两周内怎么证伪 / 缺什么数据」；无来源数字一律写 unknown，不填占位数字。 2. **@ae** — 起草 `team/emails/first-touch-sample.md`：≤180 词，收件人=20 席 SaaS 公司续费决策人，缺字段用 `{{占位符}}`；钩子只用假设里已证实的口径（如假设说「价格敏感存疑」，邮件禁用折扣钩子）。 3. **@cos** — 终检：两文件…",
+    "title": "Start work on ICP 假设与首触点邮件：一页式验证包?",
+    "label": "request"
+   }
+  }
+ ],
+ "members": [
+  {
+   "slug": "cos",
+   "name": "Chief of Staff",
+   "role": "Chief of Staff",
+   "created_by": "wuphf",
+   "created_at": "2026-11-09T03:21:10Z",
+   "built_in": true,
+   "provider": {},
+   "watching": {}
+  },
+  {
+   "slug": "revops",
+   "name": "RevOps",
+   "role": "Keeps the CRM clean: dedupes accounts, backfills owners, flags stale deals",
+   "expertise": [
+    "CRM hygiene",
+    "Deduplication",
+    "Data backfill"
+   ],
+   "personality": "Allergic to dirty data. Fixes the record, leaves an audit trail, never guesses on a destructive merge.",
+   "created_by": "wuphf",
+   "created_at": "2026-11-09T03:21:10Z",
+   "provider": {},
+   "watching": {}
+  },
+  {
+   "slug": "analyst",
+   "name": "Analyst",
+   "role": "Watches the funnel and reports the honest numbers",
+   "expertise": [
+    "Pipeline analysis",
+    "Conversion math",
+    "Forecasting"
+   ],
+   "personality": "Refuses to round up. Will tell you the pipeline is thinner than it looks, with the query to prove it.",
+   "created_by": "wuphf",
+   "created_at": "2026-11-09T03:21:10Z",
+   "provider": {},
+   "watching": {}
+  },
+  {
+   "slug": "ae",
+   "name": "Outreach",
+   "role": "Drafts and sequences outbound, always behind approval",
+   "expertise": [
+    "Outbound",
+    "Sequencing",
+    "Follow-up loops"
+   ],
+   "personality": "Treats every send as on-the-record. Drafts fast, but never hits send without a human nod.",
+   "created_by": "wuphf",
+   "created_at": "2026-11-09T03:21:10Z",
+   "provider": {},
+   "watching": {}
+  },
+  {
+   "slug": "reviewer",
+   "name": "Reviewer",
+   "role": "Owns QA, evidence, and approval gates",
+   "expertise": [
+    "Evidence review",
+    "Change QA",
+    "Approval gates"
+   ],
+   "personality": "Keeps the operation durable and visible. No change ships without proof of what it touched.",
+   "created_by": "wuphf",
+   "created_at": "2026-11-09T03:21:10Z",
+   "provider": {},
+   "watching": {}
+  }
+ ],
+ "channels": [
+  {
+   "slug": "cos__human",
+   "name": "Chief of Staff",
+   "type": "dm",
+   "description": "Direct messages with cos",
+   "members": [
+    "human",
+    "cos"
+   ],
+   "created_by": "system",
+   "created_at": "2026-11-09T03:21:10Z",
+   "updated_at": "2026-11-09T03:21:10Z"
+  },
+  {
+   "slug": "human__revops",
+   "name": "RevOps",
+   "type": "dm",
+   "description": "Direct messages with revops",
+   "members": [
+    "human",
+    "revops"
+   ],
+   "created_by": "system",
+   "created_at": "2026-11-09T03:21:10Z",
+   "updated_at": "2026-11-09T03:21:10Z"
+  },
+  {
+   "slug": "analyst__human",
+   "name": "Analyst",
+   "type": "dm",
+   "description": "Direct messages with analyst",
+   "members": [
+    "human",
+    "analyst"
+   ],
+   "created_by": "system",
+   "created_at": "2026-11-09T03:21:10Z",
+   "updated_at": "2026-11-09T03:21:10Z"
+  },
+  {
+   "slug": "ae__human",
+   "name": "Outreach",
+   "type": "dm",
+   "description": "Direct messages with ae",
+   "members": [
+    "human",
+    "ae"
+   ],
+   "created_by": "system",
+   "created_at": "2026-11-09T03:21:10Z",
+   "updated_at": "2026-11-09T03:21:10Z"
+  },
+  {
+   "slug": "human__reviewer",
+   "name": "Reviewer",
+   "type": "dm",
+   "description": "Direct messages with reviewer",
+   "members": [
+    "human",
+    "reviewer"
+   ],
+   "created_by": "system",
+   "created_at": "2026-11-09T03:21:10Z",
+   "updated_at": "2026-11-09T03:21:10Z"
+  }
+ ],
+ "session_mode": "office",
+ "one_on_one_agent": "cos",
+ "focus_mode": true,
+ "tasks": [
+  {
+   "id": "ai-revops-1",
+   "channel": "hygiene",
+   "title": "Run the first CRM hygiene sweep",
+   "details": "Dedupe accounts, backfill missing owners, and flag stale opportunities, with destructive changes gated.\n\ninstall cleanup: onboarding starter lane",
+   "owner": "revops",
+   "status": "canceled",
+   "created_by": "wuphf",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "canceled",
+   "execution_mode": "live_external",
+   "review_state": "canceled",
+   "lifecycle_state": "canceled",
+   "ledger": [
+    {
+     "agent": "cos",
+     "at": "2026-11-09T03:21:43Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    },
+    {
+     "agent": "revops",
+     "at": "2026-11-09T03:21:43Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    }
+   ],
+   "created_at": "2026-11-09T03:21:10Z",
+   "updated_at": "2026-11-09T03:21:43Z",
+   "completed_at": "2026-11-09T03:21:43Z"
+  },
+  {
+   "id": "ai-revops-2",
+   "channel": "pipeline",
+   "title": "Establish the pipeline-truth baseline",
+   "details": "Define clean records and produce the honest first read of the funnel.\n\ninstall cleanup: onboarding starter lane",
+   "owner": "analyst",
+   "status": "canceled",
+   "created_by": "wuphf",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "canceled",
+   "execution_mode": "office",
+   "review_state": "canceled",
+   "lifecycle_state": "canceled",
+   "ledger": [
+    {
+     "agent": "cos",
+     "at": "2026-11-09T03:21:43Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    },
+    {
+     "agent": "analyst",
+     "at": "2026-11-09T03:21:43Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    }
+   ],
+   "created_at": "2026-11-09T03:21:10Z",
+   "updated_at": "2026-11-09T03:21:43Z",
+   "completed_at": "2026-11-09T03:21:43Z"
+  },
+  {
+   "id": "ai-revops-3",
+   "channel": "outreach",
+   "title": "Draft the first follow-up sequence",
+   "details": "Sequence re-engagement for stale-but-real opportunities, queued for approval.\n\ninstall cleanup: onboarding starter lane",
+   "owner": "ae",
+   "status": "canceled",
+   "created_by": "wuphf",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "canceled",
+   "execution_mode": "office",
+   "review_state": "canceled",
+   "lifecycle_state": "canceled",
+   "ledger": [
+    {
+     "agent": "ae",
+     "at": "2026-11-09T03:21:43Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/wiki-maintenance.md",
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/data-modeling.md"
+     ]
+    },
+    {
+     "agent": "cos",
+     "at": "2026-11-09T03:21:43Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/wiki-maintenance.md",
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/data-modeling.md"
+     ]
+    }
+   ],
+   "created_at": "2026-11-09T03:21:10Z",
+   "updated_at": "2026-11-09T03:21:43Z",
+   "completed_at": "2026-11-09T03:21:43Z"
+  },
+  {
+   "id": "ai-revops-4",
+   "channel": "review",
+   "title": "Set the hygiene scorecard and review cadence",
+   "details": "Define success metrics, the review rhythm, and the evidence trail for each iteration.\n\ninstall cleanup: onboarding starter lane",
+   "owner": "reviewer",
+   "status": "canceled",
+   "created_by": "wuphf",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "canceled",
+   "execution_mode": "office",
+   "review_state": "canceled",
+   "lifecycle_state": "canceled",
+   "ledger": [
+    {
+     "agent": "reviewer",
+     "at": "2026-11-09T03:21:43Z",
+     "outcome": "context canceled",
+     "context_used": [
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    }
+   ],
+   "created_at": "2026-11-09T03:21:10Z",
+   "updated_at": "2026-11-09T03:21:43Z",
+   "completed_at": "2026-11-09T03:21:43Z"
+  },
+  {
+   "id": "JOURN-9",
+   "channel": "cos__human",
+   "title": "ICP 假设与首触点邮件：一页式验证包",
+   "details": "Goal: 在下周一之前，给出一页「我们该把 SMB 续费触达讲给谁听」的可验证假设，外加一封可直接审稿的首触点邮件样例；不需要发信、不需要接触真实客户。\n\nDeliverables:\n1. `team/research/icp-hypothesis-2026q4.md`：3 条 ICP 假设，每条写清「凭什么这么假设」「怎么在两周内证伪」，允许标 unknown，但必须写清缺什么。\n2. `team/emails/first-touch-sample.md`：一封 ≤180 词的首触点邮件样例，收件人是 20 席 SaaS 公司的续费决策人；不得编造客户事实，缺字段用占位符。\n\nSuccess criteria:\n- 两个文件都在给定路径、wiki 可读；\n- 每个数字有来源或明确 unknown，没有编造；\n- 邮件与假设口径一致（假设里说「价格敏感存疑」，邮件里就不能拿折扣当钩子）；\n- 完成后在对话里给两个链接。\n\nConstraints: 不要发任何邮件；不要建客户表；不要申请外部账号。证据不足时先写假设+验证动作，不要停下来问人。",
+   "owner": "cos",
+   "status": "in_progress",
+   "created_by": "human",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "plan",
+   "execution_mode": "office",
+   "review_state": "pending_review",
+   "lifecycle_state": "planning",
+   "due_at": "2026-11-09T04:21:55Z",
+   "follow_up_at": "2026-11-09T04:21:55Z",
+   "reminder_at": "2026-11-09T04:51:55Z",
+   "recheck_at": "2026-11-09T04:36:55Z",
+   "ledger": [
+    {
+     "agent": "cos",
+     "at": "2026-11-09T03:22:26Z",
+     "outcome": "ok",
+     "said": "… 两路径）+ `team_task` 跟踪。无需 Gmail/CRM/任何外部账号。\n\n### 验收标准\n- 两个文件在给定路径、wiki 可读\n- 每个数字有来源或标 unknown，无编造\n- 邮件钩子与假设口径一致\n- 完成后对话里给出双链接\n\n### 风险/开放点\n- 无 CRM 历史 ⇒ 假设初始可信度低，靠「两周证伪动作」补齐\n- 产品定价/续费政策 unknown ⇒ 邮件禁用价格承诺\n- 下周一为硬截止，证伪动作只列可立即执行的验证，不延伸到真实触达\n\n本轮计划模式：未建子任务、未写文件，待批准后执行。"
+    }
+   ],
+   "created_at": "2026-11-09T03:21:55Z",
+   "updated_at": "2026-11-09T03:22:26Z"
+  }
+ ],
+ "requests": [
+  {
+   "id": "request-12",
+   "kind": "approval",
+   "status": "pending",
+   "from": "cos",
+   "channel": "cos__human",
+   "title": "Start work on ICP 假设与首触点邮件：一页式验证包?",
+   "question": "@cos wants to start work on ICP 假设与首触点邮件：一页式验证包 (JOURN-9).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\n## 计划：JOURN-9 一页式验证包 **目标**：下周一前，交付 2 个 wiki 文件：3 条可证伪 ICP 假设 + 1 封可审稿首触点邮件。不发信、不建客户表、不申请外部账号。证据不足处明确标 `unknown` / 缺口。 **现状**：wiki 检索 `icp 假设与首触点邮件` 无命中，无可直接引用的客户/定价/续费数据，一切数字默认标 unknown，不得编造。 ### 执行步骤（计划批准后才创建，当前只规划） 1. **@analyst** — 起草 `team/research/icp-hypothesis-2026q4.md`：3 条 ICP 假设，每条含「凭什么假设 / 两周内怎么证伪 / 缺什么数据」；无来源数字一律写 unknown，不填占位数字。 2. **@ae** — 起草 `team/emails/first-touch-sample.md`：≤180 词，收件人=20 席 SaaS 公司续费决策人，缺字段用 `{{占位符}}`；钩子只用假设里已证实的口径（如假设说「价格敏感存疑」，邮件禁用折扣钩子）。 3. **@cos** — 终检：两文件…",
+   "options": [
+    {
+     "id": "approve",
+     "label": "Approve",
+     "description": "Green-light this and let the team execute immediately."
+    },
+    {
+     "id": "approve_with_note",
+     "label": "Approve with note",
+     "description": "Proceed, but attach explicit constraints or guardrails.",
+     "requires_text": true,
+     "text_hint": "Type the conditions, constraints, or guardrails the team must follow."
+    },
+    {
+     "id": "needs_more_info",
+     "label": "Need more info",
+     "description": "Gather more context before making the approval call."
+    },
+    {
+     "id": "reject",
+     "label": "Reject",
+     "description": "Do not proceed with this."
+    },
+    {
+     "id": "reject_with_steer",
+     "label": "Reject with steer",
+     "description": "Do not proceed as proposed. Redirect the team with clearer steering.",
+     "requires_text": true,
+     "text_hint": "Type the steering, redirect, or rationale for rejecting this request."
+    }
+   ],
+   "recommended_id": "approve",
+   "reply_to": "msg-13",
+   "dedupe_key": "plan-approval:JOURN-9",
+   "issue_id": "JOURN-9",
+   "due_at": "2026-11-09T03:52:26Z",
+   "follow_up_at": "2026-11-09T04:52:26Z",
+   "reminder_at": "2026-11-09T03:52:26Z",
+   "recheck_at": "2026-11-09T03:52:26Z",
+   "created_at": "2026-11-09T03:22:26Z",
+   "updated_at": "2026-11-09T03:22:26Z"
+  }
+ ],
+ "actions": [
+  {
+   "id": "action-1",
+   "kind": "task_created",
+   "source": "office",
+   "channel": "hygiene",
+   "actor": "wuphf",
+   "summary": "Run the first CRM hygiene sweep",
+   "related_id": "ai-revops-1",
+   "created_at": "2026-11-09T03:21:10Z"
+  },
+  {
+   "id": "action-2",
+   "kind": "task_created",
+   "source": "office",
+   "channel": "pipeline",
+   "actor": "wuphf",
+   "summary": "Establish the pipeline-truth baseline",
+   "related_id": "ai-revops-2",
+   "created_at": "2026-11-09T03:21:10Z"
+  },
+  {
+   "id": "action-3",
+   "kind": "task_created",
+   "source": "office",
+   "channel": "outreach",
+   "actor": "wuphf",
+   "summary": "Draft the first follow-up sequence",
+   "related_id": "ai-revops-3",
+   "created_at": "2026-11-09T03:21:10Z"
+  },
+  {
+   "id": "action-4",
+   "kind": "task_created",
+   "source": "office",
+   "channel": "review",
+   "actor": "wuphf",
+   "summary": "Set the hygiene scorecard and review cadence",
+   "related_id": "ai-revops-4",
+   "created_at": "2026-11-09T03:21:10Z"
+  },
+  {
+   "id": "action-5",
+   "kind": "automation",
+   "channel": "human__revops",
+   "actor": "revops",
+   "summary": "已接手 CRM 清洁普查，先查接入系统与数据现状，再执行去重与归属补全。",
+   "related_id": "msg-2",
+   "created_at": "2026-11-09T03:21:30Z"
+  },
+  {
+   "id": "action-6",
+   "kind": "automation",
+   "channel": "ae__human",
+   "actor": "ae",
+   "summary": "起草第一封跟进序列 — 3 封重激活邮件，提交审核。",
+   "related_id": "msg-3",
+   "created_at": "2026-11-09T03:21:41Z"
+  },
+  {
+   "id": "action-7",
+   "kind": "automation",
+   "channel": "analyst__human",
+   "actor": "analyst",
+   "summary": "在看管线真实数了，先定干净口径再跑第一版基线。",
+   "related_id": "msg-4",
+   "created_at": "2026-11-09T03:21:41Z"
+  },
+  {
+   "id": "action-8",
+   "kind": "task_canceled",
+   "source": "office",
+   "channel": "hygiene",
+   "actor": "owner",
+   "summary": "Run the first CRM hygiene sweep canceled",
+   "related_id": "ai-revops-1",
+   "created_at": "2026-11-09T03:21:43Z"
+  },
+  {
+   "id": "action-9",
+   "kind": "task_canceled",
+   "source": "office",
+   "channel": "pipeline",
+   "actor": "owner",
+   "summary": "Establish the pipeline-truth baseline canceled",
+   "related_id": "ai-revops-2",
+   "created_at": "2026-11-09T03:21:43Z"
+  },
+  {
+   "id": "action-10",
+   "kind": "task_canceled",
+   "source": "office",
+   "channel": "outreach",
+   "actor": "owner",
+   "summary": "Draft the first follow-up sequence canceled",
+   "related_id": "ai-revops-3",
+   "created_at": "2026-11-09T03:21:43Z"
+  },
+  {
+   "id": "action-11",
+   "kind": "task_canceled",
+   "source": "office",
+   "channel": "review",
+   "actor": "owner",
+   "summary": "Set the hygiene scorecard and review cadence canceled",
+   "related_id": "ai-revops-4",
+   "created_at": "2026-11-09T03:21:43Z"
+  },
+  {
+   "id": "action-12",
+   "kind": "task_created",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "human",
+   "summary": "ICP 假设与首触点邮件：一页式验证包",
+   "related_id": "JOURN-9",
+   "created_at": "2026-11-09T03:21:55Z"
+  },
+  {
+   "id": "action-13",
+   "kind": "automation",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "## 计划：JOURN-9 一页式验证包\n\n**目标**：下周一前，交付 2 个 wiki 文件：3 条可证伪 ICP 假设 + 1 封可审稿首触点邮件。不发信、不建客户表、不申请外部账号。证据不足处明确标 `unknown` / 缺口。\n\n**现状**：wiki 检索 `ic…",
+   "related_id": "msg-11",
+   "created_at": "2026-11-09T03:22:22Z"
+  },
+  {
+   "id": "action-14",
+   "kind": "request_created",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "Start work on ICP 假设与首触点邮件：一页式验证包? @cos wants to start work on ICP 假设与首触点邮件：一页式验证包 (JOURN-9).\n\nApprove and they begin. Decline and nothing …",
+   "related_id": "request-12",
+   "created_at": "2026-11-09T03:22:26Z"
+  }
+ ],
+ "scheduler": [
+  {
+   "slug": "one-relay-events",
+   "label": "One relay events",
+   "interval_minutes": 1,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "request_follow_up",
+   "label": "Request follow-up reminders",
+   "interval_minutes": 60,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "review-expiry",
+   "label": "Review expiry sweep",
+   "interval_minutes": 10,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "wiki-archive-sweep",
+   "label": "Wiki archive sweep",
+   "interval_minutes": 1440,
+   "next_run": "2026-11-10T03:20:46Z",
+   "last_run": "2026-11-09T03:20:46Z",
+   "status": "sleeping",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "task_follow_up",
+   "label": "Task follow-up reminders",
+   "interval_minutes": 60,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "task_recheck",
+   "label": "Task recheck cadence",
+   "interval_minutes": 15,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "task_reminder",
+   "label": "Task reminder cadence",
+   "interval_minutes": 30,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "task-follow-up:cos--human:journ-9",
+   "kind": "task_follow_up",
+   "label": "Follow up on ICP 假设与首触点邮件：一页式验证包",
+   "target_type": "task",
+   "target_id": "JOURN-9",
+   "channel": "cos__human",
+   "interval_minutes": 0,
+   "due_at": "2026-11-09T04:21:55Z",
+   "next_run": "2026-11-09T04:21:55Z",
+   "status": "scheduled",
+   "payload": "Goal: 在下周一之前，给出一页「我们该把 SMB 续费触达讲给谁听」的可验证假设，外加一封可直接审稿的首触点邮件样例；不需要发信、不需要接触真实客户。\n\nDeliverables:\n1. `team/research/icp-hypothesis-2026q4.md`：3 条 ICP 假设，每条写清「凭什么这么假设」「怎么在两周内证伪」，允许标 unknown，但必须写清缺什么。\n2. `team/emails/first-touch-sample.md`：一封 ≤180 词的首触点邮件样例，收件人是 20 席 SaaS 公司的续费决策人；不得编造客户事实，缺字段用占位符。\n\nSuccess criteria:\n- 两个文件都在给定路径、wiki 可读；\n- 每个数字有来源或明确 unknown，没有编造；\n- 邮件与假设口径一致（假设里说「价格敏感存疑」，邮件里就不能拿折扣当钩子）；\n- 完成后在对话里给两个链接。\n\nConstraints: 不要发任何邮件；不要建客户表；不要申请外部账号。证据不足时先写假设+验证动作，不要停下来问人。",
+   "enabled": false
+  },
+  {
+   "slug": "request-follow-up:cos--human:request-12",
+   "kind": "request_follow_up",
+   "label": "Follow up on Start work on ICP 假设与首触点邮件：一页式验证包?",
+   "target_type": "request",
+   "target_id": "request-12",
+   "channel": "cos__human",
+   "interval_minutes": 0,
+   "due_at": "2026-11-09T03:52:26Z",
+   "next_run": "2026-11-09T03:52:26Z",
+   "status": "scheduled",
+   "payload": "@cos wants to start work on ICP 假设与首触点邮件：一页式验证包 (JOURN-9).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\n## 计划：JOURN-9 一页式验证包 **目标**：下周一前，交付 2 个 wiki 文件：3 条可证伪 ICP 假设 + 1 封可审稿首触点邮件。不发信、不建客户表、不申请外部账号。证据不足处明确标 `unknown` / 缺口。 **现状**：wiki 检索 `icp 假设与首触点邮件` 无命中，无可直接引用的客户/定价/续费数据，一切数字默认标 unknown，不得编造。 ### 执行步骤（计划批准后才创建，当前只规划） 1. **@analyst** — 起草 `team/research/icp-hypothesis-2026q4.md`：3 条 ICP 假设，每条含「凭什么假设 / 两周内怎么证伪 / 缺什么数据」；无来源数字一律写 unknown，不填占位数字。 2. **@ae** — 起草 `team/emails/first-touch-sample.md`：≤180 词，收件人=20 席 SaaS 公司续费决策人，缺字段用 `{{占位符}}`；钩子只用假设里已证实的口径（如假设说「价格敏感存疑」，邮件禁用折扣钩子）。 3. **@cos** — 终检：两文件…",
+   "enabled": false
+  }
+ ],
+ "skills": [
+  {
+   "id": "skill-app-building",
+   "name": "app-building",
+   "title": "App building",
+   "description": "Build and update internal tools (Apps) for the office. A system skill every bot carries.",
+   "content": "Every bot can build Apps — small internal tools published under the Apps rail.\n\n1. Call list_apps first. If a related app exists, improve it (propose_app with app_id) instead of duplicating it.\n2. When the human asked for an app (or approved a proposal), create the task FIRST: team_task action=create, title \"Build app: <Name>\", owner yourself. The reply carries \"App workspace ready: … as `app_…`\" with the ABSOLUTE path of a project the broker already scaffolded for you (Vite/React/TS, bun.lock committed, src/wuphf-bridge.ts for office data). Work in THAT directory — never scaffold from scratch, never build in /tmp.\n3. Implement in src/, then `bun install && bun run verify` there (tsc, then vite build → dist/index.html). Fix errors until it passes.\n4. Publish with register_app(app_id=<the id from the brief>, html_path=<absolute path to dist/index.html>, source_path=<absolute project root>). Then tell the human it is live under Apps and complete the task. Keep the whole build to a handful of tool calls — your turn budget is finite.\n5. When you merely notice a repeatable workflow, raise propose_app and keep working — never block on the answer.\n\nBuilds flow through the host-owned build and publish gates regardless of which bot registers them.\n\nData the human should be able to browse and edit under Data belongs in a data space (the data_* tools, the data-modeling system skill), not in the app's per-app db tables; the per-app db stays for values only that app derives and renders.",
+   "created_by": "wuphf",
+   "usage_count": 0,
+   "status": "active",
+   "system": true,
+   "created_at": "2026-11-09T03:20:43Z",
+   "updated_at": "2026-11-09T03:20:43Z"
+  },
+  {
+   "id": "skill-wiki-maintenance",
+   "name": "wiki-maintenance",
+   "title": "Wiki maintenance",
+   "description": "Keep the team wiki current: draft in notebooks, promote for review, write directly only on the human's explicit ask. A system skill every bot carries.",
+   "content": "Every bot maintains the team wiki.\n\n1. Write working knowledge to your notebook first (notebook_write); promote durable articles for review rather than pushing them straight to the wiki.\n2. Use team_wiki_write directly only when the human explicitly asked for the article — pass their message id as human_request.\n3. Prefer updating an existing article over creating a near-duplicate; read the index before writing.",
+   "created_by": "wuphf",
+   "usage_count": 0,
+   "status": "active",
+   "system": true,
+   "created_at": "2026-11-09T03:20:43Z",
+   "updated_at": "2026-11-09T03:20:43Z"
+  },
+  {
+   "id": "skill-data-modeling",
+   "name": "data-modeling",
+   "title": "Data modeling",
+   "description": "Define object types, attributes and relationships in a data space, then fill them with records. A system skill every bot carries.",
+   "content": "When the human asks you to TRACK something — investors, clients, projects, candidates, deliverables — that is structured data. Build the model with the data_* tools; do not keep it in prose, and do not reach for an app unless they ask for one.\n\n1. Call data_list_spaces, then data_get_schema on the space that fits. One space per use case. If none fits, data_create_space — it is private to you and the human by default.\n2. Check the existing types before creating. If a type already exists, add to it with data_add_attributes; never create a second near-duplicate type.\n3. Create the types, their attributes AND the relationships between them in ONE data_create_object_types call. A relationship IS an attribute: type=relationship plus `relationship` also creates the mirrored attribute on the other type. State cardinality from the side you are defining, because it cannot be changed later.\n4. Re-read the schema right after any create or change: the store adds a required primary `name` attribute you did not define and mints your select option ids, so your own call is NOT the effective schema. Never invent an attribute slug or an option value — an invalid option comes back listing the valid ones. Never add a near-duplicate option; map onto the existing one or ask.\n5. Write records with data_upsert_records on a UNIQUE attribute whenever the source could be read again, so a second run updates instead of duplicating. Every write returns {succeeded, failed, summary, entries[]} in request order — read `entries`, do not assume the whole call worked.\n6. Deleting is two calls: data_delete_preview, show the human the impact counts, then data_delete with the token. Sharing is the human's call: a space goes shared or global only when they ask.",
+   "created_by": "wuphf",
+   "usage_count": 0,
+   "status": "active",
+   "system": true,
+   "created_at": "2026-11-09T03:20:43Z",
+   "updated_at": "2026-11-09T03:20:43Z"
+  }
+ ],
+ "counter": 13,
+ "usage": {
+  "session": {
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "cache_read_tokens": 0,
+   "cache_creation_tokens": 0,
+   "total_tokens": 0,
+   "cost_usd": 0,
+   "requests": 0
+  },
+  "total": {
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "cache_read_tokens": 0,
+   "cache_creation_tokens": 0,
+   "total_tokens": 0,
+   "cost_usd": 0,
+   "requests": 0
+  }
+ }
+}

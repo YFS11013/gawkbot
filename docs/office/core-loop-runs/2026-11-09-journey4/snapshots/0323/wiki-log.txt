@@ -1,0 +1,12 @@
+6ccc33e wuphf: materialize getting-started wiki pages
+7126c6b wuphf: materialize ai-revops blueprint skeletons
+85542d1 bot: seed agents/reviewer/TOOLS.md
+b19216e bot: seed agents/reviewer/OPERATIONS.md
+fbb2bf8 bot: seed agents/reviewer/IDENTITY.md
+246dd9a bot: seed agents/reviewer/SOUL.md
+2b81a59 bot: seed agents/ae/TOOLS.md
+841c0af bot: seed agents/ae/OPERATIONS.md
+67fbf54 bot: seed agents/ae/IDENTITY.md
+9a2b397 bot: seed agents/ae/SOUL.md
+45e141d bot: seed agents/analyst/TOOLS.md
+016bed8 bot: seed agents/analyst/OPERATIONS.md

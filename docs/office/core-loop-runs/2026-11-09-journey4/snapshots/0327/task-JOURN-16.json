@@ -1,0 +1,48 @@
+{
+ "taskId": "JOURN-16",
+ "lifecycleState": "running",
+ "spec": {
+  "feedback": [
+   {
+    "appendedAt": "2026-11-09T03:26:07.7874676Z",
+    "author": "cos",
+    "body": "计划已批准，按定义开工：交付 team/research/icp-hypothesis-2026q4.md，3 条假设每条含凭什么假设、两周证伪动作、缺口，数字无来源一律标 unknown，禁止编造。下周一前交付。"
+   }
+  ]
+ },
+ "sessionReport": {
+  "highlights": "",
+  "topWins": null,
+  "deadEnds": null,
+  "metadata": null
+ },
+ "changedFiles": null,
+ "reviewerGrades": null,
+ "dependencies": {
+  "parentTaskId": "",
+  "blockedOn": null
+ },
+ "updatedAt": "2026-11-09T03:26:07.7874676Z",
+ "task": {
+  "id": "JOURN-16",
+  "channel": "analyst__cos",
+  "title": "起草 ICP 假设文件 team/research/icp-hypothesis-2026q4.md",
+  "details": "任务：起草一页式 ICP 假设验证包。输出到 team/research/icp-hypothesis-2026q4.md。包含 3 条 ICP 假设，每条必须写清：归属人群定义、凭什么这么假设、两周内如何证伪（可立即执行的验证动作）、缺什么数据（缺失处标 unknown，不要编造）。无 CRM 历史和定价数据时，缺口用 [NEEDS CONFIRMATION] 标记，数字一律 unknown。目标：下周一前可审稿。\n\n计划已批准，按定义开工：交付 team/research/icp-hypothesis-2026q4.md，3 条假设每条含凭什么假设、两周证伪动作、缺口，数字无来源一律标 unknown，禁止编造。下周一前交付。",
+  "owner": "analyst",
+  "status": "in_progress",
+  "created_by": "cos",
+  "task_type": "issue",
+  "pipeline_id": "issue",
+  "pipeline_stage": "breakdown",
+  "execution_mode": "live_external",
+  "review_state": "pending_review",
+  "parent_issue_id": "JOURN-9",
+  "lifecycle_state": "running",
+  "due_at": "2026-11-09T04:26:07Z",
+  "follow_up_at": "2026-11-09T04:26:07Z",
+  "reminder_at": "2026-11-09T04:56:07Z",
+  "recheck_at": "2026-11-09T04:41:07Z",
+  "created_at": "2026-11-09T03:25:40Z",
+  "updated_at": "2026-11-09T03:26:07Z"
+ }
+}

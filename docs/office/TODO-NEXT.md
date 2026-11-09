@@ -61,6 +61,13 @@
 | J3-3 | **子任务创建时不带定义 → 只能等 creator 补，或绕 promotion（等人批）** | 有 `artifact_path` 的 `JOURN-81/85` 直写 wiki 成功（`060e338`/`3e432f0`）；`JOURN-78` 定义晚到 44 分钟，analyst 先写 notebook 再走 promotion，卡在 `request-129`（`analyst__human`，pending），`team/research/smb-retention-2026q4.md` 始终 404 | `internal/team/wiki_handlers.go:165`（`authorizeTaskArtifactWrite`：`artifact_path` 为空即拒，建议 `human_request`）、`broker_tasks_subissue_guards.go`（建子任务不要求定义） | **不放开写门**（门的意义就是「bot 不能自己命名路径」）。候选：① 建子任务时要求 `definition.artifact_path`（cos 一次声明四条 lane），代价是「未知产物路径的 lane」不能再建；② 拒写文案直接点名 creator：「让 cos 用 `team_task define` 补 `artifact_path` 再重写」，并自动在 creator⇄owner 频道投一条（J3 里 analyst 自己想到了，但花了 44 分钟等 cos） |
 | J3-4 | ~~**`actions` 不记录「计划被批准」**~~ **判错了，不是缺陷（2026-11-09 复核）** | J3 观察里写的「`GET /tasks/JOURN-18` 的 `actions` 为 0 条」是我按不存在的字段推的：task wire（`snapshots/0206/task-JOURN-18.json`）只有 `ledger`（逐回合），没有 `actions`。批准事实记在**办公室全局动作账本**：`broker_tasks_mutation_service.go` 的 approve 激活分支会 `appendActionLocked("task_updated", …, "…[approved]", task.ID)` | 无代码改动 | 若要「在任务页面看到批准时间线」，那是 task wire 要不要内联全局账本的产品决定，不是账本缺失 |
 
+### Journey 4 复核（2026-11-09，J3-1/J3-2 端到端）
+
+- **J3-1 通过**：隔离办公室 `journey4`（HEAD `364511c`）里提交人给的 Issue `JOURN-9`（03:21:55Z）→ 31 秒后 `request-12` 自己出现，`dedupe_key=plan-approval:JOURN-9`；全办公室仅此一张；只答这张卡（`POST /interview/answer`）同一秒 `lifecycle_state=running`，1 分钟内拆出 `JOURN-16`/`JOURN-18`。证据 `core-loop-runs/2026-11-09-journey4/`。
+- **J3-2 通过**：`JOURN-16` 03:30 进 `decision`，其 `recheck` job 在 03:31:11 真跑过并收为 `done`（`next_run=null`），全轮 `watchdog_alert` 0 条、`watchdogs[]` 空。对照（planning 仍受监视）窗口内未观察到，由单测 `TestSchedulerStillWatchesPlanningTasks` / `TestSchedulerStillAlarmsParkedTask` 承担。
+- **新观察，升为 J3-5**：同为 `running` 的两条 lane，`JOURN-16` 有 `recheck`、`JOURN-18` 只有 60 分钟的 `task_follow_up`；`running` 态超时只写 `actions.task_stalled`，不写 `watchdog_alert`、不进 `watchdogs[]`（J3-2 只覆盖 review 态）。判据：一条 `running` lane 在 `stalled_since` 之后要么有人可见告警、要么有短周期重投，二选一，不能只有账本。
+- **J3-3 稳定复现**：J4 里两条子 Issue 同样创建时无 `definition`，同样撞 `wiki 直写 403`、改走 notebook + 请 @cos 补 `artifact_path`。
+
 ### 2026-11-09 复核
 
 - **J3-1 已修**：`runHeadlessOpencodeTurn` 在回合开始时算 `planning := l.resolveTurnPosture(ctx, slug) == posturePlan`，回合成功且有正文时 `emitHeadlessPlan(...)` 出计划卡，并在末尾 `l.raisePlanApprovalAfterTurn(taskID, slug, text)`（空计划不发、非 planning 任务 `RaisePlanApproval` 自会 no-op）。测试：`TestOpencodePlanningTurnRaisesPlanApproval`（去掉 raise 调用即失败：`raised 0 plan-approval interviews, want 1`）、`TestOpencodeRunningTurnRaisesNoPlanApproval`。opencode 仍无原生 plan/read-only 模式，姿态只改结果处理，不改权限——这一点与 Claude/Codex 不同，注释已写清。
