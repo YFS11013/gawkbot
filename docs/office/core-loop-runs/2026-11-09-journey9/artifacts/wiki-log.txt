@@ -1,0 +1,388 @@
+commit dca4f983b2ddf98831e411f22f5c9069b16e6a7e
+Author: a-acme <a-acme@wuphf.local>
+Date:   2026-11-09 22:21:11 +0800
+
+    librarian: enhance skill a-acme
+
+ index/all.md          |  4 ++++
+ team/skills/a-acme.md | 32 ++++++++++++++++++++++++++++++++
+ 2 files changed, 36 insertions(+)
+
+commit db3c012568d5021e3a3894d9bf3d6ea7e4f5e921
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-09 22:21:10 +0800
+
+    archivist: compile playbook b-48-acme
+
+ team/playbooks/.compiled/b-48-acme/SKILL.md | 36 +++++++++++++++++++++++++++++
+ 1 file changed, 36 insertions(+)
+
+commit 243735017b32c2dc55d5e5d15bf2d4aa2a4433bf
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-09 22:21:10 +0800
+
+    archivist: create playbook draft b-48-acme from JOURN-105
+
+ index/all.md                |  1 +
+ team/playbooks/b-48-acme.md | 28 ++++++++++++++++++++++++++++
+ 2 files changed, 29 insertions(+)
+
+commit fe9044beb3752ab281aff16a44d6d54db02194e0
+Author: cos <cos@wuphf.local>
+Date:   2026-11-09 22:21:10 +0800
+
+    learning: operational/b-48-acme
+
+ index/all.md               |  2 +-
+ team/learnings/index.jsonl |  1 +
+ team/learnings/index.md    | 10 ++++++++++
+ 3 files changed, 12 insertions(+), 1 deletion(-)
+
+commit aac8df67ddc05723a9480eb87143d4a5997d48f5
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-09 22:21:09 +0800
+
+    archivist: entity article companies/vp-ops (5 facts)
+
+ index/all.md             |  2 +-
+ team/companies/vp-ops.md | 12 +++++++-----
+ 2 files changed, 8 insertions(+), 6 deletions(-)
+
+commit 620a9a2ce40185e9c83899d7fd9e9251fc15a390
+Author: cos <cos@wuphf.local>
+Date:   2026-11-09 22:21:08 +0800
+
+    fact: companies/vp-ops — Completed task JOURN-105 ("审阅：子任务 B：48 小时跟进邮件草稿（Acme 续约）") involved this entity. Goal: 独立审阅 JOURN-16 的交付，逐条对照验收标准给出可执行的发现。. Produced artifact: team/reviews/JOURN-16.md.
+
+ team/entities/companies-vp-ops.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 129a5a4691d2808ce47a3443e0b597792b9843e9
+Author: cos <cos@wuphf.local>
+Date:   2026-11-09 22:21:04 +0800
+
+    独立审阅 JOURN-16 跟进邮件草稿，结论通过并落盘 JOURN-16.md
+
+ index/all.md             |  1 +
+ team/reviews/JOURN-16.md | 64 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 65 insertions(+)
+
+commit d173f880ef115fc3d7b5c13734b4391ac3a403ff
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-09 22:20:38 +0800
+
+    archivist: entity article companies/vp-ops (4 facts)
+
+ index/all.md             |  2 +-
+ team/companies/vp-ops.md | 12 +++++++-----
+ 2 files changed, 8 insertions(+), 6 deletions(-)
+
+commit 4eb84b4ac6d60b8d3d8cd374aa2f61a95b3a9d44
+Author: ae <ae@wuphf.local>
+Date:   2026-11-09 22:20:36 +0800
+
+    fact: companies/vp-ops — Completed task JOURN-16 ("子任务 B：48 小时跟进邮件草稿（Acme 续约）") involved this entity. Goal: 子任务 B：48 小时跟进邮件草稿（Acme 续约）. Produced artifact: team/emails/acme-renewal-followup.md.
+
+ team/entities/companies-vp-ops.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 9c44ab5e23d0ab63d03be7b7a9b0ab8b93423a02
+Author: a-acme <a-acme@wuphf.local>
+Date:   2026-11-09 22:14:45 +0800
+
+    librarian: enhance skill a-acme
+
+ team/skills/a-acme.md | 31 +++++++++++++++++++++++++++++++
+ 1 file changed, 31 insertions(+)
+
+commit b99026ab54905a9573a4c3e7d58437b8cfe82fe8
+Author: a-acme <a-acme@wuphf.local>
+Date:   2026-11-09 21:53:03 +0800
+
+    librarian: enhance skill a-acme
+
+ index/all.md          |  4 ++++
+ team/skills/a-acme.md | 37 +++++++++++++++++++++++++++++++++----
+ 2 files changed, 37 insertions(+), 4 deletions(-)
+
+commit b544958d9c13d7bbd821ec67222448071a5420f6
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-09 21:53:03 +0800
+
+    archivist: compile playbook c-acme
+
+ team/playbooks/.compiled/c-acme/SKILL.md | 36 ++++++++++++++++++++++++++++++++
+ 1 file changed, 36 insertions(+)
+
+commit a39029dbe2ced4f7e88c2c35b24600f1ac29d7c8
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-09 21:53:03 +0800
+
+    archivist: create playbook draft c-acme from JOURN-77
+
+ index/all.md             |  1 +
+ team/playbooks/c-acme.md | 28 ++++++++++++++++++++++++++++
+ 2 files changed, 29 insertions(+)
+
+commit d273091233c1fe1327b87ce158b39acbdc5bbc7f
+Author: cos <cos@wuphf.local>
+Date:   2026-11-09 21:53:02 +0800
+
+    learning: operational/c-acme
+
+ index/all.md               |  2 +-
+ team/learnings/index.jsonl |  1 +
+ team/learnings/index.md    | 12 ++++++++++++
+ 3 files changed, 14 insertions(+), 1 deletion(-)
+
+commit 57d670df18c4789730b7c803338a81b7ee411bbe
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-09 21:53:02 +0800
+
+    archivist: entity article people/reviewer (2 facts)
+
+ index/all.md            |  2 +-
+ team/people/reviewer.md | 12 +++++++-----
+ 2 files changed, 8 insertions(+), 6 deletions(-)
+
+commit 258229c4f4c0a19bdc1187eb4f68de727a8ac0b4
+Author: cos <cos@wuphf.local>
+Date:   2026-11-09 21:53:01 +0800
+
+    fact: people/reviewer — Completed task JOURN-77 ("审阅：子任务 C：数字与事实终审（Acme 续约）") involved this entity. Goal: 独立审阅 JOURN-18 的交付，逐条对照验收标准给出可执行的发现。. Produced artifact: team/reviews/JOURN-18.md.
+
+ team/entities/people-reviewer.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 27257857e56260caaaa1db8d6130325db1f90f9b
+Author: cos <cos@wuphf.local>
+Date:   2026-11-09 21:52:26 +0800
+
+    JOURN-18终审已复核
+
+ ...-18\347\273\210\345\256\241\345\267\262\345\244\215\346\240\270.md" | 3 +++
+ 1 file changed, 3 insertions(+)
+
+commit add9ac51a8977b9584a6f05eec971b8d2757d246
+Author: cos <cos@wuphf.local>
+Date:   2026-11-09 21:52:25 +0800
+
+    JOURN-77 审阅 JOURN-18 过程记录
+
+ ...0\205-journ-18-\350\277\207\347\250\213\350\256\260\345\275\225.md" | 3 +++
+ 1 file changed, 3 insertions(+)
+
+commit 34842d10c28db0f8eddfb38fab98f1ca0f47d80d
+Author: cos <cos@wuphf.local>
+Date:   2026-11-09 21:52:10 +0800
+
+    审阅 JOURN-18 终审交付：写入独立审阅结论
+
+ index/all.md             |  3 ++-
+ team/reviews/JOURN-18.md | 63 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 65 insertions(+), 1 deletion(-)
+
+commit ff254d769bfbf5ce7b2bfff2c0882fcc6980af3a
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-09 21:52:01 +0800
+
+    archivist: update playbook draft a-acme from JOURN-56
+
+ index/all.md             | 2 +-
+ team/playbooks/a-acme.md | 3 +++
+ 2 files changed, 4 insertions(+), 1 deletion(-)
+
+commit 595ec294d040bc9004e802204fad03d93ad8143a
+Author: cos <cos@wuphf.local>
+Date:   2026-11-09 21:52:00 +0800
+
+    learning: operational/acme
+
+ index/all.md               |  2 +-
+ team/learnings/index.jsonl |  1 +
+ team/learnings/index.md    | 12 ++++++++++++
+ 3 files changed, 14 insertions(+), 1 deletion(-)
+
+commit 71b2eb13c630008980088716966bf87bb7f325a5
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-09 21:52:00 +0800
+
+    archivist: entity article people/reviewer (1 facts)
+
+ index/all.md            |  1 +
+ team/people/reviewer.md | 30 ++++++++++++++++++++++++++++++
+ 2 files changed, 31 insertions(+)
+
+commit fa4c48193685bffa84ba83063b12c3c59f584e10
+Author: cos <cos@wuphf.local>
+Date:   2026-11-09 21:51:59 +0800
+
+    fact: people/reviewer — Completed task JOURN-56 ("审阅：Acme 续约数字与事实终审") involved this entity. Goal: 独立审阅 JOURN-32 的交付，逐条对照验收标准给出可执行的发现。. Produced artifact: team/reviews/JOURN-32.md.
+
+ team/entities/people-reviewer.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 943d84db37843415a1112a88e2941a534f4cc53b
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-09 21:51:40 +0800
+
+    archivist: entity article companies/vp-ops (3 facts)
+
+ index/all.md             |  2 +-
+ team/companies/vp-ops.md | 10 ++++++----
+ 2 files changed, 7 insertions(+), 5 deletions(-)
+
+commit 1a1e6e7c3423c926f68de083d1ef3fc8796b2143
+Author: reviewer <reviewer@wuphf.local>
+Date:   2026-11-09 21:51:39 +0800
+
+    fact: companies/vp-ops — Completed task JOURN-18 ("子任务 C：数字与事实终审（Acme 续约）") involved this entity. Goal: 子任务 C：数字与事实终审（Acme 续约）. Produced artifact: team/reviews/acme-renewal-final-check.md.
+
+ team/entities/companies-vp-ops.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit c445be63926c2bd4ed0c99d38355c910aecaea04
+Author: cos <cos@wuphf.local>
+Date:   2026-11-09 21:50:34 +0800
+
+    JOURN-32 审阅结论
+
+ ...09-journ-32-\345\256\241\351\230\205\347\273\223\350\256\272.md" | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+commit 02bfa27b19c9d9276047be60e9afc12e6dcd7853
+Author: cos <cos@wuphf.local>
+Date:   2026-11-09 21:50:13 +0800
+
+    独立审阅 JOURN-32 终审交付
+
+ index/all.md             |  1 +
+ team/reviews/JOURN-32.md | 59 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 60 insertions(+)
+
+commit 5fda0c7ad8dac0035abe3699a814931b03e79408
+Author: a-acme <a-acme@wuphf.local>
+Date:   2026-11-09 21:49:56 +0800
+
+    librarian: compile skill a-acme
+
+ index/all.md          |  4 ++++
+ team/skills/a-acme.md | 52 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 56 insertions(+)
+
+commit 5b6b46823a68fbfc99350a3f87b1ee1b1fc45fec
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-09 21:49:56 +0800
+
+    archivist: compile playbook a-acme
+
+ team/playbooks/.compiled/a-acme/SKILL.md | 36 ++++++++++++++++++++++++++++++++
+ 1 file changed, 36 insertions(+)
+
+commit c3c0bc81cc3fda33cf4b471633b5b7b9d4008b2f
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-09 21:49:56 +0800
+
+    archivist: create playbook draft a-acme from JOURN-35
+
+ index/all.md             |  1 +
+ team/playbooks/a-acme.md | 28 ++++++++++++++++++++++++++++
+ 2 files changed, 29 insertions(+)
+
+commit ce6cfe6f140e797a52f6dc319d9a82c04a69c277
+Author: cos <cos@wuphf.local>
+Date:   2026-11-09 21:49:55 +0800
+
+    learning: operational/a-acme
+
+ index/all.md               |  4 ++++
+ team/learnings/index.jsonl |  1 +
+ team/learnings/index.md    | 18 ++++++++++++++++++
+ 3 files changed, 23 insertions(+)
+
+commit e614106a3dea2cd355f124039cd031ff3919f8b3
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-09 21:49:55 +0800
+
+    archivist: entity article people/analyst (1 facts)
+
+ index/all.md           |  4 ++++
+ team/people/analyst.md | 30 ++++++++++++++++++++++++++++++
+ 2 files changed, 34 insertions(+)
+
+commit ccdbaf54a9857a4324d011b999cc176bcedfe40e
+Author: cos <cos@wuphf.local>
+Date:   2026-11-09 21:49:54 +0800
+
+    fact: people/analyst — Completed task JOURN-35 ("审阅：子任务 A：报价说明草稿（Acme 续约）") involved this entity. Goal: 独立审阅 JOURN-14 的交付，逐条对照验收标准给出可执行的发现。. Produced artifact: team/reviews/JOURN-14.md.
+
+ team/entities/people-analyst.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 2f347fbdba20c8c6a83d159b921b8e78a11222ef
+Author: cos <cos@wuphf.local>
+Date:   2026-11-09 21:49:49 +0800
+
+    补充审阅依据
+
+ ...245\345\205\205\345\256\241\351\230\205\344\276\235\346\215\256.md" | 3 +++
+ 1 file changed, 3 insertions(+)
+
+commit 73b3b1b0e5a711cc390aafe0457eef59870cb0c2
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-09 21:49:21 +0800
+
+    archivist: entity article companies/vp-ops (2 facts)
+
+ index/all.md             |  2 +-
+ team/companies/vp-ops.md | 12 +++++++-----
+ 2 files changed, 8 insertions(+), 6 deletions(-)
+
+commit 98af7adcb9f606d9a7f28b232bcb219d851ad19c
+Author: reviewer <reviewer@wuphf.local>
+Date:   2026-11-09 21:49:20 +0800
+
+    fact: companies/vp-ops — Completed task JOURN-32 ("Acme 续约数字与事实终审") involved this entity. Goal: Acme 续约数字与事实终审. Produced artifact: team/reviews/acme-renewal-final-check.md.
+
+ team/entities/companies-vp-ops.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit fe85fd686b22c59e8249808ccefbfe9825f35a0e
+Author: reviewer <reviewer@wuphf.local>
+Date:   2026-11-09 21:49:16 +0800
+
+    JOURN-32 子任务 C 终审：Acme 续约数字与事实核对通过
+
+ index/all.md                             |  1 +
+ team/reviews/acme-renewal-final-check.md | 33 ++++++++++++++++++++++++++++++++
+ 2 files changed, 34 insertions(+)
+
+commit 337ed12240d7a4896810dbaf942bcac5bfcf8d7b
+Author: cos <cos@wuphf.local>
+Date:   2026-11-09 21:49:08 +0800
+
+    JOURN-35 审阅 JOURN-14 结论记录
+
+ ...-journ-14-\347\273\223\350\256\272\350\256\260\345\275\225.md" | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+commit 67b359cd665c0d25a046412f02a288180ec6e239
+Author: reviewer <reviewer@wuphf.local>
+Date:   2026-11-09 21:49:06 +0800
+
+    JOURN-32 数字与事实终审报告：A/B 两稿数字互核通过
+
+ agents/reviewer/notebook/acme.md               | 11 ++++
+ wiki/visual-artifacts/ra_01fc3c1f14f1d426.html | 82 ++++++++++++++++++++++++++
+ wiki/visual-artifacts/ra_01fc3c1f14f1d426.json | 23 ++++++++
+ 3 files changed, 116 insertions(+)
+
+commit d400139cdc9c8cd1da88b32423d1f8b16b443635
+Author: cos <cos@wuphf.local>
+Date:   2026-11-09 21:48:52 +0800
+
+    审阅 JOURN-14 报价说明草稿：逐条对照验收标准，结论为通过
+
+ index/all.md             |  4 ++++
+ team/reviews/JOURN-14.md | 61 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 65 insertions(+)

@@ -1,0 +1,37 @@
+{
+ "requests": [
+  {
+   "id": "request-24",
+   "kind": "approval",
+   "status": "pending",
+   "from": "cos",
+   "channel": "cos__human",
+   "title": "Approve new channel #hygiene?",
+   "question": "Create the #hygiene channel?",
+   "context": "@cos wants to create a NEW office channel (durable structure, not a task).\n- Slug: #hygiene\n- For: CRM hygiene sweep for ai-revops-1: dedupe accounts, backfill owners, flag stale opportunities.\nApprove only if this work does not belong in a channel that already exists. Rejecting keeps the sidebar unchanged; the requester should use an existing channel.",
+   "options": [
+    {
+     "id": "approve",
+     "label": "Approve",
+     "description": "Green-light this and let the team execute immediately."
+    },
+    {
+     "id": "reject",
+     "label": "Reject",
+     "description": "Do not proceed with this."
+    }
+   ],
+   "recommended_id": "approve",
+   "blocking": true,
+   "required": true,
+   "reply_to": "msg-25",
+   "dedupe_key": "channel-create:hygiene",
+   "due_at": "2026-11-09T14:11:43Z",
+   "follow_up_at": "2026-11-09T15:11:43Z",
+   "reminder_at": "2026-11-09T14:11:43Z",
+   "recheck_at": "2026-11-09T14:11:43Z",
+   "created_at": "2026-11-09T13:41:43Z",
+   "updated_at": "2026-11-09T13:41:43Z"
+  }
+ ]
+}

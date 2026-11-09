@@ -1,0 +1,7 @@
+2026/11/09 21:47:39 wiki write-task: task=JOURN-14 slug=analyst path=team/accounts/acme-renewal-quote.md bytes=477
+2026/11/09 21:47:40 wiki write-task refused: task=JOURN-16 slug=ae path=team/emails/acme-renewal-follow-up.md: task JOURN-16 declares artifact_path "team/emails/acme-renewal-followup.md", not "team/emails/acme-renewal-follow-up.md"
+2026/11/09 21:47:47 wiki write-task: task=JOURN-16 slug=ae path=team/emails/acme-renewal-followup.md bytes=499
+2026/11/09 21:48:52 wiki write-task: task=JOURN-35 slug=cos path=team/reviews/JOURN-14.md bytes=4675
+2026/11/09 21:49:17 wiki write-task: task=JOURN-32 slug=reviewer path=team/reviews/acme-renewal-final-check.md bytes=1931
+2026/11/09 21:50:13 wiki write-task: task=JOURN-56 slug=cos path=team/reviews/JOURN-32.md bytes=6277
+2026/11/09 21:52:10 wiki write-task: task=JOURN-77 slug=cos path=team/reviews/JOURN-18.md bytes=6776
