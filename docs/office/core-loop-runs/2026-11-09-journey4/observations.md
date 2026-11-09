@@ -61,3 +61,8 @@
 2. **recheck 覆盖不一致**：同为 `running`，`JOURN-16` 有 `recheck`，`JOURN-18` 只有 60 分钟的 `task_follow_up`。
 3. **`task_stalled` 只记账不报警**：`running` 态任务超时只写 `actions`，不写 `watchdog_alert`、不进 `watchdogs[]`。J3-2 的改动只覆盖 review 态，这条留给下一步判断。
 4. **`/requests?scope=office` 依然看不到 DM 域的卡**（`request-12` 在 `cos__human`）。本轮靠 `broker-state.json` 才拿到全量；UI 侧是否有入口未验证。
+
+## 7. 记录缺口（自我记账）
+
+- `JOURN-16` 落盘的 `team/research/icp-hypothesis-2026q4.md` **没有在 shred 前复制进仓库**：证据只到 `snapshots/0347/wiki-tree.txt`、`task-JOURN-16.json` 的 `artifact` 字段与 wiki git log（B 级：文件曾经在盘），正文内容不可复核。J3 的流程（shred 前 `cp` 产物）本轮漏了一步；下次跑完先归档产物再 shred。
+- 本轮 `workspace shred --yes journey4` 已执行，7910/7911 释放；证据目录保留 `prereg.md` / `observations.md` / `scorecard.md` / `snapshots/0323|0327|0335|0347|0348`。
