@@ -66,3 +66,12 @@
 
 - `JOURN-16` 落盘的 `team/research/icp-hypothesis-2026q4.md` **没有在 shred 前复制进仓库**：证据只到 `snapshots/0347/wiki-tree.txt`、`task-JOURN-16.json` 的 `artifact` 字段与 wiki git log（B 级：文件曾经在盘），正文内容不可复核。J3 的流程（shred 前 `cp` 产物）本轮漏了一步；下次跑完先归档产物再 shred。
 - 本轮 `workspace shred --yes journey4` 已执行，7910/7911 释放；证据目录保留 `prereg.md` / `observations.md` / `scorecard.md` / `snapshots/0323|0327|0335|0347|0348`。
+
+## 8. 修复落地（同日，J3-3 与 J3-5 的可观测性部分）
+
+| 缺陷 | 修法 | 现场验证（隔离办公室 `j5smoke2`，7910） |
+|---|---|---|
+| J3-3 拒写只说给 bot 听 | `wiki_handlers.go`：拒写文案点名 `created_by`、指到 `definition.artifact_path`、明说重试无效；首次拒绝往任务频道投一条 `kind=artifact_path_missing` 的 system 消息（@creator + @owner），按任务去重 | 对无 `definition` 的任务连打 3 次 `/wiki/write-task` → 3 次 403（同一句文案），`analyst__cos` 里只有 **1 条** nudge：「@cos: JSMOK-28 has no definition.artifact_path, so @analyst's write to team/research/smoke.md was refused… Owner: @analyst.」 |
+| J3-5 关掉的 job 说不清为什么 | `schedulerJob.StatusReason`（wire `status_reason`）：审阅门写 `awaiting review (decision)`、被顶掉写 `superseded by task_follow_up`、连带关闭写 `target closed`；重新排期即清空 | `POST /tasks/JSMOK-2/cancel` 后 `/scheduler` 里 `task-follow-up:analyst--cos:jsmok-2` → `status=done`、`status_reason=target closed`、`next_run=null`，而活着的行 reason 为空 |
+
+两处都有 failing-before 单测（去掉去重/去掉点名/去掉 reason 即红）。全量 `go test ./internal/team/ -timeout 30m` 一轮里 `TestObsidianWatcher_StopDuringPendingDebounce` 因 Windows 临时目录句柄报 cleanup 错，单独跑通过——并行执行下的文件锁抖动，与本轮改动无关。

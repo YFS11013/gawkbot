@@ -11,6 +11,25 @@ All notable changes to WUPHF will be documented in this file.
   CVE-2026-42504, CVE-2026-42507, and x509 certificate parsing resource
   consumption. This is separate from the Time Machine cache exclusion change.
 
+### Fixed
+
+- **A refused artifact write now reaches the person who can fix it.** When a
+  task has no `definition.artifact_path`, `/wiki/write-task` used to answer the
+  bot with "pass human_request instead" and stop there; the bot silently fell
+  back to a notebook and the human only found out at review (Journey 3 and 4
+  both hit this through sub-issues the planner created without a definition).
+  The refusal now names the task's creator, points at
+  `definition.artifact_path`, and says retrying cannot succeed — plus one
+  `artifact_path_missing` system message in the task's channel addressing both
+  the creator and the owner. Deduped per task off the audit log, so a bot that
+  retries every turn still produces exactly one nudge.
+
+- **Closed scheduler jobs say why they closed.** `status_reason` joins the
+  scheduler wire shape: the review gate writes "awaiting review (state)", a
+  superseded job writes "superseded by task_follow_up", a bulk close writes
+  "target closed". Journey 4 could not tell a review-gate close from a
+  supersede close on `recheck:…journ-16` because both paths stamp `last_run`.
+
 ### Added
 
 - **Agents on this machine.** gawkbot now scans for the agent CLIs installed

@@ -429,6 +429,18 @@ broker 在进程启动时就把 provider 定下来了，而 `workspace create` �
 
 测试：`TestSeedWorkspaceConfigCopiesProviderAndMemory`、`TestSeedWorkspaceConfigLeavesAnExistingFileAlone`。
 
+### 9.13 拒绝要指名「谁能修」，并且只喊一次（2026-11-09，J3-3）
+
+`/wiki/write-task` 的写门是对的：bot 不能自己命名 wiki 路径，路径必须由建任务的人先钉在 `definition.artifact_path` 上。错的是拒绝的**去向**——旧文案只有一句 `pass human_request instead`，说给 bot 听，人看不到；Journey 3/4 里两条 lane 都因此退到 notebook，人类到评审才发现产物降级。
+
+结论：拒绝属于**产品事件**，不是 HTTP 细节。
+
+- 文案点名 `created_by`，并直说「重试不会成功」——否则 bot 会把同一次拒绝当成可重试错误，转圈。
+- 第一次拒绝往任务频道投一条 `kind=artifact_path_missing` 的 system 消息，同时 @creator（能钉路径的人）和 @owner（当下要绕道的人）。任务频道里这两个人本来就在场，不需要另建频道。
+- 按任务去重，凭审计行判断而不是内存集合：消息列表重启会丢，审计行不会；bot 每回合重试也只喊一次。
+
+不做的是「建子任务时强制要求 `definition.artifact_path`」：有合法的工作本来就没有固定产物路径（聊天里回答、改个配置），强制它会让这类 lane 建不出来。需要「不产出文件」时用既有的 `ArtifactNotRequired` 显式声明。
+
 ### 9.12 Journey 3：planning 姿态缺一处接线，watchdog 把「等审阅」当「不动」（2026-11-09）
 
 Journey 3（`core-loop-runs/2026-11-09-journey3/`，预注册 `dc62efb`）得 **6/10（25/36）**，比 Journey 2 的 5/10 高一分。J2 的四处修复（产物门、审批不阻塞投递、可见化+短重投、技能编译）全部当场验证通过；扣分主要来自两处新暴露的机制缺陷，都已在本轮修掉。
