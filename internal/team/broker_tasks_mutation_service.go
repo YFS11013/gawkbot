@@ -1466,12 +1466,22 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		// own (the task declared what done means and met it), so the gate binds
 		// only when neither an artifact nor fresh proof exists.
 		notArtifactDone := reachedDone && strings.TrimSpace(task.Artifact) == "" && !taskCompletionProvesDelivery(task)
+		// A declared write scope is a contract for a FILE (Journey 8, D3).
+		// JOURN-17 declared team/research/acme-renewal-quote.md at create and
+		// then closed with a visual artifact (ra_4904a7a50a981735): the gate
+		// above saw a non-empty Artifact and passed, team/research/ stayed
+		// empty, and the run's "the shared wiki really gets the files" claim
+		// rested on five lanes instead of six. Pinning a scope at create is
+		// only worth anything if the landing is checked against it.
+		visualOnlyDelivery := reachedDone && declaredArtifactScope(task) != "" &&
+			isVisualArtifactRef(task.Artifact) && !taskCompletionProvesDelivery(task)
 		// A declaration can already sit on the task: internal bookkeeping work
 		// (skill runs) stamps one at creation, and a reopened task keeps the
 		// one it earned. The request can add or refresh it, never silently
 		// replace a recorded reason with none.
-		declaredNotRequired := notArtifactDone && strings.TrimSpace(task.ArtifactNotRequired) != ""
-		if notArtifactDone && strings.EqualFold(strings.TrimSpace(body.Verification), verificationNotRequired) {
+		gateApplies := notArtifactDone || visualOnlyDelivery
+		declaredNotRequired := gateApplies && strings.TrimSpace(task.ArtifactNotRequired) != ""
+		if gateApplies && strings.EqualFold(strings.TrimSpace(body.Verification), verificationNotRequired) {
 			reason := strings.TrimSpace(body.VerificationReason)
 			if reason == "" {
 				rollbackTask()
@@ -1490,6 +1500,17 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 				fmt.Sprintf(
 					"task %s cannot reach done with no artifact. Publish the deliverable to the wiki, then retry this %s with artifact_path set to the wiki-relative path (e.g. \"team/playbooks/launch.md\") or the visual-artifact id. If this work genuinely ships no file, pass verification=not_required with verification_reason.",
 					task.ID, action,
+				),
+				nil,
+			)
+		}
+		if visualOnlyDelivery && !declaredNotRequired {
+			rollbackTask()
+			return TaskResponse{}, taskMutationError(
+				TaskMutationArtifactRequired,
+				fmt.Sprintf(
+					"task %s declared the write scope %s, so a visual artifact (%s) does not close it: visual artifacts live under wiki/visual-artifacts/ and never land in team/**, which is where the declared deliverable was supposed to go. Publish the file with /wiki/write-task at that exact path, then retry this %s with artifact_path=%s — or, if this lane genuinely ships no file after all, pass verification=not_required with verification_reason.",
+					task.ID, declaredArtifactScope(task), strings.TrimSpace(task.Artifact), action, declaredArtifactScope(task),
 				),
 				nil,
 			)
@@ -1554,6 +1575,13 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 			pendingCascade = b.unblockDependentsLocked(task.ID)
 		}
 		b.scheduleTaskLifecycleLocked(task)
+		// A lane landing is news to the rest of its issue: pull the parent's and
+		// every still-running sibling's next wake forward (Journey 8, D1/D4 —
+		// see rearmParentAndSiblingFollowUpsLocked). Without this the only timer
+		// anyone under the issue carries is the hourly follow-up.
+		if reachedDone {
+			b.rearmParentAndSiblingFollowUpsLocked(task)
+		}
 		if err := b.syncTaskWorktreeLocked(task); err != nil {
 			rollbackTask()
 			return TaskResponse{}, taskMutationError(TaskMutationWorktreeFailed, "failed to manage task worktree", err)

@@ -312,6 +312,15 @@ func richArtifactID(slug, title, createdAt, html, summary, sourcePath, relatedTa
 	return "ra_" + hex.EncodeToString(sum[:])[:16]
 }
 
+// isVisualArtifactRef reports whether ref names a rich/visual artifact
+// ("ra_…") rather than a wiki path. Visual artifacts live under
+// wiki/visual-artifacts/ and are read on the studio surface; they are NOT the
+// team/** markdown an issue lane owes when it declared a write scope (Journey
+// 8, JOURN-17 closed that way and left team/research/ empty).
+func isVisualArtifactRef(ref string) bool {
+	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(ref)), "ra_")
+}
+
 func richArtifactContentHash(html string) string {
 	sum := sha256.Sum256([]byte(html))
 	return hex.EncodeToString(sum[:])

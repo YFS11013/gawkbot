@@ -112,11 +112,13 @@ prereg `a4ff236`，被测 `5a026e7`，判分 `core-loop-runs/2026-11-09-journey8
 - **机制成立**：批准后 30 秒内拆出 6 条 lane，**全部一次带 `definition.artifact_path`**；`write-task` 成功 9 次，`team/**` 新增 `team/emails/` 2 份、`team/reviews/` 5 份，作者就是 lane owner。守卫拒绝 **0** 次——规划者读了系统提示就照做了。
 - **J3-3 的 403 链终于被锻炼**：4 次拒绝全是「声明了但路径不匹配」，每次都在 2–5 秒内改成声明路径并成功（`JOURN-15/19/21/23`）。反向臂（`JOURN-127`，human 建的未声明任务）3 次 403、只投 1 条 `artifact_path_missing`，文案点名 `@human` + `definition.artifact_path` + 重试无用。V1/V2/V4/V5/V6 通过或带保留，V3 未观察（没人撞守卫）。
 - **不触发回退**：F-A/B/C/D/E 全未触发，§9.15 的 A 方案保持。
-- **新缺陷（评分卡 §4）**：
-  - **D1（P1）**：cos 在 09:34:53 发起 notebook→wiki 推广审批（`request-117`），该卡 pending 之后 cos 再无自发消息，父任务 `JOURN-6` 30 分钟不推进，直到停表。pending 的 promotion 疑似 park 住发起者回合——需要用 `blocked_by`/调度明细证实（评分卡 §3.2 已列缺什么）。
-  - **D2（P1）**：同主题 lane 重复（15/17、19/21、23/25，C 轨同 `artifact_path`），兄弟去重只比标题相似度，前缀/标点差异就绕过了。建议按归一化 goal + `artifact_path` 唯一性双判。
-  - **D3（P1）**：`JOURN-17` 声明了 `team/research/acme-renewal-quote.md` 却以 `ra_…` visual artifact 交付，`team/research/` 为空。建议：`definition.artifact_path` 非空时不允许用 `ra_` 收 done。
-  - **D4（P2）** `JOURN-25` 停在 running 无后续唤醒；**D5** 分解检查 `status_reason` 写 "decomposed into 1 sub-issue(s)" 而实际 6 条；**D6** 路径不匹配的 403 不投提示（设计如此，但 bot 只能靠日志）。
+- **新缺陷（评分卡 §4）→ 2026-11-09 已修（`DESIGN-DECISIONS.md` §9.16）**：
+  - **D1 promotion 卡 park 住回合：证伪。** 推广卡 `Blocking=false`、`kind=approval`，既不过 `requestBlocksMessages`（要求 Blocking）也不过 `BotAwaitingInterviewAnswer`（只认 `kind=interview`）。停表的真因是下面的 D4。测试 `TestPromotionApprovalCardDoesNotParkOrGate` 钉住这条，别再拿兜底卡当嫌疑人，也别给它加自动放行。
+  - **D2 同主题 lane 重复：已修。** CJK 没有空格，整句是一个 token，两对重复的相似度只有 0.20 / 0.43。兄弟去重加两条：CJK shingle 包含度 ≥ 0.9 且 ≥ 6 个共享 shingle；同一父任务下两个 open lane 不得声明同一 `artifact_path`。`allow_duplicate=true` 可越过这两条。
+  - **D3 声明了路径却用 `ra_` 收 done：已修。** 完成门对「声明了写范围」的 lane 拒绝视觉 artifact；`verification=not_required` + 理由仍是出口；未声明范围的老任务行为不变。
+  - **D4/D1 落地没人叫醒：已修。** 一条 lane 落地会把父 Issue 和仍 open 的兄弟的既有 follow-up 拉到 ~2 分钟后（只提前，不新建）。
+  - **D5 分解计数：已修。** `TaskSubIssueTotals` 报「lane 总数 + 仍 open 数」，判断仍用总数（全落地时不能当空壳唤醒）。
+  - **D6 路径不匹配的 403 不投提示**：仍是设计如此（只有「未声明」才 nudge），没有改。要不要为「声明了但写错路径」也投一条，需要先定文案与去重，留到下一轮。
 
 - **`336bbbc` 在真机上的表现**：批准时装了 `plan-decomposition-check:cos--human:task:journ-6`；20 秒后父任务因拆出子 Issue 触发生命周期重排，把它以 `superseded by task_follow_up` 关掉（本轮无害，因为确实分解了）。但这个机制意味着**任何后续 mutation 都会取消这道保险**，而它要盯的恰恰是「任务一直 running、频道里却像在动」的状态。已修：`cancelSupersededTaskJobsLocked` 对 `plan_decomposition_check` 免于顶替（仍会在自身触发、终态 bulk close、取消时关闭）。测试 `TestDecompositionCheckSurvivesLifecycleRearm`（去掉豁免即失败：`status = "done" (reason "superseded by task_follow_up"), want scheduled`）。
 

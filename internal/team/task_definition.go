@@ -51,6 +51,19 @@ type TaskDefinition struct {
 	DefinedAt string `json:"defined_at,omitempty"`
 }
 
+// declaredArtifactScope returns the wiki path this task may write for itself,
+// normalized for comparison (slashes, no leading "./", trimmed). Empty means
+// the task declared no self-authorized write.
+func declaredArtifactScope(task *teamTask) string {
+	if task == nil || task.Definition == nil {
+		return ""
+	}
+	scope := strings.TrimSpace(task.Definition.ArtifactPath)
+	scope = strings.TrimPrefix(scope, "./")
+	scope = strings.TrimPrefix(scope, "/")
+	return scope
+}
+
 // normalizeTaskDefinition validates and canonicalizes a definition from the
 // wire. Goal is required; success-criteria entries must be non-empty.
 // DefinedAt is always stamped with the broker's now, never trusted from the

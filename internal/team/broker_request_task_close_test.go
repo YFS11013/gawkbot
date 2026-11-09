@@ -199,7 +199,7 @@ func TestPlanDecompositionCheckClosesWhenLanesExist(t *testing.T) {
 		ID: "JOURN-8", Title: "Journey 6: Acme renewal quote", Channel: "cos__human",
 		Owner: "cos", status: "in_progress", LifecycleState: LifecycleStateRunning,
 	}}
-	b.subIssueCounts = map[string]int{"JOURN-8": 2}
+	b.subIssueTotals = map[string][2]int{"JOURN-8": {2, 0}}
 	b.dueJobs = []schedulerJob{{
 		Slug: "plan_decomposition_check:cos__human:task:JOURN-8", Channel: "cos__human",
 		Kind: planDecompositionCheckKind, TargetType: "task", TargetID: "JOURN-8",
@@ -217,6 +217,36 @@ func TestPlanDecompositionCheckClosesWhenLanesExist(t *testing.T) {
 	}
 	if len(b.jobStateUpdates) != 1 || b.jobStateUpdates[0].status != "done" {
 		t.Fatalf("check must close; got %+v", b.jobStateUpdates)
+	}
+	// The reason has to read as "this parent grew lanes", not as a childless
+	// count: Journey 8's parent had six lanes and five already landed when this
+	// check fired, so an open-only count recorded "decomposed into 1
+	// sub-issue(s)" and the run record looked like the planner never split.
+	if got := b.jobStateUpdates[0].reason; !strings.Contains(got, "2 sub-issue(s)") || !strings.Contains(got, "0 still open") {
+		t.Fatalf("reason should report lanes and open lanes, got %q", got)
+	}
+}
+
+// TaskSubIssueTotals is what the reason is built from: it counts the lanes the
+// parent grew (canceled/archived excluded, since a cancel → rebuild cycle is
+// legal) and, separately, the ones still open. A delivered lane must still count
+// toward the total — otherwise a parent whose lanes all landed before the check
+// fires reads as childless and gets woken for nothing.
+func TestTaskSubIssueTotalsCountsDeliveredLanes(t *testing.T) {
+	b := newTestBroker(t)
+	now := time.Now().UTC().Format(time.RFC3339)
+	b.mu.Lock()
+	b.tasks = []teamTask{
+		{ID: "JOURN-6", Title: "Journey 8: Acme renewal", Channel: "team", Owner: "cos", status: "in_progress", CreatedAt: now},
+		{ID: "JOURN-15", Title: "Quote draft", Channel: "team", Owner: "eng", ParentIssueID: "JOURN-6", status: "done", CreatedAt: now},
+		{ID: "JOURN-17", Title: "Email draft", Channel: "team", Owner: "eng", ParentIssueID: "JOURN-6", status: "in_progress", CreatedAt: now},
+		{ID: "JOURN-19", Title: "Canceled slice", Channel: "team", Owner: "eng", ParentIssueID: "JOURN-6", status: "canceled", CreatedAt: now},
+	}
+	b.mu.Unlock()
+
+	total, open := b.TaskSubIssueTotals("JOURN-6")
+	if total != 2 || open != 1 {
+		t.Fatalf("totals = (%d,%d), want (2,1): delivered lanes count, canceled ones do not", total, open)
 	}
 }
 

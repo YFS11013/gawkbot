@@ -119,26 +119,36 @@ func (b *Broker) schedulePlanDecompositionCheckLocked(task *teamTask) {
 	_ = b.scheduleJobLocked(job)
 }
 
-// TaskSubIssueCount reports how many non-terminal tasks carry parentID as their
-// ParentIssueID — the observable difference between "the owner came back and
-// split the work" and "the owner never came back".
-func (b *Broker) TaskSubIssueCount(parentID string) int {
+// TaskSubIssueTotals reports how many lanes carry parentID and how many of them
+// are still open. total counts every lane on the board — canceled/archived ones
+// are excluded, since rebuilding canceled work is legal (J2-3) — and open counts
+// the non-terminal ones. The observable difference the plan-decomposition check
+// needs is "the owner came back and split the work" (total > 0), while the run
+// record wants both numbers.
+func (b *Broker) TaskSubIssueTotals(parentID string) (total, open int) {
 	if b == nil {
-		return 0
+		return 0, 0
 	}
 	id := strings.TrimSpace(parentID)
 	if id == "" {
-		return 0
+		return 0, 0
 	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	count := 0
 	for i := range b.tasks {
-		if strings.TrimSpace(b.tasks[i].ParentIssueID) == id && !isTerminalTeamTaskStatus(b.tasks[i].status) {
-			count++
+		if strings.TrimSpace(b.tasks[i].ParentIssueID) != id {
+			continue
+		}
+		status := b.tasks[i].status
+		if isTerminalTeamTaskStatus(status) && !isDeliveredTeamTaskStatus(status) {
+			continue
+		}
+		total++
+		if !isTerminalTeamTaskStatus(status) {
+			open++
 		}
 	}
-	return count
+	return total, open
 }
 
 // ScheduleNoTraceRetry arms one short retry for a task whose last turn changed
@@ -463,6 +473,82 @@ func (b *Broker) cancelSupersededTaskJobsLocked(taskID, channel, keepKind string
 	}
 }
 
+// siblingLaneFollowUpDelay is how soon a parent Issue and its still-running
+// lanes are woken after one of their lanes lands. It is deliberately short and
+// deliberately not zero: the point is to bridge the gap described below, not to
+// put another turn in front of the bot that just finished.
+const siblingLaneFollowUpDelay = 2 * time.Minute
+
+// rearmParentAndSiblingFollowUpsLocked pulls the next wake forward for a parent
+// Issue and for every lane still running under it, after a sibling lane landed.
+//
+// Why (Journey 8, D1/D4): the only timer a running task carries is the hourly
+// task_follow_up armed by scheduleTaskLifecycleLocked. An issue approved at
+// 09:31 and split into six lanes therefore went silent at 09:35:57 — every lane
+// had landed except JOURN-25, whose owner was waiting for the others, and the
+// next wake for anyone involved was 10:31. From the outside that is
+// indistinguishable from a wedged office: a parent stuck in_progress, one lane
+// stuck running, two "gone quiet" notices, and 26 minutes of nothing. The
+// promotion approval card floating in the same window (request-117) was not
+// the cause: it is created with Blocking=false and kind=approval, so it neither
+// gates chat nor parks a turn (requestBlocksMessages / BotAwaitingInterviewAnswer).
+//
+// Re-arming an existing job — rather than enqueuing a new one — keeps this
+// bounded: no new job kinds, at most one wake per target, and the hourly
+// cadence survives untouched for everyone whose job is already due sooner.
+// Caller holds b.mu.
+func (b *Broker) rearmParentAndSiblingFollowUpsLocked(task *teamTask) {
+	if b == nil || task == nil {
+		return
+	}
+	parentID := strings.TrimSpace(task.ParentIssueID)
+	if parentID == "" {
+		return
+	}
+	selfID := strings.TrimSpace(task.ID)
+	targets := map[string]struct{}{parentID: {}}
+	for i := range b.tasks {
+		sib := &b.tasks[i]
+		if strings.TrimSpace(sib.ParentIssueID) != parentID {
+			continue
+		}
+		if strings.TrimSpace(sib.ID) == selfID || isTerminalTeamTaskStatus(sib.status) {
+			continue
+		}
+		targets[strings.TrimSpace(sib.ID)] = struct{}{}
+	}
+	wake := time.Now().UTC().Add(siblingLaneFollowUpDelay)
+	stamp := wake.Format(time.RFC3339)
+	for i := range b.scheduler {
+		job := &b.scheduler[i]
+		if job.Kind != "task_follow_up" || job.TargetType != "task" {
+			continue
+		}
+		if _, ok := targets[strings.TrimSpace(job.TargetID)]; !ok {
+			continue
+		}
+		if isClosedSchedulerStatus(job.Status) {
+			continue
+		}
+		due, err := time.Parse(time.RFC3339, firstNonEmptyString(strings.TrimSpace(job.DueAt), strings.TrimSpace(job.NextRun)))
+		if err != nil || !due.After(wake) {
+			continue
+		}
+		job.DueAt = stamp
+		job.NextRun = stamp
+		job.Status = "scheduled"
+		// Keep the task's mirrored schedule fields honest: the Calendar surface
+		// and the next lifecycle re-arm both read FollowUpAt.
+		if target := b.findTaskByIDLocked(job.TargetID); target != nil && !isTerminalTeamTaskStatus(target.status) {
+			target.FollowUpAt = stamp
+			target.DueAt = stamp
+		}
+	}
+}
+
+// scheduleRequestLifecycleLocked schedules the reminder/follow-up cadence for
+// an open request, reusing the same one-shot scheduler rows the task lifecycle
+// uses so the Calendar is the single source of "what is pending".
 func (b *Broker) scheduleRequestLifecycleLocked(req *humanInterview) {
 	if req == nil {
 		return

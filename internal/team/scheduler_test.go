@@ -497,9 +497,9 @@ type schedulerFixtureBroker struct {
 	routineSignals   map[string]string
 	routineCreatErr  error
 	completedRuns    []schedulerRun
-	// subIssueCounts answers TaskSubIssueCount per parent, so the
-	// plan-decomposition check can be driven without a full broker.
-	subIssueCounts map[string]int
+	// subIssueTotals answers TaskSubIssueTotals per parent (total, open), so
+	// the plan-decomposition check can be driven without a full broker.
+	subIssueTotals map[string][2]int
 }
 
 type skillUpdateCall struct {
@@ -573,8 +573,9 @@ func (b *schedulerFixtureBroker) CreateWatchdogAlert(kind, channel, targetType, 
 	return watchdogAlert{ID: "alert-1", Kind: kind, Channel: channel}, false, nil
 }
 
-func (b *schedulerFixtureBroker) TaskSubIssueCount(parentID string) int {
-	return b.subIssueCounts[parentID]
+func (b *schedulerFixtureBroker) TaskSubIssueTotals(parentID string) (int, int) {
+	totals := b.subIssueTotals[parentID]
+	return totals[0], totals[1]
 }
 
 func (b *schedulerFixtureBroker) RecordSignals(_ []officeSignal) ([]officeSignalRecord, error) {
@@ -658,7 +659,7 @@ func (b *recordingLedgerBroker) EnsureDirectChannel(botSlug string) (string, err
 func (b *recordingLedgerBroker) CreateWatchdogAlert(string, string, string, string, string, string) (watchdogAlert, bool, error) {
 	return watchdogAlert{}, false, nil
 }
-func (b *recordingLedgerBroker) TaskSubIssueCount(string) int { return 0 }
+func (b *recordingLedgerBroker) TaskSubIssueTotals(string) (int, int) { return 0, 0 }
 
 func (b *recordingLedgerBroker) RecordSignals(_ []officeSignal) ([]officeSignalRecord, error) {
 	return b.signals, nil

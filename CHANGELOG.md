@@ -13,6 +13,39 @@ All notable changes to WUPHF will be documented in this file.
 
 ### Fixed
 
+- **Two lanes can no longer be one deliverable, and a declared scope can no
+  longer be closed by a visual artifact.** Journey 8's independent scorecard
+  found three ways the new write-scope contract leaked. (1) The planner fired
+  each lane twice, one second apart, re-prefixing the title
+  (`JOURN-6-A: Acme 一页报价说明初稿` then `子任务 A — 一页报价说明初稿`); token
+  similarity scored the pair 0.20 because CJK has no spaces, so the sibling
+  guard let both through. Sibling dedupe now also compares CJK character
+  shingles (containment ≥ 0.9 over a shared phrase of ~7+ characters, measured
+  against the pairs it must and must not merge), and two open lanes under one
+  parent may no longer declare the same `definition.artifact_path` — one file is
+  one deliverable. (2) `JOURN-17` declared
+  `team/research/acme-renewal-quote.md` and closed with the visual artifact
+  `ra_4904a7a50a981735`, which never lands in `team/**`; the completion gate now
+  refuses that (`artifact_required`, naming the declared path and both ways
+  forward) while `verification=not_required` + reason still clears it and
+  unscoped lanes keep the old behaviour. (3) The plan-decomposition check
+  reported `decomposed into 1 sub-issue(s)` for a parent that had grown six,
+  because it counted only the still-open ones; `TaskSubIssueTotals` now reports
+  lanes and open lanes separately, and a parent whose lanes all landed is still
+  closed quietly instead of being woken for being childless.
+
+- **A landing lane pulls the rest of its issue forward instead of waiting out
+  the hour.** The only timer a running task carries is the hourly follow-up, so
+  Journey 8's issue went silent from 09:35:57 — five of six lanes done, the sixth
+  waiting on them, nothing left to wake anyone until 10:31 — and the run read as
+  wedged for 26 minutes until the stop condition. Completions now re-arm the
+  parent's and every still-running sibling's existing follow-up to fire ~2
+  minutes out (never later than their current due; closed jobs stay closed,
+  other tasks untouched). The promotion approval card pending in that same
+  window (`request-117`) was not the cause and is pinned as such: it is created
+  `Blocking=false` with `kind=approval`, so it neither gates chat nor parks a
+  turn.
+
 - **A lane is created with its write scope, or the planner is told to fix it
   before the lane exists.** `/wiki/write-task` authorizes exactly
   `definition.artifact_path`, and the tool description says so up front, so a

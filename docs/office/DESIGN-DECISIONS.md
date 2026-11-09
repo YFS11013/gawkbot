@@ -479,6 +479,20 @@ broker 在进程启动时就把 provider 定下来了，而 `workspace create` �
 
 代价与边界也在这一轮露出来：`JOURN-17` 声明了路径却用 `ra_…` visual artifact 收 done，`team/research/` 依旧为空（D3）；同主题 lane 被拆成两套（D2）；cos 发起的一张 notebook 推广审批 pending 之后回合被 park，父任务不再推进（D1）。这三条是下一轮的对象，不是本机制的失败——「lane 建出来就带写范围」这一层已验证。
 
+### 9.16 Journey 8 的三条泄漏：去重看不见 CJK、视觉 artifact 冒充交付、落地没人叫醒（2026-11-09）
+
+§9.15 把「建 lane 就钉写范围」装上了，Journey 8 也证明了机制成立；但独立评分卡把代价也量了出来。这三条是同一个东西的三个缺口：**写范围只有被守到最后一步，才等于交付**。
+
+1. **去重是按英文写的。** `normalizeTitleTokens` 用空白切词，中文整句就是一个 token，于是 `JOURN-6-A: Acme 一页报价说明初稿` 和 `子任务 A — 一页报价说明初稿` 的相似度只有 0.20，兄弟去重直接放行——规划者在一秒之内把每条 lane 打了两遍。修法不改全局阈值（那是 §8 家族反复踩过的地方），只给兄弟去重加两种确定性判据：CJK 二元组（shingle）包含度 ≥ 0.9 且共享片段 ≥ 6 个 shingle；以及**同一父任务下两个 open lane 不得声明同一个 `artifact_path`**（一份文件就是一份交付物，`JOURN-23/25` 正是这么撞的）。阈值是量出来的：要合并的两对是 1.00，不能合并的「初稿/终稿」是 0.67、「审阅 JOURN-15」对「审阅 JOURN-19」被 6-shingle 下限挡住。
+
+2. **声明了路径，可以用别的东西收尾。** `JOURN-17` 声明 `team/research/acme-renewal-quote.md`，done 时交的是 `ra_4904a7a50a981735`——视觉 artifact 存在 `wiki/visual-artifacts/` 下，不进 `team/**`，archivist 也读不到。完成门只查「Artifact 非空」，所以放行了。现在：声明了写范围的 lane 用 `ra_` 收 done 会被拒（点名声明路径、说明视觉 artifact 落在哪、给出两条前进路），`verification=not_required` + 理由仍是合法出口，**没有声明范围的老任务行为不变**——J6/J7 那条路径本来就是视觉 artifact 合法。
+
+3. **一条 lane 落地，没人叫醒同一 Issue 的其他人。** running 任务唯一带的定时器是小时级 `task_follow_up`。J8 的 Issue 09:31 批准、09:35:57 之后完全沉默：五条 lane 完了，第六条在等同伴，下一次唤醒是 10:31。外部看就是「办公室卡死 26 分钟」。现在一条 lane 落地会把父 Issue 和同父任务下仍 open 的兄弟的既有 follow-up 拉到 ~2 分钟后（只提前、不新建 job；已关闭的 job 不动；别的任务不碰）。
+
+**顺带证伪一条**：评分卡 D1 猜 `request-117`（notebook→wiki 推广审批）park 住了 cos 的回合。代码不是这样：推广卡 `Blocking=false`、`kind=approval`，既不过 `requestBlocksMessages`（要求 Blocking），也不过 `BotAwaitingInterviewAnswer`（只认 `kind=interview`）。停表的真因是第 3 条——小时级定时器 + 没有落地唤醒。这条写进测试（`TestPromotionApprovalCardDoesNotParkOrGate`），免得下一个人再拿推广卡当嫌疑人，也免得有人为了「修」它去给推广卡加自动放行：那会把唯一的人工闸门按时间冲掉。
+
+**分解计数的口径**：`plan_decomposition_check` 的 `status_reason` 原先只数 open 子任务，J8 报出 "decomposed into 1 sub-issue(s)" 而实际拆了 6 条。改成 `TaskSubIssueTotals`（lane 总数 + 仍 open 数），判断条件仍用总数——否则所有 lane 都先落地时，检查会把「已经拆过」的父任务当成空壳去唤醒。
+
 ### 9.12 Journey 3：planning 姿态缺一处接线，watchdog 把「等审阅」当「不动」（2026-11-09）
 
 Journey 3（`core-loop-runs/2026-11-09-journey3/`，预注册 `dc62efb`）得 **6/10（25/36）**，比 Journey 2 的 5/10 高一分。J2 的四处修复（产物门、审批不阻塞投递、可见化+短重投、技能编译）全部当场验证通过；扣分主要来自两处新暴露的机制缺陷，都已在本轮修掉。

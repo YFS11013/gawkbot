@@ -74,9 +74,11 @@ type schedulerBroker interface {
 	// refused wake leaves behind (escalateRefusedWake).
 	PostSystemMessage(channel, content, kind string)
 	ScheduleNoTraceRetry(taskID string) error
-	// TaskSubIssueCount lets the plan-decomposition check tell a parent that
-	// grew lanes from one whose activation turn never came back.
-	TaskSubIssueCount(parentID string) int
+	// TaskSubIssueTotals lets the plan-decomposition check tell a parent that
+	// grew lanes from one whose activation turn never came back: total counts
+	// the lanes still on the board (canceled/archived excluded), open the
+	// non-terminal ones.
+	TaskSubIssueTotals(parentID string) (total, open int)
 	// CreateRoutineTask lands an agent routine as a real task so the run has an
 	// artifact carrier; RoutineTaskForSignal dedupes a replayed scheduler tick.
 	// Both are only ever called from the routine fire path.
@@ -402,8 +404,14 @@ func (w *watchdogScheduler) processPlanDecompositionCheck(job schedulerJob, task
 		_ = w.broker.CloseSchedulerJob(job.Slug, "task left running ("+strings.TrimSpace(task.status)+" "+string(task.LifecycleState)+")")
 		return
 	}
-	if n := w.broker.TaskSubIssueCount(task.ID); n > 0 {
-		_ = w.broker.CloseSchedulerJob(job.Slug, fmt.Sprintf("decomposed into %d sub-issue(s)", n))
+	// The count has to be the LANES the parent grew, not the ones still open:
+	// Journey 8 split one issue into six lanes in ten seconds and five had
+	// already landed by the time this check fired, so the run record read
+	// "decomposed into 1 sub-issue(s)" — a number that looks like the planner
+	// did nothing. And a parent whose lanes ALL landed must not be woken for
+	// being childless, which is what an open-only count would do.
+	if total, open := w.broker.TaskSubIssueTotals(task.ID); total > 0 {
+		_ = w.broker.CloseSchedulerJob(job.Slug, fmt.Sprintf("decomposed into %d sub-issue(s); %d still open", total, open))
 		return
 	}
 	if strings.TrimSpace(task.Owner) == "" {

@@ -114,6 +114,37 @@ func (b *Broker) applySubIssueCreateRulesLocked(task *teamTask, actor string, al
 	// an explicit act with no escape hatch in the UI, and routine/incident
 	// paths repeat titles by design.
 	botAuthored := !isHumanMessageSender(actor)
+	// Write-scope collision (Journey 8, D2). One file is one deliverable: two
+	// lanes under the same parent that declare the same definition.artifact_path
+	// are the same slice double-booked, which is exactly what happened to
+	// JOURN-23/JOURN-25 (both reviewer, both team/reviews/acme-renewal-qa.md,
+	// created one second apart). The first wrote the file and closed; the second
+	// never had anything left to write and sat in_progress for the rest of the
+	// run. Checked on open siblings only — a lane that already shipped its file
+	// is handled by the delivered-duplicate path below, and a deliberate redo
+	// can pass allow_duplicate=true.
+	if botAuthored && !allowDuplicate {
+		scope := declaredArtifactScope(task)
+		if scope != "" {
+			for j := range b.tasks {
+				sib := &b.tasks[j]
+				if strings.TrimSpace(sib.ParentIssueID) != task.ParentIssueID {
+					continue
+				}
+				if isTerminalTeamTaskStatus(sib.status) {
+					continue
+				}
+				if !strings.EqualFold(declaredArtifactScope(sib), scope) {
+					continue
+				}
+				return taskMutationError(
+					TaskMutationConflict,
+					fmt.Sprintf("sub-task %q declares the same write scope %s as open sibling %s (%q) under parent %s — one file is one deliverable, so this would double-book the same slice. Comment on %s or pick a different path; pass allow_duplicate=true only if this lane genuinely rewrites that file on purpose.", strings.TrimSpace(task.Title), scope, sib.ID, strings.TrimSpace(sib.Title), parent.ID, sib.ID),
+					nil,
+				)
+			}
+		}
+	}
 	for j := range b.tasks {
 		sib := &b.tasks[j]
 		if strings.TrimSpace(sib.ParentIssueID) != task.ParentIssueID {
@@ -123,7 +154,14 @@ func (b *Broker) applySubIssueCreateRulesLocked(task *teamTask, actor string, al
 		if !delivered && isTerminalTeamTaskStatus(sib.status) {
 			continue
 		}
-		if !titlesAreSimilar(task.Title, sib.Title) {
+		// Two ways a sibling can name the same work: the token similarity that
+		// catches re-wording in Latin scripts, and the CJK phrase match that
+		// catches the same deliverable re-prefixed ("JOURN-6-A: …" vs
+		// "子任务 A — …"). Journey 8 hit the second one three times in one
+		// second-long burst, so the planner's own boilerplate cannot be what
+		// makes two lanes look distinct.
+		if !titlesAreSimilar(task.Title, sib.Title) &&
+			!(botAuthored && !allowDuplicate && laneTitlesSharePhrase(task.Title, sib.Title)) {
 			continue
 		}
 		if delivered {

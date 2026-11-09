@@ -124,3 +124,86 @@ func titlesAreSimilar(a, b string) bool {
 	}
 	return titleTokenSimilarity(a, b) >= titleSimilarityThreshold
 }
+
+// cjkBigrams returns the contiguous two-rune shingles of every CJK/Han run in
+// s. Whitespace, digits, and Latin letters separate runs and are not shingled.
+//
+// Why this exists: CJK text has no spaces, so normalizeTitleTokens collapses a
+// whole clause into ONE token and the similarity above degenerates into
+// exact-phrase matching. Journey 8 created two lanes for the same slice one
+// second apart — "JOURN-6-A: Acme 一页报价说明初稿" and "子任务 A — 一页报价说明初稿"
+// — and token Jaccard scored them 0.20 (0.43 for the 48h-follow-up pair), far
+// under the 0.85 cutoff, so the sibling guard let both through. Shingles give
+// the overlap something to count.
+func cjkBigrams(s string) []string {
+	var out []string
+	run := make([]rune, 0, 16)
+	flush := func() {
+		if len(run) == 1 {
+			out = append(out, string(run[0]))
+		}
+		for i := 0; i+1 < len(run); i++ {
+			out = append(out, string(run[i:i+2]))
+		}
+		run = run[:0]
+	}
+	for _, r := range strings.ToLower(s) {
+		if unicode.Is(unicode.Han, r) {
+			run = append(run, r)
+			continue
+		}
+		flush()
+	}
+	flush()
+	return out
+}
+
+// CJK phrase matching thresholds. Measured against the Journey 8 sibling pairs
+// and the cases the guard must NOT merge:
+//
+//	                                      sharing |A∩B|/min(|A|,|B|)
+//	"…一页报价说明初稿" / "子任务 A — 一页报价说明初稿"        7/7 = 1.00  duplicate
+//	"…48 小时跟进邮件草稿" / "子任务 B — 48 小时跟进邮件草稿"   7/7 = 1.00  duplicate
+//	"逐项核对…退回结论。" / "子任务 C — 出厂质检"            0/5 = 0.00  distinct
+//	"Acme 续约报价初稿" / "Acme 续约报价终稿"              4/6 = 0.67  distinct
+//	"审阅 JOURN-15 的交付" / "审阅 JOURN-19 的交付"        3/3 = 1.00  → blocked by the floor
+//
+// Containment (not Jaccard) because the planner pads a lane title with the
+// parent id and a lane letter, and those extra shingles must not dilute a
+// genuinely shared phrase. The floor keeps short generic titles ("审阅…的交付")
+// from collapsing: a match needs at least six shared shingles, i.e. a shared
+// phrase of ~7 characters — a real deliverable name, not a verb.
+const (
+	lanePhraseContainment = 0.9
+	lanePhraseMinShingles = 6
+)
+
+// laneTitlesSharePhrase reports whether two lane titles carry the same CJK
+// deliverable phrase. Used only by the sibling guard, on top of
+// titlesAreSimilar; deliberately NOT folded into it, because the threshold that
+// is safe here (containment on shingles) is not safe for the shallower
+// restates-parent check.
+func laneTitlesSharePhrase(a, b string) bool {
+	sa := make(map[string]struct{}, 16)
+	for _, s := range cjkBigrams(a) {
+		sa[s] = struct{}{}
+	}
+	sb := make(map[string]struct{}, 16)
+	for _, s := range cjkBigrams(b) {
+		sb[s] = struct{}{}
+	}
+	minN := len(sa)
+	if len(sb) < minN {
+		minN = len(sb)
+	}
+	if minN < lanePhraseMinShingles {
+		return false
+	}
+	shared := 0
+	for s := range sa {
+		if _, ok := sb[s]; ok {
+			shared++
+		}
+	}
+	return float64(shared)/float64(minN) >= lanePhraseContainment
+}
