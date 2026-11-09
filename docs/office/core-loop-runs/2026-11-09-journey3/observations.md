@@ -127,3 +127,7 @@
 2. **opencode 的 planning 缺卡。** `headless_opencode.go` 现在在回合成功且有正文时 `emitHeadlessPlan` + `raisePlanApprovalAfterTurn`。测试 `TestOpencodePlanningTurnRaisesPlanApproval`（去掉调用即 `raised 0 plan-approval interviews` 失败）、`TestOpencodeRunningTurnRaisesNoPlanApproval`。
 
 两条修复都用单测证伪/证实，**没有重跑 Journey 3**：本轮证据保持不变，修复的端到端效果需要 Journey 4 验证。
+
+### 判分卡 §4 的一条自我修正（2026-11-09，代码复核）
+
+判分卡 §4.6 与 TODO 的 J3-4 都写了「`approve` 分支没 `RecordAction`」。**这条判错了**：task wire 根本没有 `actions` 字段（`snapshots/0206/task-JOURN-18.json` 的键只有 `ledger` 等 20 个），批准事实记在办公室全局动作账本里——`broker_tasks_mutation_service.go` 的 Planning/Drafting→Running 激活分支以 `appendActionLocked("task_updated", …, "… [approved]", task.ID)` 写入。结论改为：账本没缺，缺的是「任务页面内联全局账本」这个产品决定，不计为缺陷。J3-3 的判据也同步改成「定义来得晚 + 写门拒后只有 promotion 一条路」，写门本身保留。
