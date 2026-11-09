@@ -59,6 +59,23 @@ func isExecutableTeamTaskStatus(s LifecycleState) bool {
 	return s == LifecycleStateRunning || s == LifecycleStateApproved || s == LifecycleStatePlanning
 }
 
+// taskAwaitingReview reports a post-execution state whose next actor is a
+// reviewer or the human, NOT the owner. Waking the owner in these states is
+// refused by isExecutableTeamTaskStatus, so a watchdog alarm here describes a
+// stall that does not exist — Journey 3 (2026-11-09) posted four "No turn
+// could be dispatched to wake @ae" alerts about two tasks that had already
+// delivered and were sitting in `decision` (J3-2). Pre-execution states are
+// deliberately NOT in this set: a parked or intake task with an owner is a
+// real loose end and stays visible.
+func taskAwaitingReview(s LifecycleState) bool {
+	switch s {
+	case LifecycleStateReview, LifecycleStateDecision, LifecycleStateChangesRequested, LifecycleStateRejected:
+		return true
+	default:
+		return false
+	}
+}
+
 // isPreExecutionLifecycleState reports whether a task has not yet entered
 // execution: no bot turn has legitimately run for it and no work product
 // can exist. An "approve" on a task in one of these states means "start the

@@ -848,3 +848,100 @@ func TestSchedulerDeliveredWakeStaysQuiet(t *testing.T) {
 		t.Fatalf("a delivered wake must not arm a retry, got %v", b.retriesArmed)
 	}
 }
+
+// TestSchedulerQuietForTasksAwaitingReview pins J3-2: a task the owner's turn
+// gate refuses to execute because it awaits review is not a stalled owner.
+// Journey 3 (2026-11-09) posted four "No turn could be dispatched to wake @ae"
+// alerts at 02:00–02:04Z for ST-2/ST-3 — both already delivered, artifacts on
+// disk, sitting in `decision`. Waking them was refused by the executable-state
+// gate, so the alert described a stall that did not exist and repeated every
+// cadence for as long as review was pending.
+func TestSchedulerQuietForTasksAwaitingReview(t *testing.T) {
+	for _, state := range []LifecycleState{
+		LifecycleStateReview, LifecycleStateDecision, LifecycleStateChangesRequested, LifecycleStateRejected,
+	} {
+		t.Run(string(state), func(t *testing.T) {
+			b := newSchedulerFixtureBroker(t)
+			b.tasks = []teamTask{{
+				ID: "t1", Channel: "team", Title: "do thing", Owner: "eng", status: "in_progress",
+				LifecycleState: state,
+			}}
+			b.dueJobs = []schedulerJob{{
+				Slug: "j1", Channel: "team", Kind: "recheck", TargetType: "task", TargetID: "t1",
+			}}
+			delivered := 0
+			sched := &watchdogScheduler{
+				broker:      b,
+				clock:       newManualClock(time.Date(2026, 11, 9, 2, 0, 0, 0, time.UTC)),
+				deliverTask: func(officeActionLog, teamTask) bool { delivered++; return false },
+			}
+			sched.processOnce()
+
+			if delivered != 0 {
+				t.Fatalf("a task awaiting review must not be woken, delivered %d", delivered)
+			}
+			if len(b.systemMessages) != 0 {
+				t.Fatalf("a task awaiting review must not escalate, got %v", b.systemMessages)
+			}
+			if len(b.retriesArmed) != 0 {
+				t.Fatalf("a task awaiting review must not arm a retry, got %v", b.retriesArmed)
+			}
+			if len(b.jobStateUpdates) != 1 || b.jobStateUpdates[0].status != "done" {
+				t.Fatalf("the recheck job must close, got %v", b.jobStateUpdates)
+			}
+		})
+	}
+}
+
+// A parked (pre-execution) task with an owner is a real loose end: the wake is
+// refused by the dispatch gate, so the watchdog must still say so.
+func TestSchedulerStillAlarmsParkedTask(t *testing.T) {
+	b := newSchedulerFixtureBroker(t)
+	b.tasks = []teamTask{{
+		ID: "t1", Channel: "team", Title: "parked thing", Owner: "eng", status: "in_progress",
+		LifecycleState: LifecycleStateDrafting,
+	}}
+	b.dueJobs = []schedulerJob{{
+		Slug: "j1", Channel: "team", Kind: "recheck", TargetType: "task", TargetID: "t1",
+	}}
+	sched := &watchdogScheduler{
+		broker:      b,
+		clock:       newManualClock(time.Date(2026, 11, 9, 2, 0, 0, 0, time.UTC)),
+		deliverTask: func(officeActionLog, teamTask) bool { return false },
+	}
+	sched.processOnce()
+
+	if len(b.systemMessages) != 1 {
+		t.Fatalf("a parked task must still escalate, got %v", b.systemMessages)
+	}
+	if len(b.retriesArmed) != 1 {
+		t.Fatalf("a parked task must still be retried, got %v", b.retriesArmed)
+	}
+}
+
+// A planning task stays watched: the owner can still act (write the plan), and
+// the plan card is the human's next step — a silent planner is a real stall.
+func TestSchedulerStillWatchesPlanningTasks(t *testing.T) {
+	b := newSchedulerFixtureBroker(t)
+	b.tasks = []teamTask{{
+		ID: "t1", Channel: "team", Title: "plan thing", Owner: "eng", status: "in_progress",
+		LifecycleState: LifecycleStatePlanning,
+	}}
+	b.dueJobs = []schedulerJob{{
+		Slug: "j1", Channel: "team", Kind: "recheck", TargetType: "task", TargetID: "t1",
+	}}
+	delivered := 0
+	sched := &watchdogScheduler{
+		broker:      b,
+		clock:       newManualClock(time.Date(2026, 11, 9, 2, 0, 0, 0, time.UTC)),
+		deliverTask: func(officeActionLog, teamTask) bool { delivered++; return true },
+	}
+	sched.processOnce()
+
+	if delivered != 1 {
+		t.Fatalf("a planning task must still be woken, delivered %d", delivered)
+	}
+	if len(b.systemMessages) != 0 {
+		t.Fatalf("a delivered planning wake must stay quiet, got %v", b.systemMessages)
+	}
+}

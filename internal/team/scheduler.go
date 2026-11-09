@@ -288,6 +288,20 @@ func (w *watchdogScheduler) processTaskJob(job schedulerJob) {
 		_ = w.broker.UpdateSchedulerJobState(job.Slug, time.Time{}, "done")
 		return
 	}
+	// A task awaiting review is not a stalled owner: `decision`/`review` hand
+	// the ball to a reviewer or the human. Waking the owner is refused by
+	// isExecutableTeamTaskStatus (notifier_delivery.go), so every reminder tick
+	// used to post "No turn could be dispatched to wake @owner" about work that
+	// was already delivered — Journey 3 (2026-11-09) emitted four of those at
+	// 02:00–02:04Z for ST-2/ST-3, both sitting in `decision` with their
+	// artifacts on disk. Close the job; any status mutation re-arms it through
+	// scheduleTaskLifecycleLocked. `task_followup` is exempt: it targets
+	// delivered tasks on purpose (done-integrity family).
+	if !strings.EqualFold(strings.TrimSpace(job.Kind), taskFollowUpActionKind) &&
+		taskAwaitingReview(task.LifecycleState) {
+		_ = w.broker.UpdateSchedulerJobState(job.Slug, time.Time{}, "done")
+		return
+	}
 	now := w.clock.Now().UTC()
 	if task.blocked {
 		// Blocked tasks are legitimately waiting on dependencies — skip
