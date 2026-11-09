@@ -122,6 +122,20 @@ prereg `a4ff236`，被测 `5a026e7`，判分 `core-loop-runs/2026-11-09-journey8
 
 - **`336bbbc` 在真机上的表现**：批准时装了 `plan-decomposition-check:cos--human:task:journ-6`；20 秒后父任务因拆出子 Issue 触发生命周期重排，把它以 `superseded by task_follow_up` 关掉（本轮无害，因为确实分解了）。但这个机制意味着**任何后续 mutation 都会取消这道保险**，而它要盯的恰恰是「任务一直 running、频道里却像在动」的状态。已修：`cancelSupersededTaskJobsLocked` 对 `plan_decomposition_check` 免于顶替（仍会在自身触发、终态 bulk close、取消时关闭）。测试 `TestDecompositionCheckSurvivesLifecycleRearm`（去掉豁免即失败：`status = "done" (reason "superseded by task_follow_up"), want scheduled`）。
 
+### Journey 9 复核（2026-11-09，写范围守卫的第二次真机检验）
+
+prereg `4863c50`，被测 `690b601`（运行时等同 `000c4b7`），判分 `core-loop-runs/2026-11-09-journey9/scorecard.md`（独立 reviewer）→ **核心循环 5/10**。
+
+- **站住的**：D5 计数 `decomposed into 4 sub-issue(s); 1 still open` 与实际完全一致；D4 提前唤醒精确命中（父 follow-up `14:45:26` → `13:53:39`，13 秒后父 Issue 在频道推进）；D3 的 `ra_` 分支探针返回 409；D6 的路径不匹配仍是 7 秒自愈、不刷频道。
+- **没站住的**：
+  - **D1（重）声明路径被别人的文件顶替 → 已修。** `JOURN-18` 声明 `team/reviews/acme-renewal-check.md`（从未写），用 `JOURN-32` 的 `acme-renewal-final-check.md` 收 done，门限放行（探针复现 200）。现在 `sameWikiPath(declared, recorded)` 不等即 409。
+  - **D1b（重）落地后还能改 artifact → 已修。** 对已 done 的探针 lane 再发 `complete`（`ra_…`）返回 200 并改写 artifact，因为门挂在 `reachedDone` 上。现在「记录 artifact」即受检（`reachedDone || body.ArtifactPath != ""`）。测试 `TestForeignArtifactCannotCloseADeclaredScope`、`TestLandingLaneCannotSwapArtifactForVisual`（去掉修复各自红）。
+  - **D4（中）CJK 去重差 0.025 → 已修。** `Acme 续约数字与事实终审` vs `子任务 C：数字与事实终审（Acme 续约）` = 0.875，阈值从 0.9 降到 0.85；测试 `TestSiblingLaneRestatedWithoutLaneLetterIsRefused`。
+  - **D2（重，待拍板）decision 态没有人类能点的卡。** `JOURN-16` 停在 `ready_for_review`／`decision` 13 分钟，`pending_interview=None`，全库无请求指向它；父 Issue 下一次唤醒 `14:23:42` 晚于 15 分钟停表点 `14:20:02`，F-H 由此触发（26.1 分钟静默）。**这是产品决策**：要么在 lane 进入 `ready_for_review` 时物化一张指向自身、非阻塞的确认卡；要么承认「等人不算静默」，把停表判据改成「无未决请求」。未定之前不动调度器。
+  - **D3（中）`watchdog_alert` 计数源两份。** `actions.kind` 计 2 条（`task_stalled`），`messages` 计 0 条，导致 V4 在 J8 过、J9 不过。下一轮 prereg 必须写死计数源。
+  - **D5（中，判据问题非代码）** V5 照抄 J8 的「403 点名 creator」，但 J9 探针命中的是路径不匹配分支，那一支本来就只点名两条路径（见 §9.17）。判据应按探针实际命中分支写。
+- **本轮证不了**：CJK 去重的真阳性（场景里只有 0.875 的近 miss 与精确标题拦截）；规划者在场景内被 `ra_` 拒绝后自修正；人类确认链闭环（父 Issue 停表时仍 `in_progress`）。
+
 ### 2026-11-09 复核
 
 - **J3-1 已修**：`runHeadlessOpencodeTurn` 在回合开始时算 `planning := l.resolveTurnPosture(ctx, slug) == posturePlan`，回合成功且有正文时 `emitHeadlessPlan(...)` 出计划卡，并在末尾 `l.raisePlanApprovalAfterTurn(taskID, slug, text)`（空计划不发、非 planning 任务 `RaisePlanApproval` 自会 no-op）。测试：`TestOpencodePlanningTurnRaisesPlanApproval`（去掉 raise 调用即失败：`raised 0 plan-approval interviews, want 1`）、`TestOpencodeRunningTurnRaisesNoPlanApproval`。opencode 仍无原生 plan/read-only 模式，姿态只改结果处理，不改权限——这一点与 Claude/Codex 不同，注释已写清。

@@ -13,6 +13,28 @@ All notable changes to WUPHF will be documented in this file.
 
 ### Fixed
 
+- **A declared scope must be the file that lands — not merely "some non-visual
+  file".** Journey 9 reproduced two escapes from the Journey 8 gate.
+  `JOURN-18` declared `team/reviews/acme-renewal-check.md`, never wrote it, and
+  closed against `JOURN-32`'s `acme-renewal-final-check.md`; the gate passed it
+  because the artifact was non-empty and did not look visual, so the lane's own
+  deliverable silently did not exist, and a probe reproduced the same 200. The
+  landing is now checked against `definition.artifact_path` by `sameWikiPath`,
+  with the refusal naming both paths and the three ways forward (publish at the
+  declared path, have the lead redefine the lane, or declare `not_required` with
+  a reason). Second escape: a re-sent `complete` on an already-done lane rewrote
+  its artifact to `ra_4e8fa813a190faa3` (200), because the gate hung off the
+  transition to done; any mutation that records an artifact is now held to the
+  scope, terminal or not.
+
+- **The CJK duplicate rule now catches the restatement it missed by 0.025.**
+  Journey 9's planner wrote `Acme 续约数字与事实终审` beside
+  `子任务 C：数字与事实终审（Acme 续约）` — containment 0.875 against the 0.9
+  threshold — and renamed the write path by one word so the artifact_path rule
+  did not fire, shipping one review twice. The threshold is now 0.85: still
+  above the draft/final pair at 0.67, and the short `审阅 JOURN-N 的交付` shape
+  is stopped by the six-shingle floor rather than by the threshold.
+
 - **Two lanes can no longer be one deliverable, and a declared scope can no
   longer be closed by a visual artifact.** Journey 8's independent scorecard
   found three ways the new write-scope contract leaked. (1) The planner fired
@@ -20,8 +42,9 @@ All notable changes to WUPHF will be documented in this file.
   (`JOURN-6-A: Acme 一页报价说明初稿` then `子任务 A — 一页报价说明初稿`); token
   similarity scored the pair 0.20 because CJK has no spaces, so the sibling
   guard let both through. Sibling dedupe now also compares CJK character
-  shingles (containment ≥ 0.9 over a shared phrase of ~7+ characters, measured
-  against the pairs it must and must not merge), and two open lanes under one
+  shingles (containment ≥ 0.85 over a shared phrase of ~7+ characters, measured
+  against the pairs it must and must not merge; 0.85 is Journey 9's tightening,
+  see below), and two open lanes under one
   parent may no longer declare the same `definition.artifact_path` — one file is
   one deliverable. (2) `JOURN-17` declared
   `team/research/acme-renewal-quote.md` and closed with the visual artifact

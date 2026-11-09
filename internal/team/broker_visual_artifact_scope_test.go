@@ -100,3 +100,57 @@ func TestVisualArtifactStillClosesUnscopedLane(t *testing.T) {
 		t.Fatalf("an unscoped lane must not be held to a scope it never declared: %v", err)
 	}
 }
+
+// Journey 9, D1: JOURN-18 declared team/reviews/acme-renewal-check.md — a file
+// that was never written — and closed against JOURN-32's
+// acme-renewal-final-check.md. The page existed, so the old "artifact is
+// non-empty and does not look visual" gate saw nothing wrong, and the lane's
+// own deliverable was never produced. Reproduced on the wire with a probe: the
+// same shape returned 200. A declared scope names one path; another real page
+// is not that deliverable.
+func TestForeignArtifactCannotCloseADeclaredScope(t *testing.T) {
+	b := newCompletionHookBroker(t)
+	const scope = "team/reviews/acme-renewal-check.md"
+	const borrowed = "team/reviews/acme-renewal-final-check.md"
+	taskID := createScopedTask(t, b, scope)
+
+	err := finishTask(t, b, taskID, borrowed)
+	var mutationErr *TaskMutationError
+	if !errors.As(err, &mutationErr) || mutationErr.Kind != TaskMutationArtifactRequired {
+		t.Fatalf("a foreign wiki page must not close a lane that declared its own path, got %v", err)
+	}
+	for _, want := range []string{scope, borrowed, "wiki/write-task", "action=define"} {
+		if !strings.Contains(mutationErr.Message, want) {
+			t.Errorf("refusal should mention %q, got %q", want, mutationErr.Message)
+		}
+	}
+	if task := b.TaskByID(taskID); task == nil || strings.EqualFold(strings.TrimSpace(task.status), "done") {
+		t.Fatalf("the refusal must roll the done transition back, got %+v", task)
+	}
+}
+
+// Journey 9, D1b: a probe re-sent complete on a lane that had already landed,
+// this time with artifact_path=ra_4e8fa813a190faa3, and got 200 — the artifact
+// was rewritten to a visual id on a task whose scope was a wiki page. The gate
+// hung off the transition to done, so the second write slipped past it. Once a
+// lane has a declared scope, every record of an artifact is held to it.
+func TestLandingLaneCannotSwapArtifactForVisual(t *testing.T) {
+	b := newCompletionHookBroker(t)
+	const scope = "team/reviews/acme-renewal-check.md"
+	taskID := createScopedTask(t, b, scope)
+	if err := finishTask(t, b, taskID, scope); err != nil {
+		t.Fatalf("the declared path must close the lane: %v", err)
+	}
+
+	_, err := b.MutateTask(TaskPostRequest{
+		Action: "complete", ID: taskID, Channel: "team", CreatedBy: "eng",
+		ArtifactPath: "ra_4e8fa813a190faa3",
+	})
+	var mutationErr *TaskMutationError
+	if !errors.As(err, &mutationErr) || mutationErr.Kind != TaskMutationArtifactRequired {
+		t.Fatalf("swapping a landed lane's artifact for a visual id must be refused, got %v", err)
+	}
+	if task := b.TaskByID(taskID); task == nil || !strings.EqualFold(strings.TrimSpace(task.Artifact), scope) {
+		t.Fatalf("the artifact must stay at the declared path, got %+v", task)
+	}
+}

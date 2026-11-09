@@ -164,6 +164,7 @@ func cjkBigrams(s string) []string {
 //	                                      sharing |A∩B|/min(|A|,|B|)
 //	"…一页报价说明初稿" / "子任务 A — 一页报价说明初稿"        7/7 = 1.00  duplicate
 //	"…48 小时跟进邮件草稿" / "子任务 B — 48 小时跟进邮件草稿"   7/7 = 1.00  duplicate
+//	"子任务 C：数字与事实终审（Acme 续约）" / "Acme 续约数字与事实终审" 7/8 = 0.875 duplicate (J9)
 //	"逐项核对…退回结论。" / "子任务 C — 出厂质检"            0/5 = 0.00  distinct
 //	"Acme 续约报价初稿" / "Acme 续约报价终稿"              4/6 = 0.67  distinct
 //	"审阅 JOURN-15 的交付" / "审阅 JOURN-19 的交付"        3/3 = 1.00  → blocked by the floor
@@ -173,8 +174,15 @@ func cjkBigrams(s string) []string {
 // genuinely shared phrase. The floor keeps short generic titles ("审阅…的交付")
 // from collapsing: a match needs at least six shared shingles, i.e. a shared
 // phrase of ~7 characters — a real deliverable name, not a verb.
+//
+// 0.9 was the Journey 8 threshold and Journey 9 walked just under it: the
+// planner restated "子任务 C：数字与事实终审（Acme 续约）" as "Acme 续约数字与
+// 事实终审" (0.875), renamed the write path by one word to dodge the
+// artifact_path rule, and shipped the same review twice. 0.85 catches it while
+// staying above the 0.67 draft/final pair; the 0.80 "审阅 JOURN-N 的交付" shape
+// is stopped by the shingle floor, not by the threshold.
 const (
-	lanePhraseContainment = 0.9
+	lanePhraseContainment = 0.85
 	lanePhraseMinShingles = 6
 )
 

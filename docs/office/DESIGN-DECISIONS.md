@@ -503,6 +503,27 @@ broker 在进程启动时就把 provider 定下来了，而 `workspace create` �
 
 钉住这件事的测试是 `TestWriteTaskMismatchStaysOnTheCall`：403 body 必须同时含声明路径、尝试路径和 "declares artifact_path"；频道消息数与 action 数必须不变；用声明路径重试必须落盘。
 
+### 9.18 Journey 9：写范围守到了「非视觉」，没守到「就是那份文件」（2026-11-09）
+
+Journey 9（`core-loop-runs/2026-11-09-journey9/`，prereg `4863c50`，被测 `690b601`，独立判分 **5/10**）用 J7/J8 逐字相同的场景重跑。§9.16 的三条修复里，两条在半路被证伪，一条站住。
+
+**站住的**：`plan_decomposition_check` 报 `decomposed into 4 sub-issue(s); 1 still open`，与实际 4 条 lane / 1 条 open 完全一致（J8 报 1 实 6）；一条 lane 13:51:39 落地后，父 Issue 的 follow-up 从 `14:45:26` 被拉到 `13:53:39`，13:53:52 父 Issue 就在频道里推进了。D3 的 `ra_` 分支也在探针下返回了 409。
+
+**没站住的，是同一个判断只做了一半**：写范围守住了「不是视觉 artifact」，但没守住「就是声明的那份文件」。
+
+1. **声明路径可以被别人的文件顶替（D1）。** `JOURN-18` 声明 `team/reviews/acme-renewal-check.md`，这个文件**从头到尾没被写过**；它 `done` 时 `artifact` 填的是 `JOURN-32` 的 `team/reviews/acme-renewal-final-check.md`。完成门看到「非空、不像视觉 artifact」就放行，于是那条 lane 的交付在盘上根本不存在，而父 Issue 的汇总以为它在。停表后用探针复现，同样是 200。修法不是再加一条前缀判断，而是把「记录 artifact」这件事本身对齐声明：`sameWikiPath(declared, recorded)`，不等就 409，并把三条出路写进文案（按声明路径发布、让 lead 重新定义 lane、声明 `not_required` 加理由）。
+
+2. **门挂在「转为 done」上，落地后还能再改（D1b）。** 探针 lane 已经 `done` 之后，analyst 又发了一次 `complete`（`artifact_path=ra_4e8fa813a190faa3`），返回 200 并把 artifact 改写成了视觉 id。原因是 `reachedDone=false`。**记录 artifact 才是该检查的事件**，状态是什么无关：现在 `recorded := reachedDone || body.ArtifactPath != ""`。
+
+3. **CJK 去重差 0.025（D4）。** 规划者把一条 lane 改写成 `Acme 续约数字与事实终审`，与 `子任务 C：数字与事实终审（Acme 续约）` 的包含度是 **0.875**，卡在 0.9 下面；同时把写路径从 `acme-renewal-check.md` 改成 `acme-renewal-final-check.md`，绕开 `artifact_path` 唯一性。一条审阅因此做了两遍。阈值降到 **0.85**：仍然高于「初稿/终稿」0.67，而 `审阅 JOURN-N 的交付` 那种 0.80 的形状本来就被 6-shingle 下限挡住，不靠阈值。
+
+**F-H 触发的真因不是 D4 没生效，而是 decision 态没有人类能点的东西。** 停表前 26.1 分钟静默里，`JOURN-16` 停在 `lifecycle_state=decision`／`review_state=ready_for_review`，`pending_interview=None`，全库没有任何请求指向它——人类能看到的只有 13:53:52 的一句聊天「待你确认发送」。父 Issue 的下一次唤醒是 `14:23:42`（被提前唤醒消费一次后回到 30 分钟节拍），而 15 分钟停表规则在 `14:20:02` 先到。**这是产品决策，不是 bug 修复**：要么在 lane 进入 `ready_for_review` 时物化一张指向它自己的确认卡，要么承认「等人」不算静默并把停表判据改为「无未决请求」。在拍板前不动调度器。
+
+**两条判据自身的口径要改，不是代码要改**：
+
+- V4 的「`watchdog_alert` 0 条」在 `actions.kind` 下是 2 条（`task_stalled`），在 `messages` 下是 0 条；J8 按后者判过、J9 按前者不过。计数源必须在 prereg 里写死，否则同一现象两轮结论相反。
+- V5 照抄 J8 的「403 文案点名 creator」，但 J9 的探针打的是**路径不匹配**分支，那一支的正确行为本来就是「不点 creator」——能改的只有调用方自己。`TestWriteTaskMismatchStaysOnTheCall`（§9.17）已经把这层语义钉住；判据该按探针实际命中的分支写要求。
+
 ### 9.12 Journey 3：planning 姿态缺一处接线，watchdog 把「等审阅」当「不动」（2026-11-09）
 
 Journey 3（`core-loop-runs/2026-11-09-journey3/`，预注册 `dc62efb`）得 **6/10（25/36）**，比 Journey 2 的 5/10 高一分。J2 的四处修复（产物门、审批不阻塞投递、可见化+短重投、技能编译）全部当场验证通过；扣分主要来自两处新暴露的机制缺陷，都已在本轮修掉。

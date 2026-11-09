@@ -271,3 +271,31 @@ func TestDistinctCJKLanesAreStillAllowed(t *testing.T) {
 		t.Fatalf("a review aimed at a different task must not be refused: %v", err)
 	}
 }
+
+// Journey 9's duplicate slipped 0.025 under the Journey 8 threshold: the
+// planner restated one lane as "Acme 续约数字与事实终审" next to "子任务 C：数字
+// 与事实终审（Acme 续约）" (containment 0.875), renamed the write path by a word
+// so the artifact_path rule did not fire, and both lanes shipped a review.
+func TestSiblingLaneRestatedWithoutLaneLetterIsRefused(t *testing.T) {
+	b := newWriteScopeBroker(t)
+	parentID := createApprovedParent(t, b)
+
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "create", Channel: "team", Title: "子任务 C：数字与事实终审（Acme 续约）",
+		Owner: "reviewer", CreatedBy: "cos", ParentIssueID: parentID,
+		Definition: &TaskDefinition{Goal: "终审两稿", ArtifactPath: "team/reviews/acme-renewal-check.md"},
+	}); err != nil {
+		t.Fatalf("first lane: %v", err)
+	}
+	_, err := b.MutateTask(TaskPostRequest{
+		Action: "create", Channel: "team", Title: "Acme 续约数字与事实终审",
+		Owner: "reviewer", CreatedBy: "cos", ParentIssueID: parentID,
+		Definition: &TaskDefinition{Goal: "终审两稿", ArtifactPath: "team/reviews/acme-renewal-final-check.md"},
+	})
+	if err == nil {
+		t.Fatal("the same review restated with the lane letter dropped must be refused")
+	}
+	if !strings.Contains(err.Error(), "duplicates") {
+		t.Fatalf("refusal should say the lane duplicates a sibling, got %v", err)
+	}
+}
