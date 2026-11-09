@@ -9,7 +9,7 @@
 | 项 | 结果 |
 |---|---|
 | **J3-1（opencode plan 卡）** | **通过**。计划帖之后 31 秒，`request-12` 自己出现（`dedupe_key=plan-approval:JOURN-9`），无人工动作；全办公室只此一张 |
-| **J3-2（等审阅不误报）** | **通过**。`JOURN-16` 于 03:30 进 `decision`，其 `recheck` job 在 03:31:11 真的跑了并收为 `done`；全程 `watchdog_alert` **0 条**、`watchdogs[]` 空、无重投 |
+| **J3-2（等审阅不误报）** | **通过**。`JOURN-16` 于 03:30 进 `decision`，此后全程 `watchdog_alert` **0 条**、`watchdogs[]` 空（`/actions` 里也没有该 kind）。`recheck` 那一行只作旁证——收尾理由分辨不出，见下表 |
 | **V3（凭空卡推进）** | **通过**。只答卡（`POST /interview/answer`，未走 `/tasks approve`）→ 同一秒 `lifecycle_state=running`，~1 分钟内拆出 `JOURN-16`/`JOURN-18` |
 | **V5（对照：planning 仍会被看住）** | **未观察**（窗口内没有停在 planning 的任务；按 prereg 记「未观察」，不记通过） |
 | 硬失败 | F-A/F-B/F-C/F-D **均未触发** |
@@ -22,7 +22,7 @@
 | V1 「10 分钟内出现 plan-approval 卡」 | **命中** | A：`snapshots/0327/broker-state.json` 的 `request-12`：`kind=approval`、`status=answered`、`channel=cos__human`、`from=cos`、`issue_id=JOURN-9`、`dedupe_key=plan-approval:JOURN-9`、`created_at=2026-11-09T03:22:26Z`（任务 `created_at=03:21:55Z`）。`bg_137` 轮询在 **03:23:18Z** 首次看到它（`/requests?scope=office` 仍为空，卡在 DM 域——与 J3 同）；`question` 里带 cos 的计划正文，末句「本轮计划模式：未建子任务、未写文件，待批准后执行。」 |
 | V2 「只有一张（幂等）」 | **命中** | A：`snapshots/0347/broker-state.json` 的 `requests` 长度 1，唯一元素 `request-12`（`status=answered`）；`dedupe_key` 机制即幂等键。`messages.json` 里 `human_request_raised=1` |
 | V3 「只点卡即可推进并拆活」 | **命中** | A：03:25:21Z `POST /interview/answer {"id":"request-12","choice_id":"approve"}` → `{"ok":true}`；同秒 `GET /tasks/JOURN-9` → `lifecycle_state=running`；`snapshots/0327/tasks.json` 出现 `JOURN-16`（`analyst__cos`）、`JOURN-18`（`ae__cos`），`parent_issue_id=JOURN-9` |
-| V4 「进 decision 后不再有 refused-wake 告警」 | **命中** | A：`recheck:analyst--cos:task:journ-16` 的 `last_run=2026-11-09T03:31:11Z`、`status=done`、`next_run=null`（`snapshots/0347/scheduler.json`）——正是 J3 里每 tick 误报的那条路径；而 `broker-state.json` 的 `watchdogs` 为 `[]`、`messages` 中 `watchdog_alert` 计数 **0**；`j4-mon.log` 自 03:28:05 到 03:48:06 每 2 分钟采样 `watchdog_refused_alerts=0` 共 11 次 |
+| V4 「进 decision 后不再有 refused-wake 告警」 | **命中** | A：`JOURN-16` 03:30:05 进 `decision` 后到停表，`broker-state.json` 的 `watchdogs` 为 `[]`、`messages` 里 `kind=watchdog_alert` **0 条**、`/actions` 无 `watchdog_alert` 行；`j4-mon.log` 从 03:28:05 到 03:48:06 每 2 分钟采样 `watchdog_refused_alerts=0` 共 11 次。旁证（**不能单独当证据**）：`recheck:analyst--cos:task:journ-16` 在 03:31:11 带 `status=done`、`next_run=null`——但 `cancelSupersededTaskJobsLocked` 收尾时同样会写 `last_run`，所以这一行分辨不出「门关掉」还是「被后续变更顶掉」；J3-2 的代码路径由单测 `TestSchedulerQuietForTasksAwaitingReview` 单独证明 |
 | V5 「对照组：planning 仍受监视」 | **未观察** | 窗口内没有停在 `planning` 等卡的任务（唯一 planning 任务在 03:25:21 就被答卡推进）。按 prereg §4 V5 的允许写法记为「未观察，不许默认通过」。对照改由单测 `TestSchedulerStillWatchesPlanningTasks` 与 `TestSchedulerStillAlarmsParkedTask` 承担（含 failing-before） |
 
 ## 3. 硬失败

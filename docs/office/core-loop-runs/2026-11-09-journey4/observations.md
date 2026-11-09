@@ -42,7 +42,7 @@
 | 时间 | 事实 |
 |---|---|
 | 03:30:05 | `JOURN-16` 进 `lifecycle_state=decision`，`artifact=team/research/icp-hypothesis-2026q4.md`（该任务 `definition` 仍为 `null` —— 见 §6） |
-| 03:31:11 | `recheck:analyst--cos:task:journ-16` 触发（`last_run`），随后 `status=done`、`next_run=null`（`snapshots/0347/scheduler.json`）。这正是 J3 里每 tick 误报的那条路径 |
+| 03:31:11 | `recheck:analyst--cos:task:journ-16` 变成 `status=done`、`next_run=null`、`last_run=03:31:11Z`（`snapshots/0347/scheduler.json`）。**收尾理由分辨不出**：新门（J3-2）与 `cancelSupersededTaskJobsLocked` 都写 `last_run` |
 | 03:31:47 | cos 最后一条正文；此后无新消息 |
 | 03:28:05 – 03:48:06 | 监控每 2 分钟采样 `watchdog_refused_alerts`，**11 次全为 0** |
 | 03:48:15 | 停表：自 03:31:47 起 16.5 分钟无新消息、无 active 回合（prereg §7.2） |
@@ -58,8 +58,8 @@
 ## 6. 顺带观察（不判分）
 
 1. **J3-3 同型复现**：两条子 Issue 创建时都无 `definition`，两个 bot 都撞 `wiki 直写 403`，都改走「先落 notebook，再请 @cos 补 `artifact_path`」。`JOURN-16` 后来带 artifact 进 `decision`（definition 仍空），`JOURN-18` 停在 `running` 无产物。→ J3-3 是稳定复现。
-2. **recheck 覆盖不一致**：同为 `running`，`JOURN-16` 有 `recheck`，`JOURN-18` 只有 60 分钟的 `task_follow_up`。
-3. **`task_stalled` 只记账不报警**：`running` 态任务超时只写 `actions`，不写 `watchdog_alert`、不进 `watchdogs[]`。J3-2 的改动只覆盖 review 态，这条留给下一步判断。
+2. **recheck 有无不对称，但起源与收尾都不可从状态分辨**：同为 `in_progress`，`JOURN-16` 有一条 `recheck` job（`last_run=03:31:11`、`done`），`JOURN-18` 只有 `task_follow_up`。`scheduleTaskLifecycleLocked` 的 `in_progress` 分支只装 follow-up，`recheck` 只在非 `in_progress` 的分支装；`ScheduleRecheck` 在生产代码里没有调用点。所以这条 job 的来路（哪次状态切换装的）与收尾理由都查不到——**这是可观测性缺口，不是已证实的漏 wake**。
+3. **`task_stalled` 是另一条可见线，不是沉默**：03:36:43 `cos__human` 出「@cos has gone quiet on “ICP 假设与首触点邮件：一页式验证包” for about 10 minutes…」，03:40:43 `ae__cos` 出同型一条（`broker-state.json` 的 `messages`，`kind=task_stalled`）。它和 `watchdog_alert` 是两条独立通道：前者由 stall 检测器按任务静默时长发一次，后者是 watchdog 的「唤醒被拒」。J3/J4 的「只记账」说法是我读错 kind——账本（`actions`）里确实有，消息里**也有**。
 4. **`/requests?scope=office` 依然看不到 DM 域的卡**（`request-12` 在 `cos__human`）。本轮靠 `broker-state.json` 才拿到全量；UI 侧是否有入口未验证。
 
 ## 7. 记录缺口（自我记账）

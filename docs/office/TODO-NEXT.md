@@ -65,7 +65,8 @@
 
 - **J3-1 通过**：隔离办公室 `journey4`（HEAD `364511c`）里提交人给的 Issue `JOURN-9`（03:21:55Z）→ 31 秒后 `request-12` 自己出现，`dedupe_key=plan-approval:JOURN-9`；全办公室仅此一张；只答这张卡（`POST /interview/answer`）同一秒 `lifecycle_state=running`，1 分钟内拆出 `JOURN-16`/`JOURN-18`。证据 `core-loop-runs/2026-11-09-journey4/`。
 - **J3-2 通过**：`JOURN-16` 03:30 进 `decision`，其 `recheck` job 在 03:31:11 真跑过并收为 `done`（`next_run=null`），全轮 `watchdog_alert` 0 条、`watchdogs[]` 空。对照（planning 仍受监视）窗口内未观察到，由单测 `TestSchedulerStillWatchesPlanningTasks` / `TestSchedulerStillAlarmsParkedTask` 承担。
-- **新观察，升为 J3-5**：同为 `running` 的两条 lane，`JOURN-16` 有 `recheck`、`JOURN-18` 只有 60 分钟的 `task_follow_up`；`running` 态超时只写 `actions.task_stalled`，不写 `watchdog_alert`、不进 `watchdogs[]`（J3-2 只覆盖 review 态）。判据：一条 `running` lane 在 `stalled_since` 之后要么有人可见告警、要么有短周期重投，二选一，不能只有账本。
+- **新观察，降级为 J3-5（可观测性，不是已证实的漏 wake）**：同为 `in_progress`，`JOURN-16` 有一条 `recheck` job、`JOURN-18` 没有；`scheduleTaskLifecycleLocked` 的 `in_progress` 分支只装 `task_follow_up`，`recheck` 只在非 `in_progress` 分支装，且 `ScheduleRecheck` 在生产代码里**没有调用点**——所以那条 job 的来路不明。收尾也分辨不出：新门（J3-2）与 `cancelSupersededTaskJobsLocked` 都会写 `last_run`。判据：调度器在关闭 task job 时记下**理由**（`status_reason=stale_state|gate_review_pending|one_shot|task_closed`），跑完一轮 Journey 能直接读出「为什么这条 job 没了」。
+  附：`task_stalled` 不是"只记账"——它是独立于 `watchdog_alert` 的人可见消息（J4 03:36:43/03:40:43 两条在 `cos__human`/`ae__cos` 上），此前我把它和「唤醒被拒」混成一条，已更正。
 - **J3-3 稳定复现**：J4 里两条子 Issue 同样创建时无 `definition`，同样撞 `wiki 直写 403`、改走 notebook + 请 @cos 补 `artifact_path`。
 
 ### 2026-11-09 复核
