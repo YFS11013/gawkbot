@@ -118,7 +118,7 @@ prereg `a4ff236`，被测 `5a026e7`，判分 `core-loop-runs/2026-11-09-journey8
   - **D3 声明了路径却用 `ra_` 收 done：已修。** 完成门对「声明了写范围」的 lane 拒绝视觉 artifact；`verification=not_required` + 理由仍是出口；未声明范围的老任务行为不变。
   - **D4/D1 落地没人叫醒：已修。** 一条 lane 落地会把父 Issue 和仍 open 的兄弟的既有 follow-up 拉到 ~2 分钟后（只提前，不新建）。
   - **D5 分解计数：已修。** `TaskSubIssueTotals` 报「lane 总数 + 仍 open 数」，判断仍用总数（全落地时不能当空壳唤醒）。
-  - **D6 路径不匹配的 403 不投提示**：仍是设计如此（只有「未声明」才 nudge），没有改。要不要为「声明了但写错路径」也投一条，需要先定文案与去重，留到下一轮。
+  - **D6 路径不匹配的 403 不投提示：结案，设计如此（§9.17）。** 403 body 已并排给出声明路径与尝试路径，随工具响应回到发起调用的 bot；J8 四次不匹配全部在 2–5 秒内用正确路径重试成功。频道提示只会把同样两个路径再说给不能改的人。只有「未声明」（需要创建者动手）才 nudge。测试 `TestWriteTaskMismatchStaysOnTheCall` 钉住：body 含两条路径、频道消息/action 数不变、按声明路径重试落盘。
 
 - **`336bbbc` 在真机上的表现**：批准时装了 `plan-decomposition-check:cos--human:task:journ-6`；20 秒后父任务因拆出子 Issue 触发生命周期重排，把它以 `superseded by task_follow_up` 关掉（本轮无害，因为确实分解了）。但这个机制意味着**任何后续 mutation 都会取消这道保险**，而它要盯的恰恰是「任务一直 running、频道里却像在动」的状态。已修：`cancelSupersededTaskJobsLocked` 对 `plan_decomposition_check` 免于顶替（仍会在自身触发、终态 bulk close、取消时关闭）。测试 `TestDecompositionCheckSurvivesLifecycleRearm`（去掉豁免即失败：`status = "done" (reason "superseded by task_follow_up"), want scheduled`）。
 

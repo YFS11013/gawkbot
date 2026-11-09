@@ -493,6 +493,16 @@ broker 在进程启动时就把 provider 定下来了，而 `workspace create` �
 
 **分解计数的口径**：`plan_decomposition_check` 的 `status_reason` 原先只数 open 子任务，J8 报出 "decomposed into 1 sub-issue(s)" 而实际拆了 6 条。改成 `TaskSubIssueTotals`（lane 总数 + 仍 open 数），判断条件仍用总数——否则所有 lane 都先落地时，检查会把「已经拆过」的父任务当成空壳去唤醒。
 
+### 9.17 「声明了但写错路径」的 403 不投频道提示（2026-11-09，结案：设计如此）
+
+评分卡 D6 建议给「声明了 `artifact_path` 但写错路径」的 403 也投一条频道提示，理由是 bot 只能看日志。这个前提不成立：**403 的 body 就是提示**，而且是投给唯一能当场改的那一方。
+
+`authorizeTaskArtifactWrite` 的拒绝文案是 `task JOURN-15 declares artifact_path "team/research/acme-renewal-quote.md", not "team/reports/..."`——声明路径和尝试路径并排，随 MCP 工具的响应原样回到发起调用的 bot 的回合里。J8 实测：四次路径不匹配，**每一次都在 2–5 秒内用正确的路径重试成功**，没有一次撞第二次。频道提示在这种情况下只会把同样的两个路径再说给读不懂它的人。
+
+真正需要频道的只有「**没人**钉过路径」那一类——任务本身缺 `definition.artifact_path`，能修的只有创建者，所以 `nudgeUndeclaredArtifactPath` 仍然每任务一条、落在任务频道、去重。两条路径的边界就在这里：**能自愈的错误回到调用点，不能自愈的错误回到人**。
+
+钉住这件事的测试是 `TestWriteTaskMismatchStaysOnTheCall`：403 body 必须同时含声明路径、尝试路径和 "declares artifact_path"；频道消息数与 action 数必须不变；用声明路径重试必须落盘。
+
 ### 9.12 Journey 3：planning 姿态缺一处接线，watchdog 把「等审阅」当「不动」（2026-11-09）
 
 Journey 3（`core-loop-runs/2026-11-09-journey3/`，预注册 `dc62efb`）得 **6/10（25/36）**，比 Journey 2 的 5/10 高一分。J2 的四处修复（产物门、审批不阻塞投递、可见化+短重投、技能编译）全部当场验证通过；扣分主要来自两处新暴露的机制缺陷，都已在本轮修掉。
