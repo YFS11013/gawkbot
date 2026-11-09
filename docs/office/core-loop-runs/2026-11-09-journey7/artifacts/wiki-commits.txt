@@ -1,0 +1,33 @@
+9b7d74f7b53bccc3ffcd92daa179111245203812 2026-11-09 15:47:34 +0800 cos artifact: create visual artifact ra_6dae47db21a3806a
+30c2387784e465f3ab48519b1d3b3b7495eb8c19 2026-11-09 15:46:53 +0800 ae artifact: create visual artifact ra_2fdd9ec06a768730
+68cf580f991c24db7e2cee4a4c591c8f13abe246 2026-11-09 15:45:29 +0800 ae artifact: create visual artifact ra_7dda77e1f5b39750
+4b608d6b00bbee196719fa654614c06222144856 2026-11-09 15:45:15 +0800 archivist archivist: entity article people/cos (1 facts)
+6e7dd06a440e7d93bef7bcde6518ae537270d6db 2026-11-09 15:45:13 +0800 reviewer fact: people/cos — Completed task JOURN-25 ("Acme 两份交付物数字复核") involved this entity. Goal: Acme 两份交付物数字复核.
+16d2f123acccdfeea7a3d78c9758d693cc66dfa2 2026-11-09 15:42:36 +0800 wuphf-bootstrap wuphf: materialize getting-started wiki pages
+b6175593c20d1a640125ffa9f2ed5469a10cf65d 2026-11-09 15:42:36 +0800 wuphf-bootstrap wuphf: materialize ai-revops blueprint skeletons
+a0040333e10214b0a7c3241f66a327af2a5cefcb 2026-11-09 15:42:35 +0800 reviewer bot: seed agents/reviewer/TOOLS.md
+6c6be215fad7884a80fc235720d66773c0049121 2026-11-09 15:42:34 +0800 reviewer bot: seed agents/reviewer/OPERATIONS.md
+d1a775b6ca8390fd661303f448ca06194a54f174 2026-11-09 15:42:34 +0800 reviewer bot: seed agents/reviewer/IDENTITY.md
+257056b9003f7f622335ec00404d05de6cca1eaf 2026-11-09 15:42:33 +0800 reviewer bot: seed agents/reviewer/SOUL.md
+91b1a3d281ebf6afe4fa806a5fe452b1729e8d90 2026-11-09 15:42:32 +0800 ae bot: seed agents/ae/TOOLS.md
+ea7a77365878e24205b2098a01e78f80a2d2bdbf 2026-11-09 15:42:32 +0800 ae bot: seed agents/ae/OPERATIONS.md
+25645455f6d6fc4cb050a6ebc673f39f2c3fe2b6 2026-11-09 15:42:31 +0800 ae bot: seed agents/ae/IDENTITY.md
+ba63a8327890c9b73317cea10f1080061159ed27 2026-11-09 15:42:30 +0800 ae bot: seed agents/ae/SOUL.md
+cbcd7fbe69ee62bfd57cc160365f5328f30a41cc 2026-11-09 15:42:30 +0800 analyst bot: seed agents/analyst/TOOLS.md
+c3055ccba3dcf09f5f59d2e5f7be8d54f054eaa7 2026-11-09 15:42:29 +0800 analyst bot: seed agents/analyst/OPERATIONS.md
+33c62a9cecd40d0a34c81b5a604d12f585a819f7 2026-11-09 15:42:29 +0800 analyst bot: seed agents/analyst/IDENTITY.md
+d89038921991aa5b44489b09280ebc8467ee4cf3 2026-11-09 15:42:28 +0800 analyst bot: seed agents/analyst/SOUL.md
+80b765c694db3f7087b1c109c8139d39b39c6db8 2026-11-09 15:42:28 +0800 revops bot: seed agents/revops/TOOLS.md
+022a03ccf50920f7db6d95da400d66865758e12a 2026-11-09 15:42:28 +0800 revops bot: seed agents/revops/OPERATIONS.md
+f9b47c8af5829b683bc3dfb7da4951c835ac5715 2026-11-09 15:42:27 +0800 revops bot: seed agents/revops/IDENTITY.md
+3577c9ddfaa8e4c9377bcecc27e7b121cbb3ee50 2026-11-09 15:42:27 +0800 revops bot: seed agents/revops/SOUL.md
+c0d2b46d10aefca929cfdd705e6a80bf3e7bf4b6 2026-11-09 15:42:10 +0800 data-modeling wuphf: backfill skill data-modeling from broker state
+5db70f560c277cb55d0882d86615bc0c65047dcb 2026-11-09 15:42:10 +0800 .system archivist: skill consolidation migration sentinel
+29aeaa3af9343dc5b9351363cc5e71ce0e8223dc 2026-11-09 15:42:10 +0800 wiki-maintenance wuphf: backfill skill wiki-maintenance from broker state
+bd8c46c236e157c9133fe15ec6606be4345f27d2 2026-11-09 15:42:09 +0800 app-building wuphf: backfill skill app-building from broker state
+496c2081214426b744b30ce042cde69628666705 2026-11-09 15:42:09 +0800 cos bot: seed office/USER.md
+cb81bc7a1d201d7372a50ac17e52f05c6f8fbb11 2026-11-09 15:42:09 +0800 cos bot: seed agents/cos/TOOLS.md
+cc9aa613189d13d255488468cb89c8b01d9bd489 2026-11-09 15:42:09 +0800 cos bot: seed agents/cos/OPERATIONS.md
+e21811395739757f893eb1fe5967de6419939bb1 2026-11-09 15:42:09 +0800 cos bot: seed agents/cos/IDENTITY.md
+bbdbd89094de54fe953575cac5ef9f4433429d96 2026-11-09 15:42:08 +0800 cos bot: seed agents/cos/SOUL.md
+e7f575dbecc154b8692b96ab5da6389dec2f8268 2026-11-09 15:42:08 +0800 system wuphf: init wiki

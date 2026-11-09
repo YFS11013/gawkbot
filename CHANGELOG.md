@@ -23,7 +23,12 @@ All notable changes to WUPHF will be documented in this file.
   `plan_decomposition_check` five minutes out: it closes silently when the
   parent has a sub-issue (`decomposed into N sub-issue(s)`) or left Running,
   and otherwise raises a `task_not_decomposed` alert and wakes the owner once,
-  escalating in-channel if every delivery path refuses.
+  escalating in-channel if every delivery path refuses. The check is exempt
+  from the lifecycle supersede sweep: any task mutation re-arms
+  `task_follow_up` and used to close the check with "superseded by
+  task_follow_up" (Journey 7: 20 seconds after approval), which would have
+  removed the guard exactly when the task stays Running while channel traffic
+  looks like progress.
 
 - **A question dies with the task it was about.** Canceling or finishing a task
   now cancels its active requests (`task closed (<state>)`). A pending

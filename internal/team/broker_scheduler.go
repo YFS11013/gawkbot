@@ -441,6 +441,17 @@ func (b *Broker) cancelSupersededTaskJobsLocked(taskID, channel, keepKind string
 		if job.Kind == keepKind {
 			continue
 		}
+		// The plan-decomposition check is not a competing schedule for the same
+		// slot — it is a one-shot look at a specific state. Re-arming the
+		// lifecycle schedule (any task mutation does) used to close it with
+		// "superseded by task_follow_up", so the guard only survived when
+		// literally nothing touched the task — while the stall it watches for
+		// is exactly a task that a chatty channel keeps looking active.
+		// It still closes on its own fire, on a terminal transition (bulk
+		// close), and on cancel.
+		if job.Kind == planDecompositionCheckKind {
+			continue
+		}
 		if isClosedSchedulerStatus(job.Status) {
 			continue
 		}

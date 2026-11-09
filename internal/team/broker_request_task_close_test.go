@@ -278,3 +278,39 @@ func TestApprovedPlanArmsDecompositionCheck(t *testing.T) {
 		t.Fatalf("check due in %v, want about %v", delta, planDecompositionCheckDelay)
 	}
 }
+
+// TestDecompositionCheckSurvivesLifecycleRearm pins why the check is exempt from
+// the supersede sweep. Journey 7 (2026-11-09) armed it at approval and lost it
+// 20 seconds later to "superseded by task_follow_up" as soon as the parent's
+// schedule was re-armed — harmless there (the plan did decompose), but the
+// stall the check exists for is a task that stays Running while channel
+// traffic looks like activity. If any mutation could cancel the guard, the
+// guard would be absent exactly when it is needed.
+func TestDecompositionCheckSurvivesLifecycleRearm(t *testing.T) {
+	b := newTestBroker(t)
+	now := time.Now().UTC().Format(time.RFC3339)
+
+	b.mu.Lock()
+	b.tasks = []teamTask{{
+		ID: "JOURN-6", Title: "Journey 7: Acme renewal quote", Channel: "cos__human",
+		Owner: "cos", status: "in_progress", LifecycleState: LifecycleStateRunning, CreatedAt: now,
+	}}
+	b.schedulePlanDecompositionCheckLocked(&b.tasks[0])
+	// Any later lifecycle re-arm sweeps competing task jobs.
+	b.scheduleTaskLifecycleLocked(&b.tasks[0])
+	var check *schedulerJob
+	for i := range b.scheduler {
+		if b.scheduler[i].Kind == planDecompositionCheckKind {
+			check = &b.scheduler[i]
+		}
+	}
+	b.mu.Unlock()
+
+	if check == nil {
+		t.Fatalf("decomposition check vanished entirely")
+	}
+	if check.Status != "scheduled" {
+		t.Fatalf("decomposition check status = %q (reason %q), want scheduled",
+			check.Status, check.StatusReason)
+	}
+}

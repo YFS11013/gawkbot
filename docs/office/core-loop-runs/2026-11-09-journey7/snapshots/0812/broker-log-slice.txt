@@ -1,0 +1,7 @@
+2026/11/09 15:42:25 scheduler: loop started (poll=20s)
+2026/11/09 15:52:25 scheduler: heartbeat (uptime=10m0s, poll=20s)
+2026/11/09 16:02:06 scheduler: dispatched 1 due job(s)
+2026/11/09 16:02:26 scheduler: heartbeat (uptime=20m0s, poll=20s)
+2026/11/09 16:02:46 scheduler: dispatched 2 due job(s)
+2026/11/09 16:03:06 scheduler: dispatched 1 due job(s)
+2026/11/09 16:12:26 scheduler: heartbeat (uptime=30m0s, poll=20s)

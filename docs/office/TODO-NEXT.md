@@ -93,6 +93,17 @@
 - J6-2：`broker_requests_interviews.go` 新增 `cancelRequestsForClosedTaskLocked`，由 `transitionLifecycleLocked` 在目标状态为终态时调用；`processRequestJob` 去掉 `req.Blocking` 门。测试 `TestCanceledTaskClosesItsPendingInterview`（去掉钩子即失败：`interview still active after its task was canceled`）、`TestDoneTaskClosesItsPendingInterview`、`TestRequestReminderPostsForNonBlockingInterview`（去掉门即失败：`posted 0 messages, want 1`）。
 - **仍欠**：J3-3 链路的端到端证据（403 → 三要素文案 → 去重 → 改做法）。Journey 6 因环境遗留任务抢走注意力，没走到写路径；需要独占频道的一轮重新取证。
 
+### Journey 7 复核（2026-11-09，干净环境下的同一个问题）
+
+prereg `f3b62d4`（其中 §2.1 更正：专用频道不可行——`namedChannelsEnabled()` 硬编码 false，`POST /channels` 409，只能靠清理隔离）。判分见 `core-loop-runs/2026-11-09-journey7/scorecard.md`。
+
+- **环境这次是干净的**：onboarding 后 `ai-revops-1..4` 立刻取消，提交场景前 `tasks` 只剩 4 条 canceled、`requests` 为空；Journey 6 的污染源（`[@analyst] Repeated errors blocked` 落进 `cos__human`）没有出现。
+- **分解正常**：07:44:30 批准，30 秒内拆出 6 条 lane（`JOURN-13/16/18/21/23/25`，全部无 `definition`）。`F-E` 未触发，`task_not_decomposed` 0 条。
+- **仍然没有一次 `write-task`**：`write-task` / `403` / `refused` / `artifact_path_missing` 全部 0；bot 确实写了 wiki 仓库，但走的是 `visual artifact`（`ra_…` 三条）与 `fact`/`entity` 通道，`team/**` markdown 交付 0 份；三条 lane 把稿子写在 `agents/*/notebook/`。
+- **为什么 403 路径打不通（代码证据）**：`team_wiki_write` 不带 `task_id` 时返回的是「需要人类直接授权……bot 侧知识请用 notebook_write → notebook_promote」（`internal/teammcp/server_wiki_tools.go:44-52,100-110`）。`/wiki/write-task` 的 `artifact path not declared` 只有在 bot **主动带 `task_id`** 时才会命中。J3/J4 撞上 403 是那几轮 lane 自己选了带任务 ID 写入；J6/J7 的 lane 选了 notebook + visual artifact——两条路都合法，模型默认选后者。
+- **结论**：**J3-3 的端到端（403 → 三要素文案 → 改做法）连续两轮没有被锻炼**，而且现在知道原因不是环境，而是投递路径的分叉。要么让规划者在拆 lane 时就钉 `definition.artifact_scope`（这样 lane 才有资格走 write-task），要么承认 notebook/visual-artifact 就是默认交付、把 J3-3 的修复当防御性兜底。**这是产品决策，不是缺陷**，列在这里等人拍板。
+- **`336bbbc` 在真机上的表现**：批准时装了 `plan-decomposition-check:cos--human:task:journ-6`；20 秒后父任务因拆出子 Issue 触发生命周期重排，把它以 `superseded by task_follow_up` 关掉（本轮无害，因为确实分解了）。但这个机制意味着**任何后续 mutation 都会取消这道保险**，而它要盯的恰恰是「任务一直 running、频道里却像在动」的状态。已修：`cancelSupersededTaskJobsLocked` 对 `plan_decomposition_check` 免于顶替（仍会在自身触发、终态 bulk close、取消时关闭）。测试 `TestDecompositionCheckSurvivesLifecycleRearm`（去掉豁免即失败：`status = "done" (reason "superseded by task_follow_up"), want scheduled`）。
+
 ### 2026-11-09 复核
 
 - **J3-1 已修**：`runHeadlessOpencodeTurn` 在回合开始时算 `planning := l.resolveTurnPosture(ctx, slug) == posturePlan`，回合成功且有正文时 `emitHeadlessPlan(...)` 出计划卡，并在末尾 `l.raisePlanApprovalAfterTurn(taskID, slug, text)`（空计划不发、非 planning 任务 `RaisePlanApproval` 自会 no-op）。测试：`TestOpencodePlanningTurnRaisesPlanApproval`（去掉 raise 调用即失败：`raised 0 plan-approval interviews, want 1`）、`TestOpencodeRunningTurnRaisesNoPlanApproval`。opencode 仍无原生 plan/read-only 模式，姿态只改结果处理，不改权限——这一点与 Claude/Codex 不同，注释已写清。
