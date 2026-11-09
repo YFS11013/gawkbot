@@ -377,6 +377,12 @@ func (b *Broker) scheduleTaskLifecycleLocked(task *teamTask) {
 // given task whose Kind differs from keepKind as done. Used during state
 // transitions so a stale recheck doesn't keep firing alongside a fresh
 // task_follow_up (or vice versa).
+//
+// LastRun is left alone on purpose. It means "this job was dispatched at",
+// and a supersede is not a dispatch: stamping now here overwrote the real
+// fire time and made a closed row read as if it had just run (Journey 4 could
+// not tell a gate close from a supersede close because of this). ClosedAt
+// carries the close time and pruning reads that.
 func (b *Broker) cancelSupersededTaskJobsLocked(taskID, channel, keepKind string) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	for i := range b.scheduler {
@@ -397,7 +403,6 @@ func (b *Broker) cancelSupersededTaskJobsLocked(taskID, channel, keepKind string
 		job.StatusReason = "superseded by " + keepKind
 		job.DueAt = ""
 		job.NextRun = ""
-		job.LastRun = now
 		job.ClosedAt = now
 	}
 }

@@ -972,12 +972,14 @@ func TestSchedulerBulkCloseRecordsReason(t *testing.T) {
 	b := newTestBroker(t)
 	b.mu.Lock()
 	b.scheduler = []schedulerJob{
-		{Slug: "recheck:team:task:t1", Kind: "recheck", TargetType: "task", TargetID: "t1", Channel: "team", Status: "scheduled"},
+		{Slug: "recheck:team:task:t1", Kind: "recheck", TargetType: "task", TargetID: "t1", Channel: "team", Status: "scheduled", LastRun: "2026-11-09T02:00:00Z"},
 		{Slug: "task_follow_up:team:task:t2", Kind: "task_follow_up", TargetType: "task", TargetID: "t2", Channel: "team", Status: "scheduled"},
 	}
 	b.cancelSupersededTaskJobsLocked("t1", "team", "task_follow_up")
 	b.completeSchedulerJobsLocked("task", "t2", "team")
 	superseded := b.scheduler[0].StatusReason
+	supersededLastRun := b.scheduler[0].LastRun
+	closedAt := b.scheduler[0].ClosedAt
 	completed := b.scheduler[1].StatusReason
 	b.mu.Unlock()
 
@@ -986,6 +988,15 @@ func TestSchedulerBulkCloseRecordsReason(t *testing.T) {
 	}
 	if completed != "target closed" {
 		t.Fatalf("bulk close must name its reason, got %q", completed)
+	}
+	// A supersede is not a dispatch: the row must keep the time it actually
+	// fired, or the audit cannot tell "ran at 02:00" from "closed at close
+	// time" (Journey 4).
+	if supersededLastRun != "2026-11-09T02:00:00Z" {
+		t.Fatalf("supersede stamp overwrote the real last run: %q", supersededLastRun)
+	}
+	if closedAt == "" {
+		t.Fatal("supersede close must stamp closed_at")
 	}
 }
 

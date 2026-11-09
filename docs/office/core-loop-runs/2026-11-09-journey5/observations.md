@@ -29,7 +29,8 @@
    - `task-follow-up:ae--cos:journ-17` → `done`、`status_reason="superseded by recheck"`
    - `task-follow-up:analyst--cos:journ-21` → `done`、`status_reason="superseded by recheck"`
    - 随后 `recheck:ae--cos:task:journ-17`、`recheck:analyst--cos:task:journ-21` → `done`、`status_reason="superseded by task_follow_up"`
-   这直接解释了 Journey 4 的疑问（`recheck` 为什么存在又为什么 `done`）：它不是「审阅门关掉」，而是状态变更把 job 顶掉了。`JOURN-15`、`JOURN-19` 从头到尾没有 `recheck`——它们的状态没离开过 `in_progress`，`scheduleTaskLifecycleLocked` 的 `in_progress` 分支只装 `task_follow_up`。
+   这直接解释了 Journey 4 的疑问（`recheck` 为什么存在又为什么 `done`）：它不是「审阅门关掉」，而是状态变更把 job 顶掉了。
+   注意：本轮跑的二进制里，`cancelSupersededTaskJobsLocked` 仍然会把 `last_run` 盖成关闭时刻（修复 `superseded` 路径不再写 `last_run` 是在本轮之后提交的），所以快照里这些行的 `last_run` 只应读作「关闭时间」，不能读作「最后一次派发」。`JOURN-15`、`JOURN-19` 从头到尾没有 `recheck`——它们的状态没离开过 `in_progress`，`scheduleTaskLifecycleLocked` 的 `in_progress` 分支只装 `task_follow_up`。
 6. **告警**：整轮 `kind=watchdog_alert` 消息 0 条；`watchdogs[]` 在 04:52–05:18 为空，05:23:25Z 出现 1 条 `request_waiting`（目标 `request-13`，人类没答采访卡）；`task_stalled` 3 条（05:05:08 `JOURN-6`、05:08:08 `JOURN-15`/`JOURN-19`）。
 7. **缺事实时循环停在哪里**：`request-13` 未被回答（本轮只允许一次人工干预且已用于批准），四条 lane 于是停在「等源数字」。人类不答，循环就不推进——这正是期望的行为，也说明「缺资料」这个问题在此路径上有可见出口，不是静默卡死。
 

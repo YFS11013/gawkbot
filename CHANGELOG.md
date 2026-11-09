@@ -29,6 +29,8 @@ All notable changes to WUPHF will be documented in this file.
   superseded job writes "superseded by task_follow_up", a bulk close writes
   "target closed". Journey 4 could not tell a review-gate close from a
   supersede close on `recheck:…journ-16` because both paths stamp `last_run`.
+  The supersede close also stops overwriting `last_run`: that field means "was
+  dispatched at", and a state transition is not a dispatch.
 
 ### Added
 
