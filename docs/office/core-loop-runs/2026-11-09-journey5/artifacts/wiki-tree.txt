@@ -1,0 +1,59 @@
+recent wiki files (mtime >= 04:50Z):
+  .reads\reads.jsonl
+  agents\ae\IDENTITY.md
+  agents\ae\OPERATIONS.md
+  agents\ae\SOUL.md
+  agents\ae\TOOLS.md
+  agents\analyst\IDENTITY.md
+  agents\analyst\OPERATIONS.md
+  agents\analyst\SOUL.md
+  agents\analyst\TOOLS.md
+  agents\analyst\notebook\2026-11-09-journ-62-一页报价说明可发送版草稿.md
+  agents\analyst\notebook\journ-6-1-checklist.md
+  agents\cos\IDENTITY.md
+  agents\cos\OPERATIONS.md
+  agents\cos\SOUL.md
+  agents\cos\TOOLS.md
+  agents\reviewer\IDENTITY.md
+  agents\reviewer\OPERATIONS.md
+  agents\reviewer\SOUL.md
+  agents\reviewer\TOOLS.md
+  agents\revops\IDENTITY.md
+  agents\revops\OPERATIONS.md
+  agents\revops\SOUL.md
+  agents\revops\TOOLS.md
+  index\.gitkeep
+  index\all.md
+  office\USER.md
+  team\.obsidian\.gitignore
+  team\.obsidian\app.json
+  team\companies\.gitkeep
+  team\decisions\.gitkeep
+  team\decisions\ops-log.md
+  team\getting-started\channels.md
+  team\getting-started\connecting-your-work.md
+  team\getting-started\index.md
+  team\getting-started\skills-and-runtimes.md
+  team\getting-started\the-wiki.md
+  team\getting-started\working-with-agents.md
+  team\getting-started\your-context-graph.md
+  team\hygiene\dedupe-policy.md
+  team\inbox\raw-signals.md
+  team\inbox\raw\.gitkeep
+  team\learnings\.gitkeep
+  team\people\.gitkeep
+  team\pipeline\stage-definitions.md
+  team\playbooks\.gitkeep
+  team\playbooks\owner-assignment.md
+  team\projects\.gitkeep
+  team\skills\app-building.md
+  team\skills\data-modeling.md
+  team\skills\wiki-maintenance.md
+  team\skills\.system\migrated-skill-consolidation.md
+
+wiki git log:
+  5e51a5f JOURN-6.2 一页报价说明（可发送版草稿）
+  644c5fd JOURN-6.1 输入核对清单
+  d5c0940 wuphf: materialize getting-started wiki pages
+  6160f96 wuphf: materialize ai-revops blueprint skeletons
+  2efa079 bot: seed agents/reviewer/TOOLS.md

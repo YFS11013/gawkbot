@@ -1,0 +1,60 @@
+[
+ {
+  "slug": "one-relay-events",
+  "label": "One relay events",
+  "interval_minutes": 1,
+  "status": "scheduled",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "request_follow_up",
+  "label": "Request follow-up reminders",
+  "interval_minutes": 60,
+  "status": "scheduled",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "review-expiry",
+  "label": "Review expiry sweep",
+  "interval_minutes": 10,
+  "status": "scheduled",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "wiki-archive-sweep",
+  "label": "Wiki archive sweep",
+  "interval_minutes": 1440,
+  "next_run": "2026-11-10T04:51:10Z",
+  "last_run": "2026-11-09T04:51:10Z",
+  "status": "sleeping",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "task_follow_up",
+  "label": "Task follow-up reminders",
+  "interval_minutes": 60,
+  "status": "scheduled",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "task_recheck",
+  "label": "Task recheck cadence",
+  "interval_minutes": 15,
+  "status": "scheduled",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "task_reminder",
+  "label": "Task reminder cadence",
+  "interval_minutes": 30,
+  "status": "scheduled",
+  "enabled": true,
+  "system_managed": true
+ }
+]

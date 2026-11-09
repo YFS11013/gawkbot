@@ -1,0 +1,8 @@
+2026/11/09 12:51:25 scheduler: loop started (poll=20s)
+2026/11/09 13:01:25 scheduler: heartbeat (uptime=10m0s, poll=20s)
+2026/11/09 13:11:25 scheduler: heartbeat (uptime=20m0s, poll=20s)
+2026/11/09 13:21:25 scheduler: heartbeat (uptime=30m0s, poll=20s)
+2026/11/09 13:23:08 wiki write-task refused: task=JOURN-15 slug=analyst path=team/research/probe.md: artifact path not declared: JOURN-15 declares no artifact_path, so no wiki path is authorized for it. @cos must set definition.artifact_path on the task (or route this deliverable through a human request); retrying this call cannot succeed
+2026/11/09 13:23:08 wiki write-task refused: task=JOURN-15 slug=analyst path=team/research/probe.md: artifact path not declared: JOURN-15 declares no artifact_path, so no wiki path is authorized for it. @cos must set definition.artifact_path on the task (or route this deliverable through a human request); retrying this call cannot succeed
+2026/11/09 13:23:26 scheduler: dispatched 1 due job(s)
+2026/11/09 13:25:46 scheduler: dispatched 1 due job(s)

@@ -69,6 +69,13 @@
   附：`task_stalled` 不是"只记账"——它是独立于 `watchdog_alert` 的人可见消息（J4 03:36:43/03:40:43 两条在 `cos__human`/`ae__cos` 上），此前我把它和「唤醒被拒」混成一条，已更正。
 - **J3-3 稳定复现**：J4 里两条子 Issue 同样创建时无 `definition`，同样撞 `wiki 直写 403`、改走 notebook + 请 @cos 补 `artifact_path`。
 
+### Journey 5 复核（2026-11-09，J3-3 修复 + 关闭理由）
+
+- **V1–V5 命中，F-A..F-D 未触发**（判分见 `core-loop-runs/2026-11-09-journey5/scorecard.md`）：计划卡 04:52:24 自行出现（创建后 22 秒）；只点这一张卡 → 18 秒内拆出 4 条 lane；403 → 一条 `artifact_path_missing` 提示落在任务频道、同时点名 creator/owner，两次调用只喊一次；已关 job 全带 `status_reason`。
+- **V6 字面未过**：`watchdogs[]` 终态非空，但那是 `request_waiting`（人类没答「缺资料」采访卡），不是 J3-2 的「唤醒被拒」；`watchdog_alert` 消息全程 0。
+- **J3-5 的疑问就此结案**：`recheck` 不是被审阅门关的，是被状态变更顶掉的——快照里能看到 `task-follow-up … superseded by recheck` 与 `recheck … superseded by task_follow_up` 交替。`JOURN-15/19` 全程无 `recheck`，因为它们没离开过 `in_progress`（该分支只装 `task_follow_up`）。
+- **仍未证明**：bot 会不会把 403 文案读进去并改走 human request——本轮四条 lane 一次都没尝试写 wiki，都在等源数字（notebook 全 `[NEEDS CONFIRMATION]`），403→提示的链路只由停表后操作员探针证明。
+
 ### 2026-11-09 复核
 
 - **J3-1 已修**：`runHeadlessOpencodeTurn` 在回合开始时算 `planning := l.resolveTurnPosture(ctx, slug) == posturePlan`，回合成功且有正文时 `emitHeadlessPlan(...)` 出计划卡，并在末尾 `l.raisePlanApprovalAfterTurn(taskID, slug, text)`（空计划不发、非 planning 任务 `RaisePlanApproval` 自会 no-op）。测试：`TestOpencodePlanningTurnRaisesPlanApproval`（去掉 raise 调用即失败：`raised 0 plan-approval interviews, want 1`）、`TestOpencodeRunningTurnRaisesNoPlanApproval`。opencode 仍无原生 plan/read-only 模式，姿态只改结果处理，不改权限——这一点与 Claude/Codex 不同，注释已写清。

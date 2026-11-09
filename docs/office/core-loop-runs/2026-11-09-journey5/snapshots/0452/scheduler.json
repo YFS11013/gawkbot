@@ -1,0 +1,88 @@
+[
+ {
+  "slug": "one-relay-events",
+  "label": "One relay events",
+  "interval_minutes": 1,
+  "status": "scheduled",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "request_follow_up",
+  "label": "Request follow-up reminders",
+  "interval_minutes": 60,
+  "status": "scheduled",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "review-expiry",
+  "label": "Review expiry sweep",
+  "interval_minutes": 10,
+  "status": "scheduled",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "wiki-archive-sweep",
+  "label": "Wiki archive sweep",
+  "interval_minutes": 1440,
+  "next_run": "2026-11-10T04:51:10Z",
+  "last_run": "2026-11-09T04:51:10Z",
+  "status": "sleeping",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "task_follow_up",
+  "label": "Task follow-up reminders",
+  "interval_minutes": 60,
+  "status": "scheduled",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "task_recheck",
+  "label": "Task recheck cadence",
+  "interval_minutes": 15,
+  "status": "scheduled",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "task_reminder",
+  "label": "Task reminder cadence",
+  "interval_minutes": 30,
+  "status": "scheduled",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "task-follow-up:cos--human:journ-6",
+  "kind": "task_follow_up",
+  "label": "Follow up on Journey 5: 报价单与跟进邮件",
+  "target_type": "task",
+  "target_id": "JOURN-6",
+  "channel": "cos__human",
+  "interval_minutes": 0,
+  "due_at": "2026-11-09T05:52:02Z",
+  "next_run": "2026-11-09T05:52:02Z",
+  "status": "scheduled",
+  "payload": "给一家 40 人的 SaaS 公司做续约报价：一页报价说明 + 一封 48 小时内的跟进邮件。",
+  "enabled": false
+ },
+ {
+  "slug": "request-follow-up:cos--human:request-9",
+  "kind": "request_follow_up",
+  "label": "Follow up on Start work on Journey 5: 报价单与跟进邮件?",
+  "target_type": "request",
+  "target_id": "request-9",
+  "channel": "cos__human",
+  "interval_minutes": 0,
+  "due_at": "2026-11-09T05:22:24Z",
+  "next_run": "2026-11-09T05:22:24Z",
+  "status": "scheduled",
+  "payload": "@cos wants to start work on Journey 5: 报价单与跟进邮件 (JOURN-6).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\n**JOURN-6 计划：40 人 SaaS 公司续约报价** **目标：** 输出两件可直接发送的交付物——一页报价说明 + 一封 48 小时内跟进邮件，数字口径一致，无编造。 **拟拆分子任务（审批后创建，带 parent JOURN-6）：** - `JOURN-6.1` 输入与数字核对 — @analyst：确认公司名、席位、周期、当前价、续约价/涨幅、续约日、付款条款，来源只认已提供的材料 - `JOURN-6.2` 一页报价说明 — @analyst 起草：价格、范围、有效期、付款方式、有效决策点 - `JOURN-6.3` 48 小时跟进邮件 — @ae 起草：主题、正文、CTA、发送时点 - `JOURN-6.4` QA 核查 — @reviewer：逐数字对源，无新增承诺 **执行前置/Access：** 公司名、现行合同/报价单、拟续约价与政策、收件人与发件人身份。Wiki 已检索无命中，不补造。 **验收标准：** 两件交付齐备，数字可溯源，格式为可发送版本，不止是计划。 **风险/待确认：** [NEEDS CONFIRMATION: 续约价与折扣口径]、[N…",
+  "enabled": false
+ }
+]
