@@ -71,22 +71,6 @@ func (b *Broker) ScheduleRequestFollowUp(requestID, channel, label, payload stri
 	})
 }
 
-func (b *Broker) ScheduleRecheck(channel, targetType, targetID, label, payload string, when time.Time) error {
-	return b.scheduleJob(schedulerJob{
-		Slug:            normalizeSchedulerSlug("recheck", channel, targetType, targetID),
-		Kind:            "recheck",
-		Label:           label,
-		TargetType:      strings.TrimSpace(targetType),
-		TargetID:        strings.TrimSpace(targetID),
-		Channel:         normalizeChannelSlug(channel),
-		IntervalMinutes: 0,
-		DueAt:           when.UTC().Format(time.RFC3339),
-		NextRun:         when.UTC().Format(time.RFC3339),
-		Status:          "scheduled",
-		Payload:         payload,
-	})
-}
-
 // noTraceRetryBaseDelay / noTraceRetryMaxDelay bound the short retry armed
 // after a headless turn that left no durable trace. The follow-up interval is
 // the only other re-arm and it is hourly by default: Journey 1's ae turn hit a

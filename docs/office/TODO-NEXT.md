@@ -65,8 +65,11 @@
 
 - **J3-1 通过**：隔离办公室 `journey4`（HEAD `364511c`）里提交人给的 Issue `JOURN-9`（03:21:55Z）→ 31 秒后 `request-12` 自己出现，`dedupe_key=plan-approval:JOURN-9`；全办公室仅此一张；只答这张卡（`POST /interview/answer`）同一秒 `lifecycle_state=running`，1 分钟内拆出 `JOURN-16`/`JOURN-18`。证据 `core-loop-runs/2026-11-09-journey4/`。
 - **J3-2 通过**：`JOURN-16` 03:30 进 `decision`，其 `recheck` job 在 03:31:11 真跑过并收为 `done`（`next_run=null`），全轮 `watchdog_alert` 0 条、`watchdogs[]` 空。对照（planning 仍受监视）窗口内未观察到，由单测 `TestSchedulerStillWatchesPlanningTasks` / `TestSchedulerStillAlarmsParkedTask` 承担。
-- **新观察，降级为 J3-5（可观测性，不是已证实的漏 wake）**：同为 `in_progress`，`JOURN-16` 有一条 `recheck` job、`JOURN-18` 没有；`scheduleTaskLifecycleLocked` 的 `in_progress` 分支只装 `task_follow_up`，`recheck` 只在非 `in_progress` 分支装，且 `ScheduleRecheck` 在生产代码里**没有调用点**——所以那条 job 的来路不明。收尾也分辨不出：新门（J3-2）与 `cancelSupersededTaskJobsLocked` 都会写 `last_run`。判据：调度器在关闭 task job 时记下**理由**（`status_reason=stale_state|gate_review_pending|one_shot|task_closed`），跑完一轮 Journey 能直接读出「为什么这条 job 没了」。
-  附：`task_stalled` 不是"只记账"——它是独立于 `watchdog_alert` 的人可见消息（J4 03:36:43/03:40:43 两条在 `cos__human`/`ae__cos` 上），此前我把它和「唤醒被拒」混成一条，已更正。
+- **J3-5 结案（2026-11-09 晚，`61667e0` / `852dc3d` / 本次清理）**：当初的疑问是「同为 `in_progress`，为什么一条 lane 有 `recheck`、另一条没有，以及为什么关掉的 job 说不清理由」。三件事都已经有答案：
+  1. **job 种类由状态决定，不是遗漏**：`scheduleTaskLifecycleLocked` 的 `in_progress` 分支只装 `task_follow_up`（小时级），非 `in_progress`（blocked/queued/drafting 等）分支装短周期 `recheck`。Journey 5 的快照直接拍到两者互相顶替（`superseded by recheck` / `superseded by task_follow_up`）。
+  2. **关闭有理由了**：`schedulerJob.status_reason`（审阅门 `awaiting review (<state>)`、顶替 `superseded by <kind>`、连带关闭 `target closed`、其它 `closed`），重新排期清空。
+  3. **`last_run` 不再被覆盖**：顶替关闭只写 `closed_at`；`last_run` 只表示「派发过」。
+  另：`ScheduleRecheck`（ws 里那个 export）**没有任何调用点**，本轮删除——`recheck` job 只由生命周期分支产生。
 - **J3-3 稳定复现**：J4 里两条子 Issue 同样创建时无 `definition`，同样撞 `wiki 直写 403`、改走 notebook + 请 @cos 补 `artifact_path`。
 
 ### Journey 5 复核（2026-11-09，J3-3 修复 + 关闭理由）
