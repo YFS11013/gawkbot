@@ -429,6 +429,22 @@ broker 在进程启动时就把 provider 定下来了，而 `workspace create` �
 
 测试：`TestSeedWorkspaceConfigCopiesProviderAndMemory`、`TestSeedWorkspaceConfigLeavesAnExistingFileAlone`。
 
+### 9.12 Journey 3：planning 姿态缺一处接线，watchdog 把「等审阅」当「不动」（2026-11-09）
+
+Journey 3（`core-loop-runs/2026-11-09-journey3/`，预注册 `dc62efb`）得 **6/10（25/36）**，比 Journey 2 的 5/10 高一分。J2 的四处修复（产物门、审批不阻塞投递、可见化+短重投、技能编译）全部当场验证通过；扣分主要来自两处新暴露的机制缺陷，都已在本轮修掉。
+
+**一、生命周期姿态只有两个 runtime 接线。** 人给的 Issue 被 `issueShouldPlanFirstLocked` 判为 planning，cos 按 `[PLAN MODE]` 写出完整计划后**没有卡可点**：`/requests` 全程空，子任务创建与 complete 都被「plan not approved」拒绝，空转 40 分钟直到 60 分钟后的 `task_follow_up`。原因是 `raisePlanApprovalAfterTurn` 只接在 `headless_claude.go` 与 `headless_codex_runner.go`；`headless_opencode.go` 里 `LifecycleStatePlanning` 出现 0 次。同一个任务状态在三种 provider 上语义不同，而状态机、子任务守卫、complete 守卫都在 broker 里——**姿态是跨层契约，接线漏一处就等于该 provider 上不存在这个状态**。
+
+修法：opencode 回合开始时算 `planning := l.resolveTurnPosture(ctx, slug) == posturePlan`，成功且有正文时出 `emitHeadlessPlan` + `raisePlanApprovalAfterTurn`。opencode 没有原生只读/plan 模式，所以姿态只改**结果处理**（出卡、发审批），不改权限——这点与 Claude/Codex 的硬隔离不同，注释里写明，避免下一个人以为它也在只读跑。
+
+**二、watchdog 对「等别人」的任务报警。** `JOURN-81/85` 早已 `lifecycle_state=decision`（`ready_for_review`）、artifact 在盘，watchdog 仍按 cadence 反复发「No turn could be dispatched to wake @ae」——唤醒确实被 `isExecutableTeamTaskStatus` 拒了，因为**非可执行状态本来就不该被唤醒**。报警描述的停滞并不存在，且不点卡也不会消失。
+
+修法：`processTaskJob` 在 done/blocked 之后加一道门，只对**等审阅**类状态（`review`/`decision`/`changes_requested`/`rejected`）收尾 job，不派活不报警；状态变更后 `scheduleTaskLifecycleLocked` 会重新装回。范围刻意不收 `drafting`/`intake` 与 `planning`——那两个状态下 owner 确实该动却没动，是真松散端，报警有意义。
+
+两条的测试都能在去掉修复后失败（`raised 0 plan-approval interviews`、`delivered 1`）；另加 `TestSchedulerStillAlarmsParkedTask` 钉住「等审阅不报警 ≠ 所有非执行态都不报警」。
+
+**判分口径沉淀**：Journey 3 起，评分卡的 P 判据要求「机制存在」与「人可见」两条都成立；只看到代码路径不算交付（沿用 §9.5）。本轮 P6 因此仍判命中——可见化与短重投确实生效，但它的文案在 decision 态上是错的：**一条会撒谎的告警，比一条沉默的告警更容易把人带偏**，所以文案问题单独记为 J3-2 而不是扣 P6。
+
 ### 8.5 巡检发现：覆盖、索引、倒计时（2026-10-30 05:10 UTC）
 
 - **Medium 事件被静默丢弃**：`MEDIUM_KEEP` 只匹配央行类关键词，导致德国 10 月初值 CPI（07:29 UTC）、德国 GDP（09:00）、美国 ECI（12:30）、加拿大 GDP 全部从日历消失。修复后本周事件 24 → 30 条，当日未来事件从 1 条恢复为 4 条。

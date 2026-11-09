@@ -50,6 +50,22 @@
 - **`bear/deepseek-chat` 自述“plan 阶段、需批准”**：主办公室核验回合（`ACMER-3396`）正文投递成功，但模型自称在 plan 阶段等批准，而 `GET /requests` 为空——无对应审批卡。若后续以“等批准”为由不出活，属模型行为而非闸门，需单独记录。
 - **模型实测（真实办公室回合）**：`bear/deepseek-chat` 21s/220 字、48s/871 字、46s/203 字，工具调用 6.6–34.7s；`openrouter/qwen/qwen3.5-122b-a10b` 12–20s 文本；`local/qwen3.5-122b` 93s；`opencode-go/crouton-alpha-free` 42–142s。bear 的 qwen 系模型统一报 `System message must be at the beginning`（模型级，deepseek 系正常）。
 
+## 核心循环 Journey 3 暴露的缺陷（2026-11-09）
+
+来源：`core-loop-runs/2026-11-09-journey3/scorecard.md` §4（6/10，25/36，P1/P4/P7 部分命中、F2–F6 未触发）。**J3-1 / J3-2 已于 2026-11-09 修复**，复现与测试见下方「2026-11-09 复核」。
+
+| # | 缺陷 | 现象（实测） | 代码位置 | 修复判据 |
+|---|---|---|---|---|
+| J3-1 | **opencode 没有 planning 呈现** | `JOURN-18` 01:02:49Z 进 `lifecycle_state=planning`，cos 01:05:38Z 按 `[PLAN MODE]` 贴出完整计划后无卡可点：`/requests` 全程空；子任务创建被 `parent … still in planning` 拒、`complete` 被拒；空转 40 分钟，下一条唤醒是 60 分钟后的 `task_follow_up`。人 01:42:27Z 手工 `approve` 才拆活 | `internal/team/headless_opencode.go`（0 处 `raisePlanApprovalAfterTurn` / `emitHeadlessPlan`；对照 `headless_claude.go:344`、`headless_codex_runner.go:391`） | planning 回合结束必须发出 plan 事件 + `RaisePlanApproval`（幂等、空计划不发），人类有一张可点的卡；非 planning 任务不得多发卡 |
+| J3-2 | **watchdog 把「等审阅」当「owner 不动」** | 02:00:38/02:02:38/02:02:58/02:04:58 四条 `watchdog_alert`：「No turn could be dispatched to wake @ae」，而 `JOURN-81/85` 早已 `lifecycle_state=decision`（`ready_for_review`）、artifact 在盘。唤醒按 `isExecutableTeamTaskStatus` 被拒，报警描述的停滞并不存在，且会按 cadence 一直重复 | `internal/team/scheduler.go`（`processTaskJob` 只跳过 done/blocked，不看生命周期） | 等审阅类生命周期（`review`/`decision`/`changes_requested`/`rejected`）的 task job 直接收尾、不派活不报警；任务状态变更后由 `scheduleTaskLifecycleLocked` 重新装回；`planning` 与 parked/intake 仍受监视（parked 有 owner 但不该被唤醒，属真人待办，仍要可见） |
+| J3-3 | **promotion 与 write-task 两条落盘路径不一致** | 有 `artifact_path` 的 `JOURN-81/85` 直写 wiki 成功（`060e338`/`3e432f0`）；`JOURN-78` 定义晚到 44 分钟，analyst 先写 notebook 再走 promotion，卡在 `request-129`（`analyst__human`，pending），`team/research/smb-retention-2026q4.md` 始终 404 | `broker_requests_interviews.go`（promotion 审批）、`broker_tasks`: 子任务创建时不带 `artifact_path` | 子任务创建时一次声明 `artifact_path`；或 promotion 目标在任务定义范围内时自动放行、不再问人 |
+| J3-4 | **`actions` 不记录「计划被批准」** | `JOURN-18` 的 `lifecycle_state=running` 与人可见的 feedback 都说批准发生过，但 `GET /tasks/JOURN-18` 的 `actions` 为 0 条 | `internal/team/broker_tasks_mutation_service.go`（approve 分支不 `RecordAction`） | 时间线能自证「谁在何时批准了 planning」 |
+
+### 2026-11-09 复核
+
+- **J3-1 已修**：`runHeadlessOpencodeTurn` 在回合开始时算 `planning := l.resolveTurnPosture(ctx, slug) == posturePlan`，回合成功且有正文时 `emitHeadlessPlan(...)` 出计划卡，并在末尾 `l.raisePlanApprovalAfterTurn(taskID, slug, text)`（空计划不发、非 planning 任务 `RaisePlanApproval` 自会 no-op）。测试：`TestOpencodePlanningTurnRaisesPlanApproval`（去掉 raise 调用即失败：`raised 0 plan-approval interviews, want 1`）、`TestOpencodeRunningTurnRaisesNoPlanApproval`。opencode 仍无原生 plan/read-only 模式，姿态只改结果处理，不改权限——这一点与 Claude/Codex 不同，注释已写清。
+- **J3-2 已修**：`processTaskJob` 在 done/blocked 判定之后加一道门——`taskAwaitingReview(lifecycle)`（`review`/`decision`/`changes_requested`/`rejected`，定义在 `broker_lifecycle_transition.go`）且 job 不是 `task_followup` → `UpdateSchedulerJobState(..., "done")` 直接收尾，不派活、不写 `task_stalled`、不发 `watchdog_alert`。任务再次进入 `in_progress` 时 `scheduleTaskLifecycleLocked` 会重新装回 recheck，故不会漏看。测试：`TestSchedulerQuietForTasksAwaitingReview`（四个状态各自跑一遍；去掉门槛即失败：`delivered 1`）、`TestSchedulerStillAlarmsParkedTask`、`TestSchedulerStillWatchesPlanningTasks`。范围刻意不收 `drafting`/`intake`：那两个状态下有 owner 却没动，正是人该看见的松散端。
+
 ## 已完成 — 工作树回归修复（2026-10-30 22:05）
 - `/apps/integrations/call` 路由被误删 → 恢复注册；新增的 `/apps/fetch` 独立注册并带 `requireAuth`。
 - `web/package.json` 误删 `remark-gfm`（8+ 文件仍 import）→ 恢复，与 `remark-breaks` 并存。

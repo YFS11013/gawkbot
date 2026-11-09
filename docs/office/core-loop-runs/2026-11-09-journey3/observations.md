@@ -123,7 +123,7 @@
 
 判分卡由独立判分者按上面的快照写成（`scorecard.md`，25/36 = 6/10）。停表后我复核了两处被观察到的机制，结论与修复：
 
-1. **`watchdog_alert` 的文案在 `decision` 态上是错的，而且根因不只是文案。** 02:00–02:04 那四条告警指向的 `JOURN-81/85` 当时是 `lifecycle_state=decision`（`ready_for_review`）。唤醒被拒不是链路故障，而是 `notifier_delivery.go:183-186` 的可执行状态门：非 Running/Approved/Planning 的任务本来就不该被派回合。也就是说 watchdog 把「等审阅」判成了「owner 不动」，并且会按 recheck/reminder 的 cadence 一直重复。修复：`scheduler.go` 的 `processTaskJob` 在 done/blocked 判定后，对非可执行生命周期直接收尾 job（不派活、不写 `task_stalled`、不发 `watchdog_alert`）；状态变更后 `scheduleTaskLifecycleLocked` 会重新装回；`planning` 仍受监视。测试 `TestSchedulerQuietForTasksAwaitingReview`（去掉门槛即 `delivered 1` 失败）、`TestSchedulerStillWatchesPlanningTasks`。
+1. **`watchdog_alert` 的文案在 `decision` 态上是错的，而且根因不只是文案。** 02:00–02:04 那四条告警指向的 `JOURN-81/85` 当时是 `lifecycle_state=decision`（`ready_for_review`）。唤醒被拒不是链路故障，而是 `notifier_delivery.go:183-186` 的可执行状态门：非 Running/Approved/Planning 的任务本来就不该被派回合。也就是说 watchdog 把「等审阅」判成了「owner 不动」，并且会按 recheck/reminder 的 cadence 一直重复。修复：`scheduler.go` 的 `processTaskJob` 在 done/blocked 判定后，对**等审阅**状态（`review`/`decision`/`changes_requested`/`rejected`）直接收尾 job（不派活、不写 `task_stalled`、不发 `watchdog_alert`）；状态变更后 `scheduleTaskLifecycleLocked` 会重新装回；`planning`、`drafting`、`intake` 仍受监视（那是有 owner 却没动，人该看见）。测试 `TestSchedulerQuietForTasksAwaitingReview`（去掉门槛即 `delivered 1` 失败）、`TestSchedulerStillAlarmsParkedTask`、`TestSchedulerStillWatchesPlanningTasks`。
 2. **opencode 的 planning 缺卡。** `headless_opencode.go` 现在在回合成功且有正文时 `emitHeadlessPlan` + `raisePlanApprovalAfterTurn`。测试 `TestOpencodePlanningTurnRaisesPlanApproval`（去掉调用即 `raised 0 plan-approval interviews` 失败）、`TestOpencodeRunningTurnRaisesNoPlanApproval`。
 
 两条修复都用单测证伪/证实，**没有重跑 Journey 3**：本轮证据保持不变，修复的端到端效果需要 Journey 4 验证。
