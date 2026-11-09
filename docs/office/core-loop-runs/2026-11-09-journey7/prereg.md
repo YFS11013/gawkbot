@@ -22,14 +22,17 @@
 | 蓝图 | `ai-revops`，agents `cos, revops, analyst, ae, reviewer` |
 | 主办公室 | 7891/7892，**不得被本轮任何命令指向** |
 
-### 2.1 与 Journey 6 的两处隔离改动（写清楚，判分时按此核对）
+### 2.1 与 Journey 6 的隔离改动（写清楚，判分时按此核对）
 
-1. **场景频道换成专用频道 `j7`**（不是 `cos__human`）。Journey 6 的污染源是：onboarding 的计划 lane 出错后办公室自动建了一条 `JOURN-3` 落在 `cos__human`，与场景共享同一会话上下文。本轮把场景放在 `j7`，并在 onboarding 之后、提交场景之前把 `ai-revops-1..4` 全部取消。
-2. **onboarding 遗留物一律清理**：除取消 4 条 starter lane 外，提交场景后立即检查是否出现「不属于本场景」的任务/采访卡；若出现，逐条取消并记进 observations（判分时单独计数，不算场景干预）。
+原计划把场景放到专用频道 `j7`，**不可行**：`POST /channels` 在 `namedChannelsEnabled()=false` 时返回 409「named channels are retired」，该开关在 `internal/channel/general.go:179` 是硬编码 `false`，没有生产可用的环境变量。所以场景频道仍是 `cos__human`（owner=cos 的唯一会话），只能靠清理而不是靠隔离：
+
+1. onboarding 之后、提交场景之前，立即取消 `ai-revops-1..4` 四条 starter lane。
+2. 提交场景后每 5 分钟快照时检查是否出现「不属于本场景」的任务或采访卡（Journey 6 的污染源正是 `[@analyst] Repeated errors blocked` 自动落进 `cos__human`）；出现即取消并逐条记进 observations，判分时单列为「环境清理」，不算场景干预。
+3. 本轮起 `336bbbc` 生效：任务进终态会连带取消它名下的采访卡，`request_follow_up` 对非阻塞采访也发可见提醒——所以「被一张没人知道的卡压住」这种残留应能在快照里被看见。
 
 ## 3. 场景
 
-父 Issue，`channel=j7`、`owner=cos`、`created_by=human`、`task_type=issue`，**不带 `definition`**（这正是要触发 403 的条件：子任务创建时没人钉 `artifact_path`）：
+父 Issue，`channel=cos__human`、`owner=cos`、`created_by=human`、`task_type=issue`，**不带 `definition`**（这正是要触发 403 的条件：子任务创建时没人钉 `artifact_path`）：
 
 ```
 title:   "Journey 7: Acme 续约报价与跟进"
