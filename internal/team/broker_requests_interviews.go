@@ -450,6 +450,36 @@ func (b *Broker) cancelRequestLocked(req *humanInterview, actor, reason string) 
 	b.pendingInterview = firstBlockingRequest(b.requests)
 }
 
+// cancelRequestsForClosedTaskLocked retires every active request whose IssueID
+// is this task, so a canceled or finished task never leaves a question behind
+// that still parks its asker. A pending interview holds the asking bot's turn
+// (Launcher.turnParkedOnInterview drops every wake that bot is owed), so an
+// orphaned card outlives the work it was about and quietly wedges the office:
+// Journey 6 (2026-11-09) canceled JOURN-3 at 06:27:32Z and its request-16 stayed
+// pending for the rest of the run, unanswered and able to suppress cos's wakes
+// for JOURN-8. Canceling with the task is the honest scope: the question was
+// about work that no longer exists.
+//
+// Caller holds b.mu. Returns how many requests were retired.
+func (b *Broker) cancelRequestsForClosedTaskLocked(task *teamTask, reason string) int {
+	if b == nil || task == nil {
+		return 0
+	}
+	id := strings.TrimSpace(task.ID)
+	if id == "" {
+		return 0
+	}
+	count := 0
+	for i := range b.requests {
+		if strings.TrimSpace(b.requests[i].IssueID) != id || !requestIsActive(b.requests[i]) {
+			continue
+		}
+		b.cancelRequestLocked(&b.requests[i], "office", reason)
+		count++
+	}
+	return count
+}
+
 // Every matching interview is cancelled, not just the first. A bot that
 // re-asked three times left three stacked cards in the human's DM; each
 // human message retired one, the last stayed pending, and

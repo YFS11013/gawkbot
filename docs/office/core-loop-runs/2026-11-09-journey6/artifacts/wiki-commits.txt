@@ -1,0 +1,28 @@
+7b380dba3c249cf2009ae27270a157ac83135f3f 2026-11-09 14:20:54 +0800 wuphf-bootstrap wuphf: materialize getting-started wiki pages
+03849c28ae804f50fd8bcf4f19bc0fe2159ca9cd 2026-11-09 14:20:53 +0800 wuphf-bootstrap wuphf: materialize ai-revops blueprint skeletons
+4905540b97937ff2853f30188c96d99d6c2c9115 2026-11-09 14:20:53 +0800 reviewer bot: seed agents/reviewer/TOOLS.md
+fc3e8f911741d6281cf903a1ae772830a0b71bcd 2026-11-09 14:20:52 +0800 reviewer bot: seed agents/reviewer/OPERATIONS.md
+2e44e4eef4f320b140b7423b979134b58973530e 2026-11-09 14:20:52 +0800 reviewer bot: seed agents/reviewer/IDENTITY.md
+42cf9b341fa710ead275b0d774960f27ade03bb7 2026-11-09 14:20:51 +0800 reviewer bot: seed agents/reviewer/SOUL.md
+13af28f6a0e9038444e69a8e0e3669534137e6e6 2026-11-09 14:20:51 +0800 ae bot: seed agents/ae/TOOLS.md
+5859448160fbf2a4966e73420a29a44443e48667 2026-11-09 14:20:50 +0800 ae bot: seed agents/ae/OPERATIONS.md
+8c8b12f520107090c1cf7eb817f3d6d6e2ffad71 2026-11-09 14:20:50 +0800 ae bot: seed agents/ae/IDENTITY.md
+7671494bdde06d5a2a47db91e355f988d421d029 2026-11-09 14:20:50 +0800 ae bot: seed agents/ae/SOUL.md
+66471e0898d2a31c751d8b79a4bcf56a20bb1c91 2026-11-09 14:20:49 +0800 analyst bot: seed agents/analyst/TOOLS.md
+70de2f962edc8bd27d1216e8801a6d4be3c504d0 2026-11-09 14:20:49 +0800 analyst bot: seed agents/analyst/OPERATIONS.md
+9344043e86677e1dd67f72e087379157ef8d352a 2026-11-09 14:20:48 +0800 analyst bot: seed agents/analyst/IDENTITY.md
+05c7748913316c35a6a1a75d3073d6340262116a 2026-11-09 14:20:48 +0800 analyst bot: seed agents/analyst/SOUL.md
+fcdc808640b0ec26bdda616e8216b351c771d513 2026-11-09 14:20:48 +0800 revops bot: seed agents/revops/TOOLS.md
+95944cd1d24b98c1dfc4262d3a26df4036c2940b 2026-11-09 14:20:47 +0800 revops bot: seed agents/revops/OPERATIONS.md
+478219efcbbeef3830009ae5bab01398fbf73852 2026-11-09 14:20:47 +0800 revops bot: seed agents/revops/IDENTITY.md
+7da2d94a46cbadae937c5ff75fc85ff11a241beb 2026-11-09 14:20:46 +0800 revops bot: seed agents/revops/SOUL.md
+8b5721492134ad2f289002d3512182188ac5dfa2 2026-11-09 14:19:39 +0800 .system archivist: skill consolidation migration sentinel
+77168484c1f8d6deb2c519c276196e626b0bc576 2026-11-09 14:19:37 +0800 data-modeling wuphf: backfill skill data-modeling from broker state
+c7ed5406e6ec1b1114371327072deaae3897a34a 2026-11-09 14:19:37 +0800 wiki-maintenance wuphf: backfill skill wiki-maintenance from broker state
+58257ebb4da940915e87b3d0d3d108e86c6fc959 2026-11-09 14:19:37 +0800 app-building wuphf: backfill skill app-building from broker state
+7e51c99199e2835f35ba2d14e14594dd4e4cc16e 2026-11-09 14:19:36 +0800 cos bot: seed office/USER.md
+f030ab01929467331fc483668a25fedfa3ecfae3 2026-11-09 14:19:36 +0800 cos bot: seed agents/cos/TOOLS.md
+34861cfffa87e2a3c25c6f78a31d776f87742bfb 2026-11-09 14:19:36 +0800 cos bot: seed agents/cos/OPERATIONS.md
+5129bfd33f03c72e058ef49bc035f19f206d11bc 2026-11-09 14:19:36 +0800 cos bot: seed agents/cos/IDENTITY.md
+9f985f63214d2a0d10ce49135d2432f37e08cbc5 2026-11-09 14:19:35 +0800 cos bot: seed agents/cos/SOUL.md
+b17cc6e94777b1e9375f3953ed4b06977132b14f 2026-11-09 14:19:35 +0800 system wuphf: init wiki

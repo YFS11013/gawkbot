@@ -1,0 +1,221 @@
+[
+ {
+  "id": "ai-revops-1",
+  "channel": "hygiene",
+  "title": "Run the first CRM hygiene sweep",
+  "details": "Dedupe accounts, backfill missing owners, and flag stale opportunities, with destructive changes gated.\n\ninstall cleanup: onboarding starter lane",
+  "owner": "revops",
+  "status": "canceled",
+  "created_by": "wuphf",
+  "task_type": "issue",
+  "pipeline_id": "issue",
+  "pipeline_stage": "canceled",
+  "execution_mode": "live_external",
+  "review_state": "canceled",
+  "lifecycle_state": "canceled",
+  "ledger": [
+   {
+    "agent": "revops",
+    "at": "2026-11-09T06:20:57Z",
+    "outcome": "exit status 1",
+    "context_used": [
+     "wiki:team/skills/app-building.md",
+     "wiki:team/skills/data-modeling.md",
+     "wiki:team/skills/wiki-maintenance.md"
+    ]
+   },
+   {
+    "agent": "cos",
+    "at": "2026-11-09T06:20:57Z",
+    "outcome": "exit status 1",
+    "context_used": [
+     "wiki:team/skills/app-building.md",
+     "wiki:team/skills/data-modeling.md",
+     "wiki:team/skills/wiki-maintenance.md"
+    ]
+   }
+  ],
+  "created_at": "2026-11-09T06:20:46Z",
+  "updated_at": "2026-11-09T06:20:57Z",
+  "completed_at": "2026-11-09T06:20:57Z"
+ },
+ {
+  "id": "ai-revops-2",
+  "channel": "pipeline",
+  "title": "Establish the pipeline-truth baseline",
+  "details": "Define clean records and produce the honest first read of the funnel.\n\n@analyst hit an error and stopped after retrying (something went wrong while it worked). Restart it from here, or hand it to another bot.\n\ninstall cleanup: onboarding starter lane",
+  "owner": "analyst",
+  "status": "canceled",
+  "created_by": "wuphf",
+  "task_type": "issue",
+  "pipeline_id": "issue",
+  "pipeline_stage": "canceled",
+  "execution_mode": "office",
+  "review_state": "canceled",
+  "lifecycle_state": "canceled",
+  "ledger": [
+   {
+    "agent": "analyst",
+    "at": "2026-11-09T06:20:49Z",
+    "outcome": "exit status 1: \u001b[91m\u001b[1mError: \u001b[0mUnexpected error\r\n\r\nFailed query: \n        CREATE TABLE `workspace` (\n          `id` text PRIMARY KEY,\n          `type` text NOT NULL,\n          `name` text DEFAULT ...",
+    "actions": [
+     "task_updated: Establish the pipeline-truth baseline [blocked]"
+    ],
+    "context_used": [
+     "wiki:team/skills/data-modeling.md",
+     "wiki:team/skills/app-building.md",
+     "wiki:team/skills/wiki-maintenance.md"
+    ]
+   },
+   {
+    "agent": "cos",
+    "at": "2026-11-09T06:20:57Z",
+    "outcome": "exit status 1",
+    "context_used": [
+     "wiki:team/skills/data-modeling.md",
+     "wiki:team/skills/app-building.md",
+     "wiki:team/skills/wiki-maintenance.md"
+    ]
+   }
+  ],
+  "created_at": "2026-11-09T06:20:46Z",
+  "updated_at": "2026-11-09T06:20:57Z",
+  "completed_at": "2026-11-09T06:20:57Z"
+ },
+ {
+  "id": "ai-revops-3",
+  "channel": "outreach",
+  "title": "Draft the first follow-up sequence",
+  "details": "Sequence re-engagement for stale-but-real opportunities, queued for approval.\n\ninstall cleanup: onboarding starter lane",
+  "owner": "ae",
+  "status": "canceled",
+  "created_by": "wuphf",
+  "task_type": "issue",
+  "pipeline_id": "issue",
+  "pipeline_stage": "canceled",
+  "execution_mode": "office",
+  "review_state": "canceled",
+  "lifecycle_state": "canceled",
+  "ledger": [
+   {
+    "agent": "cos",
+    "at": "2026-11-09T06:20:57Z",
+    "outcome": "exit status 1",
+    "context_used": [
+     "wiki:team/skills/wiki-maintenance.md",
+     "wiki:team/skills/app-building.md",
+     "wiki:team/skills/data-modeling.md"
+    ]
+   },
+   {
+    "agent": "ae",
+    "at": "2026-11-09T06:20:57Z",
+    "outcome": "exit status 1",
+    "context_used": [
+     "wiki:team/skills/wiki-maintenance.md",
+     "wiki:team/skills/app-building.md",
+     "wiki:team/skills/data-modeling.md"
+    ]
+   }
+  ],
+  "created_at": "2026-11-09T06:20:46Z",
+  "updated_at": "2026-11-09T06:20:57Z",
+  "completed_at": "2026-11-09T06:20:57Z"
+ },
+ {
+  "id": "ai-revops-4",
+  "channel": "review",
+  "title": "Set the hygiene scorecard and review cadence",
+  "details": "Define success metrics, the review rhythm, and the evidence trail for each iteration.\n\ninstall cleanup: onboarding starter lane",
+  "owner": "reviewer",
+  "status": "canceled",
+  "created_by": "wuphf",
+  "task_type": "issue",
+  "pipeline_id": "issue",
+  "pipeline_stage": "canceled",
+  "execution_mode": "office",
+  "review_state": "canceled",
+  "lifecycle_state": "canceled",
+  "ledger": [
+   {
+    "agent": "reviewer",
+    "at": "2026-11-09T06:20:57Z",
+    "outcome": "exit status 1",
+    "context_used": [
+     "wiki:team/skills/data-modeling.md",
+     "wiki:team/skills/wiki-maintenance.md"
+    ]
+   },
+   {
+    "agent": "cos",
+    "at": "2026-11-09T06:20:57Z",
+    "outcome": "context canceled",
+    "context_used": [
+     "wiki:team/skills/data-modeling.md",
+     "wiki:team/skills/wiki-maintenance.md"
+    ]
+   }
+  ],
+  "created_at": "2026-11-09T06:20:46Z",
+  "updated_at": "2026-11-09T06:20:57Z",
+  "completed_at": "2026-11-09T06:20:57Z"
+ },
+ {
+  "id": "JOURN-3",
+  "channel": "cos__human",
+  "title": "[@analyst] Repeated errors blocked: Establish the pipeline-truth baseline",
+  "details": "## What happened\n\nAnalyst hit the same error repeatedly while working on this and stopped to avoid wasting more attempts.\n\n> Analyst reported: @analyst hit an error and stopped after retrying (something went wrong while it worked). Restart it from here, or hand it to another bot.\n\n## What needs to happen\n\nThe Chief of Staff will look at the failing pattern and either fix the root cause or escalate to you with a specific question. If you know which step keeps breaking (e.g. \"the email send is rate-limited\"), comment it here — that often resolves it in one turn.\n\n**Original work:** Establish the pipeline-truth baseline · ai-revops-2\n\n---\n\n### Bot context (for the assigned bot)\n\n- Bot: @analyst\n- Original task: ai-revops-2\n- Trigger: max_retries\n- Detail: @analyst hit an error and stopped after retrying (something went wrong while it worked). Restart it from here, or hand it to another bot.\n\n**Original task contract (verbatim — work from THIS, not from the clipped detail above):**\n\nDefine clean records and produce the honest first read of the funnel.\n\n@analyst hit an error and stopped after retrying (something went wrong while it worked). Restart it from here, or hand it to another bot.\n\n**Repair loop:**\n\n1. Inspect the failed task and recent thread context. Use the pushed packet as authoritative; call team_poll or team_tasks only if context is missing.\n2. Classify the blocker: missing specialist/channel, missing or outdated skill/playbook, missing tool/provider/integration, stale runtime/session, unclear human decision, or implementation bug.\n3. Take the smallest reversible repair in office state. Prefer a bounded refresh/retry/requeue, reassignment, capability-check step, specialist/channel creation, playbook update, or exact human question before broad process changes.\n4. If runtime/tool state looks stale, refresh or reconnect once and verify with a cheap health check before treating it as a human blocker.\n5. Repair the missing capability first, then resume or requeue the original workflow with a concrete verification step. A self-heal that only reports the blocker is incomplete.\n6. Treat learning as a post-repair review: propose a skill or update a wiki/playbook only when the workaround is durable and reusable. Include the trigger, failure signature, recovery step, verification signal, and any tool/provider/channel constraints. If nothing reusable was learned, leave skills unchanged.\n7. Do not mark this self-healing task complete until the original task is unblocked, resumed/requeued with a clearer owner/cut line, or explicitly blocked behind a human decision.\n\n诊断：已查连接列表，当前返回空（无可用外部数据源）。Analyst 在管道基线（定义干净记录 + 输出真实漏斗首读）上反复出错但本包无具体失败步骤；当前最小修复不是重试而是先补数据入口。待人类确认：管道真实数据在哪个系统（CRM/表格/邮箱？）、负责人是谁、如何连接。确认后将 @revops 做干净记录、@analyst 做漏斗首读，两条 lane 续跑并以连接校验为验证步骤。在此之前不挑 CRM 动作，不造数。",
+  "owner": "cos",
+  "status": "in_progress",
+  "created_by": "system",
+  "task_type": "issue",
+  "pipeline_id": "incident",
+  "pipeline_stage": "breakdown",
+  "execution_mode": "office",
+  "review_state": "not_required",
+  "parent_issue_id": "ai-revops-2",
+  "lifecycle_state": "running",
+  "due_at": "2026-11-09T07:21:36Z",
+  "follow_up_at": "2026-11-09T07:21:36Z",
+  "reminder_at": "2026-11-09T07:51:36Z",
+  "recheck_at": "2026-11-09T07:36:36Z",
+  "created_at": "2026-11-09T06:20:49Z",
+  "updated_at": "2026-11-09T06:21:36Z"
+ },
+ {
+  "id": "JOURN-8",
+  "channel": "cos__human",
+  "title": "Journey 6: Acme 续约报价与跟进",
+  "details": "客户 Acme（40 席位，SaaS）。现行合同：年付 $18,000，2026-12-31 到期，付款 30 天。拟续约：年付 $21,600（+20%），条款不变，有效期 14 天。对方决策人 Dana（VP Ops）。两件交付物：① 一页报价说明（价格/范围/有效期/付款/决策点）② 48 小时内的跟进邮件草稿。只认以上数字，不要引入其它假设。",
+  "owner": "cos",
+  "status": "in_progress",
+  "created_by": "human",
+  "task_type": "issue",
+  "pipeline_id": "issue",
+  "pipeline_stage": "plan",
+  "execution_mode": "office",
+  "review_state": "pending_review",
+  "lifecycle_state": "planning",
+  "due_at": "2026-11-09T07:20:59Z",
+  "follow_up_at": "2026-11-09T07:20:59Z",
+  "reminder_at": "2026-11-09T07:50:59Z",
+  "recheck_at": "2026-11-09T07:35:59Z",
+  "ledger": [
+   {
+    "agent": "cos",
+    "at": "2026-11-09T06:21:32Z",
+    "outcome": "ok",
+    "said": "…�。\n- 无任务单之外的数字化假设（无临时价、赠送月、折让承诺等）。\n- 邮件明确 48 小时跟进时间点和 14 天有效期，并点名决策人。\n\n**风险 / 待你定夺（本轮默认）**\n- 任务单未给 Dana 联系方式、发件人落款和官方模板 → 草稿统一用占位符，不虚构。\n- 未明确语言 → 先按中文出结构草稿（数字保留英文），你定英文我再翻。\n- 14 天有效期自哪日起算未定义 → 草稿先写“自发出之日起 14 天”，发送时你确认。\n\n本轮只出计划，不创建任何子任务。",
+    "context_used": [
+     "wiki:team/getting-started/channels.md",
+     "wiki:team/getting-started/connecting-your-work.md",
+     "wiki:team/getting-started/index.md",
+     "wiki:team/getting-started/skills-and-runtimes.md",
+     "wiki:team/getting-started/the-wiki.md"
+    ]
+   }
+  ],
+  "created_at": "2026-11-09T06:20:59Z",
+  "updated_at": "2026-11-09T06:21:32Z"
+ }
+]

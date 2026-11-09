@@ -79,6 +79,20 @@
 - **J3-5 的疑问就此结案**：`recheck` 不是被审阅门关的，是被状态变更顶掉的——快照里能看到 `task-follow-up … superseded by recheck` 与 `recheck … superseded by task_follow_up` 交替。`JOURN-15/19` 全程无 `recheck`，因为它们没离开过 `in_progress`（该分支只装 `task_follow_up`）。
 - **仍未证明**：bot 会不会把 403 文案读进去并改走 human request——本轮四条 lane 一次都没尝试写 wiki，都在等源数字（notebook 全 `[NEEDS CONFIRMATION]`），403→提示的链路只由停表后操作员探针证明。
 
+### Journey 6 复核（2026-11-09，批准后的两个静默）
+
+来源：`core-loop-runs/2026-11-09-journey6/`（prereg `9dfa3b8`）。判分：V1–V4 **未观察**、V5 部分未命中、V6 空真、F-A..F-D 未触发。场景给了全部数字（Acme 40 席位、$18,000/年、2026-12-31 到期、30 天付款、续约 $21,600、14 天有效期、决策人 Dana），期望逼出写 wiki；实际 `write-task` 全程 0 次，连一次 403 都没有，所以 **J3-3 那套修复的端到端效果仍然没有被验证**。
+
+| # | 缺陷 | 现象（实测） | 代码位置 | 修复判据 |
+|---|---|---|---|---|
+| J6-1 | **批准后的首次分解没有短周期检查点** | `JOURN-8` 06:23:19Z 批准；激活回合 06:23:26Z 的正文全在回答另一条任务（`JOURN-3`）的管道问题；此后 `tasks` 只有父任务自己，`write-task` 0 行，06:33:35 一条 `task_stalled`，下一次唤醒 `task-follow-up:cos--human:journ-8` 是 **07:23:19Z**。45 分钟上限内零进展 | `internal/team/broker_plan_approval.go`（`startApprovedPlanTaskLocked` 只 `scheduleTaskLifecycleLocked`，即小时级 follow-up）、`internal/team/scheduler.go` | 批准后 5 分钟内检查一次：有子 Issue → 静默收尾并写明条数；仍 Running 且无子任务 → 写 `task_not_decomposed` 告警 + 唤醒 owner 一次；唤醒被拒走 `escalateRefusedWake` |
+| J6-2 | **被取消任务的采访卡留着，继续压住 bot 的唤醒** | `request-16`（`issue_id=JOURN-3`、`blocking` 为空）在 06:27:32Z 任务取消后仍 `pending`；它的 `request_follow_up` 06:52:15Z 触发，只写 `watchdogs`/`actions`，`messages` 18 条不变——聊天里 0 条。而 `Launcher.turnParkedOnInterview` 会丢掉该 bot 的所有唤醒，所以这张没人知道要答的卡能一直压住 cos | `internal/team/broker_lifecycle_transition.go`（终态转换不碰 requests）、`internal/team/scheduler.go`（`processRequestJob` 的 `req.Blocking` 门） | 任务进终态时取消它名下所有 active request（理由 `task closed (<state>)`）；`processRequestJob` 对任何 pending request 都投一条可见提醒（非阻塞用「Waiting on your answer」） |
+
+**已修（2026-11-09）**：
+- J6-1：`broker_scheduler.go` 新增 `planDecompositionCheckKind` / `planDecompositionCheckDelay`(5m) / `schedulePlanDecompositionCheckLocked` / `TaskSubIssueCount`；`startApprovedPlanTaskLocked` 末尾装 check；`scheduler.go` 的 `processPlanDecompositionCheck` 处理收尾/唤醒/升级。测试 `TestPlanDecompositionCheckWakesOwnerWhenNoLanes`、`TestPlanDecompositionCheckClosesWhenLanesExist`、`TestApprovedPlanArmsDecompositionCheck`（去掉装 job 即失败：`approval did not arm the decomposition check`）。
+- J6-2：`broker_requests_interviews.go` 新增 `cancelRequestsForClosedTaskLocked`，由 `transitionLifecycleLocked` 在目标状态为终态时调用；`processRequestJob` 去掉 `req.Blocking` 门。测试 `TestCanceledTaskClosesItsPendingInterview`（去掉钩子即失败：`interview still active after its task was canceled`）、`TestDoneTaskClosesItsPendingInterview`、`TestRequestReminderPostsForNonBlockingInterview`（去掉门即失败：`posted 0 messages, want 1`）。
+- **仍欠**：J3-3 链路的端到端证据（403 → 三要素文案 → 去重 → 改做法）。Journey 6 因环境遗留任务抢走注意力，没走到写路径；需要独占频道的一轮重新取证。
+
 ### 2026-11-09 复核
 
 - **J3-1 已修**：`runHeadlessOpencodeTurn` 在回合开始时算 `planning := l.resolveTurnPosture(ctx, slug) == posturePlan`，回合成功且有正文时 `emitHeadlessPlan(...)` 出计划卡，并在末尾 `l.raisePlanApprovalAfterTurn(taskID, slug, text)`（空计划不发、非 planning 任务 `RaisePlanApproval` 自会 no-op）。测试：`TestOpencodePlanningTurnRaisesPlanApproval`（去掉 raise 调用即失败：`raised 0 plan-approval interviews, want 1`）、`TestOpencodeRunningTurnRaisesNoPlanApproval`。opencode 仍无原生 plan/read-only 模式，姿态只改结果处理，不改权限——这一点与 Claude/Codex 不同，注释已写清。

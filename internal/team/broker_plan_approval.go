@@ -198,6 +198,10 @@ func (b *Broker) startApprovedPlanTaskLocked(task *teamTask, actor string) {
 	}
 	b.queueTaskBehindActiveOwnerLaneLocked(task)
 	b.scheduleTaskLifecycleLocked(task)
+	// One short look before the hourly follow-up: an approved plan that has not
+	// turned into lanes in five minutes is the stall Journey 6 lost 42 minutes
+	// to. The check closes itself when the parent gains a sub-issue.
+	b.schedulePlanDecompositionCheckLocked(task)
 	if channel != "" {
 		b.appendActionLocked("task_updated", "office", channel, actor,
 			truncateSummary(task.Title+" [plan approved]", 140), task.ID)

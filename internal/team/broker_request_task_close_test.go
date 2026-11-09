@@ -1,0 +1,280 @@
+package team
+
+// Journey 6 (2026-11-09) lost an approved plan to two silences, and these two
+// tests pin the pair.
+//
+//  1. Canceling JOURN-3 at 06:27:32Z left its interview (request-16) pending.
+//     A pending interview parks the asking bot's turn
+//     (Launcher.turnParkedOnInterview), so cos stayed parked on a question
+//     about canceled work and every wake JOURN-8 was owed got dropped.
+//  2. The 06:52:15Z reminder tick wrote a `request_waiting` watchdog row and
+//     posted nothing: the automation message was gated on req.Blocking, and a
+//     bot-raised interview is not blocking. The human never learned that a
+//     reply was the only thing that could unstick the office.
+
+import (
+	"strings"
+	"testing"
+	"time"
+)
+
+func TestCanceledTaskClosesItsPendingInterview(t *testing.T) {
+	b := newTestBroker(t)
+	now := time.Now().UTC().Format(time.RFC3339)
+
+	b.mu.Lock()
+	b.tasks = []teamTask{{
+		ID:             "JOURN-3",
+		Title:          "[@analyst] Repeated errors blocked",
+		Channel:        "cos__human",
+		Owner:          "cos",
+		status:         "in_progress",
+		LifecycleState: LifecycleStateRunning,
+		CreatedAt:      now,
+	}}
+	b.requests = []humanInterview{{
+		ID:        "request-16",
+		Kind:      "interview",
+		From:      "cos",
+		Channel:   "cos__human",
+		Title:     "Human interview",
+		Question:  "Where does the pipeline data live?",
+		Status:    "pending",
+		IssueID:   "JOURN-3",
+		CreatedAt: now,
+		UpdatedAt: now,
+	}}
+	b.scheduleRequestLifecycleLocked(&b.requests[0])
+	armed := 0
+	for _, job := range b.scheduler {
+		if job.TargetType == "request" && job.TargetID == "request-16" {
+			armed++
+		}
+	}
+	b.mu.Unlock()
+	if armed == 0 {
+		t.Fatalf("precondition: no request job armed for request-16")
+	}
+
+	if _, changed, err := b.CancelTask("JOURN-3", "human", "cleanup"); err != nil {
+		t.Fatalf("cancel: %v", err)
+	} else if !changed {
+		t.Fatalf("cancel must report changed=true")
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	req := b.requests[0]
+	if requestIsActive(req) {
+		t.Fatalf("interview still active after its task was canceled: %+v", req)
+	}
+	if req.Status != "canceled" {
+		t.Fatalf("request status = %q, want canceled", req.Status)
+	}
+	for _, job := range b.scheduler {
+		if job.TargetType == "request" && job.TargetID == "request-16" && job.Status != "done" {
+			t.Fatalf("request job %q survived the task cancel: status=%q", job.Slug, job.Status)
+		}
+	}
+	recorded := false
+	for _, a := range b.actions {
+		if a.Kind == "request_canceled" && a.RelatedID == "request-16" {
+			recorded = true
+			if !strings.Contains(a.Summary, "task closed") {
+				t.Fatalf("cancel reason lost the cause: %q", a.Summary)
+			}
+		}
+	}
+	if !recorded {
+		t.Fatalf("no request_canceled action recorded; actions=%+v", b.actions)
+	}
+}
+
+// A task's interviews also die when it finishes normally — the question is just
+// as moot, and the parked turn is just as costly.
+func TestDoneTaskClosesItsPendingInterview(t *testing.T) {
+	b := newTestBroker(t)
+	now := time.Now().UTC().Format(time.RFC3339)
+
+	b.mu.Lock()
+	b.tasks = []teamTask{{
+		ID:             "JOURN-9",
+		Title:          "Ship the quote",
+		Channel:        "cos__human",
+		Owner:          "cos",
+		status:         "in_progress",
+		LifecycleState: LifecycleStateRunning,
+		CreatedAt:      now,
+	}}
+	b.requests = []humanInterview{{
+		ID:        "request-20",
+		Kind:      "interview",
+		From:      "cos",
+		Channel:   "cos__human",
+		Title:     "Human interview",
+		Question:  "Which formatting do you want?",
+		Status:    "pending",
+		IssueID:   "JOURN-9",
+		CreatedAt: now,
+		UpdatedAt: now,
+	}}
+	b.mu.Unlock()
+
+	if err := b.TransitionLifecycle("JOURN-9", LifecycleStateApproved, "shipped"); err != nil {
+		t.Fatalf("transition: %v", err)
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if requestIsActive(b.requests[0]) {
+		t.Fatalf("interview still active after its task was approved: %+v", b.requests[0])
+	}
+}
+
+// TestRequestReminderPostsForNonBlockingInterview pins the human-visible half:
+// a bot's question is not "blocking" in the office sense, but it parks that
+// bot's turn just the same, so the reminder must reach the channel.
+func TestRequestReminderPostsForNonBlockingInterview(t *testing.T) {
+	b := newSchedulerFixtureBroker(t)
+	b.requests = []humanInterview{{
+		ID: "request-16", Channel: "cos__human", Title: "Human interview", From: "cos",
+		Question: "Where does the pipeline data live?", Status: "pending", Blocking: false,
+	}}
+	b.dueJobs = []schedulerJob{{
+		Slug: "request-follow-up:cos--human:request-16", Channel: "cos__human",
+		TargetType: "request", TargetID: "request-16",
+	}}
+	sched := &watchdogScheduler{broker: b, clock: newManualClock(time.Now()), deliverTask: func(officeActionLog, teamTask) bool { return true }}
+	sched.processOnce()
+
+	if len(b.alerts) != 1 || b.alerts[0].kind != "request_waiting" {
+		t.Fatalf("expected one request_waiting alert; got %+v", b.alerts)
+	}
+	if len(b.automationPosts) != 1 {
+		t.Fatalf("non-blocking interview reminder posted %d messages, want 1", len(b.automationPosts))
+	}
+	if b.automationPosts[0].channel != "cos__human" {
+		t.Fatalf("reminder landed in %q, want cos__human", b.automationPosts[0].channel)
+	}
+	if !strings.Contains(b.automationPosts[0].body, "pipeline data") {
+		t.Fatalf("reminder does not say what is waiting: %q", b.automationPosts[0].body)
+	}
+}
+
+// TestPlanDecompositionCheckWakesOwnerWhenNoLanes pins the Journey 6 gap: an
+// approved plan whose activation turn spent itself elsewhere leaves the parent
+// childless until the hourly follow-up. The check turns that hour into five
+// minutes, and says why it fired in the job's close reason.
+func TestPlanDecompositionCheckWakesOwnerWhenNoLanes(t *testing.T) {
+	b := newSchedulerFixtureBroker(t)
+	b.tasks = []teamTask{{
+		ID: "JOURN-8", Title: "Journey 6: Acme renewal quote", Channel: "cos__human",
+		Owner: "cos", status: "in_progress", LifecycleState: LifecycleStateRunning,
+	}}
+	b.dueJobs = []schedulerJob{{
+		Slug: "plan_decomposition_check:cos__human:task:JOURN-8", Channel: "cos__human",
+		Kind: planDecompositionCheckKind, TargetType: "task", TargetID: "JOURN-8",
+	}}
+	delivered := 0
+	sched := &watchdogScheduler{broker: b, clock: newManualClock(time.Now()),
+		deliverTask: func(officeActionLog, teamTask) bool { delivered++; return true }}
+	sched.processOnce()
+
+	if delivered != 1 {
+		t.Fatalf("childless approved plan must wake its owner once; delivered=%d", delivered)
+	}
+	if len(b.alerts) != 1 || b.alerts[0].kind != "task_not_decomposed" {
+		t.Fatalf("expected one task_not_decomposed alert; got %+v", b.alerts)
+	}
+	if len(b.jobStateUpdates) != 1 || b.jobStateUpdates[0].status != "done" {
+		t.Fatalf("check must be one-shot; got %+v", b.jobStateUpdates)
+	}
+}
+
+// A parent that did grow lanes must not be nudged: the check closes silently
+// and names the count, so the run record explains itself without a wake.
+func TestPlanDecompositionCheckClosesWhenLanesExist(t *testing.T) {
+	b := newSchedulerFixtureBroker(t)
+	b.tasks = []teamTask{{
+		ID: "JOURN-8", Title: "Journey 6: Acme renewal quote", Channel: "cos__human",
+		Owner: "cos", status: "in_progress", LifecycleState: LifecycleStateRunning,
+	}}
+	b.subIssueCounts = map[string]int{"JOURN-8": 2}
+	b.dueJobs = []schedulerJob{{
+		Slug: "plan_decomposition_check:cos__human:task:JOURN-8", Channel: "cos__human",
+		Kind: planDecompositionCheckKind, TargetType: "task", TargetID: "JOURN-8",
+	}}
+	delivered := 0
+	sched := &watchdogScheduler{broker: b, clock: newManualClock(time.Now()),
+		deliverTask: func(officeActionLog, teamTask) bool { delivered++; return true }}
+	sched.processOnce()
+
+	if delivered != 0 {
+		t.Fatalf("a parent with lanes must not be woken; delivered=%d", delivered)
+	}
+	if len(b.alerts) != 0 {
+		t.Fatalf("a parent with lanes must not raise an alert; got %+v", b.alerts)
+	}
+	if len(b.jobStateUpdates) != 1 || b.jobStateUpdates[0].status != "done" {
+		t.Fatalf("check must close; got %+v", b.jobStateUpdates)
+	}
+}
+
+// Approving a plan is what arms the check; without that the whole mechanism is
+// dead code in production.
+func TestApprovedPlanArmsDecompositionCheck(t *testing.T) {
+	b := newTestBroker(t)
+	now := time.Now().UTC().Format(time.RFC3339)
+
+	b.mu.Lock()
+	b.tasks = []teamTask{{
+		ID: "JOURN-8", Title: "Journey 6: Acme renewal quote", Channel: "cos__human",
+		Owner: "cos", status: "in_progress", LifecycleState: LifecycleStatePlanning,
+		CreatedAt: now,
+	}}
+	b.raisePlanApprovalInterviewLocked("JOURN-8", "cos", "the plan")
+	var reqID string
+	for i := range b.requests {
+		if strings.TrimSpace(b.requests[i].IssueID) == "JOURN-8" {
+			reqID = b.requests[i].ID
+		}
+	}
+	b.mu.Unlock()
+	if reqID == "" {
+		t.Fatalf("precondition: no plan-approval interview raised")
+	}
+
+	b.mu.Lock()
+	for i := range b.requests {
+		if b.requests[i].ID != reqID {
+			continue
+		}
+		b.applyRequestAnswerLocked(&b.requests[i], &interviewAnswer{ChoiceID: "approve"}, "human")
+	}
+	if err := b.saveLocked(); err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	b.mu.Unlock()
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	var found *schedulerJob
+	for i := range b.scheduler {
+		if b.scheduler[i].Kind == planDecompositionCheckKind && b.scheduler[i].TargetID == "JOURN-8" {
+			found = &b.scheduler[i]
+		}
+	}
+	if found == nil {
+		t.Fatalf("approval did not arm the decomposition check; jobs=%+v", b.scheduler)
+	}
+	if found.Status != "scheduled" {
+		t.Fatalf("check status = %q, want scheduled", found.Status)
+	}
+	due, err := time.Parse(time.RFC3339, found.DueAt)
+	if err != nil {
+		t.Fatalf("check due_at unparseable: %q", found.DueAt)
+	}
+	if delta := due.Sub(time.Now()); delta > planDecompositionCheckDelay+time.Minute || delta < time.Minute {
+		t.Fatalf("check due in %v, want about %v", delta, planDecompositionCheckDelay)
+	}
+}

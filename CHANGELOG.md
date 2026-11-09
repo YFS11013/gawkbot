@@ -13,6 +13,35 @@ All notable changes to WUPHF will be documented in this file.
 
 ### Fixed
 
+- **An approved plan gets one short look before the hourly follow-up.**
+  Approving a plan dispatches the owner exactly once; if that activation turn
+  spends itself on anything else, nothing wakes the parent again until the
+  hourly `task_follow_up`. Journey 6 (2026-11-09): `JOURN-8` was approved at
+  06:23:19Z, its activation turn answered an unrelated pipeline question, and
+  the task sat with zero sub-issues and zero wiki writes until the run's
+  45-minute cap — next wake 07:23:19Z. Approval now arms a one-shot
+  `plan_decomposition_check` five minutes out: it closes silently when the
+  parent has a sub-issue (`decomposed into N sub-issue(s)`) or left Running,
+  and otherwise raises a `task_not_decomposed` alert and wakes the owner once,
+  escalating in-channel if every delivery path refuses.
+
+- **A question dies with the task it was about.** Canceling or finishing a task
+  now cancels its active requests (`task closed (<state>)`). A pending
+  interview parks the asking bot's turn (`Launcher.turnParkedOnInterview`
+  drops every wake that bot is owed), so an orphaned card outlives the work and
+  quietly wedges the office: Journey 6 canceled `JOURN-3` at 06:27:32Z and its
+  `request-16` stayed pending, able to suppress cos's wakes for `JOURN-8` for
+  the rest of the run.
+
+- **A pending interview reminder is visible even when it is not blocking.**
+  The `request_follow_up` tick posted its automation message only for
+  `Blocking` requests, and a bot-raised interview is not blocking — so the
+  06:52:15Z tick left a `request_waiting` watchdog row and no chat message, and
+  the human never learned that a reply was the only thing that could unstick
+  the office. Every pending request now says so in its channel ("Waiting on
+  your answer" for non-blocking, unchanged "Waiting on human decision"
+  otherwise), still once per alert lifetime.
+
 - **A refused artifact write now reaches the person who can fix it.** When a
   task has no `definition.artifact_path`, `/wiki/write-task` used to answer the
   bot with "pass human_request instead" and stop there; the bot silently fell

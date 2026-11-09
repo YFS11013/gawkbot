@@ -74,6 +74,9 @@ type schedulerBroker interface {
 	// refused wake leaves behind (escalateRefusedWake).
 	PostSystemMessage(channel, content, kind string)
 	ScheduleNoTraceRetry(taskID string) error
+	// TaskSubIssueCount lets the plan-decomposition check tell a parent that
+	// grew lanes from one whose activation turn never came back.
+	TaskSubIssueCount(parentID string) int
 	// CreateRoutineTask lands an agent routine as a real task so the run has an
 	// artifact carrier; RoutineTaskForSignal dedupes a replayed scheduler tick.
 	// Both are only ever called from the routine fire path.
@@ -292,6 +295,10 @@ func (w *watchdogScheduler) processTaskJob(job schedulerJob) {
 		_ = w.broker.CloseSchedulerJob(job.Slug, "task not found or already done")
 		return
 	}
+	if strings.EqualFold(strings.TrimSpace(job.Kind), planDecompositionCheckKind) {
+		w.processPlanDecompositionCheck(job, task)
+		return
+	}
 	// A task awaiting review is not a stalled owner: `decision`/`review` hand
 	// the ball to a reviewer or the human. Waking the owner is refused by
 	// isExecutableTeamTaskStatus (notifier_delivery.go), so every reminder tick
@@ -377,6 +384,57 @@ func (w *watchdogScheduler) processTaskJob(job schedulerJob) {
 	_ = w.broker.UpdateSchedulerJobState(job.Slug, nextRun, "scheduled")
 }
 
+// processPlanDecompositionCheck is the one-shot look armed by plan approval
+// (planDecompositionCheckKind). Approving a plan dispatches the owner exactly
+// once, and the next scheduled wake is the hourly follow-up: when that single
+// activation turn spends itself elsewhere, the parent sits with no lanes and no
+// artifact for an hour. Journey 6 (2026-11-09) is the measurement — JOURN-8
+// approved at 06:23:19Z, activation turn answered an unrelated question, next
+// wake 07:23:19Z, nothing written in between.
+//
+// The check is deliberately narrow: it closes without a word when the parent
+// already has a sub-issue, left Running, or is waiting on a reviewer. Only "still
+// Running, still childless" earns a wake, and only one — the hourly follow-up
+// stays the backstop, so a plan that is legitimately a single turn is nudged
+// once rather than every tick.
+func (w *watchdogScheduler) processPlanDecompositionCheck(job schedulerJob, task teamTask) {
+	if !strings.EqualFold(strings.TrimSpace(task.status), "in_progress") || taskAwaitingReview(task.LifecycleState) {
+		_ = w.broker.CloseSchedulerJob(job.Slug, "task left running ("+strings.TrimSpace(task.status)+" "+string(task.LifecycleState)+")")
+		return
+	}
+	if n := w.broker.TaskSubIssueCount(task.ID); n > 0 {
+		_ = w.broker.CloseSchedulerJob(job.Slug, fmt.Sprintf("decomposed into %d sub-issue(s)", n))
+		return
+	}
+	if strings.TrimSpace(task.Owner) == "" {
+		_ = w.broker.CloseSchedulerJob(job.Slug, "no owner to wake")
+		return
+	}
+	summary := fmt.Sprintf("Approved plan for %s in #%s has no sub-tasks yet (@%s).",
+		task.Title, normalizeChannelSlug(task.Channel), strings.TrimSpace(task.Owner))
+	_, _, _ = w.broker.CreateWatchdogAlert("task_not_decomposed", task.Channel, "task", task.ID, task.Owner, summary)
+	signalIDs, decisionID := w.recordLedger(task.Channel, "task_not_decomposed", task.ID, task.Owner, summary, task.SourceSignalID)
+	_ = w.broker.RecordAction("watchdog_alert", "watchdog", task.Channel, "watchdog", truncate(summary, 140), task.ID, signalIDs, decisionID)
+	woke := true
+	if w.deliverTask != nil {
+		woke = w.deliverTask(officeActionLog{
+			Kind:      "watchdog_alert",
+			Source:    "watchdog",
+			Channel:   task.Channel,
+			Actor:     "watchdog",
+			RelatedID: task.ID,
+		}, task)
+		if !woke {
+			w.escalateRefusedWake(task, summary)
+		}
+	}
+	if woke {
+		_ = w.broker.CloseSchedulerJob(job.Slug, "approved plan still had no sub-tasks after "+planDecompositionCheckDelay.String()+"; owner woken")
+		return
+	}
+	_ = w.broker.CloseSchedulerJob(job.Slug, "approved plan still had no sub-tasks; every wake path refused (escalated)")
+}
+
 // escalateRefusedWake makes a refused owner wake visible instead of a ledger
 // entry nobody reads. Journey 2 (2026-11-07) stalled on exactly this: the
 // recheck dispatched, wrote signals.task_stalled, and no turn, message or card
@@ -408,11 +466,24 @@ func (w *watchdogScheduler) processRequestJob(job schedulerJob) {
 	alert, existing, _ := w.broker.CreateWatchdogAlert("request_waiting", req.Channel, "request", req.ID, req.From, summary)
 	signalIDs, decisionID := w.recordLedger(req.Channel, "request_waiting", req.ID, req.From, summary, "")
 	_ = w.broker.RecordAction("watchdog_alert", "watchdog", req.Channel, "watchdog", truncate(summary, 140), req.ID, signalIDs, decisionID)
-	if req.Blocking && !existing {
+	nextRun := w.clock.Now().UTC().Add(time.Duration(config.ResolveTaskReminderInterval()) * time.Minute)
+	_ = w.broker.UpdateSchedulerJobState(job.Slug, nextRun, "scheduled")
+	if !existing {
+		// Every pending request says so in the channel, blocking or not.
+		// A non-blocking interview still parks the asking bot's turn
+		// (Launcher.turnParkedOnInterview), so an unanswered question
+		// silently drops every wake that bot is owed — the office looks
+		// idle while the only fix is the human typing a reply. Journey 6
+		// (2026-11-09) lost 42 minutes to exactly this: the tick fired at
+		// 06:52:15Z, wrote a watchdog row, and posted nothing.
+		title := "Waiting on human decision"
+		if !req.Blocking {
+			title = "Waiting on your answer"
+		}
 		_, _, _ = w.broker.PostAutomationMessage(
 			"wuphf",
 			req.Channel,
-			"Waiting on human decision",
+			title,
 			summary,
 			alert.ID,
 			"watchdog",
@@ -421,8 +492,6 @@ func (w *watchdogScheduler) processRequestJob(job schedulerJob) {
 			req.ReplyTo,
 		)
 	}
-	nextRun := w.clock.Now().UTC().Add(time.Duration(config.ResolveTaskReminderInterval()) * time.Minute)
-	_ = w.broker.UpdateSchedulerJobState(job.Slug, nextRun, "scheduled")
 }
 
 func (w *watchdogScheduler) processWorkflowJob(job schedulerJob) {

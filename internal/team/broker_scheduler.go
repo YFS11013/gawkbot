@@ -80,6 +80,67 @@ const (
 	noTraceRetryMaxDelay  = 30 * time.Minute
 )
 
+// planDecompositionCheckDelay is how long an approved plan gets to turn into
+// lanes before the watchdog looks. Approving a plan dispatches the owner once;
+// if that turn spends itself on anything else — another task's question, a
+// leftover card in the same channel — the parent's only remaining wake is the
+// hourly follow-up. Journey 6 (2026-11-09): JOURN-8 was approved at 06:23:19Z,
+// its activation turn answered an unrelated pipeline question, and the task sat
+// with zero sub-issues and zero writes until the run's 45-minute cap. The check
+// is one-shot and closes itself the moment the parent has a lane.
+const planDecompositionCheckDelay = 5 * time.Minute
+
+// planDecompositionCheckKind is the scheduler kind of that one-shot check.
+const planDecompositionCheckKind = "plan_decomposition_check"
+
+// SchedulePlanDecompositionCheck arms the one-shot check for a freshly
+// approved plan. Safe to call with the broker lock held (…Locked suffix).
+func (b *Broker) schedulePlanDecompositionCheckLocked(task *teamTask) {
+	if b == nil || task == nil || strings.TrimSpace(task.ID) == "" {
+		return
+	}
+	channel := normalizeChannelSlug(task.Channel)
+	if channel == "" {
+		channel = "general"
+	}
+	when := time.Now().UTC().Add(planDecompositionCheckDelay)
+	job := normalizeSchedulerJob(schedulerJob{
+		Slug:       normalizeSchedulerSlug(planDecompositionCheckKind, channel, "task", task.ID),
+		Kind:       planDecompositionCheckKind,
+		Label:      "Decomposition check " + truncateSummary(task.Title, 48),
+		TargetType: "task",
+		TargetID:   task.ID,
+		Channel:    channel,
+		DueAt:      when.Format(time.RFC3339),
+		NextRun:    when.Format(time.RFC3339),
+		Status:     "scheduled",
+		Payload:    task.Details,
+	})
+	_ = b.scheduleJobLocked(job)
+}
+
+// TaskSubIssueCount reports how many non-terminal tasks carry parentID as their
+// ParentIssueID — the observable difference between "the owner came back and
+// split the work" and "the owner never came back".
+func (b *Broker) TaskSubIssueCount(parentID string) int {
+	if b == nil {
+		return 0
+	}
+	id := strings.TrimSpace(parentID)
+	if id == "" {
+		return 0
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	count := 0
+	for i := range b.tasks {
+		if strings.TrimSpace(b.tasks[i].ParentIssueID) == id && !isTerminalTeamTaskStatus(b.tasks[i].status) {
+			count++
+		}
+	}
+	return count
+}
+
 // ScheduleNoTraceRetry arms one short retry for a task whose last turn changed
 // nothing observable. Backoff doubles per consecutive empty turn (2m, 4m, 8m …
 // capped at 30m) so a bot that keeps waking with the same input does not spin,

@@ -733,6 +733,13 @@ func (b *Broker) transitionLifecycleLocked(taskID string, newState LifecycleStat
 				}
 			}
 		}
+		if derived, ok := derivedFieldsFor(newState); ok && isTerminalTeamTaskStatus(derived.Status) {
+			// A question outlives the task only if nothing retires it. The card
+			// parks the asker's turn, so leaving it pending after the work is
+			// canceled keeps suppressing that bot's wakes for anything else it
+			// owes (Journey 6: request-16 outlived JOURN-3 by 40+ minutes).
+			b.cancelRequestsForClosedTaskLocked(task, "task closed ("+string(newState)+")")
+		}
 		return task, nil
 	}
 	return nil, fmt.Errorf("transition lifecycle: task %q not found", taskID)

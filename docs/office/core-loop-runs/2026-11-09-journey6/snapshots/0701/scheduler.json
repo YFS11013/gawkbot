@@ -1,0 +1,134 @@
+[
+ {
+  "slug": "one-relay-events",
+  "label": "One relay events",
+  "interval_minutes": 1,
+  "status": "scheduled",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "request_follow_up",
+  "label": "Request follow-up reminders",
+  "interval_minutes": 60,
+  "status": "scheduled",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "review-expiry",
+  "label": "Review expiry sweep",
+  "interval_minutes": 10,
+  "status": "scheduled",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "wiki-archive-sweep",
+  "label": "Wiki archive sweep",
+  "interval_minutes": 1440,
+  "next_run": "2026-11-10T06:19:40Z",
+  "last_run": "2026-11-09T06:19:40Z",
+  "status": "sleeping",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "task_follow_up",
+  "label": "Task follow-up reminders",
+  "interval_minutes": 60,
+  "status": "scheduled",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "task_recheck",
+  "label": "Task recheck cadence",
+  "interval_minutes": 15,
+  "status": "scheduled",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "task_reminder",
+  "label": "Task reminder cadence",
+  "interval_minutes": 30,
+  "status": "scheduled",
+  "enabled": true,
+  "system_managed": true
+ },
+ {
+  "slug": "recheck:pipeline:task:ai-revops-2",
+  "kind": "recheck",
+  "label": "Recheck task Establish the pipeline-truth baseline",
+  "target_type": "task",
+  "target_id": "ai-revops-2",
+  "channel": "pipeline",
+  "interval_minutes": 0,
+  "last_run": "2026-11-09T06:20:57Z",
+  "status": "done",
+  "payload": "Define clean records and produce the honest first read of the funnel.\n\n@analyst hit an error and stopped after retrying (something went wrong while it worked). Restart it from here, or hand it to another bot.",
+  "enabled": false,
+  "closed_at": "2026-11-09T06:20:57Z",
+  "status_reason": "target closed"
+ },
+ {
+  "slug": "task-follow-up:cos--human:journ-3",
+  "kind": "task_follow_up",
+  "label": "Follow up on [@analyst] Repeated errors blocked: Establish the pipeline-truth baseline",
+  "target_type": "task",
+  "target_id": "JOURN-3",
+  "channel": "cos__human",
+  "interval_minutes": 0,
+  "last_run": "2026-11-09T06:27:32Z",
+  "status": "done",
+  "payload": "## What happened\n\nAnalyst hit the same error repeatedly while working on this and stopped to avoid wasting more attempts.\n\n> Analyst reported: @analyst hit an error and stopped after retrying (something went wrong while it worked). Restart it from here, or hand it to another bot.\n\n## What needs to happen\n\nThe Chief of Staff will look at the failing pattern and either fix the root cause or escalate to you with a specific question. If you know which step keeps breaking (e.g. \"the email send is rate-limited\"), comment it here — that often resolves it in one turn.\n\n**Original work:** Establish the pipeline-truth baseline · ai-revops-2\n\n---\n\n### Bot context (for the assigned bot)\n\n- Bot: @analyst\n- Original task: ai-revops-2\n- Trigger: max_retries\n- Detail: @analyst hit an error and stopped after retrying (something went wrong while it worked). Restart it from here, or hand it to another bot.\n\n**Original task contract (verbatim — work from THIS, not from the clipped detail above):**\n\nDefine clean records and produce the honest first read of the funnel.\n\n@analyst hit an error and stopped after retrying (something went wrong while it worked). Restart it from here, or hand it to another bot.\n\n**Repair loop:**\n\n1. Inspect the failed task and recent thread context. Use the pushed packet as authoritative; call team_poll or team_tasks only if context is missing.\n2. Classify the blocker: missing specialist/channel, missing or outdated skill/playbook, missing tool/provider/integration, stale runtime/session, unclear human decision, or implementation bug.\n3. Take the smallest reversible repair in office state. Prefer a bounded refresh/retry/requeue, reassignment, capability-check step, specialist/channel creation, playbook update, or exact human question before broad process changes.\n4. If runtime/tool state looks stale, refresh or reconnect once and verify with a cheap health check before treating it as a human blocker.\n5. Repair the missing capability first, then resume or requeue the original workflow with a concrete verification step. A self-heal that only reports the blocker is incomplete.\n6. Treat learning as a post-repair review: propose a skill or update a wiki/playbook only when the workaround is durable and reusable. Include the trigger, failure signature, recovery step, verification signal, and any tool/provider/channel constraints. If nothing reusable was learned, leave skills unchanged.\n7. Do not mark this self-healing task complete until the original task is unblocked, resumed/requeued with a clearer owner/cut line, or explicitly blocked behind a human decision.\n\n诊断：已查连接列表，当前返回空（无可用外部数据源）。Analyst 在管道基线（定义干净记录 + 输出真实漏斗首读）上反复出错但本包无具体失败步骤；当前最小修复不是重试而是先补数据入口。待人类确认：管道真实数据在哪个系统（CRM/表格/邮箱？）、负责人是谁、如何连接。确认后将 @revops 做干净记录、@analyst 做漏斗首读，两条 lane 续跑并以连接校验为验证步骤。在此之前不挑 CRM 动作，不造数。",
+  "enabled": false,
+  "closed_at": "2026-11-09T06:27:32Z",
+  "status_reason": "target closed"
+ },
+ {
+  "slug": "task-follow-up:cos--human:journ-8",
+  "kind": "task_follow_up",
+  "label": "Follow up on Journey 6: Acme 续约报价与跟进",
+  "target_type": "task",
+  "target_id": "JOURN-8",
+  "channel": "cos__human",
+  "interval_minutes": 0,
+  "due_at": "2026-11-09T07:23:19Z",
+  "next_run": "2026-11-09T07:23:19Z",
+  "status": "scheduled",
+  "payload": "客户 Acme（40 席位，SaaS）。现行合同：年付 $18,000，2026-12-31 到期，付款 30 天。拟续约：年付 $21,600（+20%），条款不变，有效期 14 天。对方决策人 Dana（VP Ops）。两件交付物：① 一页报价说明（价格/范围/有效期/付款/决策点）② 48 小时内的跟进邮件草稿。只认以上数字，不要引入其它假设。",
+  "enabled": false
+ },
+ {
+  "slug": "request-follow-up:cos--human:request-12",
+  "kind": "request_follow_up",
+  "label": "Follow up on Start work on Journey 6: Acme 续约报价与跟进?",
+  "target_type": "request",
+  "target_id": "request-12",
+  "channel": "cos__human",
+  "interval_minutes": 0,
+  "last_run": "2026-11-09T06:23:19Z",
+  "status": "done",
+  "payload": "@cos wants to start work on Journey 6: Acme 续约报价与跟进 (JOURN-8).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\n**JOURN-8 计划（已进入 plan 阶段，待你批准后我再拆任务派工）** **目标** 基于任务单给定数字（Acme 40 席位 SaaS，现价 $18,000/年 到期 2026-12-31；续价 $21,600/年 +20%，条款不变，有效期 14 天，付款 30 天，决策人 Dana / VP Ops），只交付两件草稿，**不引入其它假设、不发送邮件**： - 交付物1：一页报价说明（价格 / 范围 / 有效期 / 付款 / 决策点） - 交付物2：48 小时跟进邮件草稿 查过 wiki 检索结果，均为 onboarding 通用页，无 Acme 历史模板/话术可复用，本轮以任务单口径为唯一事实源。 **拟拆的子任务（批准后创建，parent_issue_id=JOURN-8）** 1. **@analyst** — 一页报价说明草稿：按任务单五栏（价格、范围 40 席 SaaS、有效期 14 天、付款 30 天、决策点 Dana）成稿，金额逐字引用，不加席位扩展/折扣/赔付等外部信息。 2. **@ae** — 48 小时跟进邮件草稿：基于报价一页纸的引用口径，按外发…",
+  "enabled": false,
+  "closed_at": "2026-11-09T06:23:19Z",
+  "status_reason": "target closed"
+ },
+ {
+  "slug": "request-follow-up:cos--human:request-16",
+  "kind": "request_follow_up",
+  "label": "Follow up on Human interview",
+  "target_type": "request",
+  "target_id": "request-16",
+  "channel": "cos__human",
+  "interval_minutes": 0,
+  "due_at": "2026-11-09T07:22:15Z",
+  "next_run": "2026-11-09T07:22:15Z",
+  "last_run": "2026-11-09T06:52:15Z",
+  "status": "scheduled",
+  "payload": "管道真实数据在哪管理？请告诉我源系统（CRM/表格/邮箱等）、负责人，并说明如何把数据接进办公室。刚才那次问法格式卡住了，这次直接由您文字回复源系统和负责人即可。",
+  "enabled": false
+ }
+]
