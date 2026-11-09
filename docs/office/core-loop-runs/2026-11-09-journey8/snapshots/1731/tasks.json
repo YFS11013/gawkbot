@@ -1,0 +1,360 @@
+{
+ "tasks": [
+  {
+   "id": "ai-revops-1",
+   "channel": "hygiene",
+   "title": "Run the first CRM hygiene sweep",
+   "details": "Dedupe accounts, backfill missing owners, and flag stale opportunities, with destructive changes gated.\n\ninstall cleanup: onboarding starter lane",
+   "owner": "revops",
+   "status": "canceled",
+   "created_by": "wuphf",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "canceled",
+   "execution_mode": "live_external",
+   "review_state": "canceled",
+   "lifecycle_state": "canceled",
+   "ledger": [
+    {
+     "agent": "revops",
+     "at": "2026-11-09T09:30:19Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    },
+    {
+     "agent": "cos",
+     "at": "2026-11-09T09:30:19Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    }
+   ],
+   "created_at": "2026-11-09T09:29:59Z",
+   "updated_at": "2026-11-09T09:30:19Z",
+   "completed_at": "2026-11-09T09:30:19Z"
+  },
+  {
+   "id": "ai-revops-2",
+   "channel": "pipeline",
+   "title": "Establish the pipeline-truth baseline",
+   "details": "Define clean records and produce the honest first read of the funnel.\n\ninstall cleanup: onboarding starter lane",
+   "owner": "analyst",
+   "status": "canceled",
+   "created_by": "wuphf",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "canceled",
+   "execution_mode": "office",
+   "review_state": "canceled",
+   "lifecycle_state": "canceled",
+   "ledger": [
+    {
+     "agent": "cos",
+     "at": "2026-11-09T09:30:19Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    },
+    {
+     "agent": "analyst",
+     "at": "2026-11-09T09:30:19Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    }
+   ],
+   "created_at": "2026-11-09T09:29:59Z",
+   "updated_at": "2026-11-09T09:30:19Z",
+   "completed_at": "2026-11-09T09:30:19Z"
+  },
+  {
+   "id": "ai-revops-3",
+   "channel": "outreach",
+   "title": "Draft the first follow-up sequence",
+   "details": "Sequence re-engagement for stale-but-real opportunities, queued for approval.\n\ninstall cleanup: onboarding starter lane",
+   "owner": "ae",
+   "status": "canceled",
+   "created_by": "wuphf",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "canceled",
+   "execution_mode": "office",
+   "review_state": "canceled",
+   "lifecycle_state": "canceled",
+   "ledger": [
+    {
+     "agent": "ae",
+     "at": "2026-11-09T09:30:19Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/wiki-maintenance.md",
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/data-modeling.md"
+     ]
+    },
+    {
+     "agent": "cos",
+     "at": "2026-11-09T09:30:19Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/wiki-maintenance.md",
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/data-modeling.md"
+     ]
+    }
+   ],
+   "created_at": "2026-11-09T09:29:59Z",
+   "updated_at": "2026-11-09T09:30:19Z",
+   "completed_at": "2026-11-09T09:30:19Z"
+  },
+  {
+   "id": "ai-revops-4",
+   "channel": "review",
+   "title": "Set the hygiene scorecard and review cadence",
+   "details": "Define success metrics, the review rhythm, and the evidence trail for each iteration.\n\ninstall cleanup: onboarding starter lane",
+   "owner": "reviewer",
+   "status": "canceled",
+   "created_by": "wuphf",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "canceled",
+   "execution_mode": "office",
+   "review_state": "canceled",
+   "lifecycle_state": "canceled",
+   "ledger": [
+    {
+     "agent": "reviewer",
+     "at": "2026-11-09T09:30:19Z",
+     "outcome": "context canceled",
+     "context_used": [
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    },
+    {
+     "agent": "cos",
+     "at": "2026-11-09T09:30:19Z",
+     "outcome": "context canceled",
+     "context_used": [
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    }
+   ],
+   "created_at": "2026-11-09T09:29:59Z",
+   "updated_at": "2026-11-09T09:30:19Z",
+   "completed_at": "2026-11-09T09:30:19Z"
+  },
+  {
+   "id": "JOURN-6",
+   "channel": "cos__human",
+   "title": "Journey 8: Acme 续约报价与跟进",
+   "details": "客户 Acme（40 席位，SaaS）。现行合同：年付 $18,000，2026-12-31 到期，付款 30 天。\n拟续约：年付 $21,600（+20%），条款不变，有效期 14 天。对方决策人 Dana（VP Ops）。\n两件交付物：① 一页报价说明（价格/范围/有效期/付款/决策点）② 48 小时内的跟进邮件草稿。\n只认以上数字，不要引入其它假设。\n\n计划已批准。现启动执行：子任务 A（@analyst）起草一页报价说明，子任务 B（@ae）起草 48 小时跟进邮件，子任务 C（@reviewer）质检。仅使用任务给定数字，缺失项标 [NEEDS CONFIRMATION]，不编造、不发送。",
+   "owner": "cos",
+   "status": "in_progress",
+   "created_by": "human",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "breakdown",
+   "execution_mode": "office",
+   "review_state": "pending_review",
+   "lifecycle_state": "running",
+   "due_at": "2026-11-09T10:31:10Z",
+   "follow_up_at": "2026-11-09T10:31:10Z",
+   "reminder_at": "2026-11-09T11:01:10Z",
+   "recheck_at": "2026-11-09T10:46:10Z",
+   "ledger": [
+    {
+     "agent": "cos",
+     "at": "2026-11-09T09:30:36Z",
+     "outcome": "ok",
+     "said": "…（40 席位/年度/条款不变）、有效期 14 天、付款 30 天、决策点（Dana）\n- 跟进邮件标注 48 小时内发出、CTA 清晰、未发送\n- 全文数字可追溯到任务给定值；缺失项（如 Dana 邮箱、续约起始日、有效期起算日、发件人署名）写 [NEEDS CONFIRMATION] 而非编造\n\n**风险/待确认**\n- 14 天有效期起算日、续约周期起始日未定——需确认\n- Dana 联系方式与报价经手人署名未给——发件前需补\n- wiki 检索命中的 getting-started 页面与本任务无关，未发现额外 Acme 历史邮件可借鉴",
+     "context_used": [
+      "wiki:team/getting-started/channels.md",
+      "wiki:team/getting-started/connecting-your-work.md",
+      "wiki:team/getting-started/index.md",
+      "wiki:team/getting-started/skills-and-runtimes.md",
+      "wiki:team/getting-started/the-wiki.md"
+     ]
+    }
+   ],
+   "created_at": "2026-11-09T09:30:23Z",
+   "updated_at": "2026-11-09T09:31:10Z"
+  },
+  {
+   "id": "JOURN-15",
+   "channel": "analyst__cos",
+   "title": "JOURN-6-A: Acme 一页报价说明初稿",
+   "details": "客户 Acme（40 席位，SaaS）。现行：年付 $18,000，2026-12-31 到期，Net 30。拟续约：年付 $21,600（+20%），条款不变，有效期 14 天。决策人 Dana（VP Ops）。产出一页报价说明，含价格/范围/有效期/付款/决策点。只认以上数字，缺失项标 [NEEDS CONFIRMATION]，不编造。",
+   "owner": "analyst",
+   "status": "in_progress",
+   "created_by": "cos",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "implement",
+   "execution_mode": "office",
+   "review_state": "pending_review",
+   "parent_issue_id": "JOURN-6",
+   "lifecycle_state": "running",
+   "due_at": "2026-11-09T10:31:20Z",
+   "follow_up_at": "2026-11-09T10:31:20Z",
+   "reminder_at": "2026-11-09T11:01:20Z",
+   "recheck_at": "2026-11-09T10:46:20Z",
+   "definition": {
+    "goal": "产出一页报价说明初稿，数字与任务给定一致。",
+    "artifact_path": "team/reviews/acme-renewal-quote.md",
+    "defined_at": "2026-11-09T09:31:20Z"
+   },
+   "created_at": "2026-11-09T09:31:20Z",
+   "updated_at": "2026-11-09T09:31:20Z"
+  },
+  {
+   "id": "JOURN-17",
+   "channel": "analyst__cos",
+   "title": "子任务 A — 一页报价说明初稿",
+   "details": "只使用给定数字：Acme、40 席位、SaaS、现行年付 $18,000、2026-12-31 到期、Net 30；拟续约年付 $21,600（+20%）、条款不变、有效期 14 天；决策人 Dana（VP Ops）。缺失项写 [NEEDS CONFIRMATION]，绝不编造。",
+   "owner": "analyst",
+   "status": "in_progress",
+   "created_by": "cos",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "implement",
+   "execution_mode": "office",
+   "review_state": "pending_review",
+   "parent_issue_id": "JOURN-6",
+   "lifecycle_state": "running",
+   "due_at": "2026-11-09T10:31:21Z",
+   "follow_up_at": "2026-11-09T10:31:21Z",
+   "reminder_at": "2026-11-09T11:01:21Z",
+   "recheck_at": "2026-11-09T10:46:21Z",
+   "definition": {
+    "goal": "子任务 A — 一页报价说明初稿",
+    "artifact_path": "team/research/acme-renewal-quote.md",
+    "defined_at": "2026-11-09T09:31:21Z"
+   },
+   "created_at": "2026-11-09T09:31:21Z",
+   "updated_at": "2026-11-09T09:31:21Z"
+  },
+  {
+   "id": "JOURN-19",
+   "channel": "ae__cos",
+   "title": "JOURN-6-B: Acme 48 小时跟进邮件草稿",
+   "details": "客户 Acme（40 席位，SaaS）。现行：年付 $18,000，2026-12-31 到期，Net 30。拟续约：年付 $21,600（+20%），条款不变，有效期 14 天。决策人 Dana（VP Ops）。产出 48 小时内跟进邮件草稿（主题/正文/CTA），标注未发送。只认以上数字，缺失项标 [NEEDS CONFIRMATION]，不编造、不发送。",
+   "owner": "ae",
+   "status": "in_progress",
+   "created_by": "cos",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "implement",
+   "execution_mode": "office",
+   "review_state": "pending_review",
+   "parent_issue_id": "JOURN-6",
+   "lifecycle_state": "running",
+   "due_at": "2026-11-09T10:31:25Z",
+   "follow_up_at": "2026-11-09T10:31:25Z",
+   "reminder_at": "2026-11-09T11:01:25Z",
+   "recheck_at": "2026-11-09T10:46:25Z",
+   "definition": {
+    "goal": "产出 48 小时跟进邮件草稿，不发送。",
+    "artifact_path": "team/emails/acme-followup-48h.md",
+    "defined_at": "2026-11-09T09:31:25Z"
+   },
+   "created_at": "2026-11-09T09:31:25Z",
+   "updated_at": "2026-11-09T09:31:25Z"
+  },
+  {
+   "id": "JOURN-21",
+   "channel": "ae__cos",
+   "title": "子任务 B — 48 小时跟进邮件草稿",
+   "details": "48 小时内跟进邮件草稿（主题/正文/CTA），数字只用给定值：$18,000 → $21,600（+20%）、有效期 14 天、Net 30、Dana。只写草稿、不发送、不索要连接。",
+   "owner": "ae",
+   "status": "in_progress",
+   "created_by": "cos",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "implement",
+   "execution_mode": "office",
+   "review_state": "pending_review",
+   "parent_issue_id": "JOURN-6",
+   "lifecycle_state": "running",
+   "due_at": "2026-11-09T10:31:25Z",
+   "follow_up_at": "2026-11-09T10:31:25Z",
+   "reminder_at": "2026-11-09T11:01:25Z",
+   "recheck_at": "2026-11-09T10:46:25Z",
+   "definition": {
+    "goal": "子任务 B — 48 小时跟进邮件草稿",
+    "artifact_path": "team/emails/acme-renewal-followup.md",
+    "defined_at": "2026-11-09T09:31:25Z"
+   },
+   "created_at": "2026-11-09T09:31:25Z",
+   "updated_at": "2026-11-09T09:31:25Z"
+  },
+  {
+   "id": "JOURN-23",
+   "channel": "cos__reviewer",
+   "title": "JOURN-6-C: Acme 交付物质检",
+   "details": "质检 JOURN-15 报价说明与 JOURN-19 跟进邮件：核对仅含任务给定数字，无发明数字/折扣/条款，缺失项标 [NEEDS CONFIRMATION]，邮件未发送。只认任务数字：$18,000→$21,600（+20%）、40 席位、14 天、Net 30、2026-12-31、Dana。",
+   "owner": "reviewer",
+   "status": "in_progress",
+   "created_by": "cos",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "implement",
+   "execution_mode": "office",
+   "review_state": "pending_review",
+   "parent_issue_id": "JOURN-6",
+   "lifecycle_state": "running",
+   "due_at": "2026-11-09T10:31:29Z",
+   "follow_up_at": "2026-11-09T10:31:29Z",
+   "reminder_at": "2026-11-09T11:01:29Z",
+   "recheck_at": "2026-11-09T10:46:29Z",
+   "definition": {
+    "goal": "逐项核对两件交付物，给出通过/退回结论。",
+    "artifact_path": "team/reviews/acme-renewal-qa.md",
+    "defined_at": "2026-11-09T09:31:29Z"
+   },
+   "created_at": "2026-11-09T09:31:29Z",
+   "updated_at": "2026-11-09T09:31:29Z"
+  },
+  {
+   "id": "JOURN-25",
+   "channel": "cos__reviewer",
+   "title": "子任务 C — 出厂质检",
+   "details": "逐项核对报价说明与邮件草稿：数字仅来自任务给定值、无偷加折扣/条款/假设、缺失项已标 [NEEDS CONFIRMATION]、发送审批门槛未绕。等 A/B 产出落地后再出质检结论。",
+   "owner": "reviewer",
+   "status": "in_progress",
+   "created_by": "cos",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "implement",
+   "execution_mode": "office",
+   "review_state": "pending_review",
+   "parent_issue_id": "JOURN-6",
+   "lifecycle_state": "running",
+   "due_at": "2026-11-09T10:31:30Z",
+   "follow_up_at": "2026-11-09T10:31:30Z",
+   "reminder_at": "2026-11-09T11:01:30Z",
+   "recheck_at": "2026-11-09T10:46:30Z",
+   "definition": {
+    "goal": "子任务 C — 出厂质检",
+    "artifact_path": "team/reviews/acme-renewal-qa.md",
+    "defined_at": "2026-11-09T09:31:30Z"
+   },
+   "created_at": "2026-11-09T09:31:30Z",
+   "updated_at": "2026-11-09T09:31:30Z"
+  }
+ ]
+}

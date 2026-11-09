@@ -1,0 +1,55 @@
+{
+ "requests": [
+  {
+   "id": "request-9",
+   "kind": "approval",
+   "status": "answered",
+   "from": "cos",
+   "channel": "cos__human",
+   "title": "Start work on Journey 8: Acme 续约报价与跟进?",
+   "question": "@cos wants to start work on Journey 8: Acme 续约报价与跟进 (JOURN-6).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\n**计划：JOURN-6 Acme 续约报价与跟进（待批准）** **目标** 在只使用任务给定数字的前提下，交付两件东西：①一页报价说明，②48 小时内跟进邮件草稿。不得引入其它价格、折扣、条款或假设。 **给定事实（唯一数字源）** - 客户 Acme，40 席位，SaaS - 现行：年付 $18,000，2026-12-31 到期，Net 30 - 拟续约：年付 $21,600（+20%），条款不变，有效期 14 天 - 决策人：Dana（VP Ops） **批准后执行步骤** 1. 拆为 3 个子任务并行产出（父任务 JUR-6 保持 umbrella）： - 子任务 A（@analyst）：一页报价说明初稿（Markdown/一页 PDF 形态待定）——价格对比 $18,000 → $21,600（+20%）、40 席位范围、有效期 14 天、Net 30、2026-12-31 到期、决策点 Dana - 子任务 B（@ae）：48 小时跟进邮件草稿（主题/正文/下一步 CTA，不发送） - 子任务 C（@reviewer）：出厂质检——逐项核对两件交付物仅含给定数字、无发…",
+   "options": [
+    {
+     "id": "approve",
+     "label": "Approve",
+     "description": "Green-light this and let the team execute immediately."
+    },
+    {
+     "id": "approve_with_note",
+     "label": "Approve with note",
+     "description": "Proceed, but attach explicit constraints or guardrails.",
+     "requires_text": true,
+     "text_hint": "Type the conditions, constraints, or guardrails the team must follow."
+    },
+    {
+     "id": "needs_more_info",
+     "label": "Need more info",
+     "description": "Gather more context before making the approval call."
+    },
+    {
+     "id": "reject",
+     "label": "Reject",
+     "description": "Do not proceed with this."
+    },
+    {
+     "id": "reject_with_steer",
+     "label": "Reject with steer",
+     "description": "Do not proceed as proposed. Redirect the team with clearer steering.",
+     "requires_text": true,
+     "text_hint": "Type the steering, redirect, or rationale for rejecting this request."
+    }
+   ],
+   "recommended_id": "approve",
+   "reply_to": "msg-10",
+   "dedupe_key": "plan-approval:JOURN-6",
+   "issue_id": "JOURN-6",
+   "created_at": "2026-11-09T09:30:36Z",
+   "updated_at": "2026-11-09T09:31:01Z",
+   "answered": {
+    "choice_id": "approve",
+    "choice_text": "Approve",
+    "answered_at": "2026-11-09T09:31:01Z"
+   }
+  }
+ ]
+}

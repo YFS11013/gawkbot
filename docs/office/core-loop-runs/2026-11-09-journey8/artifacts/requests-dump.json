@@ -1,0 +1,159 @@
+[
+ {
+  "id": "request-9",
+  "kind": "approval",
+  "status": "answered",
+  "from": "cos",
+  "channel": "cos__human",
+  "title": "Start work on Journey 8: Acme 续约报价与跟进?",
+  "question": "@cos wants to start work on Journey 8: Acme 续约报价与跟进 (JOURN-6).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\n**计划：JOURN-6 Acme 续约报价与跟进（待批准）** **目标** 在只使用任务给定数字的前提下，交付两件东西：①一页报价说明，②48 小时内跟进邮件草稿。不得引入其它价格、折扣、条款或假设。 **给定事实（唯一数字源）** - 客户 Acme，40 席位，SaaS - 现行：年付 $18,000，2026-12-31 到期，Net 30 - 拟续约：年付 $21,600（+20%），条款不变，有效期 14 天 - 决策人：Dana（VP Ops） **批准后执行步骤** 1. 拆为 3 个子任务并行产出（父任务 JUR-6 保持 umbrella）： - 子任务 A（@analyst）：一页报价说明初稿（Markdown/一页 PDF 形态待定）——价格对比 $18,000 → $21,600（+20%）、40 席位范围、有效期 14 天、Net 30、2026-12-31 到期、决策点 Dana - 子任务 B（@ae）：48 小时跟进邮件草稿（主题/正文/下一步 CTA，不发送） - 子任务 C（@reviewer）：出厂质检——逐项核对两件交付物仅含给定数字、无发…",
+  "options": [
+   {
+    "id": "approve",
+    "label": "Approve",
+    "description": "Green-light this and let the team execute immediately."
+   },
+   {
+    "id": "approve_with_note",
+    "label": "Approve with note",
+    "description": "Proceed, but attach explicit constraints or guardrails.",
+    "requires_text": true,
+    "text_hint": "Type the conditions, constraints, or guardrails the team must follow."
+   },
+   {
+    "id": "needs_more_info",
+    "label": "Need more info",
+    "description": "Gather more context before making the approval call."
+   },
+   {
+    "id": "reject",
+    "label": "Reject",
+    "description": "Do not proceed with this."
+   },
+   {
+    "id": "reject_with_steer",
+    "label": "Reject with steer",
+    "description": "Do not proceed as proposed. Redirect the team with clearer steering.",
+    "requires_text": true,
+    "text_hint": "Type the steering, redirect, or rationale for rejecting this request."
+   }
+  ],
+  "recommended_id": "approve",
+  "reply_to": "msg-10",
+  "dedupe_key": "plan-approval:JOURN-6",
+  "issue_id": "JOURN-6",
+  "created_at": "2026-11-09T09:30:36Z",
+  "updated_at": "2026-11-09T09:31:01Z",
+  "answered": {
+   "choice_id": "approve",
+   "choice_text": "Approve",
+   "answered_at": "2026-11-09T09:31:01Z"
+  }
+ },
+ {
+  "id": "request-117",
+  "kind": "approval",
+  "status": "pending",
+  "from": "cos",
+  "channel": "cos__human",
+  "title": "Promote to the team wiki: JOURN-100 审阅 JOURN-19 结论（补记）",
+  "question": "@cos wants to promote \"JOURN-100 审阅 JOURN-19 结论（补记）\" into the team wiki. Approve?",
+  "context": "Why: 审阅结论已定稿并需进入共享 wiki 供后续发送前确认使用；notebook 为审阅工作记录。\n\nFrom: agents/cos/notebook/2026-11-09-journ-100-审阅-journ-19-结论补记.md\nCreates: team/reviews/JOURN-19.md\nContent sha256: 1ef459ad1c8f75e3\n\nApproving promotes exactly the text shown on this card, plus a provenance footer naming cos as its author. Editing the note after this card is raised does not change what lands.",
+  "options": [
+   {
+    "id": "approve",
+    "label": "Approve",
+    "description": "Green-light this and let the team execute immediately."
+   },
+   {
+    "id": "approve_with_note",
+    "label": "Approve with note",
+    "description": "Proceed, but attach explicit constraints or guardrails.",
+    "requires_text": true,
+    "text_hint": "Type the conditions, constraints, or guardrails the team must follow."
+   },
+   {
+    "id": "needs_more_info",
+    "label": "Need more info",
+    "description": "Gather more context before making the approval call."
+   },
+   {
+    "id": "reject",
+    "label": "Reject",
+    "description": "Do not proceed with this."
+   },
+   {
+    "id": "reject_with_steer",
+    "label": "Reject with steer",
+    "description": "Do not proceed as proposed. Redirect the team with clearer steering.",
+    "requires_text": true,
+    "text_hint": "Type the steering, redirect, or rationale for rejecting this request."
+   }
+  ],
+  "recommended_id": "approve",
+  "reply_to": "msg-118",
+  "dedupe_key": "knowledge-promote:1ef459ad1c8f75e3dbfed45699f4c30f1eec0f44dd84f96a4ec011515d91f79c",
+  "knowledge_promotion": {
+   "agent": "cos",
+   "source_path": "agents/cos/notebook/2026-11-09-journ-100-审阅-journ-19-结论补记.md",
+   "target_path": "team/reviews/JOURN-19.md",
+   "title": "JOURN-100 审阅 JOURN-19 结论（补记）",
+   "content": "# JOURN-100 审阅 JOURN-19 结论（补记）\n\nJOURN-100 独立审阅 JOURN-19 完成：通读 team/emails/acme-followup-48h.md 全文，逐条对照 JOURN-6 验收标准（48 小时内发出、CTA 清晰、未发送、数字可追溯、缺失项标 [NEEDS CONFIRMATION]）。\n\n结论：有条件通过（4/6 通过）。不通过：C2 48 小时时限未写入正文/内部说明/CTA（仅标题与任务信息复述）；C6 有效期起算日、续约起始日未标 [NEEDS CONFIRMATION]（署名与 Dana 联系方式已标）。提示：F-03 过期重确价为作者补充表述，F-04 收件邮箱与 Dana 邮箱重复。修复 F-01、F-02 后可进入发送前确认。结论全文见 team/reviews/JOURN-19.md；未改交付物、未重开 JOURN-19。\n",
+   "content_sha": "1ef459ad1c8f75e3dbfed45699f4c30f1eec0f44dd84f96a4ec011515d91f79c",
+   "reason": "审阅结论已定稿并需进入共享 wiki 供后续发送前确认使用；notebook 为审阅工作记录。",
+   "requested_at": "2026-11-09T09:34:53Z"
+  },
+  "due_at": "2026-11-09T10:04:53Z",
+  "follow_up_at": "2026-11-09T11:04:53Z",
+  "reminder_at": "2026-11-09T10:04:53Z",
+  "recheck_at": "2026-11-09T10:04:53Z",
+  "created_at": "2026-11-09T09:34:53Z",
+  "updated_at": "2026-11-09T09:34:53Z"
+ },
+ {
+  "id": "request-133",
+  "kind": "approval",
+  "status": "canceled",
+  "from": "ae",
+  "channel": "ae__human",
+  "title": "Start work on Probe: undeclared write scope (reverse arm)?",
+  "question": "@ae wants to start work on Probe: undeclared write scope (reverse arm) (JOURN-127).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\n正在制定 #JOURN-127 的探测计划——先查阅相关 Wiki 与学习记录，确认未声明写入范围的边界。# #JOURN-127 执行计划（待批准，暂不执行） ## 目标 验证「无声明写入范围」时是否会发生未授权写入：对照任务已声明的 artifact_scope 与实际写入路径，给出只读结论。Wiki 检索 `probe` / `write scope` 均无命中，故判定标准以任务定义与频道记录为准，不臆测。 ## 步骤（批准后执行） 1. 只读核查 #JOURN-127 的任务定义，确认是否声明了 artifact_scope / 写入路径（当前上下文显示未声明）。 2. 只读对照实际写入：重点核对频道已记录的路径偏差（`team/emails/acme-followup-48h.md` 与声明的 `team/emails/acme-renewal-followup.md` 不一致）逐项标注「有/无人类批准证据」。 3. 输出结论报告到 #ae__cos：每处写入 → 声明路径、实际路径、批准状态、一句话判定。 4. 全程零写入：不写 Wiki、不落 notebook、不发送任…",
+  "options": [
+   {
+    "id": "approve",
+    "label": "Approve",
+    "description": "Green-light this and let the team execute immediately."
+   },
+   {
+    "id": "approve_with_note",
+    "label": "Approve with note",
+    "description": "Proceed, but attach explicit constraints or guardrails.",
+    "requires_text": true,
+    "text_hint": "Type the conditions, constraints, or guardrails the team must follow."
+   },
+   {
+    "id": "needs_more_info",
+    "label": "Need more info",
+    "description": "Gather more context before making the approval call."
+   },
+   {
+    "id": "reject",
+    "label": "Reject",
+    "description": "Do not proceed with this."
+   },
+   {
+    "id": "reject_with_steer",
+    "label": "Reject with steer",
+    "description": "Do not proceed as proposed. Redirect the team with clearer steering.",
+    "requires_text": true,
+    "text_hint": "Type the steering, redirect, or rationale for rejecting this request."
+   }
+  ],
+  "recommended_id": "approve",
+  "reply_to": "msg-134",
+  "dedupe_key": "plan-approval:JOURN-127",
+  "issue_id": "JOURN-127",
+  "created_at": "2026-11-09T10:03:01Z",
+  "updated_at": "2026-11-09T10:03:15Z"
+ }
+]

@@ -1,0 +1,77 @@
+c38b23987cf1571c36b285f61c3b5118f0095e4c 2026-11-09 17:35:43 +0800 b-48 librarian: enhance skill b-48
+b3f13cbf1a65432634633a7c3f73977f893ee46f 2026-11-09 17:35:43 +0800 archivist archivist: compile playbook a
+09dc55c399ddf621201f2697723df5fc48c68ce3 2026-11-09 17:35:42 +0800 archivist archivist: create playbook draft a from JOURN-105
+dcdc836455cb8de0d76605e6628c68282ca0d908 2026-11-09 17:35:41 +0800 cos learning: operational/a
+d2ad4e936ca08b865a52c8f1b96354196a690283 2026-11-09 17:35:20 +0800 b-48 librarian: enhance skill b-48
+aadba24b7ebbecbc2a54165c0d32b96f5411ec85 2026-11-09 17:35:19 +0800 archivist archivist: update playbook draft journ-6-a-acme from JOURN-100
+244d1b8e0101af4c596327d8ec80a572ab5d8275 2026-11-09 17:35:19 +0800 cos learning: operational/journ-6-b-acme-48
+1a99f944d5e40f558a47cfd054826d54132d6ac7 2026-11-09 17:35:19 +0800 archivist archivist: entity article people/ae (1 facts)
+9e1ee78406fb28b6848193af17e0f471e8647f34 2026-11-09 17:35:17 +0800 cos fact: people/ae — Completed task JOURN-100 ("审阅：JOURN-6-B: Acme 48 小时跟进邮件草稿") involved this entity. Goal: 独立审阅 JOURN-19 的交付，逐条对照验收标准给出可执行的发现。. Produced artifact: team/reviews/JOURN-19.md.
+5b91a1fe197e3c8024b862747d46d4e56d0fb94a 2026-11-09 17:34:50 +0800 cos JOURN-105 审阅 JOURN-17 报价说明
+506f9ca419b4b5efb422e2e227a4d94612ad230d 2026-11-09 17:34:48 +0800 cos JOURN-100 审阅 JOURN-19 结论（补记）
+2899fd01db61d57fd2cda74679ef7065b28b297d 2026-11-09 17:34:35 +0800 cos 审阅：JOURN-17 一页报价说明初稿（JOURN-105）
+ad03e8f0a4dc009b482aa56ae68142df68452ec6 2026-11-09 17:34:22 +0800 cos JOURN-100 审阅 JOURN-19 结论
+f0b6335f770aaa5e0335f898b95b5b12ecdefe43 2026-11-09 17:34:08 +0800 cos 审阅 JOURN-19：Acme 48 小时跟进邮件草稿 — 有条件通过，2 项不通过
+9689f733e73c095d5ad33cddc75ef92b73f8d906 2026-11-09 17:33:55 +0800 b-48 librarian: enhance skill b-48
+9c46c6024ac188d0cdb177a80cb77941cde32c30 2026-11-09 17:33:55 +0800 archivist archivist: update playbook draft journ-6-a-acme from JOURN-88
+fb3a316f14dcf8f6a725594058d0614360cf0742 2026-11-09 17:33:54 +0800 cos learning: operational/journ-6-c-acme
+a48dacb59634f6870651434f7345383c9342cfad 2026-11-09 17:33:54 +0800 archivist archivist: entity article companies/needs-confirmation (4 facts)
+4a2de2be0ccfe690becb5f8e8b68831c3abd2830 2026-11-09 17:33:52 +0800 analyst fact: companies/needs-confirmation — Completed task JOURN-17 ("子任务 A — 一页报价说明初稿") involved this entity. Goal: 子任务 A — 一页报价说明初稿. Produced artifact: ra_4904a7a50a981735.
+67892c203a436a6233d834ed9ebac9aeea590a16 2026-11-09 17:33:49 +0800 cos 审阅：JOURN-6-C 质检（JOURN-23）— 有条件通过，逐条对照验收标准并标注严重度
+74bd9ba3beb9f2df8fb1f259e1bcbb94a12a30d2 2026-11-09 17:33:17 +0800 b-48 librarian: enhance skill b-48
+39deff14c2623489bda3ef0e9c572599a2aeb60c 2026-11-09 17:33:16 +0800 archivist archivist: compile playbook journ-6-a-acme
+ec326140267a96e9fce971afc36df4a766be92fa 2026-11-09 17:33:16 +0800 archivist archivist: create playbook draft journ-6-a-acme from JOURN-41
+5acc806b6aae8b90c0dd65ead6d17e03ddf8a680 2026-11-09 17:33:16 +0800 cos learning: operational/journ-6-a-acme
+cddde05349ddb915b602c4bfac249ea65002b113 2026-11-09 17:33:16 +0800 archivist archivist: entity article people/analyst (1 facts)
+e643cb76930243e8a9fde003cc63373ee56cee77 2026-11-09 17:33:15 +0800 archivist archivist: entity article companies/needs-confirmation (3 facts)
+5abffcf884479858881f38a2fecf32f8864776c8 2026-11-09 17:33:15 +0800 cos fact: people/analyst — Completed task JOURN-41 ("审阅：JOURN-6-A: Acme 一页报价说明初稿") involved this entity. Goal: 独立审阅 JOURN-15 的交付，逐条对照验收标准给出可执行的发现。. Produced artifact: team/reviews/JOURN-15.md.
+07dc6da56a5315203d7b59976dbd1250d63d52c2 2026-11-09 17:33:14 +0800 reviewer fact: companies/needs-confirmation — Completed task JOURN-23 ("JOURN-6-C: Acme 交付物质检") involved this entity. Goal: 逐项核对两件交付物，给出通过/退回结论。. Produced artifact: team/reviews/acme-renewal-qa.md.
+115993716eb425792cf98652a0e236879ae9ac50 2026-11-09 17:33:07 +0800 83509926 wiki: external edit to team/reviews/acme-renewal-qa.md
+3da268f8d6333ea420836ea4c37fcf314aab3ef5 2026-11-09 17:32:25 +0800 cos JOURN-15 审阅结论备忘
+d7765dab8306c10c0383c5e68a6313d00bd92d5d 2026-11-09 17:32:23 +0800 b-48 librarian: compile skill b-48
+15fb7495153ff9217e0aab8bc28203a83bd871c0 2026-11-09 17:32:23 +0800 archivist archivist: compile playbook b-48
+06d10cc22eb90a9c40ebfc6524602dc87ddd75cb 2026-11-09 17:32:23 +0800 archivist archivist: create playbook draft b-48 from JOURN-47
+530a9db5a259c9fc671bd32b5748c39ea8329521 2026-11-09 17:32:22 +0800 cos learning: operational/b-48
+c1072120e1f73bd263833783f08d54454e7cfa2d 2026-11-09 17:32:22 +0800 archivist archivist: entity article companies/needs-confirmation (2 facts)
+5b49aa26283cc6c554f5d335f01f196d85a12b98 2026-11-09 17:32:21 +0800 cos fact: companies/needs-confirmation — Completed task JOURN-47 ("审阅：子任务 B — 48 小时跟进邮件草稿") involved this entity. Goal: 独立审阅 JOURN-21 的交付，逐条对照验收标准给出可执行的发现。. Produced artifact: team/reviews/JOURN-21.md.
+2efa757d3e5615100c27d204c9470e2b86029832 2026-11-09 17:32:17 +0800 cos JOURN-47：独立审阅 JOURN-21 交付物
+04e535dca6a76f16efd5cbac87c2a83d0deb32e1 2026-11-09 17:32:14 +0800 reviewer JOURN-23 Acme 交付物质检报告
+8fb7ff3d081451730ebbf9d8236b00a483faa857 2026-11-09 17:32:10 +0800 cos 审阅 JOURN-15 一页报价说明初稿：逐条对照验收标准并标注发现
+868281381901208a2f59c28baa37bd03a3f1689d 2026-11-09 17:31:47 +0800 archivist archivist: entity article companies/needs-confirmation (1 facts)
+01263c9aa8dc6fff576652863ddf0a9dffd92d9c 2026-11-09 17:31:46 +0800 archivist archivist: entity article companies/vp-ops (1 facts)
+f50edba3816aa07415edf0c74e4d182f03ca105f 2026-11-09 17:31:45 +0800 archivist graph: companies/needs-confirmation → 1 ref(s)
+87c7c3abc4dac65979ccea07ac654d15caac4f24 2026-11-09 17:31:45 +0800 analyst fact: companies/needs-confirmation — Completed task JOURN-15 ("JOURN-6-A: Acme 一页报价说明初稿") involved this entity. Goal: 产出一页报价说明初稿，数字与任务给定一致。. Produced artifact: team/reviews/acme-renewal-quote.md. Co-occurring entities: [[companies/vp-ops]].
+e3b16d75434320465777c7e5a28760f54688c4f8 2026-11-09 17:31:45 +0800 archivist graph: companies/vp-ops → 1 ref(s)
+cc111c6ecf2ad7605aafe951bb44847cdcf991ca 2026-11-09 17:31:44 +0800 analyst fact: companies/vp-ops — Completed task JOURN-15 ("JOURN-6-A: Acme 一页报价说明初稿") involved this entity. Goal: 产出一页报价说明初稿，数字与任务给定一致。. Produced artifact: team/reviews/acme-renewal-quote.md. Co-occurring entities: [[companies/needs-confirmation]].
+cd934606a741ba8999581248394a9c1c46252cfa 2026-11-09 17:31:43 +0800 ae JOURN-6-B: Acme 48小时跟进邮件草稿（未发送）
+430709df61304f69a158e52e2290802b887feccc 2026-11-09 17:31:42 +0800 ae JOURN-21: add Acme 48h follow-up email draft
+feccaeaf2f09e99cd05dd88791c57f5066fa9334 2026-11-09 17:31:40 +0800 analyst JOURN-6-A: Acme 一页报价说明初稿（JOURN-15）
+7ac99d03581df71c635515add716d333dcff6451 2026-11-09 17:31:38 +0800 analyst artifact: create visual artifact ra_4904a7a50a981735
+ba1d908b8f501a309597c3b4a283bb64dd171d51 2026-11-09 17:30:07 +0800 wuphf-bootstrap wuphf: materialize getting-started wiki pages
+357ba7363a1d871506051458080a85792e5a5ba8 2026-11-09 17:30:07 +0800 wuphf-bootstrap wuphf: materialize ai-revops blueprint skeletons
+6b37820e44de11d5ee23985f7020e81e26c29755 2026-11-09 17:30:06 +0800 reviewer bot: seed agents/reviewer/TOOLS.md
+30639e7c4f0b5f936a0de15764972578e60ee30d 2026-11-09 17:30:06 +0800 reviewer bot: seed agents/reviewer/OPERATIONS.md
+a91861582e79f3410ce1276799c8cb32cbc9f6b9 2026-11-09 17:30:06 +0800 reviewer bot: seed agents/reviewer/IDENTITY.md
+478bba1227fd9a9de5fd7b20adb277a82d36536d 2026-11-09 17:30:05 +0800 reviewer bot: seed agents/reviewer/SOUL.md
+ab833cff37eada40d1add6cdd11d8d56d1eea496 2026-11-09 17:30:04 +0800 ae bot: seed agents/ae/TOOLS.md
+a2b012095481872e72664ee98219d906f7cd8596 2026-11-09 17:30:04 +0800 ae bot: seed agents/ae/OPERATIONS.md
+877730b50d1b499df2b6536635787eb869fbb1b5 2026-11-09 17:30:03 +0800 ae bot: seed agents/ae/IDENTITY.md
+ede324eb00cd34f6723e95bfb669238f119d76cf 2026-11-09 17:30:02 +0800 ae bot: seed agents/ae/SOUL.md
+c1e761fdb8bffec8a336a57d1f9677e5ee7696cc 2026-11-09 17:30:02 +0800 analyst bot: seed agents/analyst/TOOLS.md
+68327c11859208efd27f9174b37ee754e2757db7 2026-11-09 17:30:01 +0800 analyst bot: seed agents/analyst/OPERATIONS.md
+c38bbf51efa4e3621db68748ea51f5d34999976c 2026-11-09 17:30:01 +0800 analyst bot: seed agents/analyst/IDENTITY.md
+725babcd34d4e304b4f9d74cb24dc996ccac8a86 2026-11-09 17:30:01 +0800 analyst bot: seed agents/analyst/SOUL.md
+6529890dd303b443f76777a13eb801540206687b 2026-11-09 17:30:00 +0800 revops bot: seed agents/revops/TOOLS.md
+44e4a653ee7a59a1d274340d69e2603dc441d5e5 2026-11-09 17:30:00 +0800 revops bot: seed agents/revops/OPERATIONS.md
+b0416f4d60548f9f3af6102b7a0eeb0a7aab0e8e 2026-11-09 17:30:00 +0800 revops bot: seed agents/revops/IDENTITY.md
+628bbeec6860ad98db5a1b0d9c461b133eac548e 2026-11-09 17:29:59 +0800 revops bot: seed agents/revops/SOUL.md
+fd7fe68b1565e1d311f97deb5818f447bc4a16ae 2026-11-09 17:29:47 +0800 data-modeling wuphf: backfill skill data-modeling from broker state
+78b29486df4ad6ef291f453781dda530c0f78037 2026-11-09 17:29:47 +0800 .system archivist: skill consolidation migration sentinel
+b2f374d06f0aa504eb9de3c32aa9c54d155aa642 2026-11-09 17:29:47 +0800 wiki-maintenance wuphf: backfill skill wiki-maintenance from broker state
+33f6720f170491c0c90efa18b509d5363057576a 2026-11-09 17:29:46 +0800 app-building wuphf: backfill skill app-building from broker state
+f49c82d679aeee67dcf7a913436691904b4c40b1 2026-11-09 17:29:46 +0800 cos bot: seed office/USER.md
+eacbc9f4abc7a59c4cb154f30e36faaa452ca592 2026-11-09 17:29:46 +0800 cos bot: seed agents/cos/TOOLS.md
+59b9afa2bfe216aa1dccf42923703d138ab5ff89 2026-11-09 17:29:45 +0800 cos bot: seed agents/cos/OPERATIONS.md
+7afb582194d3a372a40dd2f8a5e60013f00116cb 2026-11-09 17:29:45 +0800 cos bot: seed agents/cos/IDENTITY.md
+80f6d81d801009cfed1d7585f486142db4c569e8 2026-11-09 17:29:45 +0800 cos bot: seed agents/cos/SOUL.md
+28caa55a9d63d8f589738278ae49801bb2951e89 2026-11-09 17:29:44 +0800 system wuphf: init wiki

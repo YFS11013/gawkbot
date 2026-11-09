@@ -1,0 +1,51 @@
+Launching WUPHF Office web view... the browser is the team now.
+2026/11/09 17:29:45 WARNING wiki: gbrain unavailable (wiki_index_gbrain_entity: connect: connect gbrain mcp: calling "initialize": EOF); falling back to the in-memory index. Facts will NOT persist across restarts. Install gbrain, or set WUPHF_WIKI_BACKEND=memory to silence this.
+2026/11/09 17:29:46 wiki lint cron: disabled (set WUPHF_LINT_CRON=HH:MM to enable a daily run)
+2026/11/09 17:29:46 INFO skill_compile cron: started interval=30m0s
+2026/11/09 17:29:46 wiki_index: boot reconcile complete
+2026/11/09 17:29:46 INFO skill_crud: backfilled missing SKILL.md from broker state name=app-building path=team/skills/app-building.md
+2026/11/09 17:29:46 INFO skill_consolidation_migration: no overlapping clusters found
+2026/11/09 17:29:47 INFO skill_crud: backfilled missing SKILL.md from broker state name=wiki-maintenance path=team/skills/wiki-maintenance.md
+2026/11/09 17:29:47 INFO skill_crud: backfilled missing SKILL.md from broker state name=data-modeling path=team/skills/data-modeling.md
+2026/11/09 17:29:47 [transport] share: registered (human-share)
+
+  Web UI:  http://127.0.0.1:7911
+  Broker:  http://127.0.0.1:7910
+  Press Ctrl+C to stop.
+
+2026/11/09 17:30:02 scheduler: loop started (poll=20s)
+2026/11/09 17:30:06 onboarding: wiki materialized blueprint=ai-revops dirs=5 articles_created=5 articles_skipped=0
+2026/11/09 17:30:07 onboarding: wiki bootstrap committed 357ba73 (blueprint=ai-revops)
+2026/11/09 17:30:07 onboarding: getting-started pages committed ba1d908
+2026/11/09 17:31:35 wiki write-task refused: task=JOURN-15 slug=analyst path=team/accounts/acme-renewal-quote-draft.md: task JOURN-15 declares artifact_path "team/reviews/acme-renewal-quote.md", not "team/accounts/acme-renewal-quote-draft.md"
+2026/11/09 17:31:38 wiki write-task refused: task=JOURN-21 slug=ae path=team/emails/acme-48h-followup.md: task JOURN-21 declares artifact_path "team/emails/acme-renewal-followup.md", not "team/emails/acme-48h-followup.md"
+2026/11/09 17:31:38 wiki write-task refused: task=JOURN-19 slug=ae path=team/emails/acme-48h-followup.md: task JOURN-19 declares artifact_path "team/emails/acme-followup-48h.md", not "team/emails/acme-48h-followup.md"
+2026/11/09 17:31:40 wiki write-task: task=JOURN-15 slug=analyst path=team/reviews/acme-renewal-quote.md bytes=570
+2026/11/09 17:31:42 wiki write-task: task=JOURN-21 slug=ae path=team/emails/acme-renewal-followup.md bytes=694
+2026/11/09 17:31:44 wiki write-task: task=JOURN-19 slug=ae path=team/emails/acme-followup-48h.md bytes=1957
+2026/11/09 17:31:44 workflow detect JOURN-15: no recurring/end-to-end shape in corpus — skipping
+2026/11/09 17:31:47 workflow detect JOURN-21: no recurring/end-to-end shape in corpus — skipping
+2026/11/09 17:32:09 wiki write-task refused: task=JOURN-23 slug=reviewer path=team/reviews/acme-deliverables-qa.md: task JOURN-23 declares artifact_path "team/reviews/acme-renewal-qa.md", not "team/reviews/acme-deliverables-qa.md"
+2026/11/09 17:32:10 wiki write-task: task=JOURN-41 slug=cos path=team/reviews/JOURN-15.md bytes=5102
+2026/11/09 17:32:14 wiki write-task: task=JOURN-23 slug=reviewer path=team/reviews/acme-renewal-qa.md bytes=2509
+2026/11/09 17:32:17 wiki write-task: task=JOURN-47 slug=cos path=team/reviews/JOURN-21.md bytes=5149
+2026/11/09 17:32:21 workflow detect JOURN-47: no recurring/end-to-end shape in corpus — skipping
+2026/11/09 17:32:22 source_capture: write note source "note-team-learnings-f9f290b8": put_page "note-team-learnings-f9f290b8": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/09 17:32:23 source_capture: write note source "note-b-48-555f936f": put_page "note-b-48-555f936f": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/09 17:32:23 INFO writeCompiledSkillLocked: compiled skill created name=b-48 slug=b-48 created_by=librarian sha=d7765da owner_agents=5
+2026/11/09 17:32:55 wiki_query: parse LLM response: unmarshal: invalid character '{' after top-level value (raw: {"type":"step_start","timestamp":1794216770175,"sessionID":"ses_e4058db38ffeqSwNLv5H59iFeE","part":{"id":"prt_1bfa73a790)
+2026/11/09 17:33:14 workflow detect JOURN-23: no recurring/end-to-end shape in corpus — skipping
+2026/11/09 17:33:14 workflow detect JOURN-41: no recurring/end-to-end shape in corpus — skipping
+2026/11/09 17:33:16 source_capture: write note source "note-team-learnings-508c14cb": put_page "note-team-learnings-508c14cb": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/09 17:33:17 source_capture: write note source "note-journ-6-a-acme-852ef0dc": put_page "note-journ-6-a-acme-852ef0dc": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/09 17:33:17 INFO enhanceSkillLocked: skill enhanced name=b-48 slug=b-48
+2026/11/09 17:33:17 INFO writeCompiledSkillLocked: enhanced existing skill candidate=journ-6-a-acme existing=b-48 tier=2
+2026/11/09 17:33:49 wiki write-task: task=JOURN-88 slug=cos path=team/reviews/JOURN-23.md bytes=8294
+2026/11/09 17:33:54 workflow detect JOURN-88: no recurring/end-to-end shape in corpus — skipping
+2026/11/09 17:33:55 source_capture: write note source "note-team-learnings-9f164df4": put_page "note-team-learnings-9f164df4": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/09 17:33:55 source_capture: write note source "note-journ-6-a-acme-852ef0dc": put_page "note-journ-6-a-acme-852ef0dc": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/09 17:33:55 INFO enhanceSkillLocked: skill enhanced name=b-48 slug=b-48
+2026/11/09 17:33:55 INFO writeCompiledSkillLocked: enhanced existing skill candidate=journ-6-a-acme existing=b-48 tier=2
+2026/11/09 17:34:00 workflow detect JOURN-19: not app-worthy ()
+2026/11/09 17:34:07 workflow detect JOURN-17: not app-worthy ()
+2026/11/09 17:34:08 wiki write-task: task=JOURN-100 slug=cos path=team/reviews/JOURN-19.md bytes=4819

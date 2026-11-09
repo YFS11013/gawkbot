@@ -475,6 +475,10 @@ broker 在进程启动时就把 provider 定下来了，而 `workspace create` �
 
 回退条件写死在 prereg 里：若 Journey 8 里规划者反复撞守卫，或声明的路径全是 `team/tasks/x.md` 这类敷衍值，就接受 visual artifact 为交付载体，本条降级为「防路径不匹配」，转去修 archivist 从文档而不是任务标题抽 fact。
 
+**Journey 8 实测（`core-loop-runs/2026-11-09-journey8/`，被测 `5a026e7`）**：6 条 lane 全部一次带 `definition.artifact_path`，守卫拒绝 0 次——模型读了规划提示就照做，不需要撞墙；`write-task` 成功 9 次，`team/**` 新增 7 份 markdown 且作者是 lane owner。§9.13 那条 403 也被真正锻炼了：4 次都是「声明了但路径不匹配」，每次 2–5 秒内改成声明路径成功。反向臂（human 建的未声明任务）3 次 403 只投一条提示，文案三要素齐全。**回退未触发**。
+
+代价与边界也在这一轮露出来：`JOURN-17` 声明了路径却用 `ra_…` visual artifact 收 done，`team/research/` 依旧为空（D3）；同主题 lane 被拆成两套（D2）；cos 发起的一张 notebook 推广审批 pending 之后回合被 park，父任务不再推进（D1）。这三条是下一轮的对象，不是本机制的失败——「lane 建出来就带写范围」这一层已验证。
+
 ### 9.12 Journey 3：planning 姿态缺一处接线，watchdog 把「等审阅」当「不动」（2026-11-09）
 
 Journey 3（`core-loop-runs/2026-11-09-journey3/`，预注册 `dc62efb`）得 **6/10（25/36）**，比 Journey 2 的 5/10 高一分。J2 的四处修复（产物门、审批不阻塞投递、可见化+短重投、技能编译）全部当场验证通过；扣分主要来自两处新暴露的机制缺陷，都已在本轮修掉。

@@ -1,0 +1,1202 @@
+{
+ "tasks": [
+  {
+   "id": "ai-revops-1",
+   "channel": "hygiene",
+   "title": "Run the first CRM hygiene sweep",
+   "details": "Dedupe accounts, backfill missing owners, and flag stale opportunities, with destructive changes gated.\n\ninstall cleanup: onboarding starter lane",
+   "owner": "revops",
+   "status": "canceled",
+   "created_by": "wuphf",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "canceled",
+   "execution_mode": "live_external",
+   "review_state": "canceled",
+   "lifecycle_state": "canceled",
+   "ledger": [
+    {
+     "agent": "revops",
+     "at": "2026-11-09T09:30:19Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    },
+    {
+     "agent": "cos",
+     "at": "2026-11-09T09:30:19Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    }
+   ],
+   "created_at": "2026-11-09T09:29:59Z",
+   "updated_at": "2026-11-09T09:30:19Z",
+   "completed_at": "2026-11-09T09:30:19Z"
+  },
+  {
+   "id": "ai-revops-2",
+   "channel": "pipeline",
+   "title": "Establish the pipeline-truth baseline",
+   "details": "Define clean records and produce the honest first read of the funnel.\n\ninstall cleanup: onboarding starter lane",
+   "owner": "analyst",
+   "status": "canceled",
+   "created_by": "wuphf",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "canceled",
+   "execution_mode": "office",
+   "review_state": "canceled",
+   "lifecycle_state": "canceled",
+   "ledger": [
+    {
+     "agent": "cos",
+     "at": "2026-11-09T09:30:19Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    },
+    {
+     "agent": "analyst",
+     "at": "2026-11-09T09:30:19Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    }
+   ],
+   "created_at": "2026-11-09T09:29:59Z",
+   "updated_at": "2026-11-09T09:30:19Z",
+   "completed_at": "2026-11-09T09:30:19Z"
+  },
+  {
+   "id": "ai-revops-3",
+   "channel": "outreach",
+   "title": "Draft the first follow-up sequence",
+   "details": "Sequence re-engagement for stale-but-real opportunities, queued for approval.\n\ninstall cleanup: onboarding starter lane",
+   "owner": "ae",
+   "status": "canceled",
+   "created_by": "wuphf",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "canceled",
+   "execution_mode": "office",
+   "review_state": "canceled",
+   "lifecycle_state": "canceled",
+   "ledger": [
+    {
+     "agent": "ae",
+     "at": "2026-11-09T09:30:19Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/wiki-maintenance.md",
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/data-modeling.md"
+     ]
+    },
+    {
+     "agent": "cos",
+     "at": "2026-11-09T09:30:19Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/wiki-maintenance.md",
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/data-modeling.md"
+     ]
+    }
+   ],
+   "created_at": "2026-11-09T09:29:59Z",
+   "updated_at": "2026-11-09T09:30:19Z",
+   "completed_at": "2026-11-09T09:30:19Z"
+  },
+  {
+   "id": "ai-revops-4",
+   "channel": "review",
+   "title": "Set the hygiene scorecard and review cadence",
+   "details": "Define success metrics, the review rhythm, and the evidence trail for each iteration.\n\ninstall cleanup: onboarding starter lane",
+   "owner": "reviewer",
+   "status": "canceled",
+   "created_by": "wuphf",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "canceled",
+   "execution_mode": "office",
+   "review_state": "canceled",
+   "lifecycle_state": "canceled",
+   "ledger": [
+    {
+     "agent": "reviewer",
+     "at": "2026-11-09T09:30:19Z",
+     "outcome": "context canceled",
+     "context_used": [
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    },
+    {
+     "agent": "cos",
+     "at": "2026-11-09T09:30:19Z",
+     "outcome": "context canceled",
+     "context_used": [
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    }
+   ],
+   "created_at": "2026-11-09T09:29:59Z",
+   "updated_at": "2026-11-09T09:30:19Z",
+   "completed_at": "2026-11-09T09:30:19Z"
+  },
+  {
+   "id": "JOURN-6",
+   "channel": "cos__human",
+   "title": "Journey 8: Acme 续约报价与跟进",
+   "details": "客户 Acme（40 席位，SaaS）。现行合同：年付 $18,000，2026-12-31 到期，付款 30 天。\n拟续约：年付 $21,600（+20%），条款不变，有效期 14 天。对方决策人 Dana（VP Ops）。\n两件交付物：① 一页报价说明（价格/范围/有效期/付款/决策点）② 48 小时内的跟进邮件草稿。\n只认以上数字，不要引入其它假设。\n\n计划已批准。现启动执行：子任务 A（@analyst）起草一页报价说明，子任务 B（@ae）起草 48 小时跟进邮件，子任务 C（@reviewer）质检。仅使用任务给定数字，缺失项标 [NEEDS CONFIRMATION]，不编造、不发送。",
+   "owner": "cos",
+   "status": "in_progress",
+   "created_by": "human",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "breakdown",
+   "execution_mode": "office",
+   "review_state": "pending_review",
+   "lifecycle_state": "running",
+   "due_at": "2026-11-09T10:31:10Z",
+   "follow_up_at": "2026-11-09T10:31:10Z",
+   "reminder_at": "2026-11-09T11:01:10Z",
+   "recheck_at": "2026-11-09T10:46:10Z",
+   "ledger": [
+    {
+     "agent": "cos",
+     "at": "2026-11-09T09:30:36Z",
+     "outcome": "ok",
+     "said": "…（40 席位/年度/条款不变）、有效期 14 天、付款 30 天、决策点（Dana）\n- 跟进邮件标注 48 小时内发出、CTA 清晰、未发送\n- 全文数字可追溯到任务给定值；缺失项（如 Dana 邮箱、续约起始日、有效期起算日、发件人署名）写 [NEEDS CONFIRMATION] 而非编造\n\n**风险/待确认**\n- 14 天有效期起算日、续约周期起始日未定——需确认\n- Dana 联系方式与报价经手人署名未给——发件前需补\n- wiki 检索命中的 getting-started 页面与本任务无关，未发现额外 Acme 历史邮件可借鉴",
+     "context_used": [
+      "wiki:team/getting-started/channels.md",
+      "wiki:team/getting-started/connecting-your-work.md",
+      "wiki:team/getting-started/index.md",
+      "wiki:team/getting-started/skills-and-runtimes.md",
+      "wiki:team/getting-started/the-wiki.md"
+     ]
+    },
+    {
+     "agent": "cos",
+     "at": "2026-11-09T09:31:41Z",
+     "outcome": "ok",
+     "said": "三条子任务已创建，等待 @analyst、@ae、@reviewer 产出落地。",
+     "actions": [
+      "task_updated: Journey 8: Acme 续约报价与跟进 [in_progress]"
+     ],
+     "context_used": [
+      "wiki:team/getting-started/channels.md",
+      "wiki:team/getting-started/connecting-your-work.md",
+      "wiki:team/getting-started/index.md",
+      "wiki:team/getting-started/skills-and-runtimes.md",
+      "wiki:team/getting-started/the-wiki.md",
+      "journal:JOURN-6"
+     ]
+    }
+   ],
+   "stalled_since": "2026-11-09T09:46:44Z",
+   "created_at": "2026-11-09T09:30:23Z",
+   "updated_at": "2026-11-09T09:31:41Z"
+  },
+  {
+   "id": "JOURN-15",
+   "channel": "analyst__cos",
+   "title": "JOURN-6-A: Acme 一页报价说明初稿",
+   "details": "客户 Acme（40 席位，SaaS）。现行：年付 $18,000，2026-12-31 到期，Net 30。拟续约：年付 $21,600（+20%），条款不变，有效期 14 天。决策人 Dana（VP Ops）。产出一页报价说明，含价格/范围/有效期/付款/决策点。只认以上数字，缺失项标 [NEEDS CONFIRMATION]，不编造。",
+   "owner": "analyst",
+   "status": "done",
+   "created_by": "cos",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "implement",
+   "execution_mode": "office",
+   "review_state": "not_required",
+   "parent_issue_id": "JOURN-6",
+   "lifecycle_state": "approved",
+   "definition": {
+    "goal": "产出一页报价说明初稿，数字与任务给定一致。",
+    "artifact_path": "team/reviews/acme-renewal-quote.md",
+    "defined_at": "2026-11-09T09:31:20Z"
+   },
+   "artifact": "team/reviews/acme-renewal-quote.md",
+   "ledger": [
+    {
+     "agent": "analyst",
+     "at": "2026-11-09T09:31:49Z",
+     "outcome": "ok",
+     "said": "一页报价说明初稿已产出并写入 `team/reviews/acme-renewal-quote.md`，JOURN-15 已完成。\n\n- 价格：现行年付 $18,000，拟续约年付 $21,600（+20%）\n- 范围：40 席位，SaaS；其余包含项标 [NEEDS CONFIRMATION]\n- 有效期：现行 2026-12-31 到期；报价有效期 14 天\n- 付款：Net 30；含税与发票安排标 [NEEDS CONFIRMATION]\n- 决策点：Dana（VP Ops）；确认方式标 [NEEDS CONFIRMATION]",
+     "actions": [
+      "task_updated: JOURN-6-A: Acme 一页报价说明初稿 [done]"
+     ],
+     "context_used": [
+      "wiki:team/getting-started/channels.md",
+      "wiki:team/getting-started/connecting-your-work.md",
+      "wiki:team/getting-started/index.md",
+      "wiki:team/getting-started/skills-and-runtimes.md",
+      "wiki:team/getting-started/the-wiki.md"
+     ]
+    }
+   ],
+   "done_posted_for": "2026-11-09T09:31:44Z",
+   "created_at": "2026-11-09T09:31:20Z",
+   "updated_at": "2026-11-09T09:31:49Z",
+   "completed_at": "2026-11-09T09:31:44Z"
+  },
+  {
+   "id": "JOURN-17",
+   "channel": "analyst__cos",
+   "title": "子任务 A — 一页报价说明初稿",
+   "details": "质检通过放行：A 初稿仅用给定数字、缺失项已标 [NEEDS CONFIRMATION]，QC 结论通过。",
+   "owner": "analyst",
+   "status": "done",
+   "created_by": "cos",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "review",
+   "execution_mode": "office",
+   "review_state": "not_required",
+   "parent_issue_id": "JOURN-6",
+   "lifecycle_state": "approved",
+   "definition": {
+    "goal": "子任务 A — 一页报价说明初稿",
+    "artifact_path": "team/research/acme-renewal-quote.md",
+    "defined_at": "2026-11-09T09:31:21Z"
+   },
+   "artifact": "ra_4904a7a50a981735",
+   "ledger": [
+    {
+     "agent": "analyst",
+     "at": "2026-11-09T09:31:52Z",
+     "outcome": "ok",
+     "said": "JOURN-17 已提审稿，报价初稿见 visual-artifact:ra_4904a7a50a981735",
+     "actions": [
+      "task_updated: 子任务 A — 一页报价说明初稿 [review]"
+     ],
+     "context_used": [
+      "wiki:team/getting-started/channels.md",
+      "wiki:team/getting-started/connecting-your-work.md",
+      "wiki:team/getting-started/index.md",
+      "wiki:team/getting-started/skills-and-runtimes.md",
+      "wiki:team/getting-started/the-wiki.md"
+     ]
+    }
+   ],
+   "done_posted_for": "2026-11-09T09:33:52Z",
+   "created_at": "2026-11-09T09:31:21Z",
+   "updated_at": "2026-11-09T09:33:52Z",
+   "completed_at": "2026-11-09T09:33:52Z"
+  },
+  {
+   "id": "JOURN-19",
+   "channel": "ae__cos",
+   "title": "JOURN-6-B: Acme 48 小时跟进邮件草稿",
+   "details": "质检通过放行：QC 核对通过（仅用给定数字、无偷加、缺失项已标、未发送），同意进入人工发送前确认。",
+   "owner": "ae",
+   "status": "done",
+   "created_by": "cos",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "review",
+   "execution_mode": "office",
+   "review_state": "not_required",
+   "parent_issue_id": "JOURN-6",
+   "lifecycle_state": "approved",
+   "definition": {
+    "goal": "产出 48 小时跟进邮件草稿，不发送。",
+    "artifact_path": "team/emails/acme-followup-48h.md",
+    "defined_at": "2026-11-09T09:31:25Z"
+   },
+   "artifact": "team/emails/acme-followup-48h.md",
+   "ledger": [
+    {
+     "agent": "ae",
+     "at": "2026-11-09T09:31:58Z",
+     "outcome": "ok",
+     "said": "转人工确认中：草稿已发布并提交审阅，等 @reviewer / 人工核准后方可发送。",
+     "actions": [
+      "task_updated: JOURN-6-B: Acme 48 小时跟进邮件草稿 [review]"
+     ],
+     "context_used": [
+      "wiki:team/getting-started/channels.md",
+      "wiki:team/getting-started/connecting-your-work.md",
+      "wiki:team/getting-started/index.md",
+      "wiki:team/getting-started/skills-and-runtimes.md",
+      "wiki:team/getting-started/the-wiki.md"
+     ]
+    }
+   ],
+   "done_posted_for": "2026-11-09T09:33:46Z",
+   "created_at": "2026-11-09T09:31:25Z",
+   "updated_at": "2026-11-09T09:33:46Z",
+   "completed_at": "2026-11-09T09:33:46Z"
+  },
+  {
+   "id": "JOURN-21",
+   "channel": "ae__cos",
+   "title": "子任务 B — 48 小时跟进邮件草稿",
+   "details": "48 小时内跟进邮件草稿（主题/正文/CTA），数字只用给定值：$18,000 → $21,600（+20%）、有效期 14 天、Net 30、Dana。只写草稿、不发送、不索要连接。",
+   "owner": "ae",
+   "status": "done",
+   "created_by": "cos",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "implement",
+   "execution_mode": "office",
+   "review_state": "not_required",
+   "parent_issue_id": "JOURN-6",
+   "lifecycle_state": "approved",
+   "definition": {
+    "goal": "子任务 B — 48 小时跟进邮件草稿",
+    "artifact_path": "team/emails/acme-renewal-followup.md",
+    "defined_at": "2026-11-09T09:31:25Z"
+   },
+   "artifact": "team/emails/acme-renewal-followup.md",
+   "ledger": [
+    {
+     "agent": "ae",
+     "at": "2026-11-09T09:31:57Z",
+     "outcome": "ok",
+     "said": "#JOURN-21已完成并提交，草稿在 `team/emails/acme-renewal-followup.md`。",
+     "actions": [
+      "task_updated: 子任务 B — 48 小时跟进邮件草稿 [done]"
+     ]
+    }
+   ],
+   "done_posted_for": "2026-11-09T09:31:47Z",
+   "created_at": "2026-11-09T09:31:25Z",
+   "updated_at": "2026-11-09T09:31:57Z",
+   "completed_at": "2026-11-09T09:31:47Z"
+  },
+  {
+   "id": "JOURN-23",
+   "channel": "cos__reviewer",
+   "title": "JOURN-6-C: Acme 交付物质检",
+   "details": "JOURN-15 与 JOURN-19 均通过：仅含任务给定数字（$18,000→$21,600 +20%、40席位、14天、Net 30、2026-12-31、Dana），无发明数字/折扣/条款，缺失项已标 [NEEDS CONFIRMATION]，邮件已标未发送。两份邮件稿重复建议只保留一份。",
+   "owner": "reviewer",
+   "status": "done",
+   "created_by": "cos",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "implement",
+   "execution_mode": "office",
+   "review_state": "not_required",
+   "parent_issue_id": "JOURN-6",
+   "lifecycle_state": "approved",
+   "definition": {
+    "goal": "逐项核对两件交付物，给出通过/退回结论。",
+    "artifact_path": "team/reviews/acme-renewal-qa.md",
+    "defined_at": "2026-11-09T09:31:29Z"
+   },
+   "artifact": "team/reviews/acme-renewal-qa.md",
+   "ledger": [
+    {
+     "agent": "reviewer",
+     "at": "2026-11-09T09:33:25Z",
+     "outcome": "ok",
+     "said": "已完成 JOURN-23 质检，两件交付物均通过，报告已发布至 team/reviews/acme-renewal-qa.md。",
+     "actions": [
+      "task_updated: JOURN-6-C: Acme 交付物质检 [done]"
+     ]
+    }
+   ],
+   "done_posted_for": "2026-11-09T09:33:14Z",
+   "created_at": "2026-11-09T09:31:29Z",
+   "updated_at": "2026-11-09T09:33:25Z",
+   "completed_at": "2026-11-09T09:33:14Z"
+  },
+  {
+   "id": "JOURN-25",
+   "channel": "cos__reviewer",
+   "title": "子任务 C — 出厂质检",
+   "details": "逐项核对报价说明与邮件草稿：数字仅来自任务给定值、无偷加折扣/条款/假设、缺失项已标 [NEEDS CONFIRMATION]、发送审批门槛未绕。等 A/B 产出落地后再出质检结论。\n\n质检准备就绪：核对清单已确认（数字来源、偷加项、[NEEDS CONFIRMATION] 标注、发送审批门槛）。等待子任务 A/B 落地后立即出质检结论。",
+   "owner": "reviewer",
+   "status": "in_progress",
+   "created_by": "cos",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "breakdown",
+   "execution_mode": "office",
+   "review_state": "pending_review",
+   "parent_issue_id": "JOURN-6",
+   "lifecycle_state": "running",
+   "due_at": "2026-11-09T10:31:55Z",
+   "follow_up_at": "2026-11-09T10:31:55Z",
+   "reminder_at": "2026-11-09T11:01:55Z",
+   "recheck_at": "2026-11-09T10:46:55Z",
+   "definition": {
+    "goal": "子任务 C — 出厂质检",
+    "artifact_path": "team/reviews/acme-renewal-qa.md",
+    "defined_at": "2026-11-09T09:31:30Z"
+   },
+   "ledger": [
+    {
+     "agent": "reviewer",
+     "at": "2026-11-09T09:32:00Z",
+     "outcome": "ok",
+     "said": "子任务 C 已进入等待态：待 A/B 落地后逐项核对数字来源、偷加项、缺失标注和发送门槛，再出质检结论。",
+     "actions": [
+      "task_updated: 子任务 C — 出厂质检 [in_progress]"
+     ],
+     "context_used": [
+      "wiki:team/getting-started/skills-and-runtimes.md",
+      "wiki:team/getting-started/the-wiki.md",
+      "wiki:team/getting-started/working-with-agents.md"
+     ]
+    }
+   ],
+   "stalled_since": "2026-11-09T09:44:44Z",
+   "created_at": "2026-11-09T09:31:30Z",
+   "updated_at": "2026-11-09T09:32:00Z"
+  },
+  {
+   "id": "JOURN-41",
+   "channel": "cos__human",
+   "title": "审阅：JOURN-6-A: Acme 一页报价说明初稿",
+   "details": "核对完成：报价说明通过（仅用给定数字、缺失项已标）。",
+   "owner": "cos",
+   "status": "done",
+   "created_by": "system",
+   "thread_id": "msg-42",
+   "task_type": "research",
+   "pipeline_id": "review",
+   "pipeline_stage": "investigate",
+   "execution_mode": "office",
+   "review_state": "not_required",
+   "source_signal_id": "review:JOURN-15",
+   "depends_on": [
+    "JOURN-15"
+   ],
+   "lifecycle_state": "approved",
+   "memory_workflow": {
+    "required": false,
+    "status": "not_required",
+    "requirement_reason": "task does not require the durable memory workflow",
+    "lookup": {
+     "status": "satisfied",
+     "actor": "cos",
+     "query": "Acme",
+     "completed_at": "2026-11-09T09:33:09Z",
+     "updated_at": "2026-11-09T09:33:09Z",
+     "count": 8
+    },
+    "capture": {
+     "status": "satisfied",
+     "actor": "cos",
+     "completed_at": "2026-11-09T09:32:25Z",
+     "updated_at": "2026-11-09T09:32:25Z",
+     "count": 1
+    },
+    "promote": {
+     "status": "satisfied",
+     "actor": "cos",
+     "completed_at": "2026-11-09T09:32:29Z",
+     "updated_at": "2026-11-09T09:32:29Z",
+     "count": 1
+    },
+    "citations": [
+     {
+      "backend": "markdown",
+      "source": "notebook",
+      "source_id": "agents/analyst/notebook/acme.md",
+      "path": "agents/analyst/notebook/acme.md",
+      "line_start": 2,
+      "line_end": 2,
+      "title": "acme",
+      "snippet": "title: Acme 续约报价说明（一页初稿）",
+      "retrieved_at": "2026-11-09T09:33:09Z"
+     },
+     {
+      "backend": "markdown",
+      "source": "notebook",
+      "source_id": "agents/analyst/notebook/acme.md",
+      "path": "agents/analyst/notebook/acme.md",
+      "line_start": 7,
+      "line_end": 7,
+      "title": "acme",
+      "snippet": "# Acme 续约报价说明（一页初稿）",
+      "retrieved_at": "2026-11-09T09:33:09Z"
+     },
+     {
+      "backend": "markdown",
+      "source": "notebook",
+      "source_id": "agents/analyst/notebook/acme.md",
+      "path": "agents/analyst/notebook/acme.md",
+      "line_start": 9,
+      "line_end": 9,
+      "title": "acme",
+      "snippet": "只使用给定数字起草的 Acme 续约报价一页说明：现行 $18,000 年付对照拟续约 $21,600（+20%），缺失项已标为需确认。",
+      "retrieved_at": "2026-11-09T09:33:09Z"
+     },
+     {
+      "backend": "markdown",
+      "source": "wiki",
+      "source_id": "team/companies/needs-confirmation.md",
+      "path": "team/companies/needs-confirmation.md",
+      "line_start": 29,
+      "line_end": 29,
+      "title": "needs confirmation",
+      "snippet": "- Completed task JOURN-15 (\"JOURN-6-A: Acme 一页报价说明初稿\") involved this entity. Goal: 产出一页报价说明初稿，数字与任务给定一致。. Produced artifact: team/reviews/acme-renewal-quote.md. Co-occurring entities: [[companies/vp-ops]].[^1]",
+      "retrieved_at": "2026-11-09T09:33:09Z"
+     },
+     {
+      "backend": "markdown",
+      "source": "wiki",
+      "source_id": "team/companies/vp-ops.md",
+      "path": "team/companies/vp-ops.md",
+      "line_start": 29,
+      "line_end": 29,
+      "title": "vp ops",
+      "snippet": "- Completed task JOURN-15 (\"JOURN-6-A: Acme 一页报价说明初稿\") involved this entity. Goal: 产出一页报价说明初稿，数字与任务给定一致。. Produced artifact: team/reviews/acme-renewal-quote.md. Co-occurring entities: [[companies/needs-confirmation]].[^1]",
+      "retrieved_at": "2026-11-09T09:33:09Z"
+     },
+     {
+      "backend": "markdown",
+      "source": "wiki",
+      "source_id": "team/emails/acme-followup-48h.md",
+      "path": "team/emails/acme-followup-48h.md",
+      "line_start": 1,
+      "line_end": 1,
+      "title": "acme followup 48h",
+      "snippet": "# Acme 48 小时跟进邮件草稿（未发送）",
+      "retrieved_at": "2026-11-09T09:33:09Z"
+     },
+     {
+      "backend": "markdown",
+      "source": "wiki",
+      "source_id": "team/emails/acme-followup-48h.md",
+      "path": "team/emails/acme-followup-48h.md",
+      "line_start": 6,
+      "line_end": 6,
+      "title": "acme followup 48h",
+      "snippet": "- 客户：Acme（40 席位，SaaS）",
+      "retrieved_at": "2026-11-09T09:33:09Z"
+     },
+     {
+      "backend": "markdown",
+      "source": "wiki",
+      "source_id": "team/emails/acme-followup-48h.md",
+      "path": "team/emails/acme-followup-48h.md",
+      "line_start": 15,
+      "line_end": 15,
+      "title": "acme followup 48h",
+      "snippet": "- 主选：Acme 续约报价确认 — 年付 $21,600（条款不变，有效期 14 天）",
+      "retrieved_at": "2026-11-09T09:33:09Z"
+     }
+    ],
+    "captures": [
+     {
+      "path": "agents/cos/notebook/2026-11-09-journ-15-审阅结论备忘.md",
+      "commit_sha": "3da268f",
+      "recorded_at": "2026-11-09T09:32:25Z",
+      "updated_at": "2026-11-09T09:32:25Z"
+     }
+    ],
+    "promotions": [
+     {
+      "source": "skip",
+      "title": "本次为单次审阅备忘，已交付 wiki 文件 team/reviews/JOURN-15.md，无需提升至共享 wiki",
+      "skip_reason": "本次为单次审阅备忘，已交付 wiki 文件 team/reviews/JOURN-15.md，无需提升至共享 wiki",
+      "recorded_at": "2026-11-09T09:32:29Z",
+      "updated_at": "2026-11-09T09:32:29Z"
+     }
+    ],
+    "created_at": "2026-11-09T09:32:20Z",
+    "updated_at": "2026-11-09T09:34:00Z"
+   },
+   "verification": {
+    "kind": "wiki_artifact",
+    "spec": "artifact_path declared on complete",
+    "required": true
+   },
+   "verification_result": {
+    "pass": true,
+    "kind": "wiki_artifact",
+    "detail": "wiki artifact team\\reviews\\acme-renewal-quote.md (3080 bytes)",
+    "checked_at": "2026-11-09T09:34:00Z"
+   },
+   "definition": {
+    "goal": "独立审阅 JOURN-15 的交付，逐条对照验收标准给出可执行的发现。",
+    "deliverables": [
+     {
+      "name": "审阅结论",
+      "format": "markdown，路径 team/reviews/JOURN-15.md"
+     }
+    ],
+    "success_criteria": [
+     "文件存在且非空",
+     "每条验收标准都有通过/不通过判断，并引用交付物原文位置",
+     "发现的问题标明严重度与修改建议"
+    ],
+    "access_needed": [
+     "team_wiki_read",
+     "team_wiki_write"
+    ],
+    "artifact_path": "team/reviews/JOURN-15.md",
+    "defined_at": "2026-11-09T09:31:44Z"
+   },
+   "artifact": "team/reviews/acme-renewal-quote.md",
+   "ledger": [
+    {
+     "agent": "cos",
+     "at": "2026-11-09T09:33:25Z",
+     "outcome": "ok",
+     "said": "JOURN-41 已完成，审阅结论在 team/reviews/JOURN-15.md。",
+     "actions": [
+      "task_updated: 审阅：JOURN-6-A: Acme 一页报价说明初稿 [done]"
+     ],
+     "context_used": [
+      "wiki:team/emails/acme-followup-48h.md",
+      "wiki:team/emails/acme-renewal-followup.md",
+      "wiki:team/reviews/acme-renewal-quote.md",
+      "upstream:JOURN-15"
+     ]
+    }
+   ],
+   "done_posted_for": "2026-11-09T09:33:14Z",
+   "created_at": "2026-11-09T09:31:44Z",
+   "updated_at": "2026-11-09T09:34:00Z",
+   "completed_at": "2026-11-09T09:33:14Z"
+  },
+  {
+   "id": "JOURN-47",
+   "channel": "cos__human",
+   "title": "审阅：子任务 B — 48 小时跟进邮件草稿",
+   "details": "核对完成：邮件草稿通过（未发送，仅用给定数字）。",
+   "owner": "cos",
+   "status": "done",
+   "created_by": "system",
+   "thread_id": "msg-48",
+   "task_type": "research",
+   "pipeline_id": "review",
+   "pipeline_stage": "investigate",
+   "execution_mode": "office",
+   "review_state": "not_required",
+   "source_signal_id": "review:JOURN-21",
+   "depends_on": [
+    "JOURN-21"
+   ],
+   "lifecycle_state": "approved",
+   "verification": {
+    "kind": "wiki_artifact",
+    "spec": "artifact_path declared on complete",
+    "required": true
+   },
+   "verification_result": {
+    "pass": true,
+    "kind": "wiki_artifact",
+    "detail": "wiki artifact team\\emails\\acme-renewal-followup.md (694 bytes)",
+    "checked_at": "2026-11-09T09:34:05Z"
+   },
+   "definition": {
+    "goal": "独立审阅 JOURN-21 的交付，逐条对照验收标准给出可执行的发现。",
+    "deliverables": [
+     {
+      "name": "审阅结论",
+      "format": "markdown，路径 team/reviews/JOURN-21.md"
+     }
+    ],
+    "success_criteria": [
+     "文件存在且非空",
+     "每条验收标准都有通过/不通过判断，并引用交付物原文位置",
+     "发现的问题标明严重度与修改建议"
+    ],
+    "access_needed": [
+     "team_wiki_read",
+     "team_wiki_write"
+    ],
+    "artifact_path": "team/reviews/JOURN-21.md",
+    "defined_at": "2026-11-09T09:31:47Z"
+   },
+   "artifact": "team/emails/acme-renewal-followup.md",
+   "ledger": [
+    {
+     "agent": "cos",
+     "at": "2026-11-09T09:32:32Z",
+     "outcome": "ok",
+     "said": "审阅已落盘并关闭 JOURN-47：team/reviews/JOURN-21.md",
+     "actions": [
+      "task_updated: 审阅：子任务 B — 48 小时跟进邮件草稿 [done]"
+     ],
+     "context_used": [
+      "wiki:team/emails/acme-followup-48h.md",
+      "wiki:team/companies/needs-confirmation.md",
+      "wiki:team/companies/vp-ops.md",
+      "wiki:team/emails/acme-renewal-followup.md",
+      "upstream:JOURN-21"
+     ]
+    }
+   ],
+   "done_posted_for": "2026-11-09T09:32:21Z",
+   "created_at": "2026-11-09T09:31:47Z",
+   "updated_at": "2026-11-09T09:34:05Z",
+   "completed_at": "2026-11-09T09:32:21Z"
+  },
+  {
+   "id": "JOURN-88",
+   "channel": "cos__human",
+   "title": "审阅：JOURN-6-C: Acme 交付物质检",
+   "details": "有条件通过：通过 6 项、不通过 3 项（范围年度/条款不变、48 小时标注、CTA 清晰）；5 处发现含报价文件污染与 JOURN-21 冲突。未改交付物、未重开 JOURN-23。",
+   "owner": "cos",
+   "status": "done",
+   "created_by": "system",
+   "thread_id": "msg-89",
+   "task_type": "research",
+   "pipeline_id": "review",
+   "pipeline_stage": "investigate",
+   "execution_mode": "office",
+   "review_state": "not_required",
+   "source_signal_id": "review:JOURN-23",
+   "depends_on": [
+    "JOURN-23"
+   ],
+   "lifecycle_state": "approved",
+   "verification": {
+    "kind": "wiki_artifact",
+    "spec": "artifact_path declared on complete",
+    "required": true
+   },
+   "verification_result": {
+    "pass": true,
+    "kind": "wiki_artifact",
+    "detail": "wiki artifact team\\reviews\\JOURN-23.md (8294 bytes)",
+    "checked_at": "2026-11-09T09:33:54Z"
+   },
+   "definition": {
+    "goal": "独立审阅 JOURN-23 的交付，逐条对照验收标准给出可执行的发现。",
+    "deliverables": [
+     {
+      "name": "审阅结论",
+      "format": "markdown，路径 team/reviews/JOURN-23.md"
+     }
+    ],
+    "success_criteria": [
+     "文件存在且非空",
+     "每条验收标准都有通过/不通过判断，并引用交付物原文位置",
+     "发现的问题标明严重度与修改建议"
+    ],
+    "access_needed": [
+     "team_wiki_read",
+     "team_wiki_write"
+    ],
+    "artifact_path": "team/reviews/JOURN-23.md",
+    "defined_at": "2026-11-09T09:33:14Z"
+   },
+   "artifact": "team/reviews/JOURN-23.md",
+   "ledger": [
+    {
+     "agent": "cos",
+     "at": "2026-11-09T09:34:00Z",
+     "outcome": "ok",
+     "said": "JOURN-88 已完成：审阅结论为有条件通过，通过 6 项、不通过 3 项，5 处发现含报价文件污染。",
+     "actions": [
+      "task_updated: 审阅：JOURN-6-C: Acme 交付物质检 [done]"
+     ],
+     "context_used": [
+      "wiki:team/companies/needs-confirmation.md",
+      "wiki:team/playbooks/b-48.md",
+      "wiki:team/reviews/JOURN-15.md",
+      "wiki:team/reviews/JOURN-21.md",
+      "wiki:team/emails/acme-followup-48h.md",
+      "learning:bc379214-9e8a-40fd-a88c-cf4f00ac3d21",
+      "upstream:JOURN-23"
+     ]
+    }
+   ],
+   "done_posted_for": "2026-11-09T09:33:54Z",
+   "created_at": "2026-11-09T09:33:14Z",
+   "updated_at": "2026-11-09T09:34:00Z",
+   "completed_at": "2026-11-09T09:33:54Z"
+  },
+  {
+   "id": "JOURN-100",
+   "channel": "cos__human",
+   "title": "审阅：JOURN-6-B: Acme 48 小时跟进邮件草稿",
+   "details": "独立审阅（干净上下文）：你只会看到交付物与验收标准，看不到作者的推理过程。不要假设作者做对了，也不要假设作者做错了——以交付物本身为准。\n\n被审阅的任务：JOURN-19（作者 @ae）\n原始目标：产出 48 小时跟进邮件草稿，不发送。\n交付物：team/emails/acme-followup-48h.md（wiki 相对路径）\n\n要求：\n1. 先完整读一遍交付物，再下判断。没有证据的判断不要写。\n2. 逐条对照上面的验收标准，每条给「通过 / 不通过」，并引用交付物的章节或原文片段作为依据。\n3. 列出发现的问题，标严重度（阻断 / 一般 / 提示），每条写清：在哪里、为什么算问题、怎么改。\n4. 不要修改交付物，不要重开被审阅的任务——你的产出就是这份结论。\n5. 用 team_wiki_write 写 team/reviews/JOURN-19.md，并带上本任务的 task_id（任务已声明该路径，不需要人类再批准）；然后用 artifact_path=team/reviews/JOURN-19.md 完成本任务。\n",
+   "owner": "cos",
+   "status": "done",
+   "created_by": "system",
+   "thread_id": "msg-101",
+   "task_type": "research",
+   "pipeline_id": "review",
+   "pipeline_stage": "investigate",
+   "execution_mode": "office",
+   "review_state": "not_required",
+   "source_signal_id": "review:JOURN-19",
+   "depends_on": [
+    "JOURN-19"
+   ],
+   "lifecycle_state": "approved",
+   "memory_workflow": {
+    "required": true,
+    "status": "satisfied",
+    "requirement_reason": "research task asks for prior organizational context",
+    "required_steps": [
+     "lookup",
+     "capture",
+     "promote"
+    ],
+    "lookup": {
+     "required": true,
+     "status": "satisfied",
+     "actor": "cos",
+     "query": "JOURN-19",
+     "completed_at": "2026-11-09T09:35:13Z",
+     "updated_at": "2026-11-09T09:35:13Z",
+     "count": 10
+    },
+    "capture": {
+     "required": true,
+     "status": "satisfied",
+     "actor": "cos",
+     "completed_at": "2026-11-09T09:34:22Z",
+     "updated_at": "2026-11-09T09:34:48Z",
+     "count": 2
+    },
+    "promote": {
+     "required": true,
+     "status": "satisfied",
+     "actor": "cos",
+     "completed_at": "2026-11-09T09:34:27Z",
+     "updated_at": "2026-11-09T09:34:53Z",
+     "count": 2
+    },
+    "citations": [
+     {
+      "backend": "markdown",
+      "source": "notebook",
+      "source_id": "agents/cos/notebook/2026-11-09-journ-100-审阅-journ-19-结论.md",
+      "path": "agents/cos/notebook/2026-11-09-journ-100-审阅-journ-19-结论.md",
+      "line_start": 1,
+      "line_end": 1,
+      "title": "2026 11 09 journ 100 审阅 journ 19 结论",
+      "snippet": "# JOURN-100 审阅 JOURN-19 结论",
+      "retrieved_at": "2026-11-09T09:35:13Z"
+     },
+     {
+      "backend": "markdown",
+      "source": "notebook",
+      "source_id": "agents/cos/notebook/2026-11-09-journ-100-审阅-journ-19-结论.md",
+      "path": "agents/cos/notebook/2026-11-09-journ-100-审阅-journ-19-结论.md",
+      "line_start": 3,
+      "line_end": 3,
+      "title": "2026 11 09 journ 100 审阅 journ 19 结论",
+      "snippet": "审阅 JOURN-19 交付物 team/emails/acme-followup-48h.md，结论有条件通过（4/6 通过，C2 48 小时时限未写入正文/内部说明不通过，C6 有效期起算日与续约起始日未标 [NEEDS CONFIRMATION] 不通过），另有 F-03、F-04 两项提示。结论全文见 team/reviews/JOURN-19.md。",
+      "retrieved_at": "2026-11-09T09:35:13Z"
+     },
+     {
+      "backend": "markdown",
+      "source": "notebook",
+      "source_id": "agents/cos/notebook/2026-11-09-journ-100-审阅-journ-19-结论.md",
+      "path": "agents/cos/notebook/2026-11-09-journ-100-审阅-journ-19-结论.md",
+      "line_start": 10,
+      "line_end": 10,
+      "title": "2026 11 09 journ 100 审阅 journ 19 结论",
+      "snippet": "- 修复 F-01、F-02 后可进入发送前确认；未修改交付物、未重开 JOURN-19。",
+      "retrieved_at": "2026-11-09T09:35:13Z"
+     },
+     {
+      "backend": "markdown",
+      "source": "notebook",
+      "source_id": "agents/cos/notebook/2026-11-09-journ-100-审阅-journ-19-结论补记.md",
+      "path": "agents/cos/notebook/2026-11-09-journ-100-审阅-journ-19-结论补记.md",
+      "line_start": 1,
+      "line_end": 1,
+      "title": "2026 11 09 journ 100 审阅 journ 19 结论补记",
+      "snippet": "# JOURN-100 审阅 JOURN-19 结论（补记）",
+      "retrieved_at": "2026-11-09T09:35:13Z"
+     },
+     {
+      "backend": "markdown",
+      "source": "notebook",
+      "source_id": "agents/cos/notebook/2026-11-09-journ-100-审阅-journ-19-结论补记.md",
+      "path": "agents/cos/notebook/2026-11-09-journ-100-审阅-journ-19-结论补记.md",
+      "line_start": 3,
+      "line_end": 3,
+      "title": "2026 11 09 journ 100 审阅 journ 19 结论补记",
+      "snippet": "JOURN-100 独立审阅 JOURN-19 完成：通读 team/emails/acme-followup-48h.md 全文，逐条对照 JOURN-6 验收标准（48 小时内发出、CTA 清晰、未发送、数字可追溯、缺失项标 [NEEDS CONFIRMATION]）。",
+      "retrieved_at": "2026-11-09T09:35:13Z"
+     },
+     {
+      "backend": "markdown",
+      "source": "wiki",
+      "source_id": "team/emails/acme-followup-48h.md",
+      "path": "team/emails/acme-followup-48h.md",
+      "line_start": 47,
+      "line_end": 47,
+      "title": "acme followup 48h",
+      "snippet": "来源：任务定义 JOURN-19（客户 Acme 40 席位 SaaS，年付 $18,000 / 拟续约 $21,600 +20%，2026-12-31 到期，Net 30，决策人 Dana VP Ops，有效期 14 天）。未引入任务外数字或事实。",
+      "retrieved_at": "2026-11-09T09:35:13Z"
+     },
+     {
+      "backend": "markdown",
+      "source": "wiki",
+      "source_id": "team/reviews/JOURN-19.md",
+      "path": "team/reviews/JOURN-19.md",
+      "line_start": 1,
+      "line_end": 1,
+      "title": "JOURN 19",
+      "snippet": "# 审阅结论：JOURN-19 — Acme 48 小时跟进邮件草稿",
+      "retrieved_at": "2026-11-09T09:35:13Z"
+     },
+     {
+      "backend": "markdown",
+      "source": "wiki",
+      "source_id": "team/reviews/JOURN-19.md",
+      "path": "team/reviews/JOURN-19.md",
+      "line_start": 3,
+      "line_end": 3,
+      "title": "JOURN 19",
+      "snippet": "- 被审阅任务：JOURN-19（作者 @ae）",
+      "retrieved_at": "2026-11-09T09:35:13Z"
+     },
+     {
+      "backend": "markdown",
+      "source": "wiki",
+      "source_id": "team/reviews/JOURN-19.md",
+      "path": "team/reviews/JOURN-19.md",
+      "line_start": 6,
+      "line_end": 6,
+      "title": "JOURN 19",
+      "snippet": "- 总体结论：**有条件通过** — 核心内容（主题/正文/CTA、价格数字、未发送标注）齐备且未编造数字，但 48 小时时限未写入发送说明、两项缺失项未标 [NEEDS CONFIRMATION]；修复下方 F-01、F-02 后可进入发送前确认，不需要重开 JOURN-19。",
+      "retrieved_at": "2026-11-09T09:35:13Z"
+     },
+     {
+      "backend": "markdown",
+      "source": "wiki",
+      "source_id": "team/reviews/JOURN-19.md",
+      "path": "team/reviews/JOURN-19.md",
+      "line_start": 30,
+      "line_end": 30,
+      "title": "JOURN 19",
+      "snippet": "- 怎么改：在「## 正文（内部中文说明）」补一句时限，例如「请在 48 小时内发出本邮件（时限来源：JOURN-19 产出要求）。」不改英文正文则在状态行补「须 48 小时内发出」。",
+      "retrieved_at": "2026-11-09T09:35:13Z"
+     }
+    ],
+    "captures": [
+     {
+      "path": "agents/cos/notebook/2026-11-09-journ-100-审阅-journ-19-结论.md",
+      "commit_sha": "ad03e8f",
+      "recorded_at": "2026-11-09T09:34:22Z",
+      "updated_at": "2026-11-09T09:34:22Z"
+     },
+     {
+      "path": "agents/cos/notebook/2026-11-09-journ-100-审阅-journ-19-结论补记.md",
+      "commit_sha": "506f9ca",
+      "recorded_at": "2026-11-09T09:34:48Z",
+      "updated_at": "2026-11-09T09:34:48Z"
+     }
+    ],
+    "promotions": [
+     {
+      "source": "skip",
+      "title": "本次为单次审阅结论，canonical 正文已通过任务授权直接写入 team/reviews/JOURN-19.md，无需另行提升至共享 wiki；notebook 记录仅作审计留痕。",
+      "skip_reason": "本次为单次审阅结论，canonical 正文已通过任务授权直接写入 team/reviews/JOURN-19.md，无需另行提升至共享 wiki；notebook 记录仅作审计留痕。",
+      "recorded_at": "2026-11-09T09:34:27Z",
+      "updated_at": "2026-11-09T09:34:27Z"
+     },
+     {
+      "promotion_id": "request-117",
+      "state": "pending",
+      "recorded_at": "2026-11-09T09:34:53Z",
+      "updated_at": "2026-11-09T09:34:53Z"
+     }
+    ],
+    "created_at": "2026-11-09T09:34:17Z",
+    "updated_at": "2026-11-09T09:35:13Z",
+    "completed_at": "2026-11-09T09:35:13Z"
+   },
+   "verification": {
+    "kind": "wiki_artifact",
+    "spec": "artifact_path declared on complete",
+    "required": true
+   },
+   "verification_result": {
+    "pass": true,
+    "kind": "wiki_artifact",
+    "detail": "wiki artifact team\\reviews\\JOURN-19.md (4819 bytes)",
+    "checked_at": "2026-11-09T09:35:17Z"
+   },
+   "definition": {
+    "goal": "独立审阅 JOURN-19 的交付，逐条对照验收标准给出可执行的发现。",
+    "deliverables": [
+     {
+      "name": "审阅结论",
+      "format": "markdown，路径 team/reviews/JOURN-19.md"
+     }
+    ],
+    "success_criteria": [
+     "文件存在且非空",
+     "每条验收标准都有通过/不通过判断，并引用交付物原文位置",
+     "发现的问题标明严重度与修改建议"
+    ],
+    "access_needed": [
+     "team_wiki_read",
+     "team_wiki_write"
+    ],
+    "artifact_path": "team/reviews/JOURN-19.md",
+    "defined_at": "2026-11-09T09:33:46Z"
+   },
+   "artifact": "team/reviews/JOURN-19.md",
+   "ledger": [
+    {
+     "agent": "cos",
+     "at": "2026-11-09T09:35:28Z",
+     "outcome": "ok",
+     "said": "审阅已交付并完成 JOURN-100，结论见 team/reviews/JOURN-19.md（有条件通过：F-01 48 小时时限、F-02 起算日/起始日未标）。",
+     "actions": [
+      "task_updated: 审阅：JOURN-6-B: Acme 48 小时跟进邮件草稿 [done]"
+     ],
+     "context_used": [
+      "wiki:team/companies/needs-confirmation.md",
+      "wiki:team/people/analyst.md",
+      "wiki:team/playbooks/b-48.md",
+      "wiki:team/playbooks/journ-6-a-acme.md",
+      "wiki:team/reviews/JOURN-15.md",
+      "learning:178b6e81-379e-45c0-b167-378285cd6ec8",
+      "learning:bc379214-9e8a-40fd-a88c-cf4f00ac3d21",
+      "upstream:JOURN-19"
+     ]
+    }
+   ],
+   "done_posted_for": "2026-11-09T09:35:17Z",
+   "created_at": "2026-11-09T09:33:46Z",
+   "updated_at": "2026-11-09T09:35:28Z",
+   "completed_at": "2026-11-09T09:35:17Z"
+  },
+  {
+   "id": "JOURN-105",
+   "channel": "cos__human",
+   "title": "审阅：子任务 A — 一页报价说明初稿",
+   "details": "审阅结论已落盘 team/reviews/JOURN-17.md，有条件通过 1 一般 1 提示",
+   "owner": "cos",
+   "status": "done",
+   "created_by": "system",
+   "thread_id": "msg-106",
+   "task_type": "research",
+   "pipeline_id": "review",
+   "pipeline_stage": "investigate",
+   "execution_mode": "office",
+   "review_state": "not_required",
+   "source_signal_id": "review:JOURN-17",
+   "depends_on": [
+    "JOURN-17"
+   ],
+   "lifecycle_state": "approved",
+   "memory_workflow": {
+    "required": false,
+    "status": "not_required",
+    "requirement_reason": "task does not require the durable memory workflow",
+    "lookup": {
+     "status": "pending",
+     "actor": "cos",
+     "query": "Acme 续约报价审阅",
+     "updated_at": "2026-11-09T09:35:24Z"
+    },
+    "capture": {
+     "status": "satisfied",
+     "actor": "cos",
+     "completed_at": "2026-11-09T09:34:50Z",
+     "updated_at": "2026-11-09T09:34:50Z",
+     "count": 1
+    },
+    "promote": {
+     "status": "satisfied",
+     "actor": "cos",
+     "completed_at": "2026-11-09T09:34:55Z",
+     "updated_at": "2026-11-09T09:34:55Z",
+     "count": 1
+    },
+    "captures": [
+     {
+      "path": "agents/cos/notebook/2026-11-09-journ-105-审阅-journ-17-报价说明.md",
+      "commit_sha": "5b91a1f",
+      "recorded_at": "2026-11-09T09:34:50Z",
+      "updated_at": "2026-11-09T09:34:50Z"
+     }
+    ],
+    "promotions": [
+     {
+      "source": "skip",
+      "title": "审阅正文已由 team_wiki_write 落 team/reviews/JOURN-17.md（任务已声明路径），notebook 仅为任务记忆，不新建 wiki 提升",
+      "skip_reason": "审阅正文已由 team_wiki_write 落 team/reviews/JOURN-17.md（任务已声明路径），notebook 仅为任务记忆，不新建 wiki 提升",
+      "recorded_at": "2026-11-09T09:34:55Z",
+      "updated_at": "2026-11-09T09:34:55Z"
+     }
+    ],
+    "created_at": "2026-11-09T09:34:44Z",
+    "updated_at": "2026-11-09T09:35:41Z"
+   },
+   "verification": {
+    "kind": "wiki_artifact",
+    "spec": "artifact_path declared on complete",
+    "required": true
+   },
+   "verification_result": {
+    "pass": true,
+    "kind": "wiki_artifact",
+    "detail": "wiki artifact team\\reviews\\JOURN-17.md (6925 bytes)",
+    "checked_at": "2026-11-09T09:35:41Z"
+   },
+   "definition": {
+    "goal": "独立审阅 JOURN-17 的交付，逐条对照验收标准给出可执行的发现。",
+    "deliverables": [
+     {
+      "name": "审阅结论",
+      "format": "markdown，路径 team/reviews/JOURN-17.md"
+     }
+    ],
+    "success_criteria": [
+     "文件存在且非空",
+     "每条验收标准都有通过/不通过判断，并引用交付物原文位置",
+     "发现的问题标明严重度与修改建议"
+    ],
+    "access_needed": [
+     "team_wiki_read",
+     "team_wiki_write"
+    ],
+    "artifact_path": "team/reviews/JOURN-17.md",
+    "defined_at": "2026-11-09T09:33:52Z"
+   },
+   "artifact": "team/reviews/JOURN-17.md",
+   "ledger": [
+    {
+     "agent": "cos",
+     "at": "2026-11-09T09:35:57Z",
+     "outcome": "ok",
+     "said": "JOURN-105 已完成，结论落 team/reviews/JOURN-17.md，有条件通过（1 一般 1 提示），已播报。",
+     "actions": [
+      "task_updated: 审阅：子任务 A — 一页报价说明初稿 [done]"
+     ],
+     "context_used": [
+      "wiki:team/companies/needs-confirmation.md",
+      "wiki:team/people/analyst.md",
+      "wiki:team/playbooks/b-48.md",
+      "wiki:team/playbooks/journ-6-a-acme.md",
+      "wiki:team/reviews/JOURN-15.md",
+      "learning:178b6e81-379e-45c0-b167-378285cd6ec8",
+      "learning:bc379214-9e8a-40fd-a88c-cf4f00ac3d21",
+      "upstream:JOURN-17"
+     ]
+    }
+   ],
+   "done_posted_for": "2026-11-09T09:35:41Z",
+   "created_at": "2026-11-09T09:33:52Z",
+   "updated_at": "2026-11-09T09:35:57Z",
+   "completed_at": "2026-11-09T09:35:41Z"
+  }
+ ]
+}
