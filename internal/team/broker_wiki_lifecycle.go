@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -64,10 +65,26 @@ func (b *Broker) ensureWikiWorker() {
 	b.mu.Lock()
 	already := b.wikiWorker != nil
 	b.mu.Unlock()
-	if already {
+	if !already {
+		b.initWikiWorker()
+	}
+	syncWikiAvailabilityEnv(b.WikiWorker() != nil)
+}
+
+// syncWikiAvailabilityEnv publishes the wiki worker's real state to the child
+// processes that cannot see it. The MCP server (`wuphf mcp-team`) is a separate
+// process that decides the tool surface from WUPHF_MEMORY_BACKEND, which is the
+// wrong layer once the wiki stops depending on the backend (K): a gbrain office
+// would keep hiding team_wiki_* while /wiki/write answers 200. Every spawn path
+// (claude MCP config, opencode, codex, the openai-compat bridge) inherits this
+// process env, so setting it here covers all of them and stays correct across
+// lazy re-init attempts.
+func syncWikiAvailabilityEnv(ready bool) {
+	if ready {
+		_ = os.Setenv("WUPHF_WIKI_AVAILABLE", "1")
 		return
 	}
-	b.initWikiWorker()
+	_ = os.Setenv("WUPHF_WIKI_AVAILABLE", "0")
 }
 
 // WikiInitErr returns the most recent ensureWikiWorker error, or nil if

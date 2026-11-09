@@ -22,6 +22,7 @@ func TestConfigureServerToolsBackendMatrix(t *testing.T) {
 	testCases := []struct {
 		name          string
 		backend       string
+		wikiAvailable string // WUPHF_WIKI_AVAILABLE override ("" = unset)
 		oneOnOne      bool
 		mustHave      []string
 		mustNotHave   []string
@@ -79,6 +80,26 @@ func TestConfigureServerToolsBackendMatrix(t *testing.T) {
 				"visual_artifact_create",
 			},
 			commonPresent: []string{"team_broadcast", "team_poll", "context_lookup", "context_capture", "context_promote", "context_health"},
+		},
+		{
+			// K: the wiki worker runs under every memory backend, so a gbrain
+			// office with a live worker gets BOTH surfaces — the wiki family
+			// (it can write) and the gbrain memory tools (that is its memory).
+			name:          "gbrain/office/wiki-live",
+			backend:       "gbrain",
+			wikiAvailable: "1",
+			mustHave: []string{
+				"team_wiki_read",
+				"team_wiki_write",
+				"team_wiki_search",
+				"team_wiki_list",
+				"visual_artifact_create",
+				"team_memory_query",
+				"team_memory_write",
+				"team_memory_promote",
+			},
+			mustNotHave:   []string{"notebook_write", "notebook_promote"},
+			commonPresent: []string{"team_broadcast", "context_lookup", "context_capture", "context_promote", "context_health"},
 		},
 		{
 			name:     "none/office",
@@ -151,6 +172,7 @@ func TestConfigureServerToolsBackendMatrix(t *testing.T) {
 				t.Setenv("WUPHF_GBRAIN_COMMAND", filepath.Join(home, "no-gbrain-installed"))
 			}
 			t.Setenv("WUPHF_ENABLE_AGENT_WIKI_WRITE", "")
+			t.Setenv("WUPHF_WIKI_AVAILABLE", tc.wikiAvailable)
 			t.Setenv("WUPHF_CONFIG_PATH", filepath.Join(t.TempDir(), "config.json"))
 
 			channel := "general"

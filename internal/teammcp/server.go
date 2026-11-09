@@ -70,6 +70,23 @@ func adminDirectWikiWriteBypassEnabled() bool {
 	}
 }
 
+// wikiToolsAvailable reports whether the wiki tool family should be exposed.
+//
+// The wiki is a filesystem git repo whose worker runs under every memory
+// backend (K), so this is NOT the memory-backend question. The launcher knows
+// the real worker state and writes WUPHF_WIKI_AVAILABLE into this server's
+// env; with no such signal (older launcher, hand-run MCP) we keep the
+// pre-K behaviour and treat the markdown backend as "wiki available".
+func wikiToolsAvailable() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("WUPHF_WIKI_AVAILABLE"))) {
+	case "1", "true", "yes", "on":
+		return true
+	case "0", "false", "no", "off":
+		return false
+	}
+	return config.ResolveMemoryBackend("") == config.MemoryBackendMarkdown
+}
+
 // registerSharedMemoryTools registers the active shared-memory / wiki tool
 // set on the server. Markdown-backend installs expose notebook tools and
 // team_wiki_* tools; gbrain installs expose the legacy team_memory_* tools;
@@ -77,69 +94,93 @@ func adminDirectWikiWriteBypassEnabled() bool {
 // human delegation, but the handler verifies human_request against a recent
 // human-authored broker message so bot-authored scratch knowledge starts in
 // notebooks and reaches the wiki through review.
+//
+// Since K the wiki no longer depends on the memory backend: a gbrain install
+// whose wiki worker is live gets BOTH families (the wiki can write, gbrain
+// remains the memory). WUPHF_WIKI_AVAILABLE decides that, see
+// wikiToolsAvailable.
 func registerSharedMemoryTools(server *mcp.Server) {
 	switch config.ResolveMemoryBackend("") {
 	case config.MemoryBackendMarkdown:
-		mcp.AddTool(server, officeWriteTool(
-			"team_wiki_write",
-			"Write directly to the canonical team wiki only when the human explicitly asked you to write the article, playbook, or canonical page to the wiki. You must pass human_request as the broker message ID for that recent human-authored wiki request. Otherwise write your working knowledge to notebook_write first and submit notebook_promote for review. The content you pass becomes the article bytes; this tool does not rewrite for you. Picks author identity from my_slug so git log shows which bot wrote each article.",
-		), handleTeamWikiWrite)
-		mcp.AddTool(server, readOnlyTool(
-			"team_wiki_read",
-			"Read an article from the team wiki. Call this when the index lists an article relevant to your task.",
-		), handleTeamWikiRead)
-		mcp.AddTool(server, readOnlyTool(
-			"team_wiki_search",
-			"Literal substring search across the team wiki. Use for lookups the index does not surface.",
-		), handleTeamWikiSearch)
-		mcp.AddTool(server, readOnlyTool(
-			"team_wiki_list",
-			"Return the auto-regenerated catalog (index/all.md) of every article in the team wiki.",
-		), handleTeamWikiList)
-		mcp.AddTool(server, readOnlyTool(
-			"wuphf_wiki_lookup",
-			"Cited-answer lookup against the team wiki. Returns a structured JSON answer with sources and inline citations. Use when you need a verified, sourced answer rather than a raw search.",
-		), handleTeamWikiLookup)
-		// Rich-artifact (visual artifact) tools: bots author self-contained
-		// HTML articles that promote into the wiki. They share the markdown
-		// backend gate with team_wiki_*.
-		registerVisualArtifactTools(server)
-		// Entity brief tools (v1.2) — fact log + broker-level synthesis.
-		// Same backend gate: entity briefs live in the wiki subtree.
-		registerEntityTools(server)
-		// Playbook compilation tools (v1.3) — compile team/playbooks/*.md
-		// into invokable skills + record execution outcomes. Same markdown
-		// substrate, so the backend gate is unchanged.
-		registerPlaybookTools(server)
-		// Team learnings — typed reusable memory stored in the wiki.
-		registerLearningTools(server)
-		// Lint tools (Slice 1 wiki intelligence) — daily health check +
-		// contradiction resolution. Same markdown substrate.
-		mcp.AddTool(server, readOnlyTool(
-			"run_lint",
-			"Run the wiki lint check. Flags contradictions (critical), orphans (warning), stale claims (warning), missing cross-refs (info), and dedup review (info). Returns LintReport JSON with findings and resolve actions.",
-		), handleRunLint)
-		mcp.AddTool(server, officeWriteTool(
-			"resolve_contradiction",
-			"Resolve a contradiction finding from a prior run_lint call. winner must be A (first fact wins), B (second fact wins), or Both (acknowledge both as valid).",
-		), handleResolveContradiction)
+		registerWikiToolFamily(server)
 	case config.MemoryBackendNone:
 		// Nothing — user explicitly disabled shared memory.
 	default:
-		// gbrain (default): legacy tool set unchanged.
-		mcp.AddTool(server, readOnlyTool(
-			"team_memory_query",
-			"Query your private notes and, when configured, shared organizational memory. Results may suggest which teammate to ask for fresher working context.",
-		), handleTeamMemoryQuery)
-		mcp.AddTool(server, officeWriteTool(
-			"team_memory_write",
-			"Store a private note by default, or write directly to shared durable memory when the result is real. Durable private notes may be flagged as promotion candidates.",
-		), handleTeamMemoryWrite)
-		mcp.AddTool(server, officeWriteTool(
-			"team_memory_promote",
-			"Promote one of your private notes into shared durable memory after it becomes canonical.",
-		), handleTeamMemoryPromote)
+		// gbrain: the wiki is a separate layer that now runs under every
+		// backend (K). When the launcher tells us the worker is live, expose
+		// the wiki family AND the gbrain memory tools; otherwise keep the
+		// legacy memory-only surface.
+		if wikiToolsAvailable() {
+			registerWikiToolFamily(server)
+		}
+		registerGBrainMemoryTools(server)
 	}
+}
+
+// registerWikiToolFamily registers the markdown-wiki tool surface. It is not
+// backend-specific: the wiki is a filesystem git repo whose worker runs under
+// every memory backend, so availability is decided by wikiToolsAvailable().
+func registerWikiToolFamily(server *mcp.Server) {
+	mcp.AddTool(server, officeWriteTool(
+		"team_wiki_write",
+		"Write directly to the canonical team wiki only when the human explicitly asked you to write the article, playbook, or canonical page to the wiki. You must pass human_request as the broker message ID for that recent human-authored wiki request. Otherwise write your working knowledge to notebook_write first and submit notebook_promote for review. The content you pass becomes the article bytes; this tool does not rewrite for you. Picks author identity from my_slug so git log shows which bot wrote each article.",
+	), handleTeamWikiWrite)
+	mcp.AddTool(server, readOnlyTool(
+		"team_wiki_read",
+		"Read an article from the team wiki. Call this when the index lists an article relevant to your task.",
+	), handleTeamWikiRead)
+	mcp.AddTool(server, readOnlyTool(
+		"team_wiki_search",
+		"Literal substring search across the team wiki. Use for lookups the index does not surface.",
+	), handleTeamWikiSearch)
+	mcp.AddTool(server, readOnlyTool(
+		"team_wiki_list",
+		"Return the auto-regenerated catalog (index/all.md) of every article in the team wiki.",
+	), handleTeamWikiList)
+	mcp.AddTool(server, readOnlyTool(
+		"wuphf_wiki_lookup",
+		"Cited-answer lookup against the team wiki. Returns a structured JSON answer with sources and inline citations. Use when you need a verified, sourced answer rather than a raw search.",
+	), handleTeamWikiLookup)
+	// Rich-artifact (visual artifact) tools: bots author self-contained
+	// HTML articles that promote into the wiki. They share the markdown
+	// backend gate with team_wiki_*.
+	registerVisualArtifactTools(server)
+	// Entity brief tools (v1.2) — fact log + broker-level synthesis.
+	// Same backend gate: entity briefs live in the wiki subtree.
+	registerEntityTools(server)
+	// Playbook compilation tools (v1.3) — compile team/playbooks/*.md
+	// into invokable skills + record execution outcomes. Same markdown
+	// substrate, so the backend gate is unchanged.
+	registerPlaybookTools(server)
+	// Team learnings — typed reusable memory stored in the wiki.
+	registerLearningTools(server)
+	// Lint tools (Slice 1 wiki intelligence) — daily health check +
+	// contradiction resolution. Same markdown substrate.
+	mcp.AddTool(server, readOnlyTool(
+		"run_lint",
+		"Run the wiki lint check. Flags contradictions (critical), orphans (warning), stale claims (warning), missing cross-refs (info), and dedup review (info). Returns LintReport JSON with findings and resolve actions.",
+	), handleRunLint)
+	mcp.AddTool(server, officeWriteTool(
+		"resolve_contradiction",
+		"Resolve a contradiction finding from a prior run_lint call. winner must be A (first fact wins), B (second fact wins), or Both (acknowledge both as valid).",
+	), handleResolveContradiction)
+}
+
+// registerGBrainMemoryTools is the gbrain memory surface (private notes +
+// shared durable memory). It stays tied to the memory backend by design.
+func registerGBrainMemoryTools(server *mcp.Server) {
+	mcp.AddTool(server, readOnlyTool(
+		"team_memory_query",
+		"Query your private notes and, when configured, shared organizational memory. Results may suggest which teammate to ask for fresher working context.",
+	), handleTeamMemoryQuery)
+	mcp.AddTool(server, officeWriteTool(
+		"team_memory_write",
+		"Store a private note by default, or write directly to shared durable memory when the result is real. Durable private notes may be flagged as promotion candidates.",
+	), handleTeamMemoryWrite)
+	mcp.AddTool(server, officeWriteTool(
+		"team_memory_promote",
+		"Promote one of your private notes into shared durable memory after it becomes canonical.",
+	), handleTeamMemoryPromote)
 }
 
 func configureServerTools(server *mcp.Server, slug string, channel string, oneOnOne bool) {

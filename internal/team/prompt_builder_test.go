@@ -168,6 +168,7 @@ func TestPromptBuilder_RendersPriorLearningsWhenMarkdownMemoryActive(t *testing.
 			}}
 		},
 		markdownMemory: true,
+		wikiAvailable:  true,
 	}
 
 	got := pb.Build("fe")
@@ -240,6 +241,7 @@ func TestPromptBuilder_OneOnOneMarkdownMemoryMentionsHTMLArtifacts(t *testing.T)
 		policies:       func() []officePolicy { return nil },
 		nameFor:        func(slug string) string { return slug },
 		markdownMemory: true,
+		wikiAvailable:  true,
 	}
 
 	got := pb.Build("cos")
@@ -269,6 +271,7 @@ func TestPromptBuilder_OneOnOneSkipsLearningLookup(t *testing.T) {
 			return nil
 		},
 		markdownMemory: true,
+		wikiAvailable:  true,
 	}
 
 	got := pb.Build("cos")
@@ -292,6 +295,7 @@ func TestPromptBuilder_MarkdownMemoryPromptsNaturalHTMLArtifactsDuringWork(t *te
 		policies:       func() []officePolicy { return nil },
 		nameFor:        func(slug string) string { return slug },
 		markdownMemory: true,
+		wikiAvailable:  true,
 	}
 
 	for _, slug := range []string{"cos", "pm"} {
@@ -336,6 +340,7 @@ func TestPromptBuilder_VisualArtifactSelectivityRulePresentOnEverySurface(t *tes
 			policies:       func() []officePolicy { return nil },
 			nameFor:        func(slug string) string { return slug },
 			markdownMemory: true,
+			wikiAvailable:  true,
 		}
 	}
 
@@ -427,6 +432,7 @@ func TestPromptBuilder_HTMLArtifactFlowIsConsistentAcrossBlocks(t *testing.T) {
 			policies:       func() []officePolicy { return nil },
 			nameFor:        func(slug string) string { return slug },
 			markdownMemory: true,
+			wikiAvailable:  true,
 		}
 	}
 	cases := []struct {
@@ -533,6 +539,7 @@ func TestPromptBuilder_UnsolicitedToolBanIsExplicit(t *testing.T) {
 		policies:       func() []officePolicy { return nil },
 		nameFor:        func(slug string) string { return slug },
 		markdownMemory: true,
+		wikiAvailable:  true,
 	}
 	for _, slug := range []string{"cos", "pm"} {
 		got := pb.Build(slug)
@@ -550,6 +557,50 @@ func TestPromptBuilder_UnsolicitedToolBanIsExplicit(t *testing.T) {
 		if strings.Contains(got, "team_skill_create") {
 			t.Fatalf("%s prompt still mentions team_skill_create — the tool was removed", slug)
 		}
+	}
+}
+
+// K: the wiki worker runs under every memory backend, so a gbrain office must
+// be told the wiki exists. Before this test the wiki blocks were keyed on
+// markdownMemory, which made the decoupling invisible to bots: /wiki/write
+// answered 200 while the prompt said "there is no external knowledge graph".
+func TestPromptBuilder_WikiBlocksFollowTheWorkerNotTheMemoryBackend(t *testing.T) {
+	mkBuilder := func(oneOnOne bool) *promptBuilder {
+		return &promptBuilder{
+			isOneOnOne:  func() bool { return oneOnOne },
+			isFocusMode: func() bool { return false },
+			packName:    func() string { return "WUPHF Office" },
+			leadSlug:    func() string { return "cos" },
+			members: func() []officeMember {
+				return []officeMember{{Slug: "cos", Name: "CEO", Role: "cos"}, {Slug: "pm", Name: "PM"}}
+			},
+			policies:       func() []officePolicy { return nil },
+			nameFor:        func(slug string) string { return slug },
+			markdownMemory: false, // memory backend is gbrain
+			wikiAvailable:  true,  // but the wiki worker is live
+		}
+	}
+	for _, tc := range []struct {
+		name     string
+		oneOnOne bool
+		slug     string
+	}{
+		{name: "lead/office", slug: "cos"},
+		{name: "specialist/office", slug: "pm"},
+		{name: "lead/one-on-one", oneOnOne: true, slug: "cos"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := mkBuilder(tc.oneOnOne).Build(tc.slug)
+			if strings.Contains(got, "There is no external knowledge graph") {
+				t.Fatalf("%s prompt claims there is no knowledge graph while the wiki worker is live", tc.name)
+			}
+			if !strings.Contains(got, "HTML ARTICLE RULE") {
+				t.Fatalf("%s prompt is missing the visual-artifact block the wiki backs", tc.name)
+			}
+			if tc.oneOnOne && !strings.Contains(got, "The team wiki is active in this 1:1") {
+				t.Fatalf("1:1 prompt should name the live wiki instead of markdown memory")
+			}
+		})
 	}
 }
 
@@ -770,6 +821,7 @@ func TestPromptBuilder_NoAgentOwnsTheWikiPromotionNeedsAHuman(t *testing.T) {
 			policies:       func() []officePolicy { return nil },
 			nameFor:        func(slug string) string { return slug },
 			markdownMemory: true,
+			wikiAvailable:  true,
 		}
 	}
 
@@ -833,6 +885,7 @@ func TestPromptBuilder_NonCEOOmitsTeamNotebookReview(t *testing.T) {
 		policies:       func() []officePolicy { return nil },
 		nameFor:        func(slug string) string { return slug },
 		markdownMemory: true,
+		wikiAvailable:  true,
 	}
 	got := pb.Build("fe")
 	if strings.Contains(got, "team_notebook_review") {
@@ -859,6 +912,7 @@ func TestPromptBuilder_DurableKnowledgeRoutesThroughLibrarian(t *testing.T) {
 			policies:       func() []officePolicy { return nil },
 			nameFor:        func(s string) string { return s },
 			markdownMemory: true,
+			wikiAvailable:  true,
 		}
 	}
 	for _, slug := range []string{"cos", "fe"} {

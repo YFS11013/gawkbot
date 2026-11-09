@@ -1108,3 +1108,22 @@ scorecard §4.5 的那半句缺陷已经说得很准：**「重投路径不查�
 | `/health.wiki_ready` | 无 | 新增：worker 是否就绪，与 backend 无关——gbrain 办公室终于能看见 wiki 挂了 |
 
 判据：`WUPHF_MEMORY_BACKEND=gbrain` 启动后 `WikiWorker() != nil`、`/health.wiki_ready=true`、`/wiki/write` 200 且产物进 git。测试：`TestWikiWorkerStartsUnderGBrainBackend`（同时断言 `wiki_ready`），既有 `TestHealthMemoryBackendReadyReflectsWikiWorker` 保持绿。
+
+**同一次拍板的另一半（提示词）**：worker 起来了不等于 bot 知道它存在。`prompt_builder.go` 原先只有一个 `markdownMemory` 开关，同时控制「记忆后端是不是 markdown」和「要不要告诉 bot 有 wiki」——于是在 gbrain 办公室里，`/wiki/write` 已返回 200，提示词却仍写着 "There is no external knowledge graph in this run"，wiki 工具块、HTML 文章规则、`wuphf_wiki_lookup` 指引全被砍掉。现在拆成两个字段：
+
+| 字段 | 来源 | 控制什么 |
+|---|---|---|
+| `markdownMemory` | `memory_backend == markdown` | markdown 学习日志（`team_learning_search`）、`renderPriorLearningsBlock`、`team_learning_record` 指引 |
+| `wikiAvailable` | `WikiWorker() != nil` | wiki 工具块、HTML 文章/视觉产物规则、`wuphf_wiki_lookup`/`team_wiki_search`、@librarian 与「别假装写过 wiki」的约束 |
+
+「没有知识图谱」那句降级文案只在两者都不成立时才出现，所以不会再对着一份能写的 wiki 说没有 wiki。markdown 后端下拼出的字符串与改动前逐字相同（提示词缓存不会因为这次拆分 miss）。测试：`TestPromptBuilder_WikiBlocksFollowTheWorkerNotTheMemoryBackend`（gbrain 语义下三种 surface 都必须有 wiki 块、且不得出现「没有知识图谱」）。
+
+**工具面（同一处错的第三层）**：MCP server 是独立进程，看不到 broker 的 worker，`registerSharedMemoryTools` 原本按 `ResolveMemoryBackend()` 二选一——gbrain 下整个 `team_wiki_*` / `visual_artifact_create` / `run_lint` 家族根本不注册。现在：
+
+| 层 | 判据 | 说明 |
+|---|---|---|
+| broker → 子进程环境 | `ensureWikiWorker` 结束时按 `WikiWorker() != nil` 写 `WUPHF_WIKI_AVAILABLE=1/0` | broker 是唯一知道真实 worker 状态的进程；所有 spawn 路径（claude MCP config、opencode、codex、openai-compat 桥）都继承它的 env，所以设在 broker 上比逐个改 spawn 点可靠。claude 的 `buildMCPServerMap` 另外再显式写一遍同一个值 |
+| `teammcp.registerSharedMemoryTools` | `wikiToolsAvailable()` | 环境变量优先；未设置时退回旧行为（markdown ⇒ 可用）。gbrain + wiki 可用 ⇒ **wiki 家族 + `team_memory_*` 同时注册**（wiki 能写、gbrain 仍是记忆） |
+| `context_capture` / `context_promote` | 同上 | 它们写的是 notebook/晋升，属 wiki 侧，不再按「只许 markdown」拒绝 |
+
+不改的：`context_lookup` 在 gbrain 下仍走 gbrain 检索（那是检索层的选择），`team_learning_*` 仍随 markdown 记忆日志。测试：`TestConfigureServerToolsBackendMatrix` 新增 `gbrain/office/wiki-live` 用例（两套工具共存）；既有 gbrain 用例用空 `WUPHF_WIKI_AVAILABLE` 保持旧契约。

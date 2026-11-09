@@ -85,6 +85,24 @@ func (l *Launcher) buildMCPServerMap() (map[string]any, error) {
 		office["env"] = env
 	}
 
+	// The wiki worker is a separate layer from the memory backend (K). The MCP
+	// server cannot see the broker's worker, so tell it the truth here: without
+	// this it would keep hiding team_wiki_* / visual artifacts in a gbrain
+	// office even though the worker is live, and the system prompt (which does
+	// see the worker) would then advertise tools that do not exist.
+	{
+		env, _ := office["env"].(map[string]string)
+		if env == nil {
+			env = map[string]string{}
+		}
+		if l.broker != nil && l.broker.WikiWorker() != nil {
+			env["WUPHF_WIKI_AVAILABLE"] = "1"
+		} else {
+			env["WUPHF_WIKI_AVAILABLE"] = "0"
+		}
+		office["env"] = env
+	}
+
 	if memoryServer, err := resolvedMemoryMCPServer(); err != nil {
 		return nil, err
 	} else if memoryServer != nil && len(memoryServer.Env) > 0 {

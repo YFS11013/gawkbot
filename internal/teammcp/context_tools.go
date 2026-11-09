@@ -305,8 +305,8 @@ func handleContextCapture(ctx context.Context, _ *mcp.CallToolRequest, args Cont
 	if content == "" {
 		return toolError(fmt.Errorf("content is required unless skip_reason is supplied")), nil, nil
 	}
-	if backend.ActiveKind != config.MemoryBackendMarkdown {
-		result.Status = unsupportedContextWriteStatus(backend, "context_capture writes notebook entries only on the markdown backend")
+	if backend.ActiveKind != config.MemoryBackendMarkdown && !wikiToolsAvailable() {
+		result.Status = unsupportedContextWriteStatus(backend, "context_capture writes notebook entries into the wiki, and no wiki worker is available to this run")
 		result.PartialErrors = append(result.PartialErrors, ContextPartialError{Source: "notebook", Backend: backend.SelectedKind, Code: result.Status.Code, Message: result.Status.Message})
 		result.ReadableText = formatContextCaptureText(result)
 		return textResult(result.ReadableText), result, nil
@@ -379,8 +379,8 @@ func handleContextPromote(ctx context.Context, _ *mcp.CallToolRequest, args Cont
 		result.ReadableText = formatContextPromoteText(result)
 		return textResult(result.ReadableText), result, nil
 	}
-	if backend.ActiveKind != config.MemoryBackendMarkdown {
-		result.Status = unsupportedContextWriteStatus(backend, "context_promote uses notebook promotion and is only available on the markdown backend")
+	if backend.ActiveKind != config.MemoryBackendMarkdown && !wikiToolsAvailable() {
+		result.Status = unsupportedContextWriteStatus(backend, "context_promote promotes notebook entries into the wiki, and no wiki worker is available to this run")
 		result.PartialErrors = append(result.PartialErrors, ContextPartialError{Source: "promotion", Backend: backend.SelectedKind, Code: result.Status.Code, Message: result.Status.Message})
 		result.ReadableText = formatContextPromoteText(result)
 		return textResult(result.ReadableText), result, nil

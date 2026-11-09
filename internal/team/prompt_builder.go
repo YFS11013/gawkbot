@@ -57,7 +57,14 @@ type promptBuilder struct {
 	// (markdown wiki section, no-external-graph fallbacks) and are stable for the
 	// lifetime of a launcher session, so they're snapshot once rather than
 	// re-resolved on every Build call.
+	//
+	// These are two different layers and must not be collapsed back into one
+	// flag (K): markdownMemory is the *memory backend* (markdown learning log),
+	// wikiAvailable is the *wiki worker* — a filesystem git repo that now runs
+	// under every backend. Keying the wiki blocks on the memory backend is what
+	// hid the wiki from bots in a gbrain office even after the worker started.
 	markdownMemory bool
+	wikiAvailable  bool
 }
 
 // botFilesPromptBlock assembles the per-bot instruction files (SOUL,
@@ -124,6 +131,7 @@ func (p *promptBuilder) Build(slug string) string {
 
 	lead := p.leadSlug()
 	markdownMemory := p.markdownMemory
+	wikiAvailable := p.wikiAvailable
 
 	// Filter policies to the ones assigned to THIS bot (core-loop step 8:
 	// assigned policies are always loaded; a policy scoped to other bots
@@ -175,8 +183,14 @@ func (p *promptBuilder) Build(slug string) string {
 		sb.WriteString("- human_message: Send an emphasized report, recommendation, or action card directly to the human when you want it to stand out\n")
 		sb.WriteString("- human_interview: Ask the human a cancelable interview question; it never blocks chat, and dismiss/send cancels it\n\n")
 		sb.WriteString(secretHandlingPromptRule())
-		if markdownMemory {
-			sb.WriteString("Markdown wiki memory is active in this 1:1. When the work would be clearer as a diagram, mockup, report, comparison grid, code explainer, PR review, or interactive tuning surface, build a self-contained HTML article with visual_artifact_create — the HTML article IS the deliverable, so leave source_path empty (see the HTML ARTICLE RULE below). Keep the HTML self-contained and include visual-artifact:ra_... on its own line when you reference it in chat.\n\n")
+		if wikiAvailable {
+			// Byte-identical to the pre-K prompt under the markdown backend;
+			// the gbrain wording only appears where the wiki now also exists.
+			wikiLead := "Markdown wiki memory is active in this 1:1. "
+			if !markdownMemory {
+				wikiLead = "The team wiki is active in this 1:1 (a filesystem git repo; the separate memory backend may be gbrain). "
+			}
+			sb.WriteString(wikiLead + "When the work would be clearer as a diagram, mockup, report, comparison grid, code explainer, PR review, or interactive tuning surface, build a self-contained HTML article with visual_artifact_create — the HTML article IS the deliverable, so leave source_path empty (see the HTML ARTICLE RULE below). Keep the HTML self-contained and include visual-artifact:ra_... on its own line when you reference it in chat.\n\n")
 			sb.WriteString(visualArtifactForcingBlock())
 		} else {
 			sb.WriteString("There is no external knowledge graph in this run. Base your work on the conversation and direct human answers only.\n\n")
@@ -220,7 +234,7 @@ func (p *promptBuilder) Build(slug string) string {
 		sb.WriteString("- team_skill_run: Invoke a saved skill by exact slug from the AVAILABLE SKILLS block above. ONLY pass a slug that appears verbatim in that list. If the list is empty or no slug matches, do NOT call this tool — proceed with the work directly. Hallucinated slugs return 404 and waste a turn.\n")
 		sb.WriteString("- team_action_connections / team_action_search / team_action_knowledge: inspect connected external systems and the exact action/workflow schema before you improvise. If connection listing is flaky, do NOT stop there; search/knowledge still give you the real action contract.\n")
 		sb.WriteString("- team_action_execute / team_action_workflow_execute: use these for real external reads, writes, and workflow runs. Prefer dry_run only when the task or policy says preview/mock first. When the provider is One and there is exactly one connected account for that platform, you may omit connection_key and let the runtime auto-resolve it.\n")
-		if markdownMemory {
+		if wikiAvailable {
 			sb.WriteString(markdownKnowledgeToolBlock())
 			sb.WriteString(visualArtifactForcingBlock())
 		}
@@ -238,7 +252,8 @@ func (p *promptBuilder) Build(slug string) string {
 		if markdownMemory {
 			sb.WriteString(markdownKnowledgeMemoryBlock())
 			sb.WriteString(renderPriorLearningsBlock(p.learningSnapshot(slug)))
-		} else {
+		} else if !wikiAvailable {
+			// Only claim there is no knowledge layer when there really is none.
 			sb.WriteString("There is no external knowledge graph in this run. Work only with the shared office channel and human answers.\n\n")
 		}
 		if len(activePolicies) > 0 {
@@ -273,7 +288,7 @@ func (p *promptBuilder) Build(slug string) string {
 		sb.WriteString(destructiveVCSGuardBlock())
 		sb.WriteString(ceoIssueManagementBlock())
 		sb.WriteString("YOUR ROLE AS LEADER:\n")
-		if markdownMemory {
+		if wikiAvailable {
 			sb.WriteString("1. On strategy or prior decisions, use wuphf_wiki_lookup or team_wiki_search before guessing\n")
 		} else {
 			sb.WriteString("1. Coordinate inside the team channel first and keep the team aligned there\n")
@@ -285,7 +300,7 @@ func (p *promptBuilder) Build(slug string) string {
 		sb.WriteString("5. Keep specialists in their lane on execution. You make the FINAL decision. Full re-routing or scope debates run through you.\n")
 		sb.WriteString("6. Check team_requests before asking the human anything new\n")
 		sb.WriteString("7. Use human_message for direct human-facing output, human_interview for cancelable clarifications, and team_request for blocking decisions\n")
-		if markdownMemory {
+		if wikiAvailable {
 			sb.WriteString("8. When you lock a durable decision that matters for the team's long-term knowledge, tag @librarian (Pam) to capture it into the team wiki. @librarian owns the wiki and is the sole writer of canonical articles — you do not write the canonical wiki yourself.\n")
 		} else {
 			sb.WriteString("8. Summarize final decisions clearly in-channel\n")
@@ -323,7 +338,7 @@ func (p *promptBuilder) Build(slug string) string {
 		sb.WriteString("- When integrations matter, make the required systems explicit in playbook articles and bot rationale so the team knows which connected accounts or placeholders each workflow expects\n")
 		sb.WriteString("- When you create a new specialist for integration/onboarding work, include the owned integrations directly in that bot's expertise so the roster clearly shows who owns Gmail, Slack, YouTube, Drive, analytics, or similar lanes\n\n")
 		sb.WriteString("STYLE: Be concise, delegate, short lively messages. Use compact markdown for simple chat structure; for dense, visual, or interactive outputs, create an HTML visual artifact instead of leaving the human with a long markdown wall.\n")
-		if markdownMemory {
+		if wikiAvailable {
 			sb.WriteString("Do not pretend the team wiki was updated; verify @librarian captured the knowledge or team_wiki_write succeeded from a verified human request before claiming canonical storage.\n")
 		} else {
 			sb.WriteString("Do not claim you stored anything outside the team.\n")
@@ -353,7 +368,7 @@ func (p *promptBuilder) Build(slug string) string {
 		sb.WriteString("- team_skill_run: When @cos names a specific skill slug, OR when an exact slug from the AVAILABLE SKILLS block above clearly matches the request, call team_skill_run(<slug>) BEFORE doing the work. It returns the canonical step-by-step content — follow it exactly instead of freelancing. ONLY pass slugs that appear verbatim in the catalog; if the list is empty or no slug matches, do NOT guess — proceed with the work directly. Hallucinated slugs return 404 and waste a turn.\n")
 		sb.WriteString("- team_action_connections / team_action_search / team_action_knowledge: inspect connected external systems and the exact action/workflow schema before you improvise. If connection listing is flaky, do NOT stop there; search/knowledge still give you the real action contract.\n")
 		sb.WriteString("- team_action_execute / team_action_workflow_execute: use these for real external reads, writes, and workflow runs. Prefer dry_run only when the task or policy says preview/mock first. When the provider is One and there is exactly one connected account for that platform, you may omit connection_key and let the runtime auto-resolve it.\n")
-		if markdownMemory {
+		if wikiAvailable {
 			sb.WriteString(markdownKnowledgeToolBlock())
 			sb.WriteString(visualArtifactForcingBlock())
 		}
@@ -370,7 +385,7 @@ func (p *promptBuilder) Build(slug string) string {
 		if markdownMemory {
 			sb.WriteString(markdownKnowledgeMemoryBlock())
 			sb.WriteString(renderPriorLearningsBlock(p.learningSnapshot(slug)))
-		} else {
+		} else if !wikiAvailable {
 			sb.WriteString("There is no external knowledge graph in this run. Base your work on the team conversation and direct human answers only.\n\n")
 		}
 		if len(activePolicies) > 0 {
@@ -426,7 +441,7 @@ func (p *promptBuilder) Build(slug string) string {
 		if codingBotSlugs[slug] {
 			sb.WriteString("11g. When you commit to opening a pull request, actually open it. Run `gh pr create --title \"<short title>\" --body \"<body>\" --head \"<your-branch>\" --base main` via the bash tool. Paste the returned URL into your channel message so the team can click through. Do not claim a PR is open unless the bash output shows a https://github.com/... URL.\n")
 		}
-		if markdownMemory {
+		if wikiAvailable {
 			// Wiki contribution is a system skill every bot carries. The
 			// Librarian is retired as a default bot, so there is no sole
 			// writer to tag; knowledge becomes canonical through promotion,

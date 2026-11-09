@@ -92,7 +92,21 @@ func (l *Launcher) newPromptBuilder() *promptBuilder {
 			return results
 		},
 		markdownMemory: memoryBackend == config.MemoryBackendMarkdown,
+		// The wiki worker is a separate layer (K): it runs under every memory
+		// backend, so bots must be told about the wiki whenever it is live,
+		// not only when the memory backend happens to be markdown. With no
+		// broker to ask (bare launcher fixtures, pre-attach builds) fall back
+		// to the markdown backend, where the wiki IS the memory store.
+		wikiAvailable: wikiAvailableFor(l, memoryBackend),
 	}
+}
+
+// wikiAvailableFor reports whether the bot prompt should describe the wiki.
+func wikiAvailableFor(l *Launcher, memoryBackend string) bool {
+	if l == nil || l.broker == nil {
+		return memoryBackend == config.MemoryBackendMarkdown
+	}
+	return l.broker.WikiWorker() != nil
 }
 
 // writeBotPromptFile persists the per-bot system prompt to a stable

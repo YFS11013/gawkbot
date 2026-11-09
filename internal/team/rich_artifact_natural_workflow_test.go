@@ -26,6 +26,7 @@ func TestRichArtifactNaturalWorkflowPromptAndToolLoop(t *testing.T) {
 		policies:       func() []officePolicy { return nil },
 		nameFor:        func(slug string) string { return slug },
 		markdownMemory: true,
+		wikiAvailable:  true,
 	}).Build("pm")
 
 	const (

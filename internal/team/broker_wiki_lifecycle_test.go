@@ -138,4 +138,22 @@ func TestWikiWorkerStartsUnderGBrainBackend(t *testing.T) {
 	if !got.WikiReady {
 		t.Fatalf("wiki_ready must report the live worker regardless of backend, got false (memory_backend_active=%q)", got.MemoryBackendActive)
 	}
+	// The MCP server is a separate process and decides its tool surface from
+	// this env, not from the broker's worker. Without it a gbrain office keeps
+	// hiding team_wiki_* while /wiki/write answers 200.
+	if env := os.Getenv("WUPHF_WIKI_AVAILABLE"); env != "1" {
+		t.Fatalf("WUPHF_WIKI_AVAILABLE must be published to child processes once the worker is live, got %q", env)
+	}
+}
+
+func TestSyncWikiAvailabilityEnv(t *testing.T) {
+	t.Setenv("WUPHF_WIKI_AVAILABLE", "")
+	syncWikiAvailabilityEnv(true)
+	if got := os.Getenv("WUPHF_WIKI_AVAILABLE"); got != "1" {
+		t.Fatalf("ready worker must publish 1, got %q", got)
+	}
+	syncWikiAvailabilityEnv(false)
+	if got := os.Getenv("WUPHF_WIKI_AVAILABLE"); got != "0" {
+		t.Fatalf("stopped worker must publish 0, got %q", got)
+	}
 }
