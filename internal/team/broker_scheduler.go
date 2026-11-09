@@ -294,6 +294,7 @@ func (b *Broker) completeSchedulerJobsLocked(targetType, targetID, channel strin
 			job.ClosedAt = now
 		}
 		job.Status = "done"
+		job.StatusReason = "target closed"
 		job.DueAt = ""
 		job.NextRun = ""
 	}
@@ -393,6 +394,7 @@ func (b *Broker) cancelSupersededTaskJobsLocked(taskID, channel, keepKind string
 			continue
 		}
 		job.Status = "done"
+		job.StatusReason = "superseded by " + keepKind
 		job.DueAt = ""
 		job.NextRun = ""
 		job.LastRun = now

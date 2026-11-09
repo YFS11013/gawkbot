@@ -41,6 +41,21 @@ func (b *Broker) SchedulerJobControl(slug string, defaultInterval time.Duration)
 }
 
 func (b *Broker) UpdateSchedulerJobState(slug string, nextRun time.Time, status string) error {
+	return b.updateSchedulerJobState(slug, nextRun, status, "")
+}
+
+// CloseSchedulerJob marks a job terminal and records why it closed.
+//
+// Journey 4 (2026-11-09) made the case: a decision-state task carried
+// `recheck:analyst--cos:task:journ-16` that ended up `status=done` with a
+// `last_run` and no `next_run`, and the record could not say whether the
+// review gate closed it or a later mutation superseded it — both paths stamp
+// LastRun. The reason is what makes the row self-explanatory months later.
+func (b *Broker) CloseSchedulerJob(slug, reason string) error {
+	return b.updateSchedulerJobState(slug, time.Time{}, "done", reason)
+}
+
+func (b *Broker) updateSchedulerJobState(slug string, nextRun time.Time, status, reason string) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	for i := range b.scheduler {
@@ -50,6 +65,17 @@ func (b *Broker) UpdateSchedulerJobState(slug string, nextRun time.Time, status 
 		now := time.Now().UTC()
 		startedAt := b.scheduler[i].LastRun
 		b.scheduler[i].Status = strings.TrimSpace(status)
+		// A re-arm clears the reason (the job is live again); a close with no
+		// caller-supplied reason still records "closed" so no terminal row is
+		// silent about itself.
+		switch {
+		case strings.TrimSpace(reason) != "":
+			b.scheduler[i].StatusReason = strings.TrimSpace(reason)
+		case isClosedSchedulerStatus(status):
+			b.scheduler[i].StatusReason = "closed"
+		default:
+			b.scheduler[i].StatusReason = ""
+		}
 		b.scheduler[i].LastRun = now.Format(time.RFC3339)
 		if !nextRun.IsZero() {
 			b.scheduler[i].NextRun = nextRun.UTC().Format(time.RFC3339)

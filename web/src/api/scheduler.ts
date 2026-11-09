@@ -37,6 +37,9 @@ export interface SchedulerJob {
   interval_override?: number;
   /** "ok" | "failed" — chip on the row. */
   last_run_status?: string;
+  /** Why a closed job closed ("awaiting review (decision)", "superseded by
+   * task_follow_up", "target closed", "closed"). Cleared when re-armed. */
+  status_reason?: string;
   /** True for crons that self-register at broker startup. */
   system_managed?: boolean;
   /** Free-form payload attached to the job (instructions, templated input). */

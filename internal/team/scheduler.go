@@ -52,6 +52,10 @@ type schedulerBroker interface {
 	FindTask(channel, id string) (teamTask, bool)
 	FindRequest(channel, id string) (humanInterview, bool)
 	UpdateSchedulerJobState(slug string, nextRun time.Time, status string) error
+	// CloseSchedulerJob is UpdateSchedulerJobState(…, "done") plus the reason
+	// the job closed, so a finished run explains itself (Journey 4 could not
+	// tell a review-gate close from a supersede close).
+	CloseSchedulerJob(slug, reason string) error
 	// livePlaybookPrompt returns the operator's current playbook rule for an
 	// app id, or "" to fall back to the frozen routine payload.
 	livePlaybookPrompt(appID string) string
@@ -285,7 +289,7 @@ func (w *watchdogScheduler) processOnce() int {
 func (w *watchdogScheduler) processTaskJob(job schedulerJob) {
 	task, ok := w.broker.FindTask(job.Channel, job.TargetID)
 	if !ok || strings.EqualFold(strings.TrimSpace(task.status), "done") {
-		_ = w.broker.UpdateSchedulerJobState(job.Slug, time.Time{}, "done")
+		_ = w.broker.CloseSchedulerJob(job.Slug, "task not found or already done")
 		return
 	}
 	// A task awaiting review is not a stalled owner: `decision`/`review` hand
@@ -299,7 +303,7 @@ func (w *watchdogScheduler) processTaskJob(job schedulerJob) {
 	// delivered tasks on purpose (done-integrity family).
 	if !strings.EqualFold(strings.TrimSpace(job.Kind), taskFollowUpActionKind) &&
 		taskAwaitingReview(task.LifecycleState) {
-		_ = w.broker.UpdateSchedulerJobState(job.Slug, time.Time{}, "done")
+		_ = w.broker.CloseSchedulerJob(job.Slug, "awaiting review ("+string(task.LifecycleState)+") — the ball is not with the owner")
 		return
 	}
 	now := w.clock.Now().UTC()
@@ -312,7 +316,7 @@ func (w *watchdogScheduler) processTaskJob(job schedulerJob) {
 			resumeNote := "Retry window passed; resuming live external lane automatically."
 			resumed, changed, err := w.broker.ResumeTask(task.ID, "watchdog", resumeNote)
 			if err == nil && changed {
-				_ = w.broker.UpdateSchedulerJobState(job.Slug, time.Time{}, "done")
+				_ = w.broker.CloseSchedulerJob(job.Slug, "rate-limit window passed; task resumed")
 				if w.deliverTask != nil {
 					w.deliverTask(officeActionLog{
 						Kind:      "task_unblocked",
@@ -328,7 +332,7 @@ func (w *watchdogScheduler) processTaskJob(job schedulerJob) {
 		if strings.EqualFold(strings.TrimSpace(job.Kind), "task_retry") {
 			// It went blocked after the retry was armed. Blockers resolve on
 			// their own schedule; the task's regular recheck covers it.
-			_ = w.broker.UpdateSchedulerJobState(job.Slug, time.Time{}, "done")
+			_ = w.broker.CloseSchedulerJob(job.Slug, "task went blocked after the retry was armed")
 			return
 		}
 		nextRun := w.clock.Now().UTC().Add(time.Duration(config.ResolveTaskReminderInterval()) * time.Minute)
@@ -366,7 +370,7 @@ func (w *watchdogScheduler) processTaskJob(job schedulerJob) {
 		// follow-up; if the next turn is also empty, recordTaskLedgerEntry
 		// arms a longer one. Repeating on the reminder cadence would stack
 		// wakes on top of that.
-		_ = w.broker.UpdateSchedulerJobState(job.Slug, time.Time{}, "done")
+		_ = w.broker.CloseSchedulerJob(job.Slug, "one-shot retry fired; the hourly follow-up carries on")
 		return
 	}
 	nextRun := w.clock.Now().UTC().Add(time.Duration(config.ResolveTaskReminderInterval()) * time.Minute)

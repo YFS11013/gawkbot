@@ -507,7 +507,7 @@ type alertCall struct {
 	kind, channel, targetType, targetID, owner, summary string
 }
 type jobStateCall struct {
-	slug, status string
+	slug, status, reason string
 }
 type automationCall struct {
 	channel, body string
@@ -542,6 +542,11 @@ func (b *schedulerFixtureBroker) FindRequest(channel, id string) (humanInterview
 
 func (b *schedulerFixtureBroker) UpdateSchedulerJobState(slug string, _ time.Time, status string) error {
 	b.jobStateUpdates = append(b.jobStateUpdates, jobStateCall{slug: slug, status: status})
+	return nil
+}
+
+func (b *schedulerFixtureBroker) CloseSchedulerJob(slug, reason string) error {
+	b.jobStateUpdates = append(b.jobStateUpdates, jobStateCall{slug: slug, status: "done", reason: reason})
 	return nil
 }
 
@@ -634,6 +639,7 @@ func (b *recordingLedgerBroker) FindRequest(string, string) (humanInterview, boo
 	return humanInterview{}, false
 }
 func (b *recordingLedgerBroker) UpdateSchedulerJobState(string, time.Time, string) error        { return nil }
+func (b *recordingLedgerBroker) CloseSchedulerJob(string, string) error                         { return nil }
 func (b *recordingLedgerBroker) livePlaybookPrompt(string) string                               { return "" }
 func (b *recordingLedgerBroker) recordOperatorRoutineExecution(string, PlaybookOutcome, string) {}
 func (b *recordingLedgerBroker) CompleteSchedulerRun(string, time.Time, string, schedulerRun) error {
@@ -890,6 +896,96 @@ func TestSchedulerQuietForTasksAwaitingReview(t *testing.T) {
 				t.Fatalf("the recheck job must close, got %v", b.jobStateUpdates)
 			}
 		})
+	}
+}
+
+// The close reason is the answer to "why is this job gone". Journey 4 saw
+// `recheck:…journ-16` sitting at status=done with a last_run and no next_run
+// on a decision-state task, and the row could not say whether the review gate
+// had closed it or a later mutation had superseded it — both stamp LastRun.
+func TestSchedulerRecordsWhyReviewJobClosed(t *testing.T) {
+	b := newSchedulerFixtureBroker(t)
+	b.tasks = []teamTask{{
+		ID: "t1", Channel: "team", Title: "do thing", Owner: "eng", status: "in_progress",
+		LifecycleState: LifecycleStateDecision,
+	}}
+	b.dueJobs = []schedulerJob{{
+		Slug: "j1", Channel: "team", Kind: "recheck", TargetType: "task", TargetID: "t1",
+	}}
+	sched := &watchdogScheduler{
+		broker:      b,
+		clock:       newManualClock(time.Date(2026, 11, 9, 3, 31, 0, 0, time.UTC)),
+		deliverTask: func(officeActionLog, teamTask) bool { return false },
+	}
+	sched.processOnce()
+
+	if len(b.jobStateUpdates) != 1 {
+		t.Fatalf("expected one state update, got %v", b.jobStateUpdates)
+	}
+	call := b.jobStateUpdates[0]
+	if call.status != "done" {
+		t.Fatalf("review gate must close the job, got %+v", call)
+	}
+	if !strings.Contains(call.reason, "awaiting review") || !strings.Contains(call.reason, "decision") {
+		t.Fatalf("closed review job must name its reason, got %q", call.reason)
+	}
+}
+
+// CloseSchedulerJob persists the reason; re-arming the same row clears it so a
+// live job never advertises a stale close.
+func TestCloseSchedulerJobRecordsAndClearsReason(t *testing.T) {
+	b := newTestBroker(t)
+	b.mu.Lock()
+	b.scheduler = []schedulerJob{{
+		Slug: "j1", Kind: "recheck", TargetType: "task", TargetID: "t1",
+		Channel: "team", Status: "scheduled", DueAt: "2026-11-09T03:31:00Z",
+	}}
+	b.mu.Unlock()
+
+	if err := b.CloseSchedulerJob("j1", "awaiting review (decision)"); err != nil {
+		t.Fatalf("CloseSchedulerJob: %v", err)
+	}
+	b.mu.Lock()
+	job := b.scheduler[0]
+	b.mu.Unlock()
+	if job.Status != "done" || job.NextRun != "" {
+		t.Fatalf("close must terminate the job, got status=%q next=%q", job.Status, job.NextRun)
+	}
+	if job.StatusReason != "awaiting review (decision)" {
+		t.Fatalf("close reason not persisted, got %q", job.StatusReason)
+	}
+
+	if err := b.UpdateSchedulerJobState("j1", time.Now().UTC().Add(time.Hour), "scheduled"); err != nil {
+		t.Fatalf("UpdateSchedulerJobState: %v", err)
+	}
+	b.mu.Lock()
+	rearmed := b.scheduler[0]
+	b.mu.Unlock()
+	if rearmed.StatusReason != "" {
+		t.Fatalf("re-armed job kept a stale close reason: %q", rearmed.StatusReason)
+	}
+}
+
+// A close with no caller-supplied reason still says something, so no terminal
+// row is silent about itself.
+func TestSchedulerBulkCloseRecordsReason(t *testing.T) {
+	b := newTestBroker(t)
+	b.mu.Lock()
+	b.scheduler = []schedulerJob{
+		{Slug: "recheck:team:task:t1", Kind: "recheck", TargetType: "task", TargetID: "t1", Channel: "team", Status: "scheduled"},
+		{Slug: "task_follow_up:team:task:t2", Kind: "task_follow_up", TargetType: "task", TargetID: "t2", Channel: "team", Status: "scheduled"},
+	}
+	b.cancelSupersededTaskJobsLocked("t1", "team", "task_follow_up")
+	b.completeSchedulerJobsLocked("task", "t2", "team")
+	superseded := b.scheduler[0].StatusReason
+	completed := b.scheduler[1].StatusReason
+	b.mu.Unlock()
+
+	if !strings.Contains(superseded, "superseded by task_follow_up") {
+		t.Fatalf("superseded job must name its successor, got %q", superseded)
+	}
+	if completed != "target closed" {
+		t.Fatalf("bulk close must name its reason, got %q", completed)
 	}
 }
 

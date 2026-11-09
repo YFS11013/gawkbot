@@ -876,9 +876,14 @@ type schedulerJob struct {
 	// ClosedAt is when this job was first closed (status done/canceled). LastRun
 	// cannot serve that purpose: boot reconciles every task, which re-stamps
 	// LastRun on already-closed jobs and makes a year-old tombstone look like it
-	// just ran. Pruning reads this (falling back to LastRun for rows written
+	// Pruning reads this (falling back to LastRun for rows written
 	// before the field existed).
 	ClosedAt string `json:"closed_at,omitempty"`
+	// StatusReason says why the job is in its current terminal state
+	// ("awaiting review", "superseded by task_follow_up", "target closed").
+	// Cleared when the job is re-armed. Added after Journey 4 could not tell a
+	// review-gate close from a supersede close on the same row.
+	StatusReason string `json:"status_reason,omitempty"`
 }
 
 type teamSkill struct {
