@@ -1,0 +1,74 @@
+{
+  "taskId": "ai-revops-4",
+  "lifecycleState": "canceled",
+  "spec": {},
+  "sessionReport": {
+    "highlights": "",
+    "topWins": null,
+    "deadEnds": null,
+    "metadata": null
+  },
+  "changedFiles": null,
+  "reviewerGrades": null,
+  "dependencies": {
+    "parentTaskId": "",
+    "blockedOn": null
+  },
+  "updatedAt": "2026-11-09T01:06:29.9614826Z",
+  "task": {
+    "id": "ai-revops-4",
+    "channel": "review",
+    "title": "Set the hygiene scorecard and review cadence",
+    "details": "Define success metrics, the review rhythm, and the evidence trail for each iteration.\n\ninstall cleanup: onboarding starter lane",
+    "owner": "reviewer",
+    "status": "canceled",
+    "created_by": "wuphf",
+    "task_type": "issue",
+    "pipeline_id": "issue",
+    "pipeline_stage": "canceled",
+    "execution_mode": "office",
+    "review_state": "canceled",
+    "lifecycle_state": "canceled",
+    "ledger": [
+      {
+        "agent": "reviewer",
+        "at": "2026-11-09T01:03:50Z",
+        "outcome": "exit status 1",
+        "context_used": [
+          "wiki:team/skills/data-modeling.md",
+          "wiki:team/skills/wiki-maintenance.md"
+        ]
+      },
+      {
+        "agent": "reviewer",
+        "at": "2026-11-09T01:03:58Z",
+        "outcome": "exit status 1",
+        "context_used": [
+          "wiki:team/skills/data-modeling.md",
+          "wiki:team/skills/wiki-maintenance.md"
+        ]
+      },
+      {
+        "agent": "reviewer",
+        "at": "2026-11-09T01:04:07Z",
+        "outcome": "exit status 1",
+        "context_used": [
+          "wiki:team/skills/data-modeling.md",
+          "wiki:team/skills/wiki-maintenance.md"
+        ]
+      },
+      {
+        "agent": "cos",
+        "at": "2026-11-09T01:05:05Z",
+        "outcome": "ok (no durable trace: no message, no task mutation)",
+        "context_used": [
+          "wiki:team/skills/data-modeling.md",
+          "wiki:team/skills/wiki-maintenance.md"
+        ]
+      }
+    ],
+    "created_at": "2026-11-09T01:00:07Z",
+    "updated_at": "2026-11-09T01:06:29Z",
+    "completed_at": "2026-11-09T01:06:29Z"
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "taskId": "JOURN-78",
+  "lifecycleState": "running",
+  "spec": {
+    "feedback": [
+      {
+        "appendedAt": "2026-11-09T01:43:33.0158817Z",
+        "author": "analyst",
+        "body": "检索完成：团队 wiki 无既有 SMB retention 研究，learnings 0 条。外部用 2025-2026 Benchmarkit/Optifai N=939、Recurly/Paddle、RenewalPad 2025 合同样本、Gartner 2025 云支出预测等来源交叉验证。开始发布 team/research/smb-retention-2026q4.md。"
+      }
+    ]
+  },
+  "sessionReport": {
+    "highlights": "",
+    "topWins": null,
+    "deadEnds": null,
+    "metadata": null
+  },
+  "changedFiles": null,
+  "reviewerGrades": null,
+  "dependencies": {
+    "parentTaskId": "",
+    "blockedOn": null
+  },
+  "updatedAt": "2026-11-09T01:43:33.0158817Z",
+  "task": {
+    "id": "JOURN-78",
+    "channel": "analyst__cos",
+    "title": "ST-1 研究简报：SMB renewal-retention 市场与定价",
+    "details": "目标：在 2026-11-16 前完成 SMB（10-50 席）renewal-retention 是否进入的市场简报，供 go/no-go 决策。\n\n交付物：team/research/smb-retention-2026q4.md，必须包含 4 部分：市场规模 sanity check、3 个定价区间、2 家具名竞争者及其 retention 定位、“我们还不知道什么”（每个假设写清如何验证）。\n\n要求：所有数字必须有具名来源，找不到来源标 unknown，禁止编造；看不懂的内部价格条款不猜，用“未知+验证法”标注；上市前先检索团队 wiki 和历史 learnings，避免重复造轮子。\n\n验收：文件在 wiki 可直接打开阅读；4 个板块齐全；数字可回溯。\n\n检索完成：团队 wiki 无既有 SMB retention 研究，learnings 0 条。外部用 2025-2026 Benchmarkit/Optifai N=939、Recurly/Paddle、RenewalPad 2025 合同样本、Gartner 2025 云支出预测等来源交叉验证。开始发布 team/research/smb-retention-2026q4.md。",
+    "owner": "analyst",
+    "status": "in_progress",
+    "created_by": "cos",
+    "task_type": "issue",
+    "pipeline_id": "issue",
+    "pipeline_stage": "breakdown",
+    "execution_mode": "office",
+    "review_state": "pending_review",
+    "parent_issue_id": "JOURN-18",
+    "lifecycle_state": "running",
+    "due_at": "2026-11-09T02:43:33Z",
+    "follow_up_at": "2026-11-09T02:43:33Z",
+    "reminder_at": "2026-11-09T03:13:33Z",
+    "recheck_at": "2026-11-09T02:58:33Z",
+    "created_at": "2026-11-09T01:42:47Z",
+    "updated_at": "2026-11-09T01:43:33Z"
+  }
+}

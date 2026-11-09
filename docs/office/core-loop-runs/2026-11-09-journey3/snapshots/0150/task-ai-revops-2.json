@@ -1,0 +1,83 @@
+{
+  "taskId": "ai-revops-2",
+  "lifecycleState": "canceled",
+  "spec": {},
+  "sessionReport": {
+    "highlights": "",
+    "topWins": null,
+    "deadEnds": null,
+    "metadata": null
+  },
+  "changedFiles": null,
+  "reviewerGrades": null,
+  "dependencies": {
+    "parentTaskId": "",
+    "blockedOn": null
+  },
+  "updatedAt": "2026-11-09T01:06:29.9289684Z",
+  "task": {
+    "id": "ai-revops-2",
+    "channel": "pipeline",
+    "title": "Establish the pipeline-truth baseline",
+    "details": "Define clean records and produce the honest first read of the funnel.\n\ninstall cleanup: onboarding starter lane",
+    "owner": "analyst",
+    "status": "canceled",
+    "created_by": "wuphf",
+    "task_type": "issue",
+    "pipeline_id": "issue",
+    "pipeline_stage": "canceled",
+    "execution_mode": "office",
+    "review_state": "canceled",
+    "lifecycle_state": "canceled",
+    "memory_workflow": {
+      "required": false,
+      "status": "not_required",
+      "requirement_reason": "task does not require the durable memory workflow",
+      "lookup": {},
+      "capture": {
+        "status": "satisfied",
+        "actor": "analyst",
+        "completed_at": "2026-11-09T01:06:27Z",
+        "updated_at": "2026-11-09T01:06:27Z",
+        "count": 1
+      },
+      "promote": {},
+      "captures": [
+        {
+          "path": "agents/analyst/notebook/2026-11-09-pipeline-clean-record-spec.md",
+          "commit_sha": "1c48ff2",
+          "recorded_at": "2026-11-09T01:06:27Z",
+          "updated_at": "2026-11-09T01:06:27Z"
+        }
+      ],
+      "created_at": "2026-11-09T01:06:27Z",
+      "updated_at": "2026-11-09T01:06:27Z"
+    },
+    "ledger": [
+      {
+        "agent": "cos",
+        "at": "2026-11-09T01:04:38Z",
+        "outcome": "ok",
+        "said": "Skill \"data-modeling\" invoked by @cos (usage #1)",
+        "context_used": [
+          "wiki:team/skills/data-modeling.md",
+          "wiki:team/skills/app-building.md",
+          "wiki:team/skills/wiki-maintenance.md"
+        ]
+      },
+      {
+        "agent": "analyst",
+        "at": "2026-11-09T01:06:29Z",
+        "outcome": "exit status 1",
+        "context_used": [
+          "wiki:team/skills/data-modeling.md",
+          "wiki:team/skills/app-building.md",
+          "wiki:team/skills/wiki-maintenance.md"
+        ]
+      }
+    ],
+    "created_at": "2026-11-09T01:00:07Z",
+    "updated_at": "2026-11-09T01:06:29Z",
+    "completed_at": "2026-11-09T01:06:29Z"
+  }
+}

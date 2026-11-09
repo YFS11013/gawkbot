@@ -1,0 +1,40 @@
+{
+  "taskId": "JOURN-89",
+  "lifecycleState": "running",
+  "spec": {},
+  "sessionReport": {
+    "highlights": "",
+    "topWins": null,
+    "deadEnds": null,
+    "metadata": null
+  },
+  "changedFiles": null,
+  "reviewerGrades": null,
+  "dependencies": {
+    "parentTaskId": "",
+    "blockedOn": null
+  },
+  "updatedAt": "2026-11-09T01:43:14.602757Z",
+  "task": {
+    "id": "JOURN-89",
+    "channel": "cos__human",
+    "title": "ST-4 决策屏：SMB go/no-go 单屏 HTML",
+    "details": "目标：等 ST-1/ST-2/ST-3 结论收齐后，合成一屏能直接拍板的 go/no-go 推荐屏。\n\n交付物：一个 HTML visual artifact，打开一屏看完：明确 go 或 no-go、最大风险、以及什么证据会改结论；同时回链 wiki 四个交付物路径。\n\n要求：数字仍遵守来源规则，无来源标 unknown 不编；页面要能在团队 wiki 上直接预览；中文为主，核心名词保留英文。\n\n交付后在 #cos__human 给出 artifact 链接 id。\n\n验收：推荐立场明确；风险+改结论证据齐；可一屏展示。",
+    "owner": "cos",
+    "status": "in_progress",
+    "created_by": "cos",
+    "task_type": "issue",
+    "pipeline_id": "issue",
+    "pipeline_stage": "implement",
+    "execution_mode": "office",
+    "review_state": "pending_review",
+    "parent_issue_id": "JOURN-18",
+    "lifecycle_state": "running",
+    "due_at": "2026-11-09T02:43:14Z",
+    "follow_up_at": "2026-11-09T02:43:14Z",
+    "reminder_at": "2026-11-09T03:13:14Z",
+    "recheck_at": "2026-11-09T02:58:14Z",
+    "created_at": "2026-11-09T01:43:14Z",
+    "updated_at": "2026-11-09T01:43:14Z"
+  }
+}

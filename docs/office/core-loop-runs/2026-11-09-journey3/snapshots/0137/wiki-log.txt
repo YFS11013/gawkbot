@@ -1,0 +1,33 @@
+ad61c76 ai-revops-3 decomposition
+1c48ff2 pipeline-clean-record-spec
+2e24a3a 001-2026-11-09-pipeline-clean-record-spec.md
+c3a25c9 plan-JOURN-18
+6089f42 ai-revops-3 blocked - no stale real opportunity source
+4d88b40 wuphf: materialize getting-started wiki pages
+d8fb3cf wuphf: materialize ai-revops blueprint skeletons
+0c806af bot: seed agents/reviewer/TOOLS.md
+f02f953 bot: seed agents/reviewer/OPERATIONS.md
+21837af bot: seed agents/reviewer/IDENTITY.md
+21e2848 bot: seed agents/reviewer/SOUL.md
+e1aa4f9 bot: seed agents/ae/TOOLS.md
+41faedc bot: seed agents/ae/OPERATIONS.md
+cf476d6 bot: seed agents/ae/IDENTITY.md
+60b631d bot: seed agents/ae/SOUL.md
+40ba0cd bot: seed agents/analyst/TOOLS.md
+fd48f91 bot: seed agents/analyst/OPERATIONS.md
+6d63b6b bot: seed agents/analyst/IDENTITY.md
+fe1b5a1 bot: seed agents/analyst/SOUL.md
+281bcdb bot: seed agents/revops/TOOLS.md
+9d28f31 bot: seed agents/revops/OPERATIONS.md
+e388b43 bot: seed agents/revops/IDENTITY.md
+401c699 bot: seed agents/revops/SOUL.md
+d2e7c60 wuphf: backfill skill data-modeling from broker state
+c06a977 archivist: skill consolidation migration sentinel
+2c2acab wuphf: backfill skill wiki-maintenance from broker state
+b330274 wuphf: backfill skill app-building from broker state
+291f4e0 bot: seed office/USER.md
+9c95d37 bot: seed agents/cos/TOOLS.md
+6bb2dcf bot: seed agents/cos/OPERATIONS.md
+d429c26 bot: seed agents/cos/IDENTITY.md
+09ab62a bot: seed agents/cos/SOUL.md
+dc55ba5 wuphf: init wiki

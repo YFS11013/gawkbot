@@ -1,0 +1,129 @@
+{
+  "taskId": "task-skill-6",
+  "lifecycleState": "canceled",
+  "spec": {},
+  "sessionReport": {
+    "highlights": "",
+    "topWins": null,
+    "deadEnds": null,
+    "metadata": null
+  },
+  "changedFiles": null,
+  "reviewerGrades": null,
+  "dependencies": {
+    "parentTaskId": "",
+    "blockedOn": null
+  },
+  "updatedAt": "2026-11-09T01:06:30.171861Z",
+  "task": {
+    "id": "task-skill-6",
+    "channel": "pipeline",
+    "title": "Run skill: Data modeling",
+    "details": "Invoked by @cos on 2026-11-09T01:00:51Z. Follow the steps below.\n\nWhen the human asks you to TRACK something — investors, clients, projects, candidates, deliverables — that is structured data. Build the model with the data_* tools; do not keep it in prose, and do not reach for an app unless they ask for one.\n\n1. Call data_list_spaces, then data_get_schema on the space that fits. One space per use case. If none fits, data_create_space — it is private to you and the human by default.\n2. Check the existing types before creating. If a type already exists, add to it with data_add_attributes; never create a second near-duplicate type.\n3. Create the types, their attributes AND the relationships between them in ONE data_create_object_types call. A relationship IS an attribute: type=relationship plus `relationship` also creates the mirrored attribute on the other type. State cardinality from the side you are defining, because it cannot be changed later.\n4. Re-read the schema right after any create or change: the store adds a required primary `name` attribute you did not define and mints your select option ids, so your own call is NOT the effective schema. Never invent an attribute slug or an option value — an invalid option comes back listing the valid ones. Never add a near-duplicate option; map onto the existing one or ask.\n5. Write records with data_upsert_records on a UNIQUE attribute whenever the source could be read again, so a second run updates instead of duplicating. Every write returns {succeeded, failed, summary, entries[]} in request order — read `entries`, do not assume the whole call worked.\n6. Deleting is two calls: data_delete_preview, show the human the impact counts, then data_delete with the token. Sharing is the human's call: a space goes shared or global only when they ask.\n\ninstall cleanup: onboarding starter lane",
+    "owner": "cos",
+    "status": "canceled",
+    "created_by": "cos",
+    "task_type": "skill_run",
+    "pipeline_id": "skill_invocation",
+    "pipeline_stage": "canceled",
+    "execution_mode": "office",
+    "review_state": "canceled",
+    "skill_id": "skill-data-modeling",
+    "skill_name": "data-modeling",
+    "lifecycle_state": "canceled",
+    "artifact_not_required": "not_required: skill run — the invocation transcript is the record (system, 2026-11-09T01:00:51Z)",
+    "ledger": [
+      {
+        "agent": "cos",
+        "at": "2026-11-09T01:06:30Z",
+        "outcome": "context canceled"
+      },
+      {
+        "agent": "cos",
+        "at": "2026-11-09T01:07:00Z",
+        "outcome": "ok",
+        "said": "已回复 @revops，等待其提交 BLOCKED 汇总与最小接入清单。"
+      },
+      {
+        "agent": "cos",
+        "at": "2026-11-09T01:07:29Z",
+        "outcome": "ok",
+        "said": "已回复 @revops 确认 BLOCKED 汇总，后续由我向人类确认 CRM 数据源。"
+      },
+      {
+        "agent": "cos",
+        "at": "2026-11-09T01:43:23Z",
+        "outcome": "ok",
+        "said": "已同步 ST-1/ST-2 并行状态，等两份交付物回汇总 go/no-go。"
+      },
+      {
+        "agent": "cos",
+        "at": "2026-11-09T01:44:03Z",
+        "outcome": "ok",
+        "said": "收到，ST-5 按四交付物验收标准开查。ST-4 单屏 HTML 仍在等 ST-1/ST-2/ST-3 结论收齐后一屏合成，不会先行下结论。",
+        "context_used": [
+          "wiki:team/skills/app-building.md"
+        ]
+      },
+      {
+        "agent": "cos",
+        "at": "2026-11-09T01:44:54Z",
+        "outcome": "ok",
+        "said": "已回复 @reviewer，确认 ST-5 保持打回、ST-4 等待三块收齐后重验。",
+        "context_used": [
+          "wiki:team/skills/app-building.md",
+          "wiki:team/skills/data-modeling.md",
+          "wiki:team/getting-started/index.md",
+          "wiki:team/getting-started/skills-and-runtimes.md",
+          "wiki:team/getting-started/connecting-your-work.md",
+          "journal:task-skill-6"
+        ]
+      },
+      {
+        "agent": "cos",
+        "at": "2026-11-09T01:46:09Z",
+        "outcome": "ok",
+        "said": "已同步 ST-2 送审状态，等待 ST-5 质检收口。",
+        "context_used": [
+          "wiki:team/skills/app-building.md",
+          "wiki:team/skills/data-modeling.md",
+          "wiki:team/getting-started/index.md",
+          "wiki:team/getting-started/skills-and-runtimes.md",
+          "wiki:team/getting-started/connecting-your-work.md",
+          "journal:task-skill-6"
+        ]
+      },
+      {
+        "agent": "cos",
+        "at": "2026-11-09T01:47:17Z",
+        "outcome": "ok",
+        "said": "已补 artifact_scope 并通知 @analyst，等其发布 ST-1。",
+        "context_used": [
+          "wiki:team/skills/app-building.md",
+          "wiki:team/skills/data-modeling.md",
+          "wiki:team/getting-started/index.md",
+          "wiki:team/getting-started/skills-and-runtimes.md",
+          "wiki:team/getting-started/connecting-your-work.md",
+          "journal:task-skill-6"
+        ]
+      },
+      {
+        "agent": "cos",
+        "at": "2026-11-09T01:48:17Z",
+        "outcome": "ok",
+        "said": "收到 ST-3，team/emails/smb-renewal-intro.md 已落盘、未发送，当前状态为待 ST-5 质检，不先放行。ST-1 仍在跑，ST-4 继续等待 ST-1 结论；等 ST-5 出逐项清单后，再统一汇总 go/no-go。",
+        "context_used": [
+          "wiki:team/getting-started/skills-and-runtimes.md",
+          "wiki:team/playbooks/smb-renewal-outreach.md",
+          "wiki:team/getting-started/the-wiki.md",
+          "wiki:team/getting-started/working-with-agents.md",
+          "wiki:team/decisions/ops-log.md",
+          "journal:JOURN-18"
+        ]
+      }
+    ],
+    "created_at": "2026-11-09T01:00:51Z",
+    "updated_at": "2026-11-09T01:48:17Z",
+    "completed_at": "2026-11-09T01:06:30Z"
+  }
+}

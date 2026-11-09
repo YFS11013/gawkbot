@@ -1,0 +1,12 @@
+8fb236c librarian: compile skill smb-renewal-outreach
+3e432f0 ST-3: 落盘 SMB renewal 首封样例 (20席 SaaS, T-60)
+20111d2 SMB retention 2026Q4 简报
+060e338 wiki: external edit to team/playbooks/smb-renewal-outreach.md
+dee7407 ST-3 邮件样例暂存草稿 JOURN-85
+ad61c76 ai-revops-3 decomposition
+1c48ff2 pipeline-clean-record-spec
+2e24a3a 001-2026-11-09-pipeline-clean-record-spec.md
+c3a25c9 plan-JOURN-18
+6089f42 ai-revops-3 blocked - no stale real opportunity source
+4d88b40 wuphf: materialize getting-started wiki pages
+d8fb3cf wuphf: materialize ai-revops blueprint skeletons

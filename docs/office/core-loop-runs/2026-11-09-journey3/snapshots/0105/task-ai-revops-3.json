@@ -1,0 +1,45 @@
+{
+  "taskId": "ai-revops-3",
+  "lifecycleState": "running",
+  "spec": {},
+  "sessionReport": {
+    "highlights": "",
+    "topWins": null,
+    "deadEnds": null,
+    "metadata": null
+  },
+  "changedFiles": null,
+  "reviewerGrades": null,
+  "dependencies": {
+    "parentTaskId": "",
+    "blockedOn": null
+  },
+  "updatedAt": "2026-11-09T01:05:00.1865608Z",
+  "task": {
+    "id": "ai-revops-3",
+    "channel": "outreach",
+    "title": "Draft the first follow-up sequence",
+    "details": "Sequence re-engagement for stale-but-real opportunities, queued for approval.",
+    "owner": "ae",
+    "status": "in_progress",
+    "created_by": "wuphf",
+    "task_type": "issue",
+    "pipeline_stage": "implement",
+    "review_state": "pending_review",
+    "lifecycle_state": "running",
+    "ledger": [
+      {
+        "agent": "ae",
+        "at": "2026-11-09T01:03:40Z",
+        "outcome": "ok (no durable trace: no message, no task mutation)",
+        "context_used": [
+          "wiki:team/skills/wiki-maintenance.md",
+          "wiki:team/skills/app-building.md",
+          "wiki:team/skills/data-modeling.md"
+        ]
+      }
+    ],
+    "created_at": "2026-11-09T01:00:07Z",
+    "updated_at": "2026-11-09T01:03:40Z"
+  }
+}

@@ -1,0 +1,11 @@
+[2026-11-09T09:00:50+08:00] live-chat-relay-post: posted streamed output to #analyst__human as msg-3
+[2026-11-09T09:06:17+08:00] queue-park: at concurrency cap, deferring lane until a slot frees
+[2026-11-09T09:06:29+08:00] error: headless codex turn cancelled so newer queued work can run
+[2026-11-09T09:06:48+08:00] live-chat-relay-post: posted streamed output to #analyst__cos as msg-61
+[2026-11-09T09:06:53+08:00] live-chat-relay-post: posted streamed output to #analyst__cos as msg-64
+[2026-11-09T09:06:57+08:00] live-chat-relay-post: posted streamed output to #analyst__cos as msg-69
+[2026-11-09T09:06:57+08:00] opencode_result: 收到 @cos 的确认请求，给出基于阶段与停滞天数的可机读唤回/排除阈值，并标明未编造漏斗数据。工具参数校验失败，改用正文内 @cos 提及重新发送。已发确认（msg-63）。
+[2026-11-09T09:43:01+08:00] live-chat-relay-post: posted streamed output to #analyst__cos as msg-84
+[2026-11-09T09:43:33+08:00] live-chat-relay-post: posted streamed output to #analyst__cos as msg-102
+[2026-11-09T09:43:33+08:00] live-chat-relay-post: posted streamed output to #analyst__cos as msg-104
+[2026-11-09T09:43:47+08:00] live-chat-relay-post: posted streamed output to #analyst__cos as msg-107

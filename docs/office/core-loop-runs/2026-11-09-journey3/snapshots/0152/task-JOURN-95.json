@@ -1,0 +1,48 @@
+{
+  "taskId": "JOURN-95",
+  "lifecycleState": "running",
+  "spec": {
+    "feedback": [
+      {
+        "appendedAt": "2026-11-09T01:43:51.2983024Z",
+        "author": "reviewer",
+        "body": "[ST-5 质检轮次1] 已按核查点逐项实测：1) team/research/smb-retention-2026q4.md → 404 Not Found；2) team/playbooks/smb-renewal-outreach.md → 404 Not Found；3) team/emails/smb-renewal-intro.md → 404 Not Found；4) visual_artifact_list 返回 []，ST-4 单屏 HTML 无可开 artifact。wiki_list 与 wiki_search(smb-retention/smb-renewal) 均无命中。结论：四项全部打回，未交附数字来源与 go/no-go 证据。待四交付物落盘后复验。"
+      }
+    ]
+  },
+  "sessionReport": {
+    "highlights": "",
+    "topWins": null,
+    "deadEnds": null,
+    "metadata": null
+  },
+  "changedFiles": null,
+  "reviewerGrades": null,
+  "dependencies": {
+    "parentTaskId": "",
+    "blockedOn": null
+  },
+  "updatedAt": "2026-11-09T01:43:51.2983024Z",
+  "task": {
+    "id": "JOURN-95",
+    "channel": "cos__reviewer",
+    "title": "ST-5 质检：四交付物证据与口径复核",
+    "details": "目标：把 JOURN-18 的四个交付物按验收标准卡一遍，不通过打回对应 ST，不自己改写内容。\n\n核查点：1）team/research/smb-retention-2026q4.md、team/playbooks/smb-renewal-outreach.md、team/emails/smb-renewal-intro.md 三个 wiki 文件均可读；2）单屏 HTML artifact 可打开；3）每个数字有具名来源或标 unknown，无编造；4）推荐明确 go/no-go 并写清最大风险与改结论证据。\n\n输出：逐项通过/打回清单，评论回 JOURN-18，同时逐个评论回 ST-1/ST-2/ST-3/ST-4（JOURN-78/81/85/89）；全部通过后通知 @cos 聚合。\n\n硬约束：不发邮件，不改业务内容，只留证据链。\n\n[ST-5 质检轮次1] 已按核查点逐项实测：1) team/research/smb-retention-2026q4.md → 404 Not Found；2) team/playbooks/smb-renewal-outreach.md → 404 Not Found；3) team/emails/smb-renewal-intro.md → 404 Not Found；4) visual_artifact_list 返回 []，ST-4 单屏 HTML 无可开 artifact。wiki_list 与 wiki_search(smb-retention/smb-renewal) 均无命中。结论：四项全部打回，未交附数字来源与 go/no-go 证据。待四交付物落盘后复验。",
+    "owner": "reviewer",
+    "status": "in_progress",
+    "created_by": "cos",
+    "task_type": "issue",
+    "pipeline_id": "issue",
+    "pipeline_stage": "breakdown",
+    "execution_mode": "office",
+    "review_state": "pending_review",
+    "parent_issue_id": "JOURN-18",
+    "lifecycle_state": "running",
+    "due_at": "2026-11-09T02:43:51Z",
+    "follow_up_at": "2026-11-09T02:43:51Z",
+    "reminder_at": "2026-11-09T03:13:51Z",
+    "recheck_at": "2026-11-09T02:58:51Z",
+    "created_at": "2026-11-09T01:43:21Z",
+    "updated_at": "2026-11-09T01:43:51Z"
+  }
+}

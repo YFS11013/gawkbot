@@ -1,0 +1,620 @@
+{
+  "channel": "general",
+  "tasks": [
+    {
+      "id": "ai-revops-1",
+      "channel": "hygiene",
+      "title": "Run the first CRM hygiene sweep",
+      "details": "Dedupe accounts, backfill missing owners, and flag stale opportunities, with destructive changes gated.\n\ninstall cleanup: onboarding starter lane",
+      "owner": "revops",
+      "status": "canceled",
+      "created_by": "wuphf",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "canceled",
+      "execution_mode": "live_external",
+      "review_state": "canceled",
+      "lifecycle_state": "canceled",
+      "ledger": [
+        {
+          "agent": "revops",
+          "at": "2026-11-09T01:06:08Z",
+          "outcome": "ok (no durable trace: no message, no task mutation)",
+          "context_used": [
+            "wiki:team/skills/app-building.md",
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/skills/wiki-maintenance.md"
+          ]
+        },
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:06:29Z",
+          "outcome": "exit status 1",
+          "context_used": [
+            "wiki:team/skills/app-building.md",
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/skills/wiki-maintenance.md"
+          ]
+        }
+      ],
+      "created_at": "2026-11-09T01:00:07Z",
+      "updated_at": "2026-11-09T01:06:29Z",
+      "completed_at": "2026-11-09T01:06:29Z"
+    },
+    {
+      "id": "ai-revops-2",
+      "channel": "pipeline",
+      "title": "Establish the pipeline-truth baseline",
+      "details": "Define clean records and produce the honest first read of the funnel.\n\ninstall cleanup: onboarding starter lane",
+      "owner": "analyst",
+      "status": "canceled",
+      "created_by": "wuphf",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "canceled",
+      "execution_mode": "office",
+      "review_state": "canceled",
+      "lifecycle_state": "canceled",
+      "memory_workflow": {
+        "required": false,
+        "status": "not_required",
+        "requirement_reason": "task does not require the durable memory workflow",
+        "lookup": {},
+        "capture": {
+          "status": "satisfied",
+          "actor": "analyst",
+          "completed_at": "2026-11-09T01:06:27Z",
+          "updated_at": "2026-11-09T01:06:27Z",
+          "count": 1
+        },
+        "promote": {},
+        "captures": [
+          {
+            "path": "agents/analyst/notebook/2026-11-09-pipeline-clean-record-spec.md",
+            "commit_sha": "1c48ff2",
+            "recorded_at": "2026-11-09T01:06:27Z",
+            "updated_at": "2026-11-09T01:06:27Z"
+          }
+        ],
+        "created_at": "2026-11-09T01:06:27Z",
+        "updated_at": "2026-11-09T01:06:27Z"
+      },
+      "ledger": [
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:04:38Z",
+          "outcome": "ok",
+          "said": "Skill \"data-modeling\" invoked by @cos (usage #1)",
+          "context_used": [
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/skills/app-building.md",
+            "wiki:team/skills/wiki-maintenance.md"
+          ]
+        },
+        {
+          "agent": "analyst",
+          "at": "2026-11-09T01:06:29Z",
+          "outcome": "exit status 1",
+          "context_used": [
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/skills/app-building.md",
+            "wiki:team/skills/wiki-maintenance.md"
+          ]
+        }
+      ],
+      "created_at": "2026-11-09T01:00:07Z",
+      "updated_at": "2026-11-09T01:06:29Z",
+      "completed_at": "2026-11-09T01:06:29Z"
+    },
+    {
+      "id": "ai-revops-3",
+      "channel": "outreach",
+      "title": "Draft the first follow-up sequence",
+      "details": "Sequence re-engagement for stale-but-real opportunities, queued for approval.\n\ninstall cleanup: onboarding starter lane",
+      "owner": "ae",
+      "status": "canceled",
+      "created_by": "wuphf",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "canceled",
+      "execution_mode": "office",
+      "review_state": "canceled",
+      "lifecycle_state": "canceled",
+      "ledger": [
+        {
+          "agent": "ae",
+          "at": "2026-11-09T01:03:40Z",
+          "outcome": "ok (no durable trace: no message, no task mutation)",
+          "context_used": [
+            "wiki:team/skills/wiki-maintenance.md",
+            "wiki:team/skills/app-building.md",
+            "wiki:team/skills/data-modeling.md"
+          ]
+        },
+        {
+          "agent": "ae",
+          "at": "2026-11-09T01:06:29Z",
+          "outcome": "exit status 1",
+          "context_used": [
+            "wiki:team/getting-started/connecting-your-work.md",
+            "wiki:team/getting-started/the-wiki.md",
+            "wiki:team/getting-started/working-with-agents.md",
+            "wiki:team/getting-started/your-context-graph.md",
+            "wiki:team/skills/wiki-maintenance.md",
+            "journal:ai-revops-3"
+          ]
+        },
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:06:29Z",
+          "outcome": "exit status 1",
+          "context_used": [
+            "wiki:team/skills/wiki-maintenance.md",
+            "wiki:team/skills/app-building.md",
+            "wiki:team/skills/data-modeling.md"
+          ]
+        }
+      ],
+      "created_at": "2026-11-09T01:00:07Z",
+      "updated_at": "2026-11-09T01:06:29Z",
+      "completed_at": "2026-11-09T01:06:29Z"
+    },
+    {
+      "id": "ai-revops-4",
+      "channel": "review",
+      "title": "Set the hygiene scorecard and review cadence",
+      "details": "Define success metrics, the review rhythm, and the evidence trail for each iteration.\n\ninstall cleanup: onboarding starter lane",
+      "owner": "reviewer",
+      "status": "canceled",
+      "created_by": "wuphf",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "canceled",
+      "execution_mode": "office",
+      "review_state": "canceled",
+      "lifecycle_state": "canceled",
+      "ledger": [
+        {
+          "agent": "reviewer",
+          "at": "2026-11-09T01:03:50Z",
+          "outcome": "exit status 1",
+          "context_used": [
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/skills/wiki-maintenance.md"
+          ]
+        },
+        {
+          "agent": "reviewer",
+          "at": "2026-11-09T01:03:58Z",
+          "outcome": "exit status 1",
+          "context_used": [
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/skills/wiki-maintenance.md"
+          ]
+        },
+        {
+          "agent": "reviewer",
+          "at": "2026-11-09T01:04:07Z",
+          "outcome": "exit status 1",
+          "context_used": [
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/skills/wiki-maintenance.md"
+          ]
+        },
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:05:05Z",
+          "outcome": "ok (no durable trace: no message, no task mutation)",
+          "context_used": [
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/skills/wiki-maintenance.md"
+          ]
+        }
+      ],
+      "created_at": "2026-11-09T01:00:07Z",
+      "updated_at": "2026-11-09T01:06:29Z",
+      "completed_at": "2026-11-09T01:06:29Z"
+    },
+    {
+      "id": "task-skill-6",
+      "channel": "pipeline",
+      "title": "Run skill: Data modeling",
+      "details": "Invoked by @cos on 2026-11-09T01:00:51Z. Follow the steps below.\n\nWhen the human asks you to TRACK something — investors, clients, projects, candidates, deliverables — that is structured data. Build the model with the data_* tools; do not keep it in prose, and do not reach for an app unless they ask for one.\n\n1. Call data_list_spaces, then data_get_schema on the space that fits. One space per use case. If none fits, data_create_space — it is private to you and the human by default.\n2. Check the existing types before creating. If a type already exists, add to it with data_add_attributes; never create a second near-duplicate type.\n3. Create the types, their attributes AND the relationships between them in ONE data_create_object_types call. A relationship IS an attribute: type=relationship plus `relationship` also creates the mirrored attribute on the other type. State cardinality from the side you are defining, because it cannot be changed later.\n4. Re-read the schema right after any create or change: the store adds a required primary `name` attribute you did not define and mints your select option ids, so your own call is NOT the effective schema. Never invent an attribute slug or an option value — an invalid option comes back listing the valid ones. Never add a near-duplicate option; map onto the existing one or ask.\n5. Write records with data_upsert_records on a UNIQUE attribute whenever the source could be read again, so a second run updates instead of duplicating. Every write returns {succeeded, failed, summary, entries[]} in request order — read `entries`, do not assume the whole call worked.\n6. Deleting is two calls: data_delete_preview, show the human the impact counts, then data_delete with the token. Sharing is the human's call: a space goes shared or global only when they ask.\n\ninstall cleanup: onboarding starter lane",
+      "owner": "cos",
+      "status": "canceled",
+      "created_by": "cos",
+      "task_type": "skill_run",
+      "pipeline_id": "skill_invocation",
+      "pipeline_stage": "canceled",
+      "execution_mode": "office",
+      "review_state": "canceled",
+      "skill_id": "skill-data-modeling",
+      "skill_name": "data-modeling",
+      "lifecycle_state": "canceled",
+      "artifact_not_required": "not_required: skill run — the invocation transcript is the record (system, 2026-11-09T01:00:51Z)",
+      "ledger": [
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:06:30Z",
+          "outcome": "context canceled"
+        },
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:07:00Z",
+          "outcome": "ok",
+          "said": "已回复 @revops，等待其提交 BLOCKED 汇总与最小接入清单。"
+        },
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:07:29Z",
+          "outcome": "ok",
+          "said": "已回复 @revops 确认 BLOCKED 汇总，后续由我向人类确认 CRM 数据源。"
+        },
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:43:23Z",
+          "outcome": "ok",
+          "said": "已同步 ST-1/ST-2 并行状态，等两份交付物回汇总 go/no-go。"
+        },
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:44:03Z",
+          "outcome": "ok",
+          "said": "收到，ST-5 按四交付物验收标准开查。ST-4 单屏 HTML 仍在等 ST-1/ST-2/ST-3 结论收齐后一屏合成，不会先行下结论。",
+          "context_used": [
+            "wiki:team/skills/app-building.md"
+          ]
+        },
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:44:54Z",
+          "outcome": "ok",
+          "said": "已回复 @reviewer，确认 ST-5 保持打回、ST-4 等待三块收齐后重验。",
+          "context_used": [
+            "wiki:team/skills/app-building.md",
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/getting-started/index.md",
+            "wiki:team/getting-started/skills-and-runtimes.md",
+            "wiki:team/getting-started/connecting-your-work.md",
+            "journal:task-skill-6"
+          ]
+        },
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:46:09Z",
+          "outcome": "ok",
+          "said": "已同步 ST-2 送审状态，等待 ST-5 质检收口。",
+          "context_used": [
+            "wiki:team/skills/app-building.md",
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/getting-started/index.md",
+            "wiki:team/getting-started/skills-and-runtimes.md",
+            "wiki:team/getting-started/connecting-your-work.md",
+            "journal:task-skill-6"
+          ]
+        },
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:47:17Z",
+          "outcome": "ok",
+          "said": "已补 artifact_scope 并通知 @analyst，等其发布 ST-1。",
+          "context_used": [
+            "wiki:team/skills/app-building.md",
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/getting-started/index.md",
+            "wiki:team/getting-started/skills-and-runtimes.md",
+            "wiki:team/getting-started/connecting-your-work.md",
+            "journal:task-skill-6"
+          ]
+        },
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:48:17Z",
+          "outcome": "ok",
+          "said": "收到 ST-3，team/emails/smb-renewal-intro.md 已落盘、未发送，当前状态为待 ST-5 质检，不先放行。ST-1 仍在跑，ST-4 继续等待 ST-1 结论；等 ST-5 出逐项清单后，再统一汇总 go/no-go。",
+          "context_used": [
+            "wiki:team/getting-started/skills-and-runtimes.md",
+            "wiki:team/playbooks/smb-renewal-outreach.md",
+            "wiki:team/getting-started/the-wiki.md",
+            "wiki:team/getting-started/working-with-agents.md",
+            "wiki:team/decisions/ops-log.md",
+            "journal:JOURN-18"
+          ]
+        }
+      ],
+      "created_at": "2026-11-09T01:00:51Z",
+      "updated_at": "2026-11-09T01:48:17Z",
+      "completed_at": "2026-11-09T01:06:30Z"
+    },
+    {
+      "id": "JOURN-18",
+      "channel": "cos__human",
+      "title": "SMB renewal-retention: go/no-go package",
+      "details": "I need a decision-ready package on entering the SMB segment with our renewal-retention offer.\n\nGoal: decide by next Monday whether we pitch SMB (10-50 seats), and hand the team everything needed to execute if we do.\n\nDeliverables (all in the team wiki):\n1. Research brief at team/research/smb-retention-2026q4.md - market size sanity check, 3 pricing bands, 2 named competitors and how each positions retention, and a section \"What we don't know\" listing every assumption with how to verify it.\n2. Reusable playbook at team/playbooks/smb-renewal-outreach.md - ICP, a 5-step outreach motion, the three objections we should expect with answers, and a one-page checklist an AE can execute without asking questions.\n3. One outreach email at team/emails/smb-renewal-intro.md, under 180 words, written for a 20-seat SaaS company whose renewal is 60 days out.\n4. One HTML visual artifact that puts the go/no-go recommendation on a single screen.\n\nSuccess criteria:\n- All four deliverables exist at those paths and are readable in the team wiki.\n- Every number is either sourced (name the source) or marked unknown; no invented statistics.\n- The recommendation states a clear go or no-go, the single biggest risk, and what evidence would change the answer.\n- You tell me the links in this conversation when done.\n\nConstraints: do not send any email. Do not ask me to approve individual files - use the team. If something is genuinely undecidable, ask me once, in one message, with options.\n\n分解完成 5 条子线并行开工：ST-1 @analyst JOURN-78 研究简报；ST-2 @ae JOURN-81 playbook；ST-3 @ae JOURN-85 邮件样例；ST-4 @cos JOURN-89 go/no-go 单屏 HTML（等前三条结论）；ST-5 @reviewer JOURN-95 四交付物证据 QA。父任务保持 running，由我聚合，全部子任务 lands 后再关父任务。",
+      "owner": "cos",
+      "status": "in_progress",
+      "created_by": "human",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "breakdown",
+      "execution_mode": "office",
+      "review_state": "pending_review",
+      "lifecycle_state": "running",
+      "due_at": "2026-11-09T02:43:26Z",
+      "follow_up_at": "2026-11-09T02:43:26Z",
+      "reminder_at": "2026-11-09T03:13:26Z",
+      "recheck_at": "2026-11-09T02:58:26Z",
+      "ledger": [
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:05:38Z",
+          "outcome": "ok",
+          "said": "…页检索，所有数字须回溯来源。\n- 不发送任何邮件，不需要 CRM/工程账号。\n\n**5. 验收标准**\n- 四个交付物均在上述路径且 wiki 可读；每个数字有具名来源或明确标 unknown；推荐明确 go/no-go，并写清最大风险与改变结论的证据；完成后 Cos 在对话内提供全部链接。\n\n**风险 / 未决**：内部 offer 的具体价格条款需求中未给，研究简报以「未知 + 验证方式」标注而不虚构；市场规模分母口径须在简报里说清；周一期限近、ST-4 依赖前三条线，必须并行而非串行。",
+          "context_used": [
+            "wiki:team/getting-started/skills-and-runtimes.md",
+            "wiki:team/getting-started/the-wiki.md",
+            "wiki:team/getting-started/working-with-agents.md",
+            "wiki:team/decisions/ops-log.md",
+            "wiki:team/getting-started/channels.md"
+          ]
+        },
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:43:36Z",
+          "outcome": "ok",
+          "said": "JOURN-18 已分解并派活（JOURN-78/81/85/89/95），等各 lane 落盘后我聚合 go/no-go 单屏并交链接。",
+          "actions": [
+            "task_updated: SMB renewal-retention: go/no-go package [in_progress]"
+          ],
+          "context_used": [
+            "wiki:team/getting-started/skills-and-runtimes.md",
+            "wiki:team/getting-started/the-wiki.md",
+            "wiki:team/getting-started/working-with-agents.md",
+            "wiki:team/decisions/ops-log.md",
+            "wiki:team/getting-started/channels.md",
+            "journal:JOURN-18"
+          ]
+        }
+      ],
+      "stalled_since": "2026-11-09T01:53:59Z",
+      "created_at": "2026-11-09T01:02:49Z",
+      "updated_at": "2026-11-09T01:43:36Z"
+    },
+    {
+      "id": "JOURN-78",
+      "channel": "analyst__cos",
+      "title": "ST-1 研究简报：SMB renewal-retention 市场与定价",
+      "details": "目标：在 2026-11-16 前完成 SMB（10-50 席）renewal-retention 是否进入的市场简报，供 go/no-go 决策。\n\n交付物：team/research/smb-retention-2026q4.md，必须包含 4 部分：市场规模 sanity check、3 个定价区间、2 家具名竞争者及其 retention 定位、“我们还不知道什么”（每个假设写清如何验证）。\n\n要求：所有数字必须有具名来源，找不到来源标 unknown，禁止编造；看不懂的内部价格条款不猜，用“未知+验证法”标注；上市前先检索团队 wiki 和历史 learnings，避免重复造轮子。\n\n验收：文件在 wiki 可直接打开阅读；4 个板块齐全；数字可回溯。\n\n检索完成：团队 wiki 无既有 SMB retention 研究，learnings 0 条。外部用 2025-2026 Benchmarkit/Optifai N=939、Recurly/Paddle、RenewalPad 2025 合同样本、Gartner 2025 云支出预测等来源交叉验证。开始发布 team/research/smb-retention-2026q4.md。\n\n[SUGGESTION] JOURN-78 正文已完成并落盘 agents/analyst/notebook/2026-11-09-smb-retention-2026q4-简报.md，已提交晋升 request-129 到 team/research/smb-retention-2026q4.md（pending）。直接 wiki 写入被 403（task 未声明 artifact_path），且 define 权仅 @cos/human。建议 @cos 补 define：artifact_scope=team/research/smb-retention-2026q4.md，之后我立即用 task_id 重发并 complete。简报 4 板块齐全、数字带具名来源、unknown 已标验证法。\n\n状态确认：简报正文已在 agents/analyst/notebook/2026-11-09-smb-retention-2026q4-简报.md 落盘并提交 request-129 晋升到 team/research/smb-retention-2026q4.md（pending）；本轮实测该 wiki 路径仍 404，说明 @cos 的 artifact_scope 定义尚未生效。@cos 补好 artifact_scope 后，我立即用 task_id 发布到 team/research/smb-retention-2026q4.md，并以 artifact_path=team/research/smb-retention-2026q4.md 调用 complete。4 板块齐全、数字带具名来源、unknown 均标验证法，口径不变。",
+      "owner": "analyst",
+      "status": "in_progress",
+      "created_by": "cos",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "breakdown",
+      "execution_mode": "office",
+      "review_state": "pending_review",
+      "parent_issue_id": "JOURN-18",
+      "lifecycle_state": "running",
+      "due_at": "2026-11-09T02:47:39Z",
+      "follow_up_at": "2026-11-09T02:47:39Z",
+      "reminder_at": "2026-11-09T03:17:39Z",
+      "recheck_at": "2026-11-09T03:02:39Z",
+      "memory_workflow": {
+        "required": false,
+        "status": "not_required",
+        "requirement_reason": "task does not require the durable memory workflow",
+        "lookup": {
+          "actor": "analyst",
+          "query": "SMB renewal-retention 市场简报 smb-retention-2026q4 4板块 定价 竞争者",
+          "updated_at": "2026-11-09T01:47:27Z"
+        },
+        "capture": {},
+        "promote": {},
+        "created_at": "2026-11-09T01:47:27Z",
+        "updated_at": "2026-11-09T01:47:27Z"
+      },
+      "definition": {
+        "goal": "在 2026-11-16 前完成 SMB（10-50 席）renewal-retention 是否进入的市场简报，供 go/no-go 决策。",
+        "artifact_path": "team/research/smb-retention-2026q4.md",
+        "defined_at": "2026-11-09T01:47:01Z"
+      },
+      "ledger": [
+        {
+          "agent": "analyst",
+          "at": "2026-11-09T01:46:38Z",
+          "outcome": "ok",
+          "said": "ST-1 简报正文完成并已提交晋升（request-129 pending），等待 @cos 补 artifact_scope 后我发布 wiki 并 complete。",
+          "actions": [
+            "task_updated: ST-1 研究简报：SMB renewal-retention 市场与定价 [in_progress]",
+            "task_updated: ST-1 研究简报：SMB renewal-retention 市场与定价 [in_progress]"
+          ],
+          "context_used": [
+            "wiki:team/getting-started/channels.md",
+            "wiki:team/getting-started/connecting-your-work.md",
+            "wiki:team/getting-started/index.md",
+            "wiki:team/getting-started/skills-and-runtimes.md",
+            "wiki:team/getting-started/the-wiki.md"
+          ]
+        },
+        {
+          "agent": "analyst",
+          "at": "2026-11-09T01:47:46Z",
+          "outcome": "ok",
+          "said": "已在 JOURN-78 回写状态：等待 @cos 的 artifact_scope 生效后立即发布 wiki 并 complete，未误报完成。",
+          "actions": [
+            "task_updated: ST-1 研究简报：SMB renewal-retention 市场与定价 [in_progress]"
+          ],
+          "context_used": [
+            "wiki:team/playbooks/smb-renewal-outreach.md",
+            "wiki:team/getting-started/channels.md",
+            "wiki:team/getting-started/connecting-your-work.md",
+            "wiki:team/getting-started/index.md",
+            "wiki:team/getting-started/skills-and-runtimes.md",
+            "journal:JOURN-78"
+          ]
+        }
+      ],
+      "stalled_since": "2026-11-09T01:57:59Z",
+      "created_at": "2026-11-09T01:42:47Z",
+      "updated_at": "2026-11-09T01:47:46Z"
+    },
+    {
+      "id": "JOURN-81",
+      "channel": "ae__cos",
+      "title": "ST-2 Playbook：SMB renewal outreach 可执行打法",
+      "details": "目标：把 SMB 续费触达变成 AE 能直接照着跑的打法，不需临时问人。\n\n交付物：team/playbooks/smb-renewal-outreach.md，必须包含：ICP 画像、5 步 outreach motion、3 类高频异议及答复、一页式 AE 执行 checklist。\n\n要求：基于 ST-1 的市场结论做假设（如 ST-1 未出先写可验证假设）；数字来源规则同上；行文要可直接发给 AE 执行，禁止写“请咨询负责人”这类待定话术。\n\n验收：wiki 可读；5 步异议答复 checklist 齐全。\n\n开始起草 ST-2 Playbook：先拉取 ST-1 进展和 wiki 现有材料，再写 team/playbooks/smb-renewal-outreach.md\n\n已交付 team/playbooks/smb-renewal-outreach.md：ICP 画像（H1-H5 可验证假设）、T-60 到 T-7 5 步 motion、3 类异议答复（没时间/太贵/拖延）、一页纸 AE checklist；全局退订/等待规则齐备；所有无源数字均标 [NEEDS CONFIRMATION] 或假设校验动作，未虚构公司/人名/价格；与 ST-3 的 20 席 T-60 首样对齐。请 @cos 汇总审批，@reviewer 审语言合规。",
+      "owner": "ae",
+      "status": "in_progress",
+      "created_by": "cos",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "review",
+      "execution_mode": "office",
+      "review_state": "ready_for_review",
+      "parent_issue_id": "JOURN-18",
+      "lifecycle_state": "decision",
+      "due_at": "2026-11-09T02:00:36Z",
+      "follow_up_at": "2026-11-09T02:00:36Z",
+      "reminder_at": "2026-11-09T02:30:36Z",
+      "recheck_at": "2026-11-09T02:00:36Z",
+      "artifact": "team/playbooks/smb-renewal-outreach.md",
+      "ledger": [
+        {
+          "agent": "ae",
+          "at": "2026-11-09T01:45:56Z",
+          "outcome": "ok",
+          "said": "JOURN-81 已交付并送审：`team/playbooks/smb-renewal-outreach.md` 落盘，含 ICP 画像（H1-H5）、T-60 到 T-7 五步 motion、三类异议答复、一页纸 AE checklist；无虚构公司/人名/数字，ST-1 未出部分已标可验证假设与 `[NEEDS CONFIRMATION]`。",
+          "actions": [
+            "task_updated: ST-2 Playbook：SMB renewal outreach 可执行打法 [in_progress]",
+            "task_updated: ST-2 Playbook：SMB renewal outreach 可执行打法 [review]"
+          ],
+          "context_used": [
+            "wiki:team/inbox/raw-signals.md",
+            "wiki:team/getting-started/channels.md",
+            "wiki:team/getting-started/connecting-your-work.md",
+            "wiki:team/getting-started/index.md",
+            "wiki:team/getting-started/skills-and-runtimes.md"
+          ]
+        }
+      ],
+      "created_at": "2026-11-09T01:42:52Z",
+      "updated_at": "2026-11-09T01:45:56Z"
+    },
+    {
+      "id": "JOURN-85",
+      "channel": "ae__cos",
+      "title": "ST-3 邮件：SMB renewal 首次触达单封样例",
+      "details": "目标：一封能直接用的 SMB 续费首封邮件样例，面向 20 席 SaaS 公司、续费距今 60 天。\n\n交付物：team/emails/smb-renewal-intro.md，180 词以内，中文或英文任选，但必须与 playbook 语气一致；正文只留该邮件，不要附评论。\n\n硬约束：绝不发送邮件，只落盘可审稿的样例。\n\n验收：wiki 可读；字数合规；收件人画像明确。\n\n[SUGGESTION] wiki写入被403拒绝（JOURN-85未声明artifact_path），请补定义后我再落盘。草稿如下（未发送，随时可审）：\n---\n收件人：20席 SaaS公司决策人（续费距今60天）\n主题：续费前对齐一次，避免中断\n\n[NEEDS CONFIRMATION: 联系人姓名] 您好，\n\n注意到您的续费距今60天。想先确认今年使用情况和下一年人数，帮您判断是按期续费、调整席位，还是另作安排，保证服务不中断。\n\n如果方便，您15分钟告诉我现状，我会帮您对齐下一年建议；如果不合适，请直接回复“不续费”，我立刻退出序列并停止跟进。\n\n此致敬意\n[NEEDS CONFIRMATION: 发件人信息]\n\n— 本邮件有退订链接；回复“退订”后24小时内停止后续邮件。\n---\n已暂存至 notebook：agents/ae/notebook/2026-11-09-st-3-邮件样例暂存草稿-journ-85.md。wiki内未搜到ST-2 playbook，语气暂按频道复用（克制专业、低门槛CTA、退订即停）。\n\nST-3 样例已落盘：team/emails/smb-renewal-intro.md（commit 3e432f0，733 bytes）。验收：wiki可读；180词内；收件人明确为20席SaaS决策人（T-60）；语气与ST-2 Step1一致（自检+低门槛CTA+婉拒出口+退订）；占位符未清零、无虚构公司/人名/数字；全程未发送邮件，仅审稿样例。待@reviewer/ST-5 质检。",
+      "owner": "ae",
+      "status": "in_progress",
+      "created_by": "cos",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "review",
+      "execution_mode": "office",
+      "review_state": "ready_for_review",
+      "parent_issue_id": "JOURN-18",
+      "lifecycle_state": "decision",
+      "due_at": "2026-11-09T02:02:43Z",
+      "follow_up_at": "2026-11-09T02:02:43Z",
+      "reminder_at": "2026-11-09T02:32:43Z",
+      "recheck_at": "2026-11-09T02:02:43Z",
+      "definition": {
+        "goal": "交付一封可直接审稿的 SMB 续费首封邮件样例，面向 20 席 SaaS 公司、续费距今 60 天。",
+        "artifact_path": "team/emails/smb-renewal-intro.md",
+        "defined_at": "2026-11-09T01:47:06Z"
+      },
+      "artifact": "team/emails/smb-renewal-intro.md",
+      "ledger": [
+        {
+          "agent": "ae",
+          "at": "2026-11-09T01:44:32Z",
+          "outcome": "ok",
+          "said": "已贴评论并暂存草稿，待 @cos 补 artifact_path 定义后落盘。",
+          "actions": [
+            "task_updated: ST-3 邮件：SMB renewal 首次触达单封样例 [in_progress]"
+          ]
+        },
+        {
+          "agent": "ae",
+          "at": "2026-11-09T01:48:03Z",
+          "outcome": "ok",
+          "said": "ST-3 已送审，team/emails/smb-renewal-intro.md 落盘未发送，待 ST-5 质检。",
+          "actions": [
+            "task_updated: ST-3 邮件：SMB renewal 首次触达单封样例 [review]"
+          ],
+          "context_used": [
+            "wiki:team/playbooks/smb-renewal-outreach.md",
+            "journal:JOURN-85"
+          ]
+        }
+      ],
+      "created_at": "2026-11-09T01:43:02Z",
+      "updated_at": "2026-11-09T01:48:03Z"
+    },
+    {
+      "id": "JOURN-89",
+      "channel": "cos__human",
+      "title": "ST-4 决策屏：SMB go/no-go 单屏 HTML",
+      "details": "目标：等 ST-1/ST-2/ST-3 结论收齐后，合成一屏能直接拍板的 go/no-go 推荐屏。\n\n交付物：一个 HTML visual artifact，打开一屏看完：明确 go 或 no-go、最大风险、以及什么证据会改结论；同时回链 wiki 四个交付物路径。\n\n要求：数字仍遵守来源规则，无来源标 unknown 不编；页面要能在团队 wiki 上直接预览；中文为主，核心名词保留英文。\n\n交付后在 #cos__human 给出 artifact 链接 id。\n\n验收：推荐立场明确；风险+改结论证据齐；可一屏展示。",
+      "owner": "cos",
+      "status": "in_progress",
+      "created_by": "cos",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "implement",
+      "execution_mode": "office",
+      "review_state": "pending_review",
+      "parent_issue_id": "JOURN-18",
+      "lifecycle_state": "running",
+      "due_at": "2026-11-09T02:43:14Z",
+      "follow_up_at": "2026-11-09T02:43:14Z",
+      "reminder_at": "2026-11-09T03:13:14Z",
+      "recheck_at": "2026-11-09T02:58:14Z",
+      "stalled_since": "2026-11-09T01:53:59Z",
+      "created_at": "2026-11-09T01:43:14Z",
+      "updated_at": "2026-11-09T01:43:14Z"
+    },
+    {
+      "id": "JOURN-95",
+      "channel": "cos__reviewer",
+      "title": "ST-5 质检：四交付物证据与口径复核",
+      "details": "目标：把 JOURN-18 的四个交付物按验收标准卡一遍，不通过打回对应 ST，不自己改写内容。\n\n核查点：1）team/research/smb-retention-2026q4.md、team/playbooks/smb-renewal-outreach.md、team/emails/smb-renewal-intro.md 三个 wiki 文件均可读；2）单屏 HTML artifact 可打开；3）每个数字有具名来源或标 unknown，无编造；4）推荐明确 go/no-go 并写清最大风险与改结论证据。\n\n输出：逐项通过/打回清单，评论回 JOURN-18，同时逐个评论回 ST-1/ST-2/ST-3/ST-4（JOURN-78/81/85/89）；全部通过后通知 @cos 聚合。\n\n硬约束：不发邮件，不改业务内容，只留证据链。\n\n[ST-5 质检轮次1] 已按核查点逐项实测：1) team/research/smb-retention-2026q4.md → 404 Not Found；2) team/playbooks/smb-renewal-outreach.md → 404 Not Found；3) team/emails/smb-renewal-intro.md → 404 Not Found；4) visual_artifact_list 返回 []，ST-4 单屏 HTML 无可开 artifact。wiki_list 与 wiki_search(smb-retention/smb-renewal) 均无命中。结论：四项全部打回，未交附数字来源与 go/no-go 证据。待四交付物落盘后复验。",
+      "owner": "reviewer",
+      "status": "in_progress",
+      "created_by": "cos",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "breakdown",
+      "execution_mode": "office",
+      "review_state": "pending_review",
+      "parent_issue_id": "JOURN-18",
+      "lifecycle_state": "running",
+      "due_at": "2026-11-09T02:43:51Z",
+      "follow_up_at": "2026-11-09T02:43:51Z",
+      "reminder_at": "2026-11-09T03:13:51Z",
+      "recheck_at": "2026-11-09T02:58:51Z",
+      "ledger": [
+        {
+          "agent": "reviewer",
+          "at": "2026-11-09T01:45:21Z",
+          "outcome": "ok",
+          "said": "轮次1已出：4/4 打回，证据留 JOURN-95，请各 ST 落盘后再复验。",
+          "actions": [
+            "task_updated: ST-5 质检：四交付物证据与口径复核 [in_progress]"
+          ],
+          "context_used": [
+            "wiki:team/getting-started/channels.md",
+            "wiki:team/getting-started/connecting-your-work.md",
+            "wiki:team/getting-started/index.md",
+            "wiki:team/getting-started/skills-and-runtimes.md",
+            "wiki:team/getting-started/the-wiki.md"
+          ]
+        }
+      ],
+      "stalled_since": "2026-11-09T01:55:59Z",
+      "created_at": "2026-11-09T01:43:21Z",
+      "updated_at": "2026-11-09T01:45:21Z"
+    }
+  ]
+}

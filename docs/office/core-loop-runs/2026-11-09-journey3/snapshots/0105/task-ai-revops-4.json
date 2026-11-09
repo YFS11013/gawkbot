@@ -1,0 +1,62 @@
+{
+  "taskId": "ai-revops-4",
+  "lifecycleState": "running",
+  "spec": {},
+  "sessionReport": {
+    "highlights": "",
+    "topWins": null,
+    "deadEnds": null,
+    "metadata": null
+  },
+  "changedFiles": null,
+  "reviewerGrades": null,
+  "dependencies": {
+    "parentTaskId": "",
+    "blockedOn": null
+  },
+  "updatedAt": "2026-11-09T01:05:00.1919898Z",
+  "task": {
+    "id": "ai-revops-4",
+    "channel": "review",
+    "title": "Set the hygiene scorecard and review cadence",
+    "details": "Define success metrics, the review rhythm, and the evidence trail for each iteration.",
+    "owner": "reviewer",
+    "status": "in_progress",
+    "created_by": "wuphf",
+    "task_type": "issue",
+    "pipeline_stage": "implement",
+    "review_state": "pending_review",
+    "lifecycle_state": "running",
+    "ledger": [
+      {
+        "agent": "reviewer",
+        "at": "2026-11-09T01:03:50Z",
+        "outcome": "exit status 1",
+        "context_used": [
+          "wiki:team/skills/data-modeling.md",
+          "wiki:team/skills/wiki-maintenance.md"
+        ]
+      },
+      {
+        "agent": "reviewer",
+        "at": "2026-11-09T01:03:58Z",
+        "outcome": "exit status 1",
+        "context_used": [
+          "wiki:team/skills/data-modeling.md",
+          "wiki:team/skills/wiki-maintenance.md"
+        ]
+      },
+      {
+        "agent": "reviewer",
+        "at": "2026-11-09T01:04:07Z",
+        "outcome": "exit status 1",
+        "context_used": [
+          "wiki:team/skills/data-modeling.md",
+          "wiki:team/skills/wiki-maintenance.md"
+        ]
+      }
+    ],
+    "created_at": "2026-11-09T01:00:07Z",
+    "updated_at": "2026-11-09T01:04:07Z"
+  }
+}

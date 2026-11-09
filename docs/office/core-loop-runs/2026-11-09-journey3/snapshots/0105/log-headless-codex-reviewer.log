@@ -1,0 +1,10 @@
+[2026-11-09T09:00:09+08:00] queue-park: at concurrency cap, deferring lane until a slot frees
+[2026-11-09T09:03:50+08:00] live-chat-relay-post: posted streamed output to #human__reviewer as msg-24
+[2026-11-09T09:03:50+08:00] error: exit status 1
+[2026-11-09T09:03:50+08:00] transient-retry: connection dropped, retrying same turn (retry 1/2)
+[2026-11-09T09:03:58+08:00] live-chat-relay-post: posted streamed output to #human__reviewer as msg-25
+[2026-11-09T09:03:58+08:00] error: exit status 1
+[2026-11-09T09:03:58+08:00] transient-retry: connection dropped, retrying same turn (retry 2/2)
+[2026-11-09T09:04:07+08:00] live-chat-relay-post: posted streamed output to #human__reviewer as msg-26
+[2026-11-09T09:04:07+08:00] error: exit status 1
+[2026-11-09T09:04:07+08:00] error-recovery: ai-revops-4 already produced durable progress; leaving task state unchanged

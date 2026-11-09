@@ -1,0 +1,46 @@
+{
+  "taskId": "ai-revops-2",
+  "lifecycleState": "running",
+  "spec": {},
+  "sessionReport": {
+    "highlights": "",
+    "topWins": null,
+    "deadEnds": null,
+    "metadata": null
+  },
+  "changedFiles": null,
+  "reviewerGrades": null,
+  "dependencies": {
+    "parentTaskId": "",
+    "blockedOn": null
+  },
+  "updatedAt": "2026-11-09T01:05:00.1821278Z",
+  "task": {
+    "id": "ai-revops-2",
+    "channel": "pipeline",
+    "title": "Establish the pipeline-truth baseline",
+    "details": "Define clean records and produce the honest first read of the funnel.",
+    "owner": "analyst",
+    "status": "in_progress",
+    "created_by": "wuphf",
+    "task_type": "issue",
+    "pipeline_stage": "implement",
+    "review_state": "pending_review",
+    "lifecycle_state": "running",
+    "ledger": [
+      {
+        "agent": "cos",
+        "at": "2026-11-09T01:04:38Z",
+        "outcome": "ok",
+        "said": "Skill \"data-modeling\" invoked by @cos (usage #1)",
+        "context_used": [
+          "wiki:team/skills/data-modeling.md",
+          "wiki:team/skills/app-building.md",
+          "wiki:team/skills/wiki-maintenance.md"
+        ]
+      }
+    ],
+    "created_at": "2026-11-09T01:00:07Z",
+    "updated_at": "2026-11-09T01:04:38Z"
+  }
+}

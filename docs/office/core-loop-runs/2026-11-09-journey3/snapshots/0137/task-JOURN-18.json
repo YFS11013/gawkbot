@@ -1,0 +1,54 @@
+{
+  "taskId": "JOURN-18",
+  "lifecycleState": "planning",
+  "spec": {},
+  "sessionReport": {
+    "highlights": "",
+    "topWins": null,
+    "deadEnds": null,
+    "metadata": null
+  },
+  "changedFiles": null,
+  "reviewerGrades": null,
+  "dependencies": {
+    "parentTaskId": "",
+    "blockedOn": null
+  },
+  "updatedAt": "2026-11-09T01:02:49.9250524Z",
+  "task": {
+    "id": "JOURN-18",
+    "channel": "cos__human",
+    "title": "SMB renewal-retention: go/no-go package",
+    "details": "I need a decision-ready package on entering the SMB segment with our renewal-retention offer.\n\nGoal: decide by next Monday whether we pitch SMB (10-50 seats), and hand the team everything needed to execute if we do.\n\nDeliverables (all in the team wiki):\n1. Research brief at team/research/smb-retention-2026q4.md - market size sanity check, 3 pricing bands, 2 named competitors and how each positions retention, and a section \"What we don't know\" listing every assumption with how to verify it.\n2. Reusable playbook at team/playbooks/smb-renewal-outreach.md - ICP, a 5-step outreach motion, the three objections we should expect with answers, and a one-page checklist an AE can execute without asking questions.\n3. One outreach email at team/emails/smb-renewal-intro.md, under 180 words, written for a 20-seat SaaS company whose renewal is 60 days out.\n4. One HTML visual artifact that puts the go/no-go recommendation on a single screen.\n\nSuccess criteria:\n- All four deliverables exist at those paths and are readable in the team wiki.\n- Every number is either sourced (name the source) or marked unknown; no invented statistics.\n- The recommendation states a clear go or no-go, the single biggest risk, and what evidence would change the answer.\n- You tell me the links in this conversation when done.\n\nConstraints: do not send any email. Do not ask me to approve individual files - use the team. If something is genuinely undecidable, ask me once, in one message, with options.",
+    "owner": "cos",
+    "status": "in_progress",
+    "created_by": "human",
+    "task_type": "issue",
+    "pipeline_id": "issue",
+    "pipeline_stage": "plan",
+    "execution_mode": "office",
+    "review_state": "pending_review",
+    "lifecycle_state": "planning",
+    "due_at": "2026-11-09T02:02:49Z",
+    "follow_up_at": "2026-11-09T02:02:49Z",
+    "reminder_at": "2026-11-09T02:32:49Z",
+    "recheck_at": "2026-11-09T02:17:49Z",
+    "ledger": [
+      {
+        "agent": "cos",
+        "at": "2026-11-09T01:05:38Z",
+        "outcome": "ok",
+        "said": "…页检索，所有数字须回溯来源。\n- 不发送任何邮件，不需要 CRM/工程账号。\n\n**5. 验收标准**\n- 四个交付物均在上述路径且 wiki 可读；每个数字有具名来源或明确标 unknown；推荐明确 go/no-go，并写清最大风险与改变结论的证据；完成后 Cos 在对话内提供全部链接。\n\n**风险 / 未决**：内部 offer 的具体价格条款需求中未给，研究简报以「未知 + 验证方式」标注而不虚构；市场规模分母口径须在简报里说清；周一期限近、ST-4 依赖前三条线，必须并行而非串行。",
+        "context_used": [
+          "wiki:team/getting-started/skills-and-runtimes.md",
+          "wiki:team/getting-started/the-wiki.md",
+          "wiki:team/getting-started/working-with-agents.md",
+          "wiki:team/decisions/ops-log.md",
+          "wiki:team/getting-started/channels.md"
+        ]
+      }
+    ],
+    "created_at": "2026-11-09T01:02:49Z",
+    "updated_at": "2026-11-09T01:05:38Z"
+  }
+}

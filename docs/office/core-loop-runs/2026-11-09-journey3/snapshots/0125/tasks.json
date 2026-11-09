@@ -1,0 +1,295 @@
+{
+  "channel": "general",
+  "tasks": [
+    {
+      "id": "ai-revops-1",
+      "channel": "hygiene",
+      "title": "Run the first CRM hygiene sweep",
+      "details": "Dedupe accounts, backfill missing owners, and flag stale opportunities, with destructive changes gated.\n\ninstall cleanup: onboarding starter lane",
+      "owner": "revops",
+      "status": "canceled",
+      "created_by": "wuphf",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "canceled",
+      "execution_mode": "live_external",
+      "review_state": "canceled",
+      "lifecycle_state": "canceled",
+      "ledger": [
+        {
+          "agent": "revops",
+          "at": "2026-11-09T01:06:08Z",
+          "outcome": "ok (no durable trace: no message, no task mutation)",
+          "context_used": [
+            "wiki:team/skills/app-building.md",
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/skills/wiki-maintenance.md"
+          ]
+        },
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:06:29Z",
+          "outcome": "exit status 1",
+          "context_used": [
+            "wiki:team/skills/app-building.md",
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/skills/wiki-maintenance.md"
+          ]
+        }
+      ],
+      "created_at": "2026-11-09T01:00:07Z",
+      "updated_at": "2026-11-09T01:06:29Z",
+      "completed_at": "2026-11-09T01:06:29Z"
+    },
+    {
+      "id": "ai-revops-2",
+      "channel": "pipeline",
+      "title": "Establish the pipeline-truth baseline",
+      "details": "Define clean records and produce the honest first read of the funnel.\n\ninstall cleanup: onboarding starter lane",
+      "owner": "analyst",
+      "status": "canceled",
+      "created_by": "wuphf",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "canceled",
+      "execution_mode": "office",
+      "review_state": "canceled",
+      "lifecycle_state": "canceled",
+      "memory_workflow": {
+        "required": false,
+        "status": "not_required",
+        "requirement_reason": "task does not require the durable memory workflow",
+        "lookup": {},
+        "capture": {
+          "status": "satisfied",
+          "actor": "analyst",
+          "completed_at": "2026-11-09T01:06:27Z",
+          "updated_at": "2026-11-09T01:06:27Z",
+          "count": 1
+        },
+        "promote": {},
+        "captures": [
+          {
+            "path": "agents/analyst/notebook/2026-11-09-pipeline-clean-record-spec.md",
+            "commit_sha": "1c48ff2",
+            "recorded_at": "2026-11-09T01:06:27Z",
+            "updated_at": "2026-11-09T01:06:27Z"
+          }
+        ],
+        "created_at": "2026-11-09T01:06:27Z",
+        "updated_at": "2026-11-09T01:06:27Z"
+      },
+      "ledger": [
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:04:38Z",
+          "outcome": "ok",
+          "said": "Skill \"data-modeling\" invoked by @cos (usage #1)",
+          "context_used": [
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/skills/app-building.md",
+            "wiki:team/skills/wiki-maintenance.md"
+          ]
+        },
+        {
+          "agent": "analyst",
+          "at": "2026-11-09T01:06:29Z",
+          "outcome": "exit status 1",
+          "context_used": [
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/skills/app-building.md",
+            "wiki:team/skills/wiki-maintenance.md"
+          ]
+        }
+      ],
+      "created_at": "2026-11-09T01:00:07Z",
+      "updated_at": "2026-11-09T01:06:29Z",
+      "completed_at": "2026-11-09T01:06:29Z"
+    },
+    {
+      "id": "ai-revops-3",
+      "channel": "outreach",
+      "title": "Draft the first follow-up sequence",
+      "details": "Sequence re-engagement for stale-but-real opportunities, queued for approval.\n\ninstall cleanup: onboarding starter lane",
+      "owner": "ae",
+      "status": "canceled",
+      "created_by": "wuphf",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "canceled",
+      "execution_mode": "office",
+      "review_state": "canceled",
+      "lifecycle_state": "canceled",
+      "ledger": [
+        {
+          "agent": "ae",
+          "at": "2026-11-09T01:03:40Z",
+          "outcome": "ok (no durable trace: no message, no task mutation)",
+          "context_used": [
+            "wiki:team/skills/wiki-maintenance.md",
+            "wiki:team/skills/app-building.md",
+            "wiki:team/skills/data-modeling.md"
+          ]
+        },
+        {
+          "agent": "ae",
+          "at": "2026-11-09T01:06:29Z",
+          "outcome": "exit status 1",
+          "context_used": [
+            "wiki:team/getting-started/connecting-your-work.md",
+            "wiki:team/getting-started/the-wiki.md",
+            "wiki:team/getting-started/working-with-agents.md",
+            "wiki:team/getting-started/your-context-graph.md",
+            "wiki:team/skills/wiki-maintenance.md",
+            "journal:ai-revops-3"
+          ]
+        },
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:06:29Z",
+          "outcome": "exit status 1",
+          "context_used": [
+            "wiki:team/skills/wiki-maintenance.md",
+            "wiki:team/skills/app-building.md",
+            "wiki:team/skills/data-modeling.md"
+          ]
+        }
+      ],
+      "created_at": "2026-11-09T01:00:07Z",
+      "updated_at": "2026-11-09T01:06:29Z",
+      "completed_at": "2026-11-09T01:06:29Z"
+    },
+    {
+      "id": "ai-revops-4",
+      "channel": "review",
+      "title": "Set the hygiene scorecard and review cadence",
+      "details": "Define success metrics, the review rhythm, and the evidence trail for each iteration.\n\ninstall cleanup: onboarding starter lane",
+      "owner": "reviewer",
+      "status": "canceled",
+      "created_by": "wuphf",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "canceled",
+      "execution_mode": "office",
+      "review_state": "canceled",
+      "lifecycle_state": "canceled",
+      "ledger": [
+        {
+          "agent": "reviewer",
+          "at": "2026-11-09T01:03:50Z",
+          "outcome": "exit status 1",
+          "context_used": [
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/skills/wiki-maintenance.md"
+          ]
+        },
+        {
+          "agent": "reviewer",
+          "at": "2026-11-09T01:03:58Z",
+          "outcome": "exit status 1",
+          "context_used": [
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/skills/wiki-maintenance.md"
+          ]
+        },
+        {
+          "agent": "reviewer",
+          "at": "2026-11-09T01:04:07Z",
+          "outcome": "exit status 1",
+          "context_used": [
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/skills/wiki-maintenance.md"
+          ]
+        },
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:05:05Z",
+          "outcome": "ok (no durable trace: no message, no task mutation)",
+          "context_used": [
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/skills/wiki-maintenance.md"
+          ]
+        }
+      ],
+      "created_at": "2026-11-09T01:00:07Z",
+      "updated_at": "2026-11-09T01:06:29Z",
+      "completed_at": "2026-11-09T01:06:29Z"
+    },
+    {
+      "id": "task-skill-6",
+      "channel": "pipeline",
+      "title": "Run skill: Data modeling",
+      "details": "Invoked by @cos on 2026-11-09T01:00:51Z. Follow the steps below.\n\nWhen the human asks you to TRACK something — investors, clients, projects, candidates, deliverables — that is structured data. Build the model with the data_* tools; do not keep it in prose, and do not reach for an app unless they ask for one.\n\n1. Call data_list_spaces, then data_get_schema on the space that fits. One space per use case. If none fits, data_create_space — it is private to you and the human by default.\n2. Check the existing types before creating. If a type already exists, add to it with data_add_attributes; never create a second near-duplicate type.\n3. Create the types, their attributes AND the relationships between them in ONE data_create_object_types call. A relationship IS an attribute: type=relationship plus `relationship` also creates the mirrored attribute on the other type. State cardinality from the side you are defining, because it cannot be changed later.\n4. Re-read the schema right after any create or change: the store adds a required primary `name` attribute you did not define and mints your select option ids, so your own call is NOT the effective schema. Never invent an attribute slug or an option value — an invalid option comes back listing the valid ones. Never add a near-duplicate option; map onto the existing one or ask.\n5. Write records with data_upsert_records on a UNIQUE attribute whenever the source could be read again, so a second run updates instead of duplicating. Every write returns {succeeded, failed, summary, entries[]} in request order — read `entries`, do not assume the whole call worked.\n6. Deleting is two calls: data_delete_preview, show the human the impact counts, then data_delete with the token. Sharing is the human's call: a space goes shared or global only when they ask.\n\ninstall cleanup: onboarding starter lane",
+      "owner": "cos",
+      "status": "canceled",
+      "created_by": "cos",
+      "task_type": "skill_run",
+      "pipeline_id": "skill_invocation",
+      "pipeline_stage": "canceled",
+      "execution_mode": "office",
+      "review_state": "canceled",
+      "skill_id": "skill-data-modeling",
+      "skill_name": "data-modeling",
+      "lifecycle_state": "canceled",
+      "artifact_not_required": "not_required: skill run — the invocation transcript is the record (system, 2026-11-09T01:00:51Z)",
+      "ledger": [
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:06:30Z",
+          "outcome": "context canceled"
+        },
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:07:00Z",
+          "outcome": "ok",
+          "said": "已回复 @revops，等待其提交 BLOCKED 汇总与最小接入清单。"
+        },
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:07:29Z",
+          "outcome": "ok",
+          "said": "已回复 @revops 确认 BLOCKED 汇总，后续由我向人类确认 CRM 数据源。"
+        }
+      ],
+      "created_at": "2026-11-09T01:00:51Z",
+      "updated_at": "2026-11-09T01:07:29Z",
+      "completed_at": "2026-11-09T01:06:30Z"
+    },
+    {
+      "id": "JOURN-18",
+      "channel": "cos__human",
+      "title": "SMB renewal-retention: go/no-go package",
+      "details": "I need a decision-ready package on entering the SMB segment with our renewal-retention offer.\n\nGoal: decide by next Monday whether we pitch SMB (10-50 seats), and hand the team everything needed to execute if we do.\n\nDeliverables (all in the team wiki):\n1. Research brief at team/research/smb-retention-2026q4.md - market size sanity check, 3 pricing bands, 2 named competitors and how each positions retention, and a section \"What we don't know\" listing every assumption with how to verify it.\n2. Reusable playbook at team/playbooks/smb-renewal-outreach.md - ICP, a 5-step outreach motion, the three objections we should expect with answers, and a one-page checklist an AE can execute without asking questions.\n3. One outreach email at team/emails/smb-renewal-intro.md, under 180 words, written for a 20-seat SaaS company whose renewal is 60 days out.\n4. One HTML visual artifact that puts the go/no-go recommendation on a single screen.\n\nSuccess criteria:\n- All four deliverables exist at those paths and are readable in the team wiki.\n- Every number is either sourced (name the source) or marked unknown; no invented statistics.\n- The recommendation states a clear go or no-go, the single biggest risk, and what evidence would change the answer.\n- You tell me the links in this conversation when done.\n\nConstraints: do not send any email. Do not ask me to approve individual files - use the team. If something is genuinely undecidable, ask me once, in one message, with options.",
+      "owner": "cos",
+      "status": "in_progress",
+      "created_by": "human",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "plan",
+      "execution_mode": "office",
+      "review_state": "pending_review",
+      "lifecycle_state": "planning",
+      "due_at": "2026-11-09T02:02:49Z",
+      "follow_up_at": "2026-11-09T02:02:49Z",
+      "reminder_at": "2026-11-09T02:32:49Z",
+      "recheck_at": "2026-11-09T02:17:49Z",
+      "ledger": [
+        {
+          "agent": "cos",
+          "at": "2026-11-09T01:05:38Z",
+          "outcome": "ok",
+          "said": "…页检索，所有数字须回溯来源。\n- 不发送任何邮件，不需要 CRM/工程账号。\n\n**5. 验收标准**\n- 四个交付物均在上述路径且 wiki 可读；每个数字有具名来源或明确标 unknown；推荐明确 go/no-go，并写清最大风险与改变结论的证据；完成后 Cos 在对话内提供全部链接。\n\n**风险 / 未决**：内部 offer 的具体价格条款需求中未给，研究简报以「未知 + 验证方式」标注而不虚构；市场规模分母口径须在简报里说清；周一期限近、ST-4 依赖前三条线，必须并行而非串行。",
+          "context_used": [
+            "wiki:team/getting-started/skills-and-runtimes.md",
+            "wiki:team/getting-started/the-wiki.md",
+            "wiki:team/getting-started/working-with-agents.md",
+            "wiki:team/decisions/ops-log.md",
+            "wiki:team/getting-started/channels.md"
+          ]
+        }
+      ],
+      "created_at": "2026-11-09T01:02:49Z",
+      "updated_at": "2026-11-09T01:05:38Z"
+    }
+  ]
+}

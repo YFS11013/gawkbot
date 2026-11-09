@@ -1,0 +1,33 @@
+{
+  "taskId": "ai-revops-1",
+  "lifecycleState": "running",
+  "spec": {},
+  "sessionReport": {
+    "highlights": "",
+    "topWins": null,
+    "deadEnds": null,
+    "metadata": null
+  },
+  "changedFiles": null,
+  "reviewerGrades": null,
+  "dependencies": {
+    "parentTaskId": "",
+    "blockedOn": null
+  },
+  "updatedAt": "2026-11-09T01:05:00.1679327Z",
+  "task": {
+    "id": "ai-revops-1",
+    "channel": "hygiene",
+    "title": "Run the first CRM hygiene sweep",
+    "details": "Dedupe accounts, backfill missing owners, and flag stale opportunities, with destructive changes gated.",
+    "owner": "revops",
+    "status": "in_progress",
+    "created_by": "wuphf",
+    "task_type": "issue",
+    "pipeline_stage": "implement",
+    "review_state": "pending_review",
+    "lifecycle_state": "running",
+    "created_at": "2026-11-09T01:00:07Z",
+    "updated_at": "2026-11-09T01:00:07Z"
+  }
+}

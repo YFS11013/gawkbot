@@ -1,0 +1,79 @@
+{
+  "taskId": "JOURN-18",
+  "lifecycleState": "running",
+  "spec": {
+    "feedback": [
+      {
+        "appendedAt": "2026-11-09T01:43:26.0591629Z",
+        "author": "cos",
+        "body": "分解完成 5 条子线并行开工：ST-1 @analyst JOURN-78 研究简报；ST-2 @ae JOURN-81 playbook；ST-3 @ae JOURN-85 邮件样例；ST-4 @cos JOURN-89 go/no-go 单屏 HTML（等前三条结论）；ST-5 @reviewer JOURN-95 四交付物证据 QA。父任务保持 running，由我聚合，全部子任务 lands 后再关父任务。"
+      }
+    ]
+  },
+  "sessionReport": {
+    "highlights": "",
+    "topWins": null,
+    "deadEnds": null,
+    "metadata": null
+  },
+  "changedFiles": null,
+  "reviewerGrades": null,
+  "dependencies": {
+    "parentTaskId": "",
+    "blockedOn": null
+  },
+  "updatedAt": "2026-11-09T01:43:26.0591629Z",
+  "task": {
+    "id": "JOURN-18",
+    "channel": "cos__human",
+    "title": "SMB renewal-retention: go/no-go package",
+    "details": "I need a decision-ready package on entering the SMB segment with our renewal-retention offer.\n\nGoal: decide by next Monday whether we pitch SMB (10-50 seats), and hand the team everything needed to execute if we do.\n\nDeliverables (all in the team wiki):\n1. Research brief at team/research/smb-retention-2026q4.md - market size sanity check, 3 pricing bands, 2 named competitors and how each positions retention, and a section \"What we don't know\" listing every assumption with how to verify it.\n2. Reusable playbook at team/playbooks/smb-renewal-outreach.md - ICP, a 5-step outreach motion, the three objections we should expect with answers, and a one-page checklist an AE can execute without asking questions.\n3. One outreach email at team/emails/smb-renewal-intro.md, under 180 words, written for a 20-seat SaaS company whose renewal is 60 days out.\n4. One HTML visual artifact that puts the go/no-go recommendation on a single screen.\n\nSuccess criteria:\n- All four deliverables exist at those paths and are readable in the team wiki.\n- Every number is either sourced (name the source) or marked unknown; no invented statistics.\n- The recommendation states a clear go or no-go, the single biggest risk, and what evidence would change the answer.\n- You tell me the links in this conversation when done.\n\nConstraints: do not send any email. Do not ask me to approve individual files - use the team. If something is genuinely undecidable, ask me once, in one message, with options.\n\n分解完成 5 条子线并行开工：ST-1 @analyst JOURN-78 研究简报；ST-2 @ae JOURN-81 playbook；ST-3 @ae JOURN-85 邮件样例；ST-4 @cos JOURN-89 go/no-go 单屏 HTML（等前三条结论）；ST-5 @reviewer JOURN-95 四交付物证据 QA。父任务保持 running，由我聚合，全部子任务 lands 后再关父任务。",
+    "owner": "cos",
+    "status": "in_progress",
+    "created_by": "human",
+    "task_type": "issue",
+    "pipeline_id": "issue",
+    "pipeline_stage": "breakdown",
+    "execution_mode": "office",
+    "review_state": "pending_review",
+    "lifecycle_state": "running",
+    "due_at": "2026-11-09T02:43:26Z",
+    "follow_up_at": "2026-11-09T02:43:26Z",
+    "reminder_at": "2026-11-09T03:13:26Z",
+    "recheck_at": "2026-11-09T02:58:26Z",
+    "ledger": [
+      {
+        "agent": "cos",
+        "at": "2026-11-09T01:05:38Z",
+        "outcome": "ok",
+        "said": "…页检索，所有数字须回溯来源。\n- 不发送任何邮件，不需要 CRM/工程账号。\n\n**5. 验收标准**\n- 四个交付物均在上述路径且 wiki 可读；每个数字有具名来源或明确标 unknown；推荐明确 go/no-go，并写清最大风险与改变结论的证据；完成后 Cos 在对话内提供全部链接。\n\n**风险 / 未决**：内部 offer 的具体价格条款需求中未给，研究简报以「未知 + 验证方式」标注而不虚构；市场规模分母口径须在简报里说清；周一期限近、ST-4 依赖前三条线，必须并行而非串行。",
+        "context_used": [
+          "wiki:team/getting-started/skills-and-runtimes.md",
+          "wiki:team/getting-started/the-wiki.md",
+          "wiki:team/getting-started/working-with-agents.md",
+          "wiki:team/decisions/ops-log.md",
+          "wiki:team/getting-started/channels.md"
+        ]
+      },
+      {
+        "agent": "cos",
+        "at": "2026-11-09T01:43:36Z",
+        "outcome": "ok",
+        "said": "JOURN-18 已分解并派活（JOURN-78/81/85/89/95），等各 lane 落盘后我聚合 go/no-go 单屏并交链接。",
+        "actions": [
+          "task_updated: SMB renewal-retention: go/no-go package [in_progress]"
+        ],
+        "context_used": [
+          "wiki:team/getting-started/skills-and-runtimes.md",
+          "wiki:team/getting-started/the-wiki.md",
+          "wiki:team/getting-started/working-with-agents.md",
+          "wiki:team/decisions/ops-log.md",
+          "wiki:team/getting-started/channels.md",
+          "journal:JOURN-18"
+        ]
+      }
+    ],
+    "created_at": "2026-11-09T01:02:49Z",
+    "updated_at": "2026-11-09T01:43:36Z"
+  }
+}

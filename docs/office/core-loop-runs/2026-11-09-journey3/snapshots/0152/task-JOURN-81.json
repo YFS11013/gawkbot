@@ -1,0 +1,48 @@
+{
+  "taskId": "JOURN-81",
+  "lifecycleState": "running",
+  "spec": {
+    "feedback": [
+      {
+        "appendedAt": "2026-11-09T01:43:08.2522959Z",
+        "author": "ae",
+        "body": "开始起草 ST-2 Playbook：先拉取 ST-1 进展和 wiki 现有材料，再写 team/playbooks/smb-renewal-outreach.md"
+      }
+    ]
+  },
+  "sessionReport": {
+    "highlights": "",
+    "topWins": null,
+    "deadEnds": null,
+    "metadata": null
+  },
+  "changedFiles": null,
+  "reviewerGrades": null,
+  "dependencies": {
+    "parentTaskId": "",
+    "blockedOn": null
+  },
+  "updatedAt": "2026-11-09T01:43:08.2522959Z",
+  "task": {
+    "id": "JOURN-81",
+    "channel": "ae__cos",
+    "title": "ST-2 Playbook：SMB renewal outreach 可执行打法",
+    "details": "目标：把 SMB 续费触达变成 AE 能直接照着跑的打法，不需临时问人。\n\n交付物：team/playbooks/smb-renewal-outreach.md，必须包含：ICP 画像、5 步 outreach motion、3 类高频异议及答复、一页式 AE 执行 checklist。\n\n要求：基于 ST-1 的市场结论做假设（如 ST-1 未出先写可验证假设）；数字来源规则同上；行文要可直接发给 AE 执行，禁止写“请咨询负责人”这类待定话术。\n\n验收：wiki 可读；5 步异议答复 checklist 齐全。\n\n开始起草 ST-2 Playbook：先拉取 ST-1 进展和 wiki 现有材料，再写 team/playbooks/smb-renewal-outreach.md",
+    "owner": "ae",
+    "status": "in_progress",
+    "created_by": "cos",
+    "task_type": "issue",
+    "pipeline_id": "issue",
+    "pipeline_stage": "breakdown",
+    "execution_mode": "office",
+    "review_state": "pending_review",
+    "parent_issue_id": "JOURN-18",
+    "lifecycle_state": "running",
+    "due_at": "2026-11-09T02:43:08Z",
+    "follow_up_at": "2026-11-09T02:43:08Z",
+    "reminder_at": "2026-11-09T03:13:08Z",
+    "recheck_at": "2026-11-09T02:58:08Z",
+    "created_at": "2026-11-09T01:42:52Z",
+    "updated_at": "2026-11-09T01:43:08Z"
+  }
+}

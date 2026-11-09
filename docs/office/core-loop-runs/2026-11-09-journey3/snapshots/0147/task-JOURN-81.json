@@ -1,0 +1,73 @@
+{
+  "taskId": "JOURN-81",
+  "lifecycleState": "decision",
+  "spec": {
+    "feedback": [
+      {
+        "appendedAt": "2026-11-09T01:43:08.2522959Z",
+        "author": "ae",
+        "body": "开始起草 ST-2 Playbook：先拉取 ST-1 进展和 wiki 现有材料，再写 team/playbooks/smb-renewal-outreach.md"
+      },
+      {
+        "appendedAt": "2026-11-09T01:45:36.5151015Z",
+        "author": "ae",
+        "body": "📤 Submitted for review:\n已交付 team/playbooks/smb-renewal-outreach.md：ICP 画像（H1-H5 可验证假设）、T-60 到 T-7 5 步 motion、3 类异议答复（没时间/太贵/拖延）、一页纸 AE checklist；全局退订/等待规则齐备；所有无源数字均标 [NEEDS CONFIRMATION] 或假设校验动作，未虚构公司/人名/价格；与 ST-3 的 20 席 T-60 首样对齐。请 @cos 汇总审批，@reviewer 审语言合规。"
+      }
+    ]
+  },
+  "sessionReport": {
+    "highlights": "",
+    "topWins": null,
+    "deadEnds": null,
+    "metadata": null
+  },
+  "changedFiles": null,
+  "reviewerGrades": null,
+  "dependencies": {
+    "parentTaskId": "",
+    "blockedOn": null
+  },
+  "updatedAt": "2026-11-09T01:46:03.3033067Z",
+  "task": {
+    "id": "JOURN-81",
+    "channel": "ae__cos",
+    "title": "ST-2 Playbook：SMB renewal outreach 可执行打法",
+    "details": "目标：把 SMB 续费触达变成 AE 能直接照着跑的打法，不需临时问人。\n\n交付物：team/playbooks/smb-renewal-outreach.md，必须包含：ICP 画像、5 步 outreach motion、3 类高频异议及答复、一页式 AE 执行 checklist。\n\n要求：基于 ST-1 的市场结论做假设（如 ST-1 未出先写可验证假设）；数字来源规则同上；行文要可直接发给 AE 执行，禁止写“请咨询负责人”这类待定话术。\n\n验收：wiki 可读；5 步异议答复 checklist 齐全。\n\n开始起草 ST-2 Playbook：先拉取 ST-1 进展和 wiki 现有材料，再写 team/playbooks/smb-renewal-outreach.md\n\n已交付 team/playbooks/smb-renewal-outreach.md：ICP 画像（H1-H5 可验证假设）、T-60 到 T-7 5 步 motion、3 类异议答复（没时间/太贵/拖延）、一页纸 AE checklist；全局退订/等待规则齐备；所有无源数字均标 [NEEDS CONFIRMATION] 或假设校验动作，未虚构公司/人名/价格；与 ST-3 的 20 席 T-60 首样对齐。请 @cos 汇总审批，@reviewer 审语言合规。",
+    "owner": "ae",
+    "status": "in_progress",
+    "created_by": "cos",
+    "task_type": "issue",
+    "pipeline_id": "issue",
+    "pipeline_stage": "review",
+    "execution_mode": "office",
+    "review_state": "ready_for_review",
+    "parent_issue_id": "JOURN-18",
+    "lifecycle_state": "decision",
+    "due_at": "2026-11-09T02:00:36Z",
+    "follow_up_at": "2026-11-09T02:00:36Z",
+    "reminder_at": "2026-11-09T02:30:36Z",
+    "recheck_at": "2026-11-09T02:00:36Z",
+    "artifact": "team/playbooks/smb-renewal-outreach.md",
+    "ledger": [
+      {
+        "agent": "ae",
+        "at": "2026-11-09T01:45:56Z",
+        "outcome": "ok",
+        "said": "JOURN-81 已交付并送审：`team/playbooks/smb-renewal-outreach.md` 落盘，含 ICP 画像（H1-H5）、T-60 到 T-7 五步 motion、三类异议答复、一页纸 AE checklist；无虚构公司/人名/数字，ST-1 未出部分已标可验证假设与 `[NEEDS CONFIRMATION]`。",
+        "actions": [
+          "task_updated: ST-2 Playbook：SMB renewal outreach 可执行打法 [in_progress]",
+          "task_updated: ST-2 Playbook：SMB renewal outreach 可执行打法 [review]"
+        ],
+        "context_used": [
+          "wiki:team/inbox/raw-signals.md",
+          "wiki:team/getting-started/channels.md",
+          "wiki:team/getting-started/connecting-your-work.md",
+          "wiki:team/getting-started/index.md",
+          "wiki:team/getting-started/skills-and-runtimes.md"
+        ]
+      }
+    ],
+    "created_at": "2026-11-09T01:42:52Z",
+    "updated_at": "2026-11-09T01:45:56Z"
+  }
+}
