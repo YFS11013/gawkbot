@@ -441,6 +441,8 @@ broker 在进程启动时就把 provider 定下来了，而 `workspace create` �
 
 不做的是「建子任务时强制要求 `definition.artifact_path`」：有合法的工作本来就没有固定产物路径（聊天里回答、改个配置），强制它会让这类 lane 建不出来。需要「不产出文件」时用既有的 `ArtifactNotRequired` 显式声明。
 
+> **2026-11-09 追加（§9.15）：这条已推翻。** 宽松的代价是 J6/J7 两次 clean 运行 `write-task` 0 次、`team/**` 0 份——模型读到 `artifact_scope` 的描述就不试了，403 教育链根本没机会生效。现在 lead 建 lane 必须当场声明写范围（`artifact_scope`）或用 `artifact_not_required_reason` 显式说「不产出文件」；「有合法工作没有固定产物」由后一个舱口承接，而不是靠默认宽松。§9.13 的拒绝文案保留，降级为「路径不匹配」的兜底。
+
 ### 9.14 批准计划之后，办公室必须自己回来看一眼（2026-11-09，J6-1）
 
 计划批准是**一次**派发：`startApprovedPlanTaskLocked` 把 Planning→Running，装回小时级 `task_follow_up`，然后就没有然后了。Journey 4/5 里这没问题，因为激活回合本身就把子任务拆了出来（20 秒内）。Journey 6 里没拆：那一回合的正文全部用来回答另一条任务（`JOURN-3`）的管道问题，于是父任务 `JOURN-8` 从 06:23:19Z 一直躺到 07:23:19Z 的下一次唤醒，45 分钟上限内零子任务、零写入。
@@ -456,6 +458,22 @@ broker 在进程启动时就把 provider 定下来了，而 `workspace create` �
 只唤醒一次，小时级 follow-up 仍是兜底：单回合就能交付的计划值得被提醒一次，不值得每小时提醒。为什么不把检查做成「计划文本里提到拆几条才查」——那是对模型输出的文本启发式，脆且会漏；「批准后 N 分钟没有子任务」是 broker 自己可观测量。
 
 同轮的第二处（J6-2）：任务进终态时取消它名下的 active request。悬着的采访卡会 park 住提问 bot 的回合（`Launcher.turnParkedOnInterview` 丢掉它所有唤醒），于是「取消了一条任务」变成「那个 bot 之后再也不会被叫醒」，而人只看到一张不知道为什么要答的卡。配套把 `processRequestJob` 的提醒从「只对 Blocking」放宽到「所有 pending」——非阻塞的采访同样会 park 回合，人必须知道它在等一句话。
+
+### 9.15 建 lane 时就把写范围钉下来——推翻 §9.13 的「不强制」（2026-11-09，J3-3 补完）
+
+§9.13 当时明确不强制子任务带 `definition.artifact_path`，理由是有合法工作没有固定产物。J6 和 J7 两次 clean 运行证明这个宽松的代价更大：`write-task` 调用 **0** 次，`team/**` markdown **0** 份，交付全部落在 notebook 和 visual artifact 里。更关键的是机制——`teammcp/server_types.go` 里 `artifact_scope` 的描述直接写着「没有它，owner 不能用 `/wiki/write-task`」，模型**提前读了说明就不试**，所以 §9.13 修的那条 403 教育链在默认行为下永远空转。
+
+判据不该是「403 文案够不够好」，而是**lane 被创建时有没有写范围**。
+
+- `team_task action=create` 现在接受 `definition`（goal + `artifact_scope`），落在同一个调用里；写范围属于 lead/human（与 `define` 同类），否则任何 bot 都能靠「建一个任务顺手把路径写成 team/accounts/…」自我授权。
+- lead 建的子 Issue 若既无 `artifact_scope` 也无 `artifact_not_required_reason` → 拒绝，文案点名 creator、列出允许根、说明「原样重试还是会被拒」。
+- 逃逸舱口是 `artifact_not_required_reason`（建任务时就声明「这条 lane 不产出文件」），对应 §9.13 担心的那类工作；完成时的 `verification=not_required` 仍保留。
+- 强制范围只限 **lead**：专家没有钉共享路径的权限，对它强制只会变成死路——拒绝要点名能修的人，这是 §9.13 自己的规则。
+- §9.13 的 403 提示**保留**，降级为「声明了但路径不匹配」的兜底。
+
+`/wiki/write-task` 的写门一行没动：路径依然必须先被声明，只是声明点从「写的时候」前移到「建 lane 的时候」。
+
+回退条件写死在 prereg 里：若 Journey 8 里规划者反复撞守卫，或声明的路径全是 `team/tasks/x.md` 这类敷衍值，就接受 visual artifact 为交付载体，本条降级为「防路径不匹配」，转去修 archivist 从文档而不是任务标题抽 fact。
 
 ### 9.12 Journey 3：planning 姿态缺一处接线，watchdog 把「等审阅」当「不动」（2026-11-09）
 

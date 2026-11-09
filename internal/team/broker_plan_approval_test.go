@@ -117,6 +117,7 @@ func TestPlanGateBlocksSubtaskCreation(t *testing.T) {
 	if _, err := b.MutateTask(TaskPostRequest{
 		Action: "create", Channel: "team", Title: "Wire Stripe webhooks",
 		Owner: "eng", CreatedBy: "cos", ParentIssueID: parent.Task.ID,
+		ArtifactNotRequiredReason: "gate fixture lane",
 	}); err != nil {
 		t.Fatalf("sub-issue after approval should succeed: %v", err)
 	}
@@ -136,6 +137,7 @@ func TestShallowSubtaskRestatingParentRejected(t *testing.T) {
 	_, err = b.MutateTask(TaskPostRequest{
 		Action: "create", Channel: "team", Title: "Ship the MVP!",
 		Owner: "eng", CreatedBy: "cos", ParentIssueID: parent.Task.ID,
+		ArtifactNotRequiredReason: "gate fixture lane",
 	})
 	if err == nil {
 		t.Fatal("expected a sub-issue restating the parent to be rejected")
@@ -234,12 +236,14 @@ func TestDuplicateSiblingSubtaskRejected(t *testing.T) {
 	if _, err := b.MutateTask(TaskPostRequest{
 		Action: "create", Channel: "team", Title: "Wire Stripe webhooks",
 		Owner: "eng", CreatedBy: "cos", ParentIssueID: parent.Task.ID,
+		ArtifactNotRequiredReason: "gate fixture lane",
 	}); err != nil {
 		t.Fatalf("first sibling: %v", err)
 	}
 	_, err = b.MutateTask(TaskPostRequest{
 		Action: "create", Channel: "team", Title: "wire the stripe webhook",
 		Owner: "eng", CreatedBy: "cos", ParentIssueID: parent.Task.ID,
+		ArtifactNotRequiredReason: "gate fixture lane",
 	})
 	if err == nil {
 		t.Fatal("expected a sub-issue duplicating a sibling to be rejected")

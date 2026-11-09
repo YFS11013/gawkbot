@@ -112,6 +112,7 @@ func TestSubIssueRefusesRedoOfDeliveredSibling(t *testing.T) {
 	sibling, err := b.MutateTask(TaskPostRequest{
 		Action: "create", Channel: "team", Title: "Wire Stripe webhooks",
 		Owner: "eng", CreatedBy: "cos", ParentIssueID: parent.Task.ID,
+		ArtifactNotRequiredReason: "dedupe fixture lane",
 	})
 	if err != nil {
 		t.Fatalf("create sibling: %v", err)
@@ -121,6 +122,7 @@ func TestSubIssueRefusesRedoOfDeliveredSibling(t *testing.T) {
 	_, err = b.MutateTask(TaskPostRequest{
 		Action: "create", Channel: "team", Title: "wire the stripe webhook",
 		Owner: "eng", CreatedBy: "cos", ParentIssueID: parent.Task.ID,
+		ArtifactNotRequiredReason: "dedupe fixture lane",
 	})
 	if err == nil {
 		t.Fatal("expected a sub-issue redoing a delivered sibling to be refused")
@@ -132,7 +134,8 @@ func TestSubIssueRefusesRedoOfDeliveredSibling(t *testing.T) {
 	if _, err := b.MutateTask(TaskPostRequest{
 		Action: "create", Channel: "team", Title: "wire the stripe webhook",
 		Owner: "eng", CreatedBy: "cos", ParentIssueID: parent.Task.ID,
-		AllowDuplicate: true,
+		AllowDuplicate:            true,
+		ArtifactNotRequiredReason: "dedupe fixture lane",
 	}); err != nil {
 		t.Fatalf("allow_duplicate sub-issue: %v", err)
 	}
@@ -158,6 +161,7 @@ func TestSubIssueRefusesNewLaneUnderDeliveredParent(t *testing.T) {
 		created, err := b.MutateTask(TaskPostRequest{
 			Action: "create", Channel: "team", Title: title,
 			Owner: "eng", CreatedBy: "cos", ParentIssueID: parent.Task.ID,
+			ArtifactNotRequiredReason: "dedupe fixture lane",
 		})
 		if err != nil {
 			t.Fatalf("create lane %q: %v", title, err)
@@ -171,6 +175,7 @@ func TestSubIssueRefusesNewLaneUnderDeliveredParent(t *testing.T) {
 	_, err = b.MutateTask(TaskPostRequest{
 		Action: "create", Channel: "team", Title: "Write the renewal playbook",
 		Owner: "eng", CreatedBy: "cos", ParentIssueID: parent.Task.ID,
+		ArtifactNotRequiredReason: "dedupe fixture lane",
 	})
 	if err == nil {
 		t.Fatal("expected a new lane under a fully delivered parent to be refused")
@@ -191,6 +196,7 @@ func TestSubIssueRefusesNewLaneUnderDeliveredParent(t *testing.T) {
 	if _, err := b.MutateTask(TaskPostRequest{
 		Action: "create", Channel: "team", Title: "Write the renewal playbook",
 		Owner: "eng", CreatedBy: "cos", ParentIssueID: parent.Task.ID,
+		ArtifactNotRequiredReason: "dedupe fixture lane",
 	}); err != nil {
 		t.Fatalf("a canceled lane should leave the parent open, got %v", err)
 	}
@@ -213,6 +219,7 @@ func TestNewLaneAfterDeliveryRequiresOptIn(t *testing.T) {
 	lane, err := b.MutateTask(TaskPostRequest{
 		Action: "create", Channel: "team", Title: "Write the partner checklist",
 		Owner: "eng", CreatedBy: "cos", ParentIssueID: parent.Task.ID,
+		ArtifactNotRequiredReason: "dedupe fixture lane",
 	})
 	if err != nil {
 		t.Fatalf("create lane: %v", err)
@@ -222,13 +229,15 @@ func TestNewLaneAfterDeliveryRequiresOptIn(t *testing.T) {
 	if _, err := b.MutateTask(TaskPostRequest{
 		Action: "create", Channel: "team", Title: "Record the onboarding video",
 		Owner: "eng", CreatedBy: "cos", ParentIssueID: parent.Task.ID,
+		ArtifactNotRequiredReason: "dedupe fixture lane",
 	}); err == nil {
 		t.Fatal("expected the next lane after full delivery to need the opt-in")
 	}
 	if _, err := b.MutateTask(TaskPostRequest{
 		Action: "create", Channel: "team", Title: "Record the onboarding video",
 		Owner: "eng", CreatedBy: "cos", ParentIssueID: parent.Task.ID,
-		AllowDuplicate: true,
+		AllowDuplicate:            true,
+		ArtifactNotRequiredReason: "dedupe fixture lane",
 	}); err != nil {
 		t.Fatalf("opt-in lane create: %v", err)
 	}

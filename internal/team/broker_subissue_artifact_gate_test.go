@@ -22,6 +22,12 @@ func TestArtifactGate_BindsOnSubIssueOfDefinedParent(t *testing.T) {
 		Owner:         "eng",
 		CreatedBy:     "cos",
 		ParentIssueID: parentID,
+		// A lead-authored lane declares its write scope at creation (§9.15).
+		// The test is about the completion gate, so the lane must exist first.
+		Definition: &TaskDefinition{
+			Goal:         "Draft the renewal emails",
+			ArtifactPath: "team/tasks/renewal-emails.md",
+		},
 	})
 	if err != nil {
 		t.Fatalf("create sub-issue: %v", err)

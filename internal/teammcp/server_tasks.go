@@ -110,11 +110,25 @@ func handleTeamTask(ctx context.Context, _ *mcp.CallToolRequest, args TeamTaskAr
 	if action == "create" && len(args.DependsOn) > 0 {
 		payload["depends_on"] = args.DependsOn
 	}
-	if action == "define" {
-		// R4 intake contract: forward the structured definition under the
-		// single "definition" wire key. The broker validates (goal required,
-		// success_criteria entries non-empty) and stamps defined_at.
+	// R4 intake contract: forward the structured definition under the single
+	// "definition" wire key. The broker validates (goal required,
+	// success_criteria entries non-empty) and stamps defined_at.
+	//
+	// Also accepted on create: a sub-issue's write scope belongs to the lane
+	// at the moment the lane is created (J3-3 follow-up). Sending it in a
+	// second define call is a round-trip the planner routinely skipped, and a
+	// lane with no scope can never publish to the wiki, so the broker refuses
+	// a lead-authored lane that declares neither a path nor "ships nothing".
+	definitionRequested := action == "define" ||
+		(action == "create" && (strings.TrimSpace(args.Goal) != "" || strings.TrimSpace(args.ArtifactScope) != "" || len(args.Deliverables) > 0))
+	if definitionRequested {
 		definition := map[string]any{"goal": strings.TrimSpace(args.Goal)}
+		if goal := strings.TrimSpace(args.Goal); goal == "" && action == "create" {
+			// A create usually has a title and no goal; the lane's own title is
+			// the contract it was scoped from, so the broker gets a real goal
+			// instead of a validation error over an empty field.
+			definition["goal"] = strings.TrimSpace(args.Title)
+		}
 		if len(args.Deliverables) > 0 {
 			deliverables := make([]map[string]string, 0, len(args.Deliverables))
 			for _, d := range args.Deliverables {
@@ -139,6 +153,11 @@ func handleTeamTask(ctx context.Context, _ *mcp.CallToolRequest, args TeamTaskAr
 			definition["artifact_path"] = scope
 		}
 		payload["definition"] = definition
+	}
+	if reason := strings.TrimSpace(args.ArtifactNotRequiredReason); reason != "" {
+		// Create-time "this lane ships no file" declaration: the escape hatch
+		// for a lead-authored sub-issue that has no wiki deliverable.
+		payload["artifact_not_required_reason"] = reason
 	}
 	if ap := strings.TrimSpace(args.ArtifactPath); ap != "" {
 		// Delivered-artifact reference (core-loop B1). The broker records it

@@ -1022,6 +1022,12 @@ func TestBrokerSubtaskStaysInTheOfficeChannel(t *testing.T) {
 		"owner":           "eng",
 		"channel":         parent.Channel,
 		"parent_issue_id": parent.ID,
+		// A lead-authored lane must declare its write scope in the create
+		// call (J3-3 follow-up); this test is about channel placement.
+		"definition": map[string]any{
+			"goal":          "Draft the launch announcement copy",
+			"artifact_path": "team/tasks/launch-announcement.md",
+		},
 	})
 	if child.ParentIssueID != parent.ID {
 		t.Fatalf("expected child parent_issue_id %q, got %q", parent.ID, child.ParentIssueID)

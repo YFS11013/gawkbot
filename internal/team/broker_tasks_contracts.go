@@ -66,8 +66,14 @@ type TaskPostRequest struct {
 	// is stamped on the task as artifact_not_required so the done-post and
 	// the parent Issue can tell an accounted-for empty completion from a
 	// forgotten one.
-	Verification                 string `json:"verification,omitempty"`
-	VerificationReason           string `json:"verification_reason,omitempty"`
+	Verification       string `json:"verification,omitempty"`
+	VerificationReason string `json:"verification_reason,omitempty"`
+	// ArtifactNotRequiredReason is the create-time form of the same
+	// "this work ships nothing" declaration. A lead-authored sub-issue with
+	// no Definition.ArtifactPath is refused at create (J3-3 follow-up,
+	// Journey 8) because its owner could never publish to the wiki; this
+	// reason is the escape that keeps that refusal from being a dead end.
+	ArtifactNotRequiredReason string `json:"artifact_not_required_reason,omitempty"`
 	// AllowDuplicate opts OUT of the delivered-duplicate guard (J2-6): a create
 	// whose title matches a task that already shipped is refused, because the
 	// office otherwise redoes delivered work (NEX-100/102 → NEX-148/150). Set

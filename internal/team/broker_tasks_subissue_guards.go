@@ -68,6 +68,36 @@ func (b *Broker) applySubIssueCreateRulesLocked(task *teamTask, actor string, al
 	if internal {
 		return nil
 	}
+	// Write-scope guard (J3-3 follow-up, Journey 8). A lane created with no
+	// declared artifact_path can never publish to the shared wiki: /
+	// wiki/write-task authorizes exactly definition.artifact_path, and the
+	// MCP tool description says so up front, so bots do not even try — they
+	// fall back to bot-private notebooks and visual artifacts. Journey 6 and
+	// Journey 7 both ended with zero write-task calls and zero team/**
+	// markdown, and the whole 403-education path went unexercised.
+	//
+	// Enforced ONLY on the actor who can satisfy it: the office lead, the
+	// same actor checkTaskActionAuthLocked treats as CEO and the only bot
+	// allowed to set a definition. A specialist filing its own lane has no
+	// authority to pin a shared path, so refusing there would be a dead end
+	// instead of a fix.
+	leadSlug := strings.ToLower(strings.TrimSpace(officeLeadSlugFrom(b.members)))
+	if leadSlug != "" && strings.EqualFold(strings.TrimSpace(actor), leadSlug) && !isHumanMessageSender(actor) {
+		scope := ""
+		if task.Definition != nil {
+			scope = strings.TrimSpace(task.Definition.ArtifactPath)
+		}
+		if scope == "" && strings.TrimSpace(task.ArtifactNotRequired) == "" {
+			return taskMutationError(
+				TaskMutationInvalid,
+				fmt.Sprintf(
+					"sub-task %q under %s has no write scope, so its owner could never publish the deliverable to the shared wiki — /wiki/write-task accepts exactly the path declared in definition.artifact_path, and nothing declares one here. @%s: pass definition.artifact_path in this SAME create call (allowed roots: %s), or artifact_not_required_reason=\"...\" if this lane genuinely ships no file. Retrying this create unchanged will be refused again.",
+					strings.TrimSpace(task.Title), parent.ID, strings.TrimSpace(actor), strings.Join(taskArtifactPathPrefixes, ", "),
+				),
+				nil,
+			)
+		}
+	}
 	if titlesAreSimilar(task.Title, parent.Title) {
 		return taskMutationError(
 			TaskMutationConflict,

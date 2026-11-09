@@ -784,6 +784,39 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 			CreatedAt:        now,
 			UpdatedAt:        now,
 		}
+		// Write scope at creation (J3-3 follow-up, Journey 8). A lane's
+		// definition carries the ONE wiki path its owner may publish to, so
+		// the planner should be able to declare it in the same call that
+		// creates the lane instead of a second define round-trip. Auth
+		// mirrors the define action: only the office lead (the same actor
+		// checkTaskActionAuthLocked treats as CEO) and a human may scope a
+		// task — otherwise any bot could self-authorize a write to
+		// team/accounts/… by creating a task that names it.
+		if body.Definition != nil {
+			if !isHumanMessageSender(actor) && !isInternalTaskActor(actor) {
+				leadSlug := strings.ToLower(strings.TrimSpace(officeLeadSlugFrom(b.members)))
+				// No lead yet (pre-onboarding, fixtures): the office is not
+				// managed, so there is nobody to route a scope decision to.
+				// Same stance as checkTaskActionAuthLocked's empty-lead path.
+				if leadSlug != "" && !strings.EqualFold(strings.TrimSpace(actor), leadSlug) {
+					rollbackTask()
+					return TaskResponse{}, taskMutationError(
+						TaskMutationForbidden,
+						fmt.Sprintf("definition (including artifact_path) is set by the office lead, not by @%s. Create the task without it and ask @%s to declare the write scope.", strings.TrimSpace(actor), leadSlug),
+						nil,
+					)
+				}
+			}
+			def, derr := normalizeTaskDefinition(body.Definition, now)
+			if derr != nil {
+				rollbackTask()
+				return TaskResponse{}, taskMutationError(TaskMutationInvalid, derr.Error(), nil)
+			}
+			task.Definition = def
+		}
+		if reason := strings.TrimSpace(body.ArtifactNotRequiredReason); reason != "" {
+			task.ArtifactNotRequired = fmt.Sprintf("not_required: %s (%s, %s)", reason, strings.TrimSpace(actor), now)
+		}
 		// Sub-issue create rules (force issue type, one-level-deep nesting,
 		// plan-gate, shallow + sibling-dedup guards) live in
 		// applySubIssueCreateRulesLocked to keep this file under the size budget.

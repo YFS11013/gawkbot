@@ -13,6 +13,22 @@ All notable changes to WUPHF will be documented in this file.
 
 ### Fixed
 
+- **A lane is created with its write scope, or the planner is told to fix it
+  before the lane exists.** `/wiki/write-task` authorizes exactly
+  `definition.artifact_path`, and the tool description says so up front, so a
+  sub-issue created without one never even attempts the write: Journey 6 and
+  Journey 7 both ended with zero `write-task` calls and zero `team/**`
+  markdown, every deliverable left in bot-private notebooks and visual
+  artifacts. `team_task action=create` now accepts `definition` (goal +
+  `artifact_scope`) in the same call — restricted to the office lead and
+  human, so no bot can self-authorize a path by creating a task that names it
+  — and a lead-authored sub-issue declaring neither `artifact_scope` nor
+  `artifact_not_required_reason` is refused with the allowed roots, the exact
+  field to set, and "retrying this create unchanged will be refused again".
+  Specialists are exempt: they cannot pin a shared path, so refusing there
+  would be a dead end rather than a fix. The `/wiki/write-task` refusal
+  (J3-3) stays as the fallback for a declared-but-mismatched path.
+
 - **An approved plan gets one short look before the hourly follow-up.**
   Approving a plan dispatches the owner exactly once; if that activation turn
   spends itself on anything else, nothing wakes the parent again until the
