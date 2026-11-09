@@ -178,6 +178,16 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 	if l.broker != nil {
 		botStream = l.broker.BotStream(slug)
 	}
+	// Plan posture (task in LifecycleStatePlanning): the owner explores and
+	// writes its plan, then the turn ends awaiting human approval. Opencode has
+	// no plan/read-only flag to pass (unlike Claude's --permission-mode plan or
+	// Codex's -s read-only), so the posture changes only what we do with the
+	// RESULT: surface the final message as a plan card and raise the
+	// plan-approval human_interview. Without this the task sits in Planning
+	// forever — sub-task creation and completion are both refused (see
+	// broker_tasks_subissue_guards.go, broker_tasks_mutation_service.go) and no
+	// card exists for the human to click. Journey 3 lost 36 min to exactly that.
+	planning := l.resolveTurnPosture(ctx, slug) == posturePlan
 
 	var stderr strings.Builder
 	cmd.Stderr = &stderr
@@ -359,12 +369,21 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 	relay.Flush()
 	if text != "" {
 		appendHeadlessCodexLog(slug, "opencode_result: "+text)
+		if planning {
+			emitHeadlessPlan(botStream, turnID, HeadlessProviderOpencode, slug, taskID, text)
+		}
 		msg, posted, err := l.postHeadlessFinalMessageIfSilent(slug, target, notification, text, startedAt)
 		if err != nil {
 			appendHeadlessCodexLog(slug, "opencode_fallback-post-error: "+err.Error())
 		} else if posted {
 			appendHeadlessCodexLog(slug, fmt.Sprintf("opencode_fallback-post: posted final output to #%s as %s", msg.Channel, msg.ID))
 		}
+	}
+	// A planning turn that produced a plan stops to await human approval — raise
+	// the plan-approval human_interview (idempotent; no-op for tasks that are
+	// not in Planning or produced no plan).
+	if planning {
+		l.raisePlanApprovalAfterTurn(taskID, slug, text)
 	}
 	return nil
 }
