@@ -110,6 +110,11 @@ func (b *Broker) handleWikiWriteTask(w http.ResponseWriter, r *http.Request) {
 			status = http.StatusConflict
 		}
 		log.Printf("wiki write-task refused: task=%s slug=%s path=%s: %v", taskID, slug, path, err)
+		if errors.Is(err, errTaskArtifactUndeclared) {
+			// Say it where the two people who can fix it are looking. One nudge
+			// per task: the bot retries, and a retry is not a second incident.
+			b.nudgeUndeclaredArtifactPath(taskID, slug, path)
+		}
 		writeJSON(w, status, map[string]string{"error": err.Error()})
 		return
 	}
@@ -137,6 +142,13 @@ func (b *Broker) handleWikiWriteTask(w http.ResponseWriter, r *http.Request) {
 var (
 	errTaskArtifactUnknownTask = errors.New("task not found")
 	errTaskArtifactTaskClosed  = errors.New("task is already closed")
+	// errTaskArtifactUndeclared is the "nobody pinned a path" case: the task is
+	// open and owned by the caller, but its definition carries no
+	// artifact_path, so there is nothing to authorize against. Journey 3 and
+	// Journey 4 both hit it through sub-issues the planner created without a
+	// definition; the owner then wrote into a notebook and the human only saw
+	// the downgrade at review.
+	errTaskArtifactUndeclared = errors.New("artifact path not declared")
 )
 
 // authorizeTaskArtifactWrite is the whole gate: the task exists, the caller
@@ -162,7 +174,16 @@ func (b *Broker) authorizeTaskArtifactWrite(slug, taskID, path string) error {
 		declared = strings.TrimSpace(task.Definition.ArtifactPath)
 	}
 	if declared == "" {
-		return fmt.Errorf("task %s declares no artifact_path; pass human_request instead", taskID)
+		creator := strings.TrimSpace(task.CreatedBy)
+		if creator == "" {
+			creator = "whoever created it"
+		} else {
+			creator = "@" + creator
+		}
+		// Name the fix and its owner. "pass human_request instead" told the bot
+		// what not to do and left the human out of the loop entirely.
+		return fmt.Errorf("%w: %s declares no artifact_path, so no wiki path is authorized for it. %s must set definition.artifact_path on the task (or route this deliverable through a human request); retrying this call cannot succeed",
+			errTaskArtifactUndeclared, taskID, creator)
 	}
 	if !sameWikiPath(declared, path) {
 		return fmt.Errorf("task %s declares artifact_path %q, not %q", taskID, declared, path)
@@ -500,4 +521,62 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(body)
+}
+
+// artifactPathMissingKind marks both the audit row and the chat line a
+// refused write leaves behind. One kind keeps the dedupe query and the
+// message a reader sees pointing at the same event.
+const artifactPathMissingKind = "artifact_path_missing"
+
+// nudgeUndeclaredArtifactPath posts the refusal where it can be acted on: the
+// task's channel, addressing the creator who must pin the path and the owner
+// who has to work around it meanwhile.
+//
+// Deduped by the audit row — a bot that retries the same write every turn must
+// not produce a chat storm, and the row survives restarts (the in-memory
+// message list does not). The log keeps 150 rows, so a busy office can lose
+// the marker and nudge twice for one task; a second line is cheaper than a new
+// wire field on every task.
+func (b *Broker) nudgeUndeclaredArtifactPath(taskID, slug, path string) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	task := b.taskByIDLocked(taskID)
+	if task == nil {
+		return
+	}
+	for _, a := range b.actions {
+		if a.Kind == artifactPathMissingKind && a.RelatedID == taskID {
+			return
+		}
+	}
+	creator := strings.TrimSpace(task.CreatedBy)
+	owner := strings.TrimSpace(task.Owner)
+	channel := normalizeChannelSlug(task.Channel)
+	if channel == "" {
+		channel = "general"
+	}
+	who := "this task"
+	if creator != "" {
+		who = "@" + creator
+	}
+	writer := "a bot"
+	if strings.TrimSpace(slug) != "" {
+		writer = "@" + strings.TrimSpace(slug)
+	}
+	content := fmt.Sprintf("%s: %s has no definition.artifact_path, so %s's write to %s was refused. Pin the path on the task (or have %s deliver through a human request) — until then the lane can only leave notes in a notebook.",
+		who, taskID, writer, path, writer)
+	if owner != "" {
+		content += fmt.Sprintf(" Owner: @%s.", owner)
+	}
+	b.appendActionLocked(artifactPathMissingKind, "office", channel, "system",
+		truncateSummary(fmt.Sprintf("artifact write refused on %s: %s", taskID, path), 140), taskID)
+	b.counter++
+	b.appendMessageLocked(channelMessage{
+		ID:        fmt.Sprintf("msg-%d", b.counter),
+		From:      "system",
+		Channel:   channel,
+		Kind:      artifactPathMissingKind,
+		Content:   content,
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+	})
 }

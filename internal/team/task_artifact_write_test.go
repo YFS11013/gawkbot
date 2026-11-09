@@ -1,6 +1,7 @@
 package team
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
@@ -82,5 +83,77 @@ func TestReviewTaskDeclaresItsArtifactPath(t *testing.T) {
 	}
 	if err := b.authorizeTaskArtifactWrite(reviews[0].Owner, reviews[0].ID, declare); err != nil {
 		t.Fatalf("the reviewer must be able to write its own declared artifact: %v", err)
+	}
+}
+
+// A refused write for a task with no pinned path must reach the human who can
+// fix it, once. Journey 3/4: cos's planner created lanes without definitions,
+// both owners were refused, both fell back to notebooks, and the human learned
+// about the downgrade only at review.
+func TestUndeclaredArtifactPathNudgesCreatorOnce(t *testing.T) {
+	b := newTestBroker(t)
+	b.mu.Lock()
+	b.tasks = []teamTask{{
+		ID: "JOURN-916", Channel: "analyst__cos", Title: "ICP hypothesis", Owner: "analyst",
+		CreatedBy: "cos", status: "in_progress",
+	}}
+	b.mu.Unlock()
+
+	for i := 0; i < 3; i++ {
+		b.nudgeUndeclaredArtifactPath("JOURN-916", "analyst", "team/research/icp.md")
+	}
+
+	b.mu.Lock()
+	var notices []channelMessage
+	for _, m := range b.messages {
+		if m.Kind == artifactPathMissingKind {
+			notices = append(notices, m)
+		}
+	}
+	actions := 0
+	for _, a := range b.actions {
+		if a.Kind == artifactPathMissingKind && a.RelatedID == "JOURN-916" {
+			actions++
+		}
+	}
+	b.mu.Unlock()
+
+	if len(notices) != 1 || actions != 1 {
+		t.Fatalf("three retries must leave one nudge, got %d messages / %d actions", len(notices), actions)
+	}
+	body := notices[0].Content
+	for _, want := range []string{"@cos", "JOURN-916", "team/research/icp.md", "artifact_path", "@analyst"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("nudge must contain %q, got %q", want, body)
+		}
+	}
+	if notices[0].Channel != "analyst__cos" {
+		t.Errorf("nudge must land on the task channel, got %q", notices[0].Channel)
+	}
+}
+
+// The refusal itself must tell the calling bot what to do next and who owns
+// the missing field — the old text only said "pass human_request instead" and
+// never named the creator.
+func TestUndeclaredArtifactPathRefusalNamesCreator(t *testing.T) {
+	b := newTestBroker(t)
+	b.mu.Lock()
+	b.tasks = []teamTask{{
+		ID: "JOURN-917", Channel: "team", Title: "email draft", Owner: "ae",
+		CreatedBy: "cos", status: "in_progress",
+	}}
+	b.mu.Unlock()
+
+	err := b.authorizeTaskArtifactWrite("ae", "JOURN-917", "team/emails/x.md")
+	if err == nil {
+		t.Fatal("expected refusal")
+	}
+	if !errors.Is(err, errTaskArtifactUndeclared) {
+		t.Fatalf("refusal must be the undeclared sentinel, got %v", err)
+	}
+	for _, want := range []string{"@cos", "definition.artifact_path", "cannot succeed"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("refusal must contain %q, got %q", want, err.Error())
+		}
 	}
 }
