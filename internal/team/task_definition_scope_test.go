@@ -214,3 +214,61 @@ func TestCanceledLaneDeclaredPathDoesNotTripTheContainerGuard(t *testing.T) {
 		t.Fatalf("a canceled lane must not own its old scope: %v", err)
 	}
 }
+
+// Guard exercise 2026-11-10 fired all three container guards and left
+// actions[] and broker.log completely clean, so the only trace of a bypass
+// attempt was the operator's own transcript. Each refusal now leaves a
+// `guard_refused` row.
+func TestContainerGuardRefusalsLeaveALedgerRow(t *testing.T) {
+	b := newTestBroker(t)
+	const parentID, laneID = "GUARD-30", "GUARD-31"
+	const lanePath = "team/accounts/guard-quote.md"
+	now := time.Date(2026, 11, 10, 13, 0, 0, 0, time.UTC).Format(time.RFC3339)
+	b.mu.Lock()
+	b.tasks = append(b.tasks,
+		teamTask{
+			ID: parentID, Title: "Issue", Channel: testTeamRoom, Owner: "cos",
+			status: "in_progress", CreatedBy: "cos", CreatedAt: now, UpdatedAt: now,
+			LifecycleState: LifecycleStateRunning,
+		},
+		teamTask{
+			ID: laneID, Title: "Lane", Channel: testTeamRoom, Owner: "cos",
+			status: "done", CreatedBy: "cos", CreatedAt: now, UpdatedAt: now,
+			ParentIssueID: parentID, Artifact: lanePath,
+			LifecycleState: LifecycleStateApproved,
+		})
+	b.mu.Unlock()
+
+	// 1. define's write scope
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "define", ID: parentID, Channel: testTeamRoom, CreatedBy: "cos",
+		Definition: &TaskDefinition{Goal: "Aggregate.", ArtifactPath: lanePath},
+	}); err == nil {
+		t.Fatal("expected the container scope guard to refuse")
+	}
+	// 2. the artifact field
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "complete", ID: parentID, Channel: testTeamRoom, CreatedBy: "cos",
+		ArtifactPath: lanePath,
+	}); err == nil {
+		t.Fatal("expected the container artifact guard to refuse")
+	}
+	// 3. a bot closing a container with delivered lanes
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "complete", ID: parentID, Channel: testTeamRoom, CreatedBy: "cos",
+		Verification: verificationNotRequired, VerificationReason: "container",
+	}); err == nil {
+		t.Fatal("expected the bot-close guard to refuse")
+	}
+
+	rows := 0
+	for _, action := range b.Actions() {
+		if action.Kind != "guard_refused" || action.RelatedID != parentID {
+			continue
+		}
+		rows++
+	}
+	if rows != 3 {
+		t.Fatalf("every refused container mutation must leave one guard_refused row, got %d", rows)
+	}
+}
