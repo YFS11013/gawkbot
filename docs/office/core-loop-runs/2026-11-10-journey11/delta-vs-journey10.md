@@ -9,7 +9,7 @@
 | 父 Issue 进 `decision` | 02:54:20Z | 04:24:27Z |
 | 父 Issue 的 `decision:` 卡 | **从不出现**（F-I）：`artifact=null`，旧谓词判「没东西可批」 | 04:24:51Z 出现（`request-83`），距进 decision 24 秒 |
 | 卡正文 | —— | `The deliverable is team/accounts/acme-renewal-quote.md.`（**只一条**，见 §3） |
-| 点击 | 人工探针补点，不带 `artifact_path` → 409 | 04:25:00 点 `approve_decision` → 200，04:25:06 `done/approved` |
+| 点击 | 人工探针补点，不带 `artifact_path` → 409 | 04:25:00 点 `approve_decision` → 200，04:25:06 `done/approved`（≤10 秒达标的证据是这行，不是最终 `updated_at=04:25:20Z`——那是之后又一次写） |
 | lane 进 `decision` | 0 条（`taskNeedsStructuredReview` 判假，交付即 `done/approved`） | 2 条（`JOURN-22`/`JOURN-24`），各一张 `decision:` 卡，各一次人工点击 |
 | QA lane | 无（只拆 2 条 lane） | 有（`JOURN-26`，拆出时就带 reviewer）；报假阴性后被取消 |
 | 干预次数 | 2 次（计划卡、探针补点各 1） | 6 次：语言采访、计划卡、两张 lane 卡、取消 QA、父 Issue 留言 |
