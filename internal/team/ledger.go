@@ -164,6 +164,22 @@ func (b *Broker) RecordDecision(kind, channel, summary, reason, owner string, si
 	return record, nil
 }
 
+// recordGuardRefusalLocked writes one row for an attempt to bypass a container
+// guard. The guards exist to stop a bot from closing or overwriting work the
+// human is owed, and an attempt is exactly the kind of event an operator should
+// be able to count — guard exercise 2026-11-10 (core-loop-runs/2026-11-10-guards)
+// fired three of them and left actions[] and broker.log completely clean, so the
+// only trace was the operator's own transcript. Caller holds b.mu and MUST call
+// this after any rollback: restore() resets b.actions to its snapshot.
+func (b *Broker) recordGuardRefusalLocked(task *teamTask, guard, detail string) {
+	if b == nil || task == nil {
+		return
+	}
+	b.appendActionLocked("guard_refused", "office", task.Channel, "broker",
+		truncateSummary(guard+": "+detail, 140), task.ID)
+	_ = b.saveLocked()
+}
+
 func (b *Broker) RecordAction(kind, source, channel, actor, summary, relatedID string, signalIDs []string, decisionID string) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()

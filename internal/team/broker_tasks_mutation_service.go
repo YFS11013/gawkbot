@@ -1316,6 +1316,7 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 			// JOURN-12's deliverable).
 			if scope := strings.TrimSpace(def.ArtifactPath); scope != "" {
 				if lane, owned := b.childOwningArtifactLocked(task, scope); owned {
+					b.recordGuardRefusalLocked(task, "container scope", fmt.Sprintf("%s is %s's deliverable", scope, lane))
 					return TaskResponse{}, taskMutationError(
 						TaskMutationConflict,
 						fmt.Sprintf("task %s is a container: %s is %s's deliverable, not a file this Issue writes itself. Leave artifact_path out of the definition — the decision card names every lane file.", task.ID, scope, lane),
@@ -1498,6 +1499,7 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 			// itself wrote.
 			if childID, ok := b.childOwningArtifactLocked(task, artifactPath); ok {
 				rollbackTask()
+				b.recordGuardRefusalLocked(task, "container artifact", fmt.Sprintf("%s is %s's deliverable", artifactPath, childID))
 				return TaskResponse{}, taskMutationError(TaskMutationConflict,
 					fmt.Sprintf("task %s is a container: %s is %s's deliverable, not this Issue's own. Leave artifact_path empty — its lanes' files are already on record and the decision card names every one of them — or pass a file %s wrote itself.",
 						task.ID, artifactPath, childID, task.ID), nil)
@@ -1630,6 +1632,7 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		if reachedDone && !isHumanMessageSender(actor) {
 			if delivered := len(b.childDeliverablesLocked(task)); delivered > 0 {
 				rollbackTask()
+				b.recordGuardRefusalLocked(task, "container close", fmt.Sprintf("%s tried to close it with %d delivered lane(s)", actor, delivered))
 				return TaskResponse{}, taskMutationError(TaskMutationConflict,
 					fmt.Sprintf("task %s is a container with %d delivered lane(s): a bot may not close it from here — that would skip the human. Call submit_for_review on it with no artifact_path; the card names every lane file and the human's approve closes the Issue. verification=not_required does not describe an Issue whose lanes shipped files.", task.ID, delivered),
 					nil,

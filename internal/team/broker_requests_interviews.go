@@ -635,7 +635,8 @@ func (b *Broker) handleRequests(w http.ResponseWriter, r *http.Request) {
 }
 
 func (b *Broker) handleGetRequests(w http.ResponseWriter, r *http.Request) {
-	channel := normalizeChannelSlug(r.URL.Query().Get("channel"))
+	rawChannel := strings.TrimSpace(r.URL.Query().Get("channel"))
+	channel := normalizeChannelSlug(rawChannel)
 	scope := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("scope")))
 	// scope=all returns requests across every channel the viewer can access. The
 	// broker's blocking check (handlePostMessage, PostMessage) is global, so the
@@ -658,12 +659,17 @@ func (b *Broker) handleGetRequests(w http.ResponseWriter, r *http.Request) {
 	// answer from a room that no longer exists — the Inbox rendering as "no
 	// requests" when there were plenty. Say what is missing instead.
 	//
+	// The check reads the RAW query value: `channel` has already been through
+	// normalizeChannelSlug, which launders "" into "general", so testing it here
+	// made this branch dead code. Guard exercise 2026-11-10 walked straight into
+	// that: the driver polled `/requests` with no channel, got `requests: []`,
+	// and reported "NO CARD" for two minutes while a pending decision card sat in
+	// `cos__human`.
+	//
 	// A by-ID read is exempt: `?id=` addresses one request directly, so the
 	// channel is not a filter it needs and demanding one would break the App
 	// approval poll, whose whole job is to follow a request_id it was handed.
-	// Latent until normalizeChannelSlug stops laundering "" into "general" —
-	// today `channel` is never empty here — but wrong either way.
-	if !allChannels && requestID == "" && channel == "" {
+	if !allChannels && requestID == "" && rawChannel == "" {
 		http.Error(w, `channel is required: there is no default room to fall back to. Name a channel, pass an id, or pass scope=all to read across every channel you can see.`, http.StatusBadRequest)
 		return
 	}

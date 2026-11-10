@@ -1440,3 +1440,45 @@ func TestBlockingRequestGateLetsBotHTTPPostsThrough(t *testing.T) {
 		t.Fatalf("human post in a parked channel = %d, want 409", code)
 	}
 }
+
+// Guard exercise 2026-11-10: the driver polled `/requests` with no channel,
+// got `requests: []`, and reported "NO CARD" for two minutes while a pending
+// decision card sat in `cos__human`. The missing-channel branch existed but was
+// dead code — `channel` had already been laundered to "general". It now reads
+// the raw query value, so forgetting the parameter says so instead of answering
+// confidently about a room the caller never named.
+func TestGetRequestsWithoutAChannelSaysSo(t *testing.T) {
+	b := newTestBroker(t)
+	ensureTestMemberAccess(b, "general", "human", "Human")
+	if err := b.StartOnPort(0); err != nil {
+		t.Fatalf("failed to start broker: %v", err)
+	}
+	defer b.Stop()
+	base := fmt.Sprintf("http://%s", b.Addr())
+
+	get := func(path string) (int, string) {
+		req, _ := http.NewRequest(http.MethodGet, base+path, nil)
+		req.Header.Set("Authorization", "Bearer "+b.Token())
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("GET %s failed: %v", path, err)
+		}
+		defer resp.Body.Close()
+		raw, _ := io.ReadAll(resp.Body)
+		return resp.StatusCode, string(raw)
+	}
+
+	status, body := get("/requests")
+	if status != http.StatusBadRequest {
+		t.Fatalf("a bare listing must name the missing channel, got %d: %s", status, body)
+	}
+	if !strings.Contains(body, "channel is required") || !strings.Contains(body, "scope=all") {
+		t.Fatalf("the refusal must say what to pass instead, got %q", body)
+	}
+
+	for _, path := range []string{"/requests?channel=general", "/requests?scope=all"} {
+		if status, body := get(path); status != http.StatusOK {
+			t.Fatalf("GET %s must still work, got %d: %s", path, status, body)
+		}
+	}
+}
