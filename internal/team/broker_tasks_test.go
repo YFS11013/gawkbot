@@ -377,7 +377,7 @@ func TestBrokerTaskLifecycle(t *testing.T) {
 		t.Fatalf("expected completion to clear follow-up timestamps, got %+v", completed)
 	}
 
-	req, _ = http.NewRequest(http.MethodGet, base+"/tasks", nil)
+	req, _ = http.NewRequest(http.MethodGet, base+"/tasks?channel=general", nil)
 	req.Header.Set("Authorization", "Bearer "+b.Token())
 	resp, err = http.DefaultClient.Do(req)
 	if err != nil {
@@ -4239,5 +4239,80 @@ func TestCompleteWithoutArtifactIsRefused(t *testing.T) {
 	}
 	if kept.Task.HollowCompletion {
 		t.Errorf("a completion that names an artifact is not hollow; got %+v", kept.Task)
+	}
+}
+
+// Journey 15 (core-loop-runs/2026-11-10-journey15): a bare GET /tasks answered
+// {"channel":"general","tasks":[]} while JOURN-1 sat in cos__human — the same
+// laundering that made a bare /requests answer "no requests". The web client
+// already carries its own `|| "general"` workaround; the server now says what
+// is missing, and a parent-scoped read works without naming a channel.
+func TestGetTasksWithoutAChannelSaysSo(t *testing.T) {
+	b := newTestBroker(t)
+	ensureTestMemberAccess(b, "cos__human", "human", "Human")
+	if err := b.StartOnPort(0); err != nil {
+		t.Fatalf("failed to start broker: %v", err)
+	}
+	defer b.Stop()
+	base := fmt.Sprintf("http://%s", b.Addr())
+
+	parent, err := b.MutateTask(TaskPostRequest{
+		Action: "create", Channel: "cos__human", CreatedBy: "human", Owner: "cos",
+		Title: "Parent issue", Details: "Two lanes.",
+	})
+	if err != nil {
+		t.Fatalf("create parent: %v", err)
+	}
+	parentID := parent.Task.ID
+	// Approving a planning task starts it (planning → running); the sub-task
+	// gate refuses a parent whose plan is still unapproved.
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "approve", ID: parentID, Channel: "cos__human", CreatedBy: "human",
+	}); err != nil {
+		t.Fatalf("approve parent: %v", err)
+	}
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "create", Channel: "cos__human", CreatedBy: "human", Owner: "cos",
+		Title: "Lane", Details: "One file.", ParentIssueID: parentID,
+	}); err != nil {
+		t.Fatalf("create lane: %v", err)
+	}
+
+	get := func(path string) (int, string) {
+		req, _ := http.NewRequest(http.MethodGet, base+path, nil)
+		req.Header.Set("Authorization", "Bearer "+b.Token())
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("GET %s failed: %v", path, err)
+		}
+		defer resp.Body.Close()
+		raw, _ := io.ReadAll(resp.Body)
+		return resp.StatusCode, string(raw)
+	}
+
+	status, body := get("/tasks")
+	if status != http.StatusBadRequest {
+		t.Fatalf("a bare listing must name the missing channel, got %d: %s", status, body)
+	}
+	if !strings.Contains(body, "channel is required") || !strings.Contains(body, "all_channels=true") {
+		t.Fatalf("the refusal must say what to pass instead, got %q", body)
+	}
+
+	if status, body := get("/tasks?channel=cos__human"); status != http.StatusOK {
+		t.Fatalf("naming the channel must work, got %d: %s", status, body)
+	} else if !strings.Contains(body, parentID) {
+		t.Fatalf("naming the channel must find the task, got %s", body)
+	}
+	if status, body := get("/tasks?all_channels=true&viewer_slug=human"); status != http.StatusOK {
+		t.Fatalf("all_channels=true must work, got %d: %s", status, body)
+	}
+	// A parent-scoped read names its own subject, so it needs no channel — and
+	// it must not fall back to filtering on "general".
+	status, body = get("/tasks?parent_issue_id=" + parentID)
+	if status != http.StatusOK {
+		t.Fatalf("a parent-scoped read must work without a channel, got %d: %s", status, body)
+	}
+	if !strings.Contains(body, `"Lane"`) {
+		t.Fatalf("a parent-scoped read must return the lane, got %s", body)
 	}
 }
