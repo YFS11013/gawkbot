@@ -681,18 +681,32 @@ func (b *Broker) handleTaskComment(w http.ResponseWriter, r *http.Request, actor
 	if _, err := b.PostMessage(sender, channel, trimmed, nil, ""); err != nil {
 		// Map PostMessage failures to distinct HTTP statuses so the client can
 		// tell a transient server error apart from an auth/route problem.
-		// Substrings match the errors PostMessage returns in broker_messages.go.
+		// Substrings match the errors PostMessage returns in broker_messages.go
+		// and the bot-DM guard in broker_bot_dm.go.
+		//
+		// The body carries the reason verbatim. Journey 11
+		// (core-loop-runs/2026-11-10-journey11) hit this endpoint with a task
+		// whose channel was the cos↔reviewer DM: the human wanted to correct a
+		// QA false negative, got `500 {"error":"failed to post message"}` for
+		// it, and nothing said the channel was the problem. A caller cannot
+		// choose a different route it cannot name.
 		msg := strings.ToLower(err.Error())
 		status := http.StatusInternalServerError
 		switch {
-		case strings.Contains(msg, "access denied"):
+		case strings.Contains(msg, "access denied"),
+			strings.Contains(msg, "observer-only"),
+			strings.Contains(msg, "limited to its two members"):
 			status = http.StatusForbidden
 		case strings.Contains(msg, "not found"):
 			status = http.StatusNotFound
 		case strings.Contains(msg, "request pending"):
 			status = http.StatusConflict
 		}
-		writeJSON(w, status, map[string]string{"error": "failed to post message"})
+		writeJSON(w, status, map[string]string{
+			"error":   "failed to post message",
+			"channel": channel,
+			"detail":  err.Error(),
+		})
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{
