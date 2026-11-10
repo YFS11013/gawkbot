@@ -207,10 +207,10 @@ prereg `core-loop-runs/2026-11-10-guards/prereg.md`，判据 G1–G7、失败模
 - **边界被实测确认（非缺陷）**：空容器（无已交付 lane）从任务端点 `complete` + `not_required` 仍是**合法**的，`hollow_completion=true` 是诚实的——它确实什么都没交付。门只在「有已交付 lane」时存在。
 - **未深挖的观察**：① 一个任务可以写另一个任务**已交付**的 `artifact`（`GUARD-4` 覆盖了 `GUARD-12` 的 `team/accounts/guard-quote.md`）；文件是否该独占未定，`mode=append_section` 的共享写法是有意的。② `GET /requests` 在 `0464f91` 上返回 `requests: []`，而同一刻状态文件里有 pending 卡；脚本改用状态文件取卡 id。
 - **判分**：独立子代理 `GuardScore`（`…/2026-11-10-guards/scorecard.md`）：**G1–G7 全部成立、H-a…H-e 均未命中、硬失败无**；并指出三处 409 的响应原文没有落盘（只存在于操作员记录），G1/G2 的文案判据区分不了「容器门」和「存在性门」，G4 必须连前置条件一起断言。
-- **待办（判据外，未修）**：
-  - **被拒的变更不落 action、也不进 broker 日志**：`actions.json` 26 条全是成功事件，三次 409 一个痕迹都没有。要么把拒绝记成 `decision_refused`/`mutation_refused` 事件，要么让驱动脚本自己落盘探针响应——否则同一类演练永远只能靠操作员粘贴。
+- **判据外发现**：
+  - **被拒的变更不落 action、也不进 broker 日志（已修）**：`actions.json` 26 条全是成功事件，三次 409 一个痕迹都没有。三条容器守卫（写范围 / artifact / bot 关闭）的拒绝现在各写一条 `guard_refused`（`related_id=任务`，summary 带被我撞的那条路径与 lane id），测试 `TestContainerGuardRefusalsLeaveALedgerRow`（去掉记录即红）。注意：记录必须发生在 `rollbackTask()` **之后**——`brokerTaskMutationSnapshot.restore` 会把 `b.actions` 重置回快照，先记就白记。
   - **一个任务可以写另一个任务已交付的 `artifact`**：`GUARD-4` 覆盖了 `GUARD-12` 的 `team/accounts/guard-quote.md`（33 → 1642 字节）。`mode=create` 没有独占校验；是否该独占需要产品决策（`mode=append_section` 的共享写法是有意的）。
-  - **`GET /requests` 视图与状态文件不一致**：`0464f91` 上返回 `requests: []` 而状态文件里有 pending 卡。需单独查（是 scope 过滤还是快照未刷新）。
+- **同轮查出来的缺陷（已修）**：裸 `GET /requests` 静默答「没有请求」——`normalizeChannelSlug` 把 `""` 洗成 `general`，那条「channel is required」的 400 分支读的是洗过的值、永远是死代码，于是裸调用按 `general` 过滤出一条空列表（驱动脚本因此误报 `NO CARD` 两分钟）。现在判断改用原始 query 值，裸调用报 400 并说清该传什么；`?channel=`/`?scope=all`/`?id=` 不受影响。测试 `TestGetRequestsWithoutAChannelSaysSo`（去掉修复即红）。详见 `…/2026-11-10-guards/observations.md` §6。
 
 
 

@@ -614,7 +614,9 @@ J14 的评分卡把 V1/V7 判成**未观察**——模型那一轮自发走了�
 
 **判据层面的教训**：第一次试跑因为 `write-task` 少了 `mode` 而没落地文件，三条门**全部不适用**——它们没有报错，只是安静地不存在（`complete` 被存在性门拦下、`define` 200、`not_required` 200 关掉空容器）。所以在真机上「门没拦住」有两种解释：门坏了，或者对象根本没成立。断言必须同时断言前置条件（「lane 确实 done」），否则「未观察」会伪装成「成立」。
 
-**留下的观察（未处理）**：① 一个任务可以写另一个任务**已交付**的 `artifact`（`GUARD-4` 覆盖了 `GUARD-12` 的 `team/accounts/guard-quote.md`）；文件是否该独占未定，`mode=append_section` 的共享写法是有意的。② `GET /requests` 在 `0464f91` 上返回 `requests: []`，而同一刻状态文件里有 pending 卡。
+**判据外的另外两处（同轮查、已修）**：① 三条守卫的拒绝**不留任何痕迹**（`actions[]` 26 条全是成功事件、`broker.log` 干净），越权尝试本身却正是该被计数的事件；现在三个拒绝点各写一条 `guard_refused`（`related_id=任务`，summary 带路径与 lane id），且必须写在 `rollbackTask()` **之后**——`brokerTaskMutationSnapshot.restore` 会把 `b.actions` 重置回快照。测试 `TestContainerGuardRefusalsLeaveALedgerRow`。② 裸 `GET /requests` 静默答「没有请求」：`normalizeChannelSlug` 把 `""` 洗成 `general`，「channel is required」的 400 分支读的是洗过的值、永远是死代码；驱动的 `NO CARD` 两分钟就是它造成的。现在判断用原始 query 值，裸调用报 400 并说清该传什么。测试 `TestGetRequestsWithoutAChannelSaysSo`。
+
+**留下的观察（未处理）**：一个任务可以写另一个任务**已交付**的 `artifact`（`GUARD-4` 覆盖了 `GUARD-12` 的 `team/accounts/guard-quote.md`）；文件是否该独占未定，`mode=append_section` 的共享写法是有意的。另外决策批准路径的同一处 `childOwningArtifactLocked` 拒绝仍未留痕（那段代码在 `b.mu` 持有期间返回），作为已知缺口记在 `observations.md` §7。
 
 ### 9.22 Journey 10：卡没发出来，不是「没到 decision」，是「Issue 没有自己的文件」（2026-11-10）
 

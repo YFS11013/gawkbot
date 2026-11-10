@@ -68,6 +68,44 @@ GUARD-9 -> done/approved, artifact=null, hollow_completion 缺省(=false)
 ## 4 其它观察（与判据无关）
 
 - **撞门之后文件仍被改写，但不是容器干的**：`GUARD-9` 关掉后（21:25:40）`GUARD-4`（上一轮遗留的 lane）用 `write-task` 把 `team/accounts/guard-quote.md` 从 33 字节改成 1642 字节，`write-task` 200。`GUARD-4` 自己声明了同一路径，所以这是「两条 lane 声明同一文件」，属我搭场景时留下的同名声明，不是容器越权。但它暴露出一个**未设防的相邻问题**：一个任务可以写另一个任务已记录的 `artifact`（这里 GUARD-12 已交付该文件，GUARD-4 仍可覆盖）。是否该独占未定——`mode=append_section` 的共享写法是有意的；先记为观察，不动。
-- `GET /requests`（HTTP）在这个构建上返回 `requests: []`，而同一刻 `broker-state.json` 里有 `pending` 卡。脚本改用状态文件取卡 id。**未深挖**，记在这里。
+- `GET /requests`（HTTP）在这个构建上返回 `requests: []`，而同一刻 `broker-state.json` 里有 `pending` 卡。脚本改用状态文件取卡 id。**已查明并修复**（见 §6）：不是视图不同步，是裸 `GET /requests` 的 `channel` 被 `normalizeChannelSlug` 洗成了 `general`，于是按 `general` 过滤、一条都不剩；那条「channel is required」的 400 分支因为读的是洗过的值，从来没被执行过。
 - 模型（cos）在 `GUARD-9` 期间自己起了一轮，挂出 `request-23`「两条 lane 应该是什么？我读不到定义」——这是它对一个**操作员搭的空壳场景**的正常反应，不计入判据。
 - 上一轮 J14 的教训在这里复现了一次形态：场景里只要有一步没搭实（这次是 `mode` 缺失），门就无声地不适用。**门的断言必须同时断言前置条件成立**（本次 prereg 的 G4 只查了「没被污染」，应补「lane 确实 done」）。
+
+## 5 回顾：G4 这条判据过宽（评分后修，prereg 不追改）
+
+G4 写的是「三次撞门后容器仍 `in_progress`、`artifact=null`」，只断言**没被污染**，没断言**门有对象**。第一次试跑（`GUARD-1`）正好落在这个缺口里：`write-task` 少 `mode`，两条 lane 停在 `in_progress`，三道门按设计全部不适用——撞门要么被存在性门拦下（409 `does not exist in the wiki`）、要么直接 200——而 G4 依然成立。
+
+本次因为第二次试跑把前置搭实了（两条 lane `done/approved`、`pass=true`、`checked_at=13:21:40Z` 磁盘可验）才没有误判，但那是运气不是判据。
+
+修订（写进下一轮 prereg）：`G4' = G4 ∧ 探针前两条 lane 均 done/approved ∧ verification_result.pass=true ∧ artifact 精确等于各自声明路径`。缺前置时整体判**未观察**，不判成立。`scorecard.md` §4 有同一批评的更完整版本。
+
+**证据纪律更正**：本文件的 prereg 虽然写在开跑前，但直到与结果同一提交（`db3cbea`）才进仓，且 G4 的补注是评分后追加的——违反 `core-loop-runs/README.md` §1「开跑前 commit、跑完不许改」。已在 `prereg.md` 顶部自曝，并把 G4 修订移到这里。下一轮剧本演练先单独 commit prereg 再开跑。
+
+## 6 从 §4 的观察里查出来的缺陷：裸 `GET /requests` 静默答「没有请求」
+
+§4 那条「`GET /requests` 返回 `requests: []` 而状态文件里有 pending 卡」不是看法问题，是一条真缺陷。
+
+`handleGetRequests` 先 `normalizeChannelSlug(r.URL.Query().Get("channel"))`，而这个函数把 `""` 洗成 `"general"`；随后那条「channel is required」的 400 分支判断的是**洗过之后**的 `channel`，所以永远是假——分支是死代码。裸调用的结果：200、`channel: "general"`、`requests: []`，不管实际有多少张待决卡躺在别的房间里。我的驱动脚本正是这样被误导了 2 分钟（`NO CARD`）。
+
+修复：判断改用**原始 query 值**（`rawChannel`），其余不变。裸 listing → 400 `channel is required: there is no default room to fall back to. Name a channel, pass an id, or pass scope=all …`；`?channel=<x>`、`?scope=all`、`?id=<rid>` 三种正常用法不受影响。测试 `TestGetRequestsWithoutAChannelSaysSo`（去掉修复即红：`get 200: {"channel":"general","pending":null,"requests":[],"scope":""}`）。
+
+为什么危险：这是一个「自信的空答案」。任何外部脚本、巡检或未来的驱动脚本只要漏了 `channel`，都会读到「球不在人手里」。
+
+## 7 判据外第三条：三次 409 全都没有留痕（已修）
+
+`artifacts/actions.json` 26 条全是 `task_created`/`task_updated`/`request_created`/`request_answered`/`automation`，`broker-log-tail.txt` 只有 3 条成功的 `wiki write-task`——**三次拒绝一点痕迹都没有**。评分卡因此只能把 G1/G2/G3 的证据来源标成「操作员记录，非磁盘原始」。
+
+对一个「拦住越权」的门来说这是错的：越权尝试本身就是要被计数的事件（谁、什么时候、想写哪条 lane 的哪个文件）。现在三条守卫的拒绝各写一条 `guard_refused`：
+
+- `container scope` —— `define` 的写范围指向 lane 的文件；
+- `container artifact` —— `artifact_path` 指向 lane 的文件；
+- `container close` —— bot 想从任务端点关掉有已交付 lane 的容器。
+
+`related_id` 是任务 id，summary 里带被撞的路径与 lane id，`channel` 沿任务的频道。测试 `TestContainerGuardRefusalsLeaveALedgerRow`（把记录函数改成空实现即红：`got 0`）。
+
+**实现陷阱**：必须记在 `rollbackTask()` **之后**。`brokerTaskMutationSnapshot.restore` 会把 `b.actions` 整体重置回快照，先记就等于没记——这一点由 `broker_tasks.go:29` 的 `restore` 读取 `snapshot.actions` 决定，不是猜测。
+
+同时确认了一件与判据有关的事：`complete` + `verification=not_required` **不带** `verification_reason` 会在更早的门被拒（`verification=not_required needs verification_reason`），所以撞容器关闭门时必须像真机那样把 reason 也带上，否则测的是另一道门。
+
+**没有一起改的同类点（留作已知缺口）**：决策批准路径（`broker_decision_packet.go`，`RecordTaskDecision*` 的 pre-phase）对同一个 `childOwningArtifactLocked` 拒绝**仍然不留痕**。那里在 `b.mu` 持有期间返回（`defer Unlock` 在 895 行），只能用 locked 变体追加、且不能顺便落盘；既然这一轮没有覆盖它的测试，就先不动，把它写成缺口而不是加一条没人测的代码。
