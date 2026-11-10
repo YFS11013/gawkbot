@@ -1,0 +1,18 @@
+{
+  "taskId": "JOURN-1",
+  "lifecycleState": "approved",
+  "spec": {},
+  "sessionReport": {
+    "highlights": "",
+    "topWins": null,
+    "deadEnds": null,
+    "metadata": null
+  },
+  "changedFiles": null,
+  "reviewerGrades": null,
+  "dependencies": {
+    "parentTaskId": "",
+    "blockedOn": null
+  },
+  "updatedAt": "2026-11-10T11:43:46.4591776Z"
+}

@@ -185,7 +185,9 @@ prereg `core-loop-runs/2026-11-10-journey14/prereg.md`，被测 `6caf6cf`（+自
 - **处置**：lane 卡死属于产品缺陷而非场景问题，J14 停机归档；修复（schema + 失败 gate 可替换）经全量测试后部署，**J15 用修好的二进制重跑同一场景**。
 
 - **第三处修补(同轮真机)**:重启 broker + `define` 换 `wiki_artifact` 之后,人工点 lane 卡仍 409 `no artifact_path on the completion` —— 卡批准不带 `artifact_path`,校验只读请求体。已改为回落到任务已记录的 `Artifact`(显式值仍优先);什么都没记录仍 fail closed。**J14 的 lane 卡在部署这一版后才可能真正通过。**
-- **下一步**:部署后 approve 两张 lane 卡 -> lane done -> cos 提交父 Issue -> 验证 V1(父 `submit_for_review` 不带 artifact_path)/V3(父卡出现且 `artifact=null`)/V4/V5(人工点卡 -> 父关)。这是聚合谓词的**第一次**真机机会。
+- **结果(同轮)**:部署第三处修复后重启,两 lane 自动闭环(`done/approved`、`wiki_artifact` 校验 `pass=true`);父 `JOURN-1` 进 `in_progress/decision`、`artifact=null`,卡 `request-92` 正文列出两条 lane 路径并写明「The Issue ships no single file of its own」;人工 `approve_decision` -> 200,父 `done/approved`、`artifact=null`、`hollow_completion` 不出现(=false)。**聚合谓词第一次在真机上被触发并通过。**
+- **这一轮证不了**:V1/V7(模型这轮没有试图把 lane 路径塞给父 Issue,也没有用任务端点关容器——它是被 DoD 卡住的,不是被容器守卫拦住的);所以「容器只能经决策卡关闭」的新门在 J14 里仍是**未被锻炼**的代码,等 J15+ 的措辞把模型推上去才知道。
+- **新发现(判据外)**:lane 的 `definition.artifact_path` 没被设置时,第一条 wiki 写入被拒并提示「Pin the path on the task」;模型绕道「请人类提升知识到 wiki」,交付物先以 knowledge draft 落库、再由人工 promotion 落到正式路径。这条写入范围提示本身可用,但它把交付路径的分叉成本推给了人。
 
 ### Journey 13 复核（2026-11-10，形状没钉死，模型把两份交付物塞进一个文件、一条 lane 都没拆）
 

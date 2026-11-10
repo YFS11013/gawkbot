@@ -24,6 +24,15 @@
 | 11:28 | 用新二进制重启 journey14 broker(`pause --force` + `resume`),并 `POST /tasks` 两次 `define`(`verification_kind=wiki_artifact`)-> 均 200,两 lane 的门被替换。**修复二真机生效。** |
 | 11:28:26 | 人工批准两张 lane 卡 -> 均 **409** `no artifact_path on the completion: pass the wiki-relative path of the deliverable` —— 卡本身不带 `artifact_path`,而 `wiki_artifact` 校验只读请求体。**新发现:lane 自己记录过的 artifact 不被校验采用**,lane 仍不可关闭。 |
 
+| 11:30 | 重启窗口内两条 lane 自动闭环:`done/approved`、`wiki_artifact` 校验 `pass=true`、artifact 已记录(`request-37`/`40` 由 answered 收口)。 |
+| 11:43:32 | 停表前的快照:父 `JOURN-1` 进 **`in_progress/decision`, `artifact=null`**,卡片 `request-92`(`decision:JOURN-1`)待决 —— **聚合谓词第一次在真机上被触发**。 |
+| 11:43:32 | 卡片正文(原文):「This Issue's lanes delivered 2 file(s): - team/accounts/acme-renewal-quote.md - team/emails/acme-renewal-followup.md / The Issue ships no single file of its own; those are what you are accepting.」—— 容器分支成立。 |
+| 11:43:46 | **人工点 `approve_decision` -> 200 `{"ok":true}`**;父 `done/approved`, `artifact=null`, `artifact_not_required=null`, `hollow_completion` 缺省(=false)。请求记录 `answered={"choice_id":"approve_decision","answered_at":"2026-11-10T11:43:46Z"}`。 |
+| 11:43:46 | **V3/V4/V5 成立**:父 Issue 经人类决策卡关闭,聚合交付被认(不 hollow),artifacts 仍留在两条 lane 上。 |
+
+| 11:50 | 停表:三条任务全 `done/approved`(父 `artifact=null`、两 lane artifact 已记录且校验 `pass=true`);`requests` 仅剩两张 `definition-gap` 询问(`request-48`/`55`)未答。证据归档至 `artifacts/`(11 份),`journey14` 已 shred。 |
+| 注 | **本轮经过两次二进制切换**:10:0x 起跑于 `5113926` 之前的二进制;因 lane 卡不可关闭的缺陷被发现,11:28 与 11:43 两次 `pause --force` + `resume` 换成含三处修复的构建。**父 Issue 的卡与批准(11:43:32-11:43:46)发生在第三个构建上**;lane 的 `define` 修正是操作员干预。 |
+
 ## 待补
 
 - 停机（被 DoD 缺陷卡死）、归档、评分卡。

@@ -1,0 +1,54 @@
+refused: task=JOURN-14 slug=cos path=team/emails/acme-renewal-followup.md: artifact path not declared: JOURN-14 declares no artifact_path, so no wiki path is authorized for it. @cos must set definition.artifact_path on the task (or route this deliverable through a human request); retrying this call cannot succeed
+2026/11/10 18:15:59 wiki write-task: task=JOURN-12 slug=cos path=team/accounts/acme-renewal-quote.md bytes=913
+2026/11/10 18:16:03 wiki write-task: task=JOURN-14 slug=cos path=team/emails/acme-renewal-followup.md bytes=673
+2026/11/10 18:18:14 scheduler: dispatched 1 due job(s)
+2026/11/10 18:19:14 broker: decision card request-24 answered "approve_decision" but the approve decision on task JOURN-12 was refused: task JOURN-12 definition-of-done check failed (artifact): no non-empty artifact matches "team/accounts/acme-renewal-quote.md" — fix the work, then complete again; the failure output is recorded on the task
+2026/11/10 18:19:14 broker: decision card request-27 answered "approve_decision" but the approve decision on task JOURN-14 was refused: task JOURN-14 definition-of-done check failed (artifact): no non-empty artifact matches "team/emails/acme-renewal-followup.md" — fix the work, then complete again; the failure output is recorded on the task
+2026/11/10 18:22:54 scheduler: heartbeat (uptime=20m0s, poll=20s)
+2026/11/10 18:32:54 scheduler: heartbeat (uptime=30m0s, poll=20s)
+2026/11/10 18:42:54 scheduler: heartbeat (uptime=40m0s, poll=20s)
+2026/11/10 18:50:54 scheduler: dispatched 2 due job(s)
+2026/11/10 18:52:54 scheduler: heartbeat (uptime=50m0s, poll=20s)
+2026/11/10 18:53:34 scheduler: dispatched 1 due job(s)
+2026/11/10 19:02:54 scheduler: heartbeat (uptime=1h0m0s, poll=20s)
+2026/11/10 19:12:54 scheduler: heartbeat (uptime=1h10m0s, poll=20s)
+2026/11/10 19:20:54 scheduler: dispatched 2 due job(s)
+2026/11/10 19:22:34 scheduler: dispatched 1 due job(s)
+2026/11/10 19:22:54 scheduler: heartbeat (uptime=1h20m0s, poll=20s)
+Launching WUPHF Office web view... the browser is the team now.
+2026/11/10 19:26:37 WARNING wiki: gbrain unavailable (wiki_index_gbrain_entity: connect: connect gbrain mcp: calling "initialize": EOF); falling back to the in-memory index. Facts will NOT persist across restarts. Install gbrain, or set WUPHF_WIKI_BACKEND=memory to silence this.
+2026/11/10 19:26:37 wiki lint cron: disabled (set WUPHF_LINT_CRON=HH:MM to enable a daily run)
+2026/11/10 19:26:37 INFO skill_compile cron: started interval=30m0s
+2026/11/10 19:26:37 wiki_index: boot reconcile complete
+2026/11/10 19:26:37 [transport] share: registered (human-share)
+
+  Web UI:  http://127.0.0.1:7911
+  Broker:  http://127.0.0.1:7910
+  Press Ctrl+C to stop.
+
+2026/11/10 19:26:52 scheduler: loop started (poll=20s)
+2026/11/10 19:28:26 broker: decision card request-37 answered "approve_decision" but the approve decision on task JOURN-12 was refused: task JOURN-12 definition-of-done check failed (wiki_artifact): no artifact_path on the completion: pass the wiki-relative path of the deliverable (e.g. artifacts/forex/<date>.md) — fix the work, then complete again; the failure output is recorded on the task
+2026/11/10 19:28:26 broker: decision card request-40 answered "approve_decision" but the approve decision on task JOURN-14 was refused: task JOURN-14 definition-of-done check failed (wiki_artifact): no artifact_path on the completion: pass the wiki-relative path of the deliverable (e.g. artifacts/forex/<date>.md) — fix the work, then complete again; the failure output is recorded on the task
+2026/11/10 19:28:59 task review: no reviewer available for JOURN-12 (owner "cos")
+2026/11/10 19:28:59 workflow detect JOURN-12: no recurring/end-to-end shape in corpus — skipping
+2026/11/10 19:29:06 source_capture: write note source "note-team-learnings-d1733720": put_page "note-team-learnings-d1733720": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 19:29:06 source_capture: write note source "note-acme-renewal-one-page-quote-6e406949": put_page "note-acme-renewal-one-page-quote-6e406949": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 19:29:07 INFO writeCompiledSkillLocked: compiled skill created name=acme-renewal-one-page-quote slug=acme-renewal-one-page-quote created_by=librarian sha=6dc9a99 owner_agents=1
+2026/11/10 19:29:43 task review: no reviewer available for JOURN-14 (owner "cos")
+2026/11/10 19:29:43 workflow detect JOURN-14: no recurring/end-to-end shape in corpus — skipping
+2026/11/10 19:29:48 source_capture: write note source "note-team-learnings-200f5d32": put_page "note-team-learnings-200f5d32": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 19:29:49 source_capture: write note source "note-acme-renewal-one-page-quote-6e406949": put_page "note-acme-renewal-one-page-quote-6e406949": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 19:36:52 scheduler: heartbeat (uptime=10m0s, poll=20s)
+Launching WUPHF Office web view... the browser is the team now.
+2026/11/10 19:43:14 WARNING wiki: gbrain unavailable (wiki_index_gbrain_entity: connect: connect gbrain mcp: calling "initialize": EOF); falling back to the in-memory index. Facts will NOT persist across restarts. Install gbrain, or set WUPHF_WIKI_BACKEND=memory to silence this.
+2026/11/10 19:43:14 wiki lint cron: disabled (set WUPHF_LINT_CRON=HH:MM to enable a daily run)
+2026/11/10 19:43:14 INFO skill_compile cron: started interval=30m0s
+2026/11/10 19:43:14 wiki_index: boot reconcile complete
+2026/11/10 19:43:14 [transport] share: registered (human-share)
+
+  Web UI:  http://127.0.0.1:7911
+  Broker:  http://127.0.0.1:7910
+  Press Ctrl+C to stop.
+
+2026/11/10 19:43:29 scheduler: loop started (poll=20s)
+2026/11/10 19:43:46 source_capture: write task source "task-journ-1": put_page "task-journ-1": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
