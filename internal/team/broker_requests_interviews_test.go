@@ -1481,4 +1481,48 @@ func TestGetRequestsWithoutAChannelSaysSo(t *testing.T) {
 			t.Fatalf("GET %s must still work, got %d: %s", path, status, body)
 		}
 	}
+
+	// A by-ID read names its own subject, so it needs no channel — and the App
+	// approval poll (web/src/api/botKnowledge.ts) relies on exactly that. The
+	// exemption used to test the laundered channel, so a bare `?id=` fell into
+	// the "general" filter and answered 200 with an empty list.
+	ensureTestMemberAccess(b, "cos__human", "human", "Human")
+	createBody, _ := json.Marshal(map[string]any{
+		"kind": "approval", "from": "cos", "channel": "cos__human",
+		"title": "Promote note", "question": "Promote this to the wiki?", "blocking": false, "required": false,
+	})
+	req, _ := http.NewRequest(http.MethodPost, base+"/requests", bytes.NewReader(createBody))
+	req.Header.Set("Authorization", "Bearer "+b.Token())
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("create request failed: %v", err)
+	}
+	var created struct {
+		ID string `json:"id"`
+	}
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	resp.Body.Close()
+	if created.ID == "" {
+		t.Fatal("create request returned no id")
+	}
+
+	status, body = get("/requests?id=" + created.ID + "&viewer_slug=human")
+	if status != http.StatusOK {
+		t.Fatalf("a bare by-ID read must work, got %d: %s", status, body)
+	}
+	var byID struct {
+		Requests []humanInterview `json:"requests"`
+	}
+	if err := json.Unmarshal([]byte(body), &byID); err != nil {
+		t.Fatalf("decode by-ID response: %v", err)
+	}
+	if len(byID.Requests) != 1 || byID.Requests[0].ID != created.ID {
+		t.Fatalf("a bare by-ID read must return the request it names (cross-channel), got %+v", byID.Requests)
+	}
+
+	status, body = get("/requests?id=request-does-not-exist&viewer_slug=human")
+	if status != http.StatusOK || !strings.Contains(body, `"requests":[]`) {
+		t.Fatalf("an unknown id must answer 200 with an empty list, got %d: %s", status, body)
+	}
 }

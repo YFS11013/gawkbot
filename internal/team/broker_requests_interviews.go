@@ -673,21 +673,24 @@ func (b *Broker) handleGetRequests(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `channel is required: there is no default room to fall back to. Name a channel, pass an id, or pass scope=all to read across every channel you can see.`, http.StatusBadRequest)
 		return
 	}
+	// A by-ID read without a channel is not channel-scoped, so it authorizes
+	// per-request like the cross-channel path instead of matching one channel.
+	// It has to be decided on the RAW query value: `channel` has already been
+	// laundered to "general", so testing it here made byID false, the caller
+	// fell into the `reqChannel != "general"` filter, and `?id=<rid>` answered
+	// 200 with an empty list — the App approval poll's whole job is to follow a
+	// request_id it was handed, so it never saw the decision it was waiting for
+	// (web/src/api/botKnowledge.ts polls exactly this way).
+	byID := requestID != "" && !allChannels && rawChannel == ""
 	b.mu.Lock()
-	if !allChannels && !b.canAccessChannelLocked(viewerSlug, channel) {
+	if !allChannels && !byID && !b.canAccessChannelLocked(viewerSlug, channel) {
 		b.mu.Unlock()
 		http.Error(w, "channel access denied", http.StatusForbidden)
 		return
 	}
-	// A by-ID read is not channel-scoped, so it authorizes per-request like the
-	// cross-channel path instead of matching one channel. Without this a
-	// caller polling a request_id it was handed (the App approval poll) had to
-	// already know the request's channel to see it — and once
-	// normalizeChannelSlug stops laundering "", passing no channel matched
-	// nothing at all. Visibility is still enforced: every candidate goes
+	// Visibility is still enforced for a by-ID read: every candidate goes
 	// through canAccessChannelLocked below, and the id filter further down can
 	// only narrow what this viewer may already see.
-	byID := requestID != "" && !allChannels && channel == ""
 	requests := make([]humanInterview, 0, len(b.requests))
 	for _, req := range b.requests {
 		reqChannel := bucketChannelKey(req.Channel)

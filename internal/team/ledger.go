@@ -2,6 +2,7 @@ package team
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 )
@@ -177,7 +178,12 @@ func (b *Broker) recordGuardRefusalLocked(task *teamTask, guard, detail string) 
 	}
 	b.appendActionLocked("guard_refused", "office", task.Channel, "broker",
 		truncateSummary(guard+": "+detail, 140), task.ID)
-	_ = b.saveLocked()
+	// An audit row that only exists in memory is not an audit row: say so when
+	// the write fails instead of dropping it the way most callers' `_ =`
+	// gestures do.
+	if err := b.saveLocked(); err != nil {
+		log.Printf("broker: guard refusal for %s (%s) recorded in memory but not persisted: %v", task.ID, guard, err)
+	}
 }
 
 func (b *Broker) RecordAction(kind, source, channel, actor, summary, relatedID string, signalIDs []string, decisionID string) error {
