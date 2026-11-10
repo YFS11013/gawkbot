@@ -189,6 +189,8 @@ prereg `core-loop-runs/2026-11-10-journey14/prereg.md`，被测 `6caf6cf`（+自
 - **这一轮证不了**:V1/V7(模型这轮没有试图把 lane 路径塞给父 Issue,也没有用任务端点关容器——它是被 DoD 卡住的,不是被容器守卫拦住的);所以「容器只能经决策卡关闭」的新门在 J14 里仍是**未被锻炼**的代码,等 J15+ 的措辞把模型推上去才知道。
 - **新发现(判据外)**:lane 的 `definition.artifact_path` 没被设置时,第一条 wiki 写入被拒并提示「Pin the path on the task」;模型绕道「请人类提升知识到 wiki」,交付物先以 knowledge draft 落库、再由人工 promotion 落到正式路径。这条写入范围提示本身可用,但它把交付路径的分叉成本推给了人。
 
+- **第五处修补(评分卡 §3 判据外)**:容器守卫漏了 `definition.artifact_path` 这条写范围(父 Issue 被 define 钉上 lane 路径=授权覆写);`define` 省略 `artifact_path` 会清空已有范围(操作员的 define 把两条 lane 清成 null)。都已修并有双向测试。
+- **评分卡结论**(独立子代理,`.../journey14/scorecard.md`):V2–V6 成立、**V1/V7 未观察**(本轮模型没去碰容器守卫)、F-a…F-i 全不成立。即:**聚合谓词第一次真机成立**;容器写入/关闭门仍是未被锻炼的代码。
 ### Journey 13 复核（2026-11-10，形状没钉死，模型把两份交付物塞进一个文件、一条 lane 都没拆）
 
 prereg `core-loop-runs/2026-11-10-journey13/prereg.md`，被测 `6caf6cf`，判分 `…/journey13/scorecard.md`（独立子代理，含操作员勘误）。场景同 J12，模型 `opencode-go/longcat-2.5-free`。
