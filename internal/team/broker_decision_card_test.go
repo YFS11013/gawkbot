@@ -254,3 +254,102 @@ func TestDecisionCardAnswerIsAppliedOnce(t *testing.T) {
 		t.Fatalf("the repeat application rewrote the task: %q -> %q", before.UpdatedAt, after.UpdatedAt)
 	}
 }
+
+// Journey 10 (core-loop-runs/2026-11-10-journey10) F-I: the run's parent Issue
+// JOURN-14 reached `decision` at 02:54:20Z with both lanes already shipped
+// (dce4efc team/accounts/acme.md, 5c3c6b3 team/emails/acme-renewal-followup.md)
+// but with its own artifact fields null. The card predicate read only those two
+// fields, so no card was raised and the human had nothing to click for ten
+// minutes; approving by hand with no artifact_path was refused 409 with advice
+// aimed at the owner. An Issue is a container: what the human accepts is what
+// its lanes landed.
+func seedDecisionCardParent(t *testing.T) (*Broker, string) {
+	t.Helper()
+	b := newTestBroker(t)
+	now := time.Date(2026, 11, 10, 2, 54, 20, 0, time.UTC).Format(time.RFC3339)
+	b.mu.Lock()
+	b.tasks = append(b.tasks,
+		teamTask{ID: "JOURN-14", Title: "Journey 10: Acme renewal", Channel: "cos__human", Owner: "cos",
+			TaskType: "issue", status: "review", CreatedBy: "human", CreatedAt: now, UpdatedAt: now},
+		teamTask{ID: "JOURN-21", Title: "Acme quote one-pager", Channel: "task-journ-21", Owner: "revops",
+			ParentIssueID: "JOURN-14", status: "done", Artifact: "team/accounts/acme.md",
+			CreatedAt: now, UpdatedAt: now},
+		teamTask{ID: "JOURN-23", Title: "Acme follow-up email", Channel: "task-journ-23", Owner: "ae",
+			ParentIssueID: "JOURN-14", status: "done", Artifact: "team/emails/acme-renewal-followup.md",
+			CreatedAt: now, UpdatedAt: now},
+	)
+	parent := b.taskByIDLocked("JOURN-14")
+	parent.LifecycleState = LifecycleStateReview
+	parent.pipelineStage = "review"
+	parent.reviewState = "ready_for_review"
+	b.mu.Unlock()
+	return b, "JOURN-14"
+}
+
+func TestDecisionCardRaisedForParentIssueWithDeliveredLanes(t *testing.T) {
+	b, taskID := seedDecisionCardParent(t)
+	// The live path: cos submits the Issue for review, no reviewer is assigned,
+	// the 30-second convergence sweep parks it on the human and must ask.
+	if err := b.EvaluateConvergence(taskID); err != nil {
+		t.Fatalf("convergence: %v", err)
+	}
+	if got := b.TaskByID(taskID).LifecycleState; got != LifecycleStateDecision {
+		t.Fatalf("an Issue with no reviewers must land in decision, got %q", got)
+	}
+
+	cards := decisionCards(b)
+	if len(cards) != 1 {
+		t.Fatalf("a parent Issue whose lanes delivered owes the human a card, got %d", len(cards))
+	}
+	card := cards[0]
+	if card.IssueID != taskID {
+		t.Fatalf("the card must be anchored to the Issue, got issue_id=%q", card.IssueID)
+	}
+	if card.Blocking || card.Required {
+		t.Fatalf("the parent card must not gate the office: blocking=%v required=%v", card.Blocking, card.Required)
+	}
+	// The ask must name every file, not one arbitrary lane's path: the human is
+	// signing off the Issue, and both files are what they accept.
+	for _, want := range []string{"team/accounts/acme.md", "team/emails/acme-renewal-followup.md"} {
+		if !strings.Contains(card.Question, want) {
+			t.Fatalf("the card must name %q, got %q", want, card.Question)
+		}
+	}
+
+	// Clicking Approve must land, not 409: the artifact gate blocks vapor, and
+	// an Issue whose lanes each shipped a file is not vapor.
+	if status, msg := b.answerRequestFromActor("you", card.ID, decisionChoiceApprove, "", ""); status != 200 {
+		t.Fatalf("approving a delivered Issue must not be refused: %d %s", status, msg)
+	}
+	task := b.TaskByID(taskID)
+	if task == nil || task.LifecycleState != LifecycleStateApproved {
+		t.Fatalf("approving the card must approve the Issue, got %+v", task)
+	}
+	if task.HollowCompletion {
+		t.Fatal("an Issue whose lanes shipped files must not be recorded as a hollow completion")
+	}
+}
+
+// The aggregate path must not swallow the vapor case: a parent Issue whose
+// lanes finished without artifacts (and without declaring they ship none) has
+// still delivered nothing, so no card and no approve.
+func TestDecisionCardSkippedForParentIssueWithHollowLanes(t *testing.T) {
+	b, taskID := seedDecisionCardParent(t)
+	b.mu.Lock()
+	for i := range b.tasks {
+		if b.tasks[i].ParentIssueID == taskID {
+			b.tasks[i].Artifact = ""
+		}
+	}
+	b.mu.Unlock()
+	if err := b.EvaluateConvergence(taskID); err != nil {
+		t.Fatalf("convergence: %v", err)
+	}
+
+	if cards := decisionCards(b); len(cards) != 0 {
+		t.Fatalf("lanes that shipped nothing must not ask for acceptance, got %d", len(cards))
+	}
+	if err := b.RecordTaskDecisionWithComment(taskID, string(RecordDecisionApprove), "", "you"); err == nil {
+		t.Fatal("approving an Issue whose lanes shipped nothing must still be refused")
+	}
+}

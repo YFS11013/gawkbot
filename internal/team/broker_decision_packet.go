@@ -904,6 +904,10 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 		// so a refusal leaves no half-written declaration behind.
 		var effectiveArtifact, effectiveNotRequired string
 		resolvedDelivery := false
+		// Files a parent Issue's lanes already landed (Journey 10 F-I). An
+		// Issue ships no file of its own, so its own artifact fields say
+		// nothing about whether the work was delivered.
+		aggregateDelivery := 0
 		if task := b.findTaskByIDLocked(taskID); task != nil {
 			currentState = task.LifecycleState
 			// Human-sovereignty gate (mirrors MutateTask): an open human
@@ -964,10 +968,22 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 				// must bind on the decision path too, not only on MutateTask
 				// ("Canonical output" posts fired for tasks where nobody
 				// ever wrote anything, v3 [19:04]).
+				//
+				// A parent Issue is the exception: an Issue ships no file of
+				// its own, its lanes do. JOURN-14 (Journey 10) had both lanes
+				// delivered and files on disk, yet the gate refused the
+				// human's own approve with "have the owner publish the
+				// deliverable" — advice aimed at a bot, for work that was
+				// already finished. Aggregate delivery counts as a delivered
+				// artifact; vapor (no artifact anywhere) still fails.
+				if task := b.findTaskByIDLocked(taskID); task != nil {
+					aggregateDelivery = len(b.childDeliverablesLocked(task))
+				}
 				if !isPreExecutionLifecycleState(currentState) &&
 					currentState != LifecycleStateApproved &&
 					effectiveArtifact == "" &&
-					effectiveNotRequired == "" {
+					effectiveNotRequired == "" &&
+					aggregateDelivery == 0 {
 					return taskMutationError(
 						TaskMutationArtifactRequired,
 						fmt.Sprintf("task %s cannot be approved into done without a delivered artifact. Have the owner publish the deliverable to the wiki and complete with artifact_path set, then approve — or, if the work genuinely ships no file, have the owner complete with verification=not_required and verification_reason first.", taskID),
@@ -999,7 +1015,7 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 			if t := b.findTaskByIDLocked(taskID); t != nil && (resolvedDelivery || action == RecordDecisionApprove) {
 				t.Artifact = effectiveArtifact
 				t.ArtifactNotRequired = effectiveNotRequired
-				t.HollowCompletion = effectiveArtifact == ""
+				t.HollowCompletion = effectiveArtifact == "" && aggregateDelivery == 0
 			}
 		}
 		target, reason = lifecycleStateForDecisionAction(action, currentState)

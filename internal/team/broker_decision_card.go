@@ -45,15 +45,55 @@ func requestIsDecisionCard(req humanInterview) bool {
 	return strings.HasPrefix(strings.TrimSpace(req.DedupeKey), decisionCardDedupePrefix)
 }
 
-// hasApprovableDeliverable reports whether a lane has anything for the human to
-// accept: a recorded artifact, or an explicit not_required declaration. A lane
-// that landed in decision with neither has no deliverable to approve, and a card
-// asking to "accept" nothing would only train the human to ignore these cards.
-func hasApprovableDeliverable(task *teamTask) bool {
+// childDeliverablesLocked lists what a parent Issue's lanes actually shipped:
+// one entry per finished child that recorded an artifact, plus an explicit
+// "ships no file" note for children that declared that. Empty for a lane (no
+// children) and for a parent whose lanes have not delivered yet.
+//
+// Journey 10 (core-loop-runs/2026-11-10-journey10): the parent Issue JOURN-14
+// reached `decision` at 02:54:20Z with `artifact=null`, even though both of its
+// lanes had shipped a file four seconds earlier. `hasApprovableDeliverable` read
+// only the Issue's own two fields, so the one party who could sign the work off
+// was never asked — F-I fired at 03:04:20Z, ten minutes of a delivered Issue
+// with no click available. An Issue is a container: what the human accepts is
+// the set of files its lanes landed. Caller holds b.mu.
+func (b *Broker) childDeliverablesLocked(task *teamTask) []string {
+	if b == nil || task == nil || strings.TrimSpace(task.ID) == "" {
+		return nil
+	}
+	var out []string
+	for i := range b.tasks {
+		child := &b.tasks[i]
+		if strings.TrimSpace(child.ParentIssueID) != task.ID || child.ID == task.ID {
+			continue
+		}
+		if !isDeliveredTeamTaskStatus(child.status) {
+			continue
+		}
+		if artifact := strings.TrimSpace(child.Artifact); artifact != "" {
+			out = append(out, artifact)
+			continue
+		}
+		if declared := strings.TrimSpace(child.ArtifactNotRequired); declared != "" {
+			out = append(out, fmt.Sprintf("%s (ships no file)", declared))
+		}
+	}
+	return out
+}
+
+// hasApprovableDeliverableLocked reports whether a task has anything for the
+// human to accept: its own artifact, its own not_required declaration, or the
+// deliverables its lanes already landed. A task with none of those has nothing
+// to approve, and a card asking to "accept" nothing would only train the human
+// to ignore these cards. Caller holds b.mu.
+func (b *Broker) hasApprovableDeliverableLocked(task *teamTask) bool {
 	if task == nil {
 		return false
 	}
-	return strings.TrimSpace(task.Artifact) != "" || strings.TrimSpace(task.ArtifactNotRequired) != ""
+	if strings.TrimSpace(task.Artifact) != "" || strings.TrimSpace(task.ArtifactNotRequired) != "" {
+		return true
+	}
+	return len(b.childDeliverablesLocked(task)) > 0
 }
 
 // raiseDecisionCardLocked raises the decision-field card for a lane that just
@@ -63,7 +103,7 @@ func hasApprovableDeliverable(task *teamTask) bool {
 // stays with whichever request really is gating the office. Caller holds b.mu;
 // persistence is the caller's responsibility.
 func (b *Broker) raiseDecisionCardLocked(task *teamTask) string {
-	if b == nil || task == nil || !hasApprovableDeliverable(task) {
+	if b == nil || task == nil || !b.hasApprovableDeliverableLocked(task) {
 		return ""
 	}
 	dedupeKey := decisionCardDedupePrefix + strings.TrimSpace(task.ID)
@@ -100,9 +140,16 @@ func (b *Broker) raiseDecisionCardLocked(task *teamTask) string {
 	// human unable to tell what it was for.
 	var qb strings.Builder
 	fmt.Fprintf(&qb, "%s finished %s (%s) and the review is in. Nothing else moves until you call it.\n\n", ownerLabelForPlan(from), title, task.ID)
-	if artifact := strings.TrimSpace(task.Artifact); artifact != "" {
-		fmt.Fprintf(&qb, "The deliverable is %s.\n", artifact)
-	} else {
+	lanes := b.childDeliverablesLocked(task)
+	switch {
+	case strings.TrimSpace(task.Artifact) != "":
+		fmt.Fprintf(&qb, "The deliverable is %s.\n", strings.TrimSpace(task.Artifact))
+	case len(lanes) > 0:
+		// An Issue is a container: name every file its lanes landed, so the
+		// human sees what they are signing off instead of one arbitrary path.
+		fmt.Fprintf(&qb, "This Issue ships no single file of its own — its lanes delivered %d:\n\n%s\n\nApproving closes the Issue with those on record.\n",
+			len(lanes), "- "+strings.Join(lanes, "\n- "))
+	case strings.TrimSpace(task.ArtifactNotRequired) != "":
 		fmt.Fprintf(&qb, "The owner declared this lane ships no file (%s).\n", strings.TrimSpace(task.ArtifactNotRequired))
 	}
 	qb.WriteString("Approve and the lane closes. Send it back and the owner picks up your note as the rework.")
