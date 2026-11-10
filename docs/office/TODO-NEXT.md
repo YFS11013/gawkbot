@@ -169,6 +169,21 @@ prereg `core-loop-runs/2026-11-10-journey12/prereg.md`，被测 `4c53083`，判�
 - **顺手修的一处**：`HollowCompletion` 从「只看 artifact」改成「artifact 空 **且** 无已交付子任务」；两条关闭路径（决策端点、任务端点）现在口径一致。
 - **这一轮证不了**：父 Issue 决策卡正文（V4）、人工点击闭环（V5）、`decision:` 卡的去重、容器 409 之后模型是否转走 `submit_for_review`（本轮它走了 not_required，代码允许；修复后才有下一轮）。**J13 才可能第一次锻炼 §9.22 的聚合谓词**：要断言父 Issue 进 `decision` 且 `artifact=null`，并加一条「bot 对这类容器的 `complete` 必须 409」。
 
+### Journey 13 复核（2026-11-10，形状没钉死，模型把两份交付物塞进一个文件、一条 lane 都没拆）
+
+prereg `core-loop-runs/2026-11-10-journey13/prereg.md`，被测 `6caf6cf`，判分 `…/journey13/scorecard.md`（独立子代理，含操作员勘误）。场景同 J12，模型 `opencode-go/longcat-2.5-free`。
+
+- **站住的**：
+  - **单任务交付闭环成立**：`JOURN-1` 自己写 `team/accounts/acme-renewal.md`（wiki `367d955`，64 行），`submit_for_review` → `review` → `decision`（msg-21，09:06:17Z），`request-22`（`decision:JOURN-1`）同秒出现，人工点 `approve_decision` → 200，`done/approved`，wiki 落 `team/decisions/JOURN-1.md`（`29c8463`）。
+  - **`6caf6cf` 的 bot 关闭门这一轮没有被触发**（模型根本没走任务端点关容器——它压根没造容器）。
+- **没站住的**：
+  - **容器守卫 / 聚合谓词 / bot 关闭门全部没有对象（重，场景问题）**：`tasks` 里只有 `JOURN-1`，**零条 lane**，两份交付物合写在一个文件里。V1/V2/V7 判未观察，V3 通过，V4 判失败（卡文为单文件口径 `The deliverable is team/accounts/acme-renewal.md.`），V5 通过，V6 部分。**J11/J12 同样措辞下都拆过两条 lane，说明「拆不拆」是模型自由裁量**。
+  - **`definition-gap` 卡重复追问已给事实（高，模型行为）**：`request-14`（09:05:26Z）的「缺失细节」是 `access needed: 用户已提供的合同事实（方案/价格/周期/续约调整/联系人）`，而这些事实 09:01:09Z 已经在 `request-4` 的 `custom_text` 里给全了。代码侧 `raiseDefinitionGapInterviewLocked` 只读 `task.Definition.AccessNeeded`（`broker_requests_interviews.go:528-545`），是 cos 在自己的 `action=define`（msg-18/19）里把已拿到的事实写成了「还缺的访问」。不是 broker 的重复追问，是模型的 define 内容错。
+- **干预 4 次 vs 预算 3 次**：request-4 事实、request-9 计划、request-14 definition-gap、request-22 决策卡。第 3 张由模型的 define 内容逼出来。
+- **顺手修的一处（第三条写路径）**：`attachSelfHealCompletionToParentLocked` 会把自愈 lane 的文件盖到父 Issue 的 `artifact` 上——J11/J12 的守卫没覆盖的第三个写入者。现在父 Issue 的 `artifact` 一律保持为空，文件留在 lane 上，由决策卡聚合。测试 `TestSelfHealLaneDoesNotStampItsArtifactOnTheContainer`。见 §9.23。
+- **这一轮证不了**：容器 409、聚合卡正文、bot 关闭门——**J14 把形状钉死（两条子任务、两个独立文件）就是为这个**；F-i 新增：钉死后仍不拆 lane 就算场景约束无效。
+
+
 
 ### Journey 10 复核（2026-11-10，父 Issue 的 decision 卡）
 

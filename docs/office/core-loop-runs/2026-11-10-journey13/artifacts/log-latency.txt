@@ -1,0 +1,8 @@
+[2026-11-10T16:52:20+08:00] bot=cos stage=started queue_wait_ms=47
+[2026-11-10T16:58:36+08:00] bot=cos status=ok provider=opencode total_ms=375475 first_event_ms=12254 first_text_ms=183011 first_tool_ms=182452 final_chars=2755 last_error=""
+[2026-11-10T17:01:09+08:00] bot=cos stage=started queue_wait_ms=51
+[2026-11-10T17:01:09+08:00] bot=cos stage=started queue_wait_ms=87
+[2026-11-10T17:06:29+08:00] bot=cos status=ok provider=opencode total_ms=320316 first_event_ms=11777 first_text_ms=266695 first_tool_ms=266960 final_chars=256 last_error=""
+[2026-11-10T17:07:14+08:00] bot=cos status=ok provider=opencode total_ms=364602 first_event_ms=13330 first_text_ms=257558 first_tool_ms=257558 final_chars=695 last_error=""
+[2026-11-10T17:12:33+08:00] bot=cos stage=started queue_wait_ms=71
+[2026-11-10T17:13:12+08:00] bot=cos status=ok provider=opencode total_ms=38380 first_event_ms=13991 first_text_ms=16424 first_tool_ms=16387 final_chars=126 last_error=""

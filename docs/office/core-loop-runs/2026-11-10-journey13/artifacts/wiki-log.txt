@@ -1,0 +1,138 @@
+commit f499f4588c964add81fee9e727b64adbaebcf9a5
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 17:12:34 +0800
+
+    archivist: entity article companies/vp-ops (1 facts)
+
+ index/all.md             |  4 ++++
+ team/companies/vp-ops.md | 30 ++++++++++++++++++++++++++++++
+ 2 files changed, 34 insertions(+)
+
+commit 0ebe13d71c0ef837f6f10d3ff5aa9eda62643233
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 17:12:33 +0800
+
+    fact: companies/vp-ops — Completed task JOURN-1 ("Journey 13: Acme renewal pack") involved this entity. Goal: 为 Acme 续约（VP Ops：Dana）产出两份英文交付物：① 一页续约报价单；② 一封跟进邮件。两份文件基于同一组合同事实，数字/日期/措辞互相一致。. Produced artifact: team/accounts/acme-renewal.md.
+
+ team/entities/companies-vp-ops.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 29c846339461a8b746d6cf000623261883c2ef05
+Author: system <system@wuphf.local>
+Date:   2026-11-10 17:12:33 +0800
+
+    decision: promote JOURN-1 on approval
+
+ index/all.md              |  4 ++++
+ team/decisions/JOURN-1.md | 10 ++++++++++
+ 2 files changed, 14 insertions(+)
+
+commit 367d95597a82c651dd8408f23d647665554eff95
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 17:05:36 +0800
+
+    Add Acme renewal pack: one-page quote + follow-up email
+
+ index/all.md                  |  4 ++-
+ team/accounts/acme-renewal.md | 64 +++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 67 insertions(+), 1 deletion(-)
+
+commit 50f86c4c0dabb354312c2c4a5cc6ab84663e0689
+Author: data-modeling <data-modeling@wuphf.local>
+Date:   2026-11-10 16:44:17 +0800
+
+    wuphf: backfill skill data-modeling from broker state
+
+ team/skills/data-modeling.md | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
+
+commit d1c8d253c48c3e618f2afe301ca763709aaeb06a
+Author: .system <.system@wuphf.local>
+Date:   2026-11-10 16:44:17 +0800
+
+    archivist: skill consolidation migration sentinel
+
+ team/skills/.system/migrated-skill-consolidation.md | 3 +++
+ 1 file changed, 3 insertions(+)
+
+commit 3beaecfef130358b680273facc51812ed697f352
+Author: wiki-maintenance <wiki-maintenance@wuphf.local>
+Date:   2026-11-10 16:44:17 +0800
+
+    wuphf: backfill skill wiki-maintenance from broker state
+
+ team/skills/wiki-maintenance.md | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+commit ba794e54688505fb2544b5678c94904f2e97c021
+Author: app-building <app-building@wuphf.local>
+Date:   2026-11-10 16:44:16 +0800
+
+    wuphf: backfill skill app-building from broker state
+
+ index/all.md                |  5 +++++
+ team/skills/app-building.md | 27 +++++++++++++++++++++++++++
+ 2 files changed, 32 insertions(+)
+
+commit c4505faa03cd212cd8fe78f291b49203ce0c255e
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 16:44:16 +0800
+
+    bot: seed office/USER.md
+
+ office/USER.md | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+commit 09c35bd7d97e9c60fb61234a0ea98946b56fcec2
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 16:44:16 +0800
+
+    bot: seed agents/cos/TOOLS.md
+
+ agents/cos/TOOLS.md | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+commit 585d32c40ca0628b95b223beab95f6a7bbb94798
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 16:44:15 +0800
+
+    bot: seed agents/cos/OPERATIONS.md
+
+ agents/cos/OPERATIONS.md | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+commit 6e085877f15cb6fbb6c131c1124e557091f9caf5
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 16:44:15 +0800
+
+    bot: seed agents/cos/IDENTITY.md
+
+ agents/cos/IDENTITY.md | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+commit 46f2148dd864e386e9346bbc4588683d01f5c1a4
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 16:44:15 +0800
+
+    bot: seed agents/cos/SOUL.md
+
+ agents/cos/SOUL.md | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+commit 9c048f5e54084c9093cf3524f4453891d0999d9f
+Author: system <system@wuphf.local>
+Date:   2026-11-10 16:44:15 +0800
+
+    wuphf: init wiki
+
+ index/.gitkeep            |  0
+ team/.obsidian/.gitignore |  3 +++
+ team/.obsidian/app.json   | 10 ++++++++++
+ team/companies/.gitkeep   |  0
+ team/decisions/.gitkeep   |  0
+ team/inbox/raw/.gitkeep   |  0
+ team/learnings/.gitkeep   |  0
+ team/people/.gitkeep      |  0
+ team/playbooks/.gitkeep   |  0
+ team/projects/.gitkeep    |  0
+ 10 files changed, 13 insertions(+)
