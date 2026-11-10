@@ -1697,6 +1697,23 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		var pendingCascade []pendingTaskTransition
 		if isTerminalTeamTaskStatus(task.status) {
 			pendingCascade = b.unblockDependentsLocked(task.ID)
+			// The question a closed task left behind is moot, and a pending card
+			// parks its asker's turn. TransitionLifecycle has retired these since
+			// Journey 6, but a lane that closes through this path (complete,
+			// approve, reject, cancel) never went through it: Journey 15
+			// (core-loop-runs/2026-11-10-journey15) closed JOURN-15/JOURN-17 at
+			// 14:54:23/25 and their decision cards, raised 38 seconds earlier,
+			// stayed pending until the operator clicked them — clicks that landed
+			// on already-done lanes and changed nothing.
+			b.cancelRequestsForClosedTaskLocked(task, "task closed ("+strings.TrimSpace(task.status)+")")
+			// The question a closed task left behind is moot, and a pending card
+			// parks its asker's turn. TransitionLifecycle has retired these since
+			// Journey 6, but a lane that closes through this path (complete,
+			// approve, reject, cancel) never went through it: Journey 15
+			// (core-loop-runs/2026-11-10-journey15) closed JOURN-15/JOURN-17 at
+			// 14:54:23/25 and their decision cards, raised 38 seconds earlier,
+			// stayed pending until the operator clicked them — clicks that landed
+			// on already-done lanes and changed nothing.
 		}
 		b.scheduleTaskLifecycleLocked(task)
 		// A lane landing is news to the rest of its issue: pull the parent's and

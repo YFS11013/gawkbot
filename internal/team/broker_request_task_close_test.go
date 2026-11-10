@@ -344,3 +344,65 @@ func TestDecompositionCheckSurvivesLifecycleRearm(t *testing.T) {
 			check.Status, check.StatusReason)
 	}
 }
+
+// Journey 15 (core-loop-runs/2026-11-10-journey15): the lane's decision card
+// was raised at 14:53:45 and the lane closed itself four minutes later through
+// MutateTask, which never touched the card. The operator's approve then landed
+// on an already-done lane — a no-op that looked like consent. A card for closed
+// work is worse than no card: it asks for a decision nobody can still make.
+func TestCompletingALaneClosesItsOrphanedDecisionCard(t *testing.T) {
+	b := newTestBroker(t)
+	now := time.Now().UTC().Format(time.RFC3339)
+	lane := teamTask{
+		ID: "JOURN-15", Title: "One-pager quote", Channel: "cos__human", Owner: "cos",
+		status: "review", LifecycleState: LifecycleStateDecision, CreatedAt: now, UpdatedAt: now,
+		Artifact: "team/accounts/acme-renewal-quote.md",
+	}
+	sibling := teamTask{
+		ID: "JOURN-17", Title: "Follow-up email", Channel: "cos__human", Owner: "cos",
+		status: "review", LifecycleState: LifecycleStateDecision, CreatedAt: now, UpdatedAt: now,
+	}
+	b.mu.Lock()
+	b.tasks = []teamTask{lane, sibling}
+	b.requests = []humanInterview{
+		{ID: "request-31", Kind: "approval", From: "cos", Channel: "cos__human",
+			Title: "Approve JOURN-15?", Question: "Approve?", Status: "pending",
+			IssueID: "JOURN-15", DedupeKey: "decision:JOURN-15", CreatedAt: now, UpdatedAt: now},
+		{ID: "request-34", Kind: "approval", From: "cos", Channel: "cos__human",
+			Title: "Approve JOURN-17?", Question: "Approve?", Status: "pending",
+			IssueID: "JOURN-17", DedupeKey: "decision:JOURN-17", CreatedAt: now, UpdatedAt: now},
+	}
+	b.mu.Unlock()
+
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "complete", ID: "JOURN-15", Channel: "cos__human", CreatedBy: "cos",
+		ArtifactPath: "team/accounts/acme-renewal-quote.md",
+	}); err != nil {
+		t.Fatalf("complete lane: %v", err)
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if requestIsActive(b.requests[0]) {
+		t.Fatalf("the lane's own card survived its close: %+v", b.requests[0])
+	}
+	if b.requests[0].Status != "canceled" {
+		t.Fatalf("card status = %q, want canceled", b.requests[0].Status)
+	}
+	// The sibling's card is about other work and must stay answerable.
+	if !requestIsActive(b.requests[1]) {
+		t.Fatalf("closing one lane canceled its sibling's card: %+v", b.requests[1])
+	}
+	canceled := false
+	for _, a := range b.actions {
+		if a.Kind == "request_canceled" && a.RelatedID == "request-31" {
+			canceled = true
+			if !strings.Contains(a.Summary, "task closed") {
+				t.Fatalf("cancel reason lost the cause: %q", a.Summary)
+			}
+		}
+	}
+	if !canceled {
+		t.Fatalf("no request_canceled row for the orphaned card; actions=%+v", b.actions)
+	}
+}
