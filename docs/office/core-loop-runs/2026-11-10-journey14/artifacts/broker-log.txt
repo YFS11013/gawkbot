@@ -1,0 +1,27 @@
+Launching WUPHF Office web view... the browser is the team now.
+2026/11/10 18:02:36 WARNING wiki: gbrain unavailable (wiki_index_gbrain_entity: connect: connect gbrain mcp: calling "initialize": EOF); falling back to the in-memory index. Facts will NOT persist across restarts. Install gbrain, or set WUPHF_WIKI_BACKEND=memory to silence this.
+2026/11/10 18:02:37 wiki lint cron: disabled (set WUPHF_LINT_CRON=HH:MM to enable a daily run)
+2026/11/10 18:02:37 INFO skill_compile cron: started interval=30m0s
+2026/11/10 18:02:37 wiki_index: boot reconcile complete
+2026/11/10 18:02:38 INFO skill_crud: backfilled missing SKILL.md from broker state name=app-building path=team/skills/app-building.md
+2026/11/10 18:02:38 INFO skill_consolidation_migration: no overlapping clusters found
+2026/11/10 18:02:38 INFO skill_crud: backfilled missing SKILL.md from broker state name=wiki-maintenance path=team/skills/wiki-maintenance.md
+2026/11/10 18:02:39 INFO skill_crud: backfilled missing SKILL.md from broker state name=data-modeling path=team/skills/data-modeling.md
+2026/11/10 18:02:39 [transport] share: registered (human-share)
+
+  Web UI:  http://127.0.0.1:7911
+  Broker:  http://127.0.0.1:7910
+  Press Ctrl+C to stop.
+
+2026/11/10 18:02:54 scheduler: loop started (poll=20s)
+2026/11/10 18:12:54 scheduler: heartbeat (uptime=10m0s, poll=20s)
+2026/11/10 18:15:10 wiki write-task refused: task=JOURN-12 slug=cos path=team/accounts/acme-renewal-quote.md: artifact path not declared: JOURN-12 declares no artifact_path, so no wiki path is authorized for it. @cos must set definition.artifact_path on the task (or route this deliverable through a human request); retrying this call cannot succeed
+2026/11/10 18:15:17 wiki write-task refused: task=JOURN-14 slug=cos path=team/emails/acme-renewal-followup.md: artifact path not declared: JOURN-14 declares no artifact_path, so no wiki path is authorized for it. @cos must set definition.artifact_path on the task (or route this deliverable through a human request); retrying this call cannot succeed
+2026/11/10 18:15:59 wiki write-task: task=JOURN-12 slug=cos path=team/accounts/acme-renewal-quote.md bytes=913
+2026/11/10 18:16:03 wiki write-task: task=JOURN-14 slug=cos path=team/emails/acme-renewal-followup.md bytes=673
+2026/11/10 18:18:14 scheduler: dispatched 1 due job(s)
+2026/11/10 18:19:14 broker: decision card request-24 answered "approve_decision" but the approve decision on task JOURN-12 was refused: task JOURN-12 definition-of-done check failed (artifact): no non-empty artifact matches "team/accounts/acme-renewal-quote.md" — fix the work, then complete again; the failure output is recorded on the task
+2026/11/10 18:19:14 broker: decision card request-27 answered "approve_decision" but the approve decision on task JOURN-14 was refused: task JOURN-14 definition-of-done check failed (artifact): no non-empty artifact matches "team/emails/acme-renewal-followup.md" — fix the work, then complete again; the failure output is recorded on the task
+2026/11/10 18:22:54 scheduler: heartbeat (uptime=20m0s, poll=20s)
+2026/11/10 18:32:54 scheduler: heartbeat (uptime=30m0s, poll=20s)
+2026/11/10 18:42:54 scheduler: heartbeat (uptime=40m0s, poll=20s)

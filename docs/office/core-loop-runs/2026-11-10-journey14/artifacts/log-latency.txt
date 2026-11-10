@@ -1,0 +1,8 @@
+[2026-11-10T18:03:03+08:00] bot=cos stage=started queue_wait_ms=40
+[2026-11-10T18:10:16+08:00] bot=cos stage=started queue_wait_ms=38
+[2026-11-10T18:11:27+08:00] bot=cos status=ok provider=opencode total_ms=503739 first_event_ms=12217 first_text_ms=337967 first_tool_ms=101733 final_chars=2144 last_error=""
+[2026-11-10T18:13:08+08:00] bot=cos stage=started queue_wait_ms=65
+[2026-11-10T18:13:08+08:00] bot=cos stage=started queue_wait_ms=95
+[2026-11-10T18:17:01+08:00] bot=cos status=ok provider=opencode total_ms=232546 first_event_ms=10609 first_text_ms=37028 first_tool_ms=33325 final_chars=395 last_error=""
+[2026-11-10T18:19:14+08:00] bot=cos stage=started queue_wait_ms=70
+[2026-11-10T18:29:14+08:00] bot=cos status=error provider=opencode total_ms=599779 first_event_ms=12080 first_text_ms=19538 detail="exit status 1"

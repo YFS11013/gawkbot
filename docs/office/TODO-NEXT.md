@@ -169,6 +169,21 @@ prereg `core-loop-runs/2026-11-10-journey12/prereg.md`，被测 `4c53083`，判�
 - **顺手修的一处**：`HollowCompletion` 从「只看 artifact」改成「artifact 空 **且** 无已交付子任务」；两条关闭路径（决策端点、任务端点）现在口径一致。
 - **这一轮证不了**：父 Issue 决策卡正文（V4）、人工点击闭环（V5）、`decision:` 卡的去重、容器 409 之后模型是否转走 `submit_for_review`（本轮它走了 not_required，代码允许；修复后才有下一轮）。**J13 才可能第一次锻炼 §9.22 的聚合谓词**：要断言父 Issue 进 `decision` 且 `artifact=null`，并加一条「bot 对这类容器的 `complete` 必须 409」。
 
+### Journey 14 复核（2026-11-10，lane 卡出现了，但 DoD 的 artifact kind 让 lane 永久关不掉）
+
+prereg `core-loop-runs/2026-11-10-journey14/prereg.md`，被测 `6caf6cf`（+自愈修复），判分 `…/journey14/scorecard.md`（独立子代理）。场景同 J13，但 Issue 正文钉死「两条子任务、两份独立文件」。
+
+- **站住的**：
+  - **钉死形状有效（F-i 未发生）**：cos 拆出 `JOURN-12`/`JOURN-14` 两条 lane（msg-13/15），各自写自己的文件（wiki `8ab0cc2` 报价 36 行、`135f9dc` 邮件 22 行），父 `JOURN-1` 的 `artifact` 保持为空。
+  - **lane 带 artifact 时会出自己的 decision 卡**：`request-24`/`request-27`（`decision:JOURN-12/14`）——J12 的 lane 因 artifact 为空而无卡，这次证明了 §9.22 的谓词对 lane 也成立。
+- **没站住的**：
+  - **lane 卡点不动（重，产品缺陷）→ 已修**：人工点 `approve_decision` 两张都 409 `definition-of-done check failed (artifact): no non-empty artifact matches "team/accounts/acme-renewal-quote.md"`。lane 的 `verification.kind=artifact`、spec 是 wiki 相对路径，而 `artifact` 只 glob 工作区/bot scratch；schema 从没列出 `wiki_artifact`（`server_types.go` 的 `VerificationKind`），模型选不到对的 kind。现在 schema 点名 `wiki_artifact`。
+  - **关不掉的 lane 无法补救（重，产品缺陷）→ 已修**：cos 自己诊断出「校验卡在 artifact（工作区文件）上，而交付物是 wiki 文章。改用 define 把校验方式修正为 none」，但 `define` 的 `task.Verification != nil` 分支静默拒绝替换，lane 的 `verification` 始终是 `artifact`，**没有任何人能关掉它**。现在**已失败过的 gate 允许被 re-define 替换/清除**（action log 记 `verification_replaced`），通过的 gate 仍不可削弱。测试 `TestDefineReplacesAFailedVerificationGate`、`TestDefineDoesNotReplaceAPassingVerificationGate`。
+  - **`definition-gap` 卡又重复追问（模型行为）**：`request-48` 问 `access needed: wiki write access`——wiki 写入本来就是 lane 的默认能力，且文件已经写进去了。
+- **干预 3 次 vs 预算 3 次**：request-3 事实、request-8 计划、两张 lane 卡的 approve 尝试（同一类动作，算 1 次干预的两次点击）。
+- **这一轮证不了**：父 Issue 的容器 409（V1）、父决策卡（V3/V4）、人工批准闭环（V5）、bot 关闭门（V7）——**都被 lane 卡死拖住了**。修复后才有 J15。
+- **处置**：lane 卡死属于产品缺陷而非场景问题，J14 停机归档；修复（schema + 失败 gate 可替换）经全量测试后部署，**J15 用修好的二进制重跑同一场景**。
+
 ### Journey 13 复核（2026-11-10，形状没钉死，模型把两份交付物塞进一个文件、一条 lane 都没拆）
 
 prereg `core-loop-runs/2026-11-10-journey13/prereg.md`，被测 `6caf6cf`，判分 `…/journey13/scorecard.md`（独立子代理，含操作员勘误）。场景同 J12，模型 `opencode-go/longcat-2.5-free`。
