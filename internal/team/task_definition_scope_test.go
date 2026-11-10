@@ -80,3 +80,68 @@ func TestContainerCannotDeclareALanesFileAsItsWriteScope(t *testing.T) {
 		t.Fatalf("the refused define must not leave the scope applied, got %+v", task.Definition)
 	}
 }
+
+// The guard's window: a lane declares its write scope the moment it is
+// created, but only records `Artifact` when it completes. Guard exercise
+// 2026-11-10 (core-loop-runs/2026-11-10-guards) hit exactly that window — the
+// container claimed the pending lane's file and the define was accepted.
+func TestContainerCannotClaimAPendingLanesWriteScope(t *testing.T) {
+	b := newTestBroker(t)
+	const parentID, laneID = "GUARD-9", "GUARD-14"
+	const lanePath = "team/emails/guard-email.md"
+	now := time.Date(2026, 11, 10, 13, 0, 0, 0, time.UTC).Format(time.RFC3339)
+	b.mu.Lock()
+	b.tasks = append(b.tasks,
+		teamTask{
+			ID: parentID, Title: "Issue", Channel: testTeamRoom, Owner: "cos",
+			status: "in_progress", CreatedBy: "cos", CreatedAt: now, UpdatedAt: now,
+			LifecycleState: LifecycleStateRunning,
+		},
+		teamTask{
+			ID: laneID, Title: "Lane", Channel: testTeamRoom, Owner: "cos",
+			status: "in_progress", CreatedBy: "cos", CreatedAt: now, UpdatedAt: now,
+			ParentIssueID: parentID, Artifact: "",
+			Definition: &TaskDefinition{Goal: "Write the email.", ArtifactPath: lanePath},
+		})
+	b.mu.Unlock()
+
+	_, err := b.MutateTask(TaskPostRequest{
+		Action: "define", ID: parentID, Channel: testTeamRoom, CreatedBy: "cos",
+		Definition: &TaskDefinition{Goal: "Aggregate the lanes.", ArtifactPath: lanePath},
+	})
+	if err == nil {
+		t.Fatal("a container must not claim the file a pending lane is about to write")
+	}
+	if !strings.Contains(err.Error(), "is a container") || !strings.Contains(err.Error(), laneID) {
+		t.Fatalf("the refusal must name the container rule and the pending lane, got %v", err)
+	}
+}
+
+// A canceled lane owns nothing, so the same path is free for the container.
+func TestCanceledLaneWriteScopeDoesNotBlockTheContainer(t *testing.T) {
+	b := newTestBroker(t)
+	const parentID, laneID = "GUARD-9", "GUARD-16"
+	const lanePath = "team/emails/dropped.md"
+	now := time.Date(2026, 11, 10, 13, 0, 0, 0, time.UTC).Format(time.RFC3339)
+	b.mu.Lock()
+	b.tasks = append(b.tasks,
+		teamTask{
+			ID: parentID, Title: "Issue", Channel: testTeamRoom, Owner: "cos",
+			status: "in_progress", CreatedBy: "cos", CreatedAt: now, UpdatedAt: now,
+			LifecycleState: LifecycleStateRunning,
+		},
+		teamTask{
+			ID: laneID, Title: "Lane", Channel: testTeamRoom, Owner: "cos",
+			status: "canceled", CreatedBy: "cos", CreatedAt: now, UpdatedAt: now,
+			ParentIssueID: parentID,
+			Definition:    &TaskDefinition{Goal: "Write it.", ArtifactPath: lanePath},
+		})
+	b.mu.Unlock()
+
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "define", ID: parentID, Channel: testTeamRoom, CreatedBy: "cos",
+		Definition: &TaskDefinition{Goal: "Write it myself.", ArtifactPath: lanePath},
+	}); err != nil {
+		t.Fatalf("a canceled lane must not own its old scope: %v", err)
+	}
+}

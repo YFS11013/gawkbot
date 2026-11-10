@@ -776,6 +776,18 @@ func isDeliveredTeamTaskStatus(status string) bool {
 	}
 }
 
+// isRetiredTeamTaskStatus reports whether a task stopped being a going concern:
+// canceled, rejected, or archived work owns nothing, so guards that hand a file
+// or a scope to a child must ignore it.
+func isRetiredTeamTaskStatus(status string) bool {
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "canceled", "cancelled", "archived", "rejected":
+		return true
+	default:
+		return false
+	}
+}
+
 // findDeliveredTaskLocked returns the task that ALREADY shipped the work a
 // create is about to re-do.
 //

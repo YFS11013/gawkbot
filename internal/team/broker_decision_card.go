@@ -81,9 +81,11 @@ func (b *Broker) childDeliverablesLocked(task *teamTask) []string {
 	return out
 }
 
-// childOwningArtifactLocked reports the delivered child whose artifact is
-// exactly `path`, so a container mutation can refuse to restate one lane's
-// file as the Issue's own. Journey 11 (core-loop-runs/2026-11-10-journey11):
+// childOwningArtifactLocked reports the child that already owns `path` — as a
+// delivered `artifact`, or as the write scope the lane declared when it was
+// created — so a container mutation can refuse to restate one lane's file as
+// the Issue's own. Canceled, rejected, and archived children own nothing.
+// Journey 11 (core-loop-runs/2026-11-10-journey11):
 // cos submitted JOURN-2 for review with artifact_path set to JOURN-22's
 // deliverable, the Issue carried that single path from then on, and the
 // promotion + the channel summary both described a two-file Issue by one of its
@@ -93,15 +95,22 @@ func (b *Broker) childOwningArtifactLocked(task *teamTask, path string) (string,
 	if b == nil || task == nil || strings.TrimSpace(path) == "" {
 		return "", false
 	}
+	want := strings.TrimSpace(path)
 	for i := range b.tasks {
 		child := &b.tasks[i]
 		if strings.TrimSpace(child.ParentIssueID) != task.ID || child.ID == task.ID {
 			continue
 		}
-		if !isDeliveredTeamTaskStatus(child.status) {
+		if isRetiredTeamTaskStatus(child.status) {
 			continue
 		}
-		if strings.TrimSpace(child.Artifact) == strings.TrimSpace(path) {
+		if isDeliveredTeamTaskStatus(child.status) && strings.TrimSpace(child.Artifact) == want {
+			return child.ID, true
+		}
+		// A lane's declared write scope counts before it delivers. Otherwise
+		// the Issue can claim the file a lane is about to write in the window
+		// between lane creation and completion, and then overwrite it.
+		if child.Definition != nil && strings.TrimSpace(child.Definition.ArtifactPath) == want {
 			return child.ID, true
 		}
 	}
