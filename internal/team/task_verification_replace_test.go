@@ -1,6 +1,7 @@
 package team
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -89,5 +90,41 @@ func TestDefineDoesNotReplaceAPassingVerificationGate(t *testing.T) {
 	task := b.TaskByID(taskID)
 	if task.Verification == nil || task.Verification.Kind != "artifact" {
 		t.Fatalf("a passing gate must survive a re-define, got %+v", task.Verification)
+	}
+}
+
+// A failed gate plus criteria that state a real check must be CORRECTED, not
+// silently cleared: a define that sends no verification_kind is a definition
+// update, not an opt-out. The deriver supplies the new gate.
+func TestFailedGateIsCorrectedFromCriteriaNotCleared(t *testing.T) {
+	b := newTestBroker(t)
+	const taskID = "JOURN-92"
+	now := time.Date(2026, 11, 10, 10, 30, 0, 0, time.UTC).Format(time.RFC3339)
+	b.mu.Lock()
+	b.tasks = append(b.tasks, teamTask{
+		ID: taskID, Title: "Lane", Channel: testTeamRoom, Owner: "cos",
+		status: "in_progress", CreatedBy: "cos", CreatedAt: now, UpdatedAt: now,
+		Verification:       &TaskVerification{Kind: "artifact", Spec: "team/accounts/acme-renewal-quote.md", Required: true},
+		VerificationResult: &TaskVerificationResult{Pass: false, Kind: "artifact", Detail: "no non-empty artifact matches"},
+	})
+	b.mu.Unlock()
+
+	_, err := b.MutateTask(TaskPostRequest{
+		Action: "define", ID: taskID, Channel: testTeamRoom, CreatedBy: "cos",
+		Definition: &TaskDefinition{
+			Goal:            "Standalone English one-page renewal quote for Acme.",
+			Deliverables:    []TaskDeliverable{{Name: "One-page renewal quote", Format: "markdown"}},
+			SuccessCriteria: []string{"file team/accounts/acme-renewal-quote.md exists"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("define must succeed: %v", err)
+	}
+	task := b.TaskByID(taskID)
+	if task.Verification == nil {
+		t.Fatal("a failed gate must not be silently cleared by a kind-less define")
+	}
+	if task.Verification.Kind != "command" || !strings.Contains(task.Verification.Spec, "team/accounts/acme-renewal-quote.md") {
+		t.Fatalf("the criteria must supply the corrected gate, got %+v", task.Verification)
 	}
 }

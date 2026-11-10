@@ -1299,34 +1299,48 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 				defVerification = v
 			}
 			task.Definition = def
-			// Machine-checkable success criteria arrive WITH their check
-			// in the same call. Only set when no check exists yet so a
-			// re-define cannot silently replace an established gate. When
-			// the CEO dropped a human-stated DoD anyway, the conservative
-			// deriver (task_dod_derive.go) backstops it from the criteria
-			// text and stamps the action log.
+			// Machine-checkable success criteria arrive WITH their check in the
+			// same call. A gate that has not failed stays put, so the model
+			// cannot silently weaken its own DoD by re-defining; when the CEO
+			// dropped a human-stated DoD anyway, the conservative deriver
+			// (task_dod_derive.go) backstops it from the criteria text.
 			//
 			// Journey 14 (core-loop-runs/2026-11-10-journey14): a lane was
 			// created with verification_kind=artifact and a wiki-relative spec,
 			// so its own deliverable could never satisfy the gate — the human's
-			// approve 409'd forever, and the model's diagnosis ("校验卡在 artifact
-			// （工作区文件）上，而交付物是 wiki 文章。改用 define 把校验方式修正为
-			// none") was silently ignored because a re-define could not touch an
-			// established gate. A gate that has already FAILED is not an
-			// established gate worth protecting: let the re-define replace it,
-			// and record the swap in the action log so the change is visible.
+			// approve 409'd, and the model's diagnosis (「校验卡在 artifact（工作区
+			// 文件）上，而交付物是 wiki 文章。改用 define 把校验方式修正为 none」)
+			// was silently ignored because a re-define could not touch an
+			// established gate. A human always owns the DoD, and a gate that has
+			// already FAILED has proven itself wrong about this task's
+			// deliverable: both may now be corrected, and the swap is logged.
 			verificationReplaceable := task.Verification == nil ||
-				(task.VerificationResult != nil && !task.VerificationResult.Pass)
+				(task.VerificationResult != nil && !task.VerificationResult.Pass) ||
+				isHumanMessageSender(actor)
 			prevVerification := task.Verification
 			if verificationReplaceable {
-				if defVerification != nil {
+				switch {
+				case defVerification != nil:
 					task.Verification = defVerification
-				} else if task.Verification != nil {
+				case task.Verification == nil:
+					// No gate yet: derive one from the criteria, as before.
+					if derived := deriveTaskVerificationFromDefinition(def); derived != nil {
+						task.Verification = derived
+						b.appendActionLocked("verification_derived", "office", taskChannel, "system",
+							truncateSummary("verification auto-derived from DoD: "+derived.Spec, 140), task.ID)
+					}
+				case strings.EqualFold(strings.TrimSpace(body.VerificationKind), taskVerificationKindNone):
+					// The caller explicitly opted out (verification_kind=none).
+					// A define that sends no kind must never clear a gate.
 					task.Verification = nil
-				} else if derived := deriveTaskVerificationFromDefinition(def); derived != nil {
-					task.Verification = derived
-					b.appendActionLocked("verification_derived", "office", taskChannel, "system",
-						truncateSummary("verification auto-derived from DoD: "+derived.Spec, 140), task.ID)
+				default:
+					// A failed gate plus criteria that state a real check:
+					// correct the gate rather than leaving the task unclosable.
+					if derived := deriveTaskVerificationFromDefinition(def); derived != nil {
+						task.Verification = derived
+						b.appendActionLocked("verification_derived", "office", taskChannel, "system",
+							truncateSummary("verification auto-derived from DoD: "+derived.Spec, 140), task.ID)
+					}
 				}
 			}
 			if !sameVerification(prevVerification, task.Verification) {
