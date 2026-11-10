@@ -616,7 +616,7 @@ J14 的评分卡把 V1/V7 判成**未观察**——模型那一轮自发走了�
 
 **判据外的另外两处（同轮查、已修）**：① 三条守卫的拒绝**不留任何痕迹**（`actions[]` 26 条全是成功事件、`broker.log` 干净），越权尝试本身却正是该被计数的事件；现在三个拒绝点各写一条 `guard_refused`（`related_id=任务`，summary 带路径与 lane id），且必须写在 `rollbackTask()` **之后**——`brokerTaskMutationSnapshot.restore` 会把 `b.actions` 重置回快照。测试 `TestContainerGuardRefusalsLeaveALedgerRow`。② 裸 `GET /requests` 静默答「没有请求」：`normalizeChannelSlug` 把 `""` 洗成 `general`，「channel is required」的 400 分支读的是洗过的值、永远是死代码；驱动的 `NO CARD` 两分钟就是它造成的。同一处洗值也毁掉了 by-ID 读——裸 `?id=<rid>` 落进 `reqChannel != "general"` 过滤、返回空列表，而 `web/src/api/botKnowledge.ts` 的待批准提升快照（`getPendingPromotion`）正是这样轮询的，提升请求又建在 agent 自己的频道里，所以它一向拿不到。现在列表、by-ID、频道可见性闸全部改看原始 query 值（by-ID 的可见性按每条请求单独判），裸列表报 400 并说清该传什么。测试 `TestGetRequestsWithoutAChannelSaysSo`（三段：裸列表 400 / 裸 by-ID 命中 / 未知 id 空列表，去掉修复即红）。
 
-**留下的观察（未处理）**：一个任务可以写另一个任务**已交付**的 `artifact`（`GUARD-4` 覆盖了 `GUARD-12` 的 `team/accounts/guard-quote.md`）；文件是否该独占未定，`mode=append_section` 的共享写法是有意的。另外决策批准路径的同一处 `childOwningArtifactLocked` 拒绝仍未留痕（那段代码在 `b.mu` 持有期间返回），作为已知缺口记在 `observations.md` §7。
+**留下的观察（未处理）**：一个任务可以写另一个任务**已交付**的 `artifact`（`GUARD-4` 覆盖了 `GUARD-12` 的 `team/accounts/guard-quote.md`）；文件是否该独占未定，`mode=append_section` 的共享写法是有意的。原先这里还记着「决策批准路径的同一处 `childOwningArtifactLocked` 拒绝仍未留痕」——**已修（同日 `01bfcb8`）**：该门跑在任何 mutation 之前，没有 `rollbackTask()` 的快照恢复问题，`recordGuardRefusalLocked` 直接落盘；`TestDecisionApproveRefusesALanePathAsTheIssueArtifact` 断言这行（去掉即红），`TestDecisionApproveWithoutALanePathLeavesNoGuardRow` 钉住干净的 approve 不留行。容器**写入**守卫的两个入口（任务端点的 `complete`、决策端点的 `approve`）现在都留痕；写范围门与 bot 关闭门只有任务端点一条入口，早已留痕。
 
 ### 9.25 Journey 15：模型自己走到了容器守卫上（2026-11-10）
 

@@ -111,3 +111,11 @@ G4 写的是「三次撞门后容器仍 `in_progress`、`artifact=null`」，只
 **没有一起改的同类点（留作已知缺口）**：决策批准路径（`broker_decision_packet.go`，`RecordTaskDecision*` 的 pre-phase）对同一个 `childOwningArtifactLocked` 拒绝**仍然不留痕**。那里在 `b.mu` 持有期间返回（`defer Unlock` 在 895 行），只能用 locked 变体追加、且不能顺便落盘；既然这一轮没有覆盖它的测试，就先不动，把它写成缺口而不是加一条没人测的代码。
 
 **同一处缺陷的第二面（同轮补）**：`byID` 也读的是洗过的 `channel`，所以**裸 `?id=<rid>`** 同样恒假，落进 `reqChannel != "general"` 过滤 → `200 {"requests":[]}`。这条比列表那条更难发现，因为它有真实调用方：`web/src/api/botKnowledge.ts:151` 的 `getPendingPromotion` 只传 `{id, viewer_slug}`，不传 channel——而提升请求建在 agent 自己的频道（如 `cos__human`）里，所以待批准的知识提升快照在这个构建上**基本显示不出来**（只有恰好落在 `general` 的才碰巧能读到）。顺带修掉早期那道 `canAccessChannelLocked(viewerSlug, "general")` 的 403 闸：by-ID 读不该先要求 general 的可见性，可见性按每条请求单独判。测试补了三段：裸 `?id=<存在的 id>`（跨频道）必须命中一条、未知 id 必须 200 空列表、裸列表必须 400。去掉 `rawChannel` 那处改动即红：`a bare by-ID read must return the request it names (cross-channel), got []`。
+
+## 8 结案：§7 留的缺口已修（2026-11-10 晚，`01bfcb8`）
+
+§7 末尾「没有一起改的同类点」写的是决策批准路径**仍然不留痕**。已修：`recordTaskDecisionInternal` 的 pre-phase 在 `childOwningArtifactLocked` 拒绝处调用 `recordGuardRefusalLocked`（`broker_decision_packet.go:959`）。
+
+当时担心的「在 `b.mu` 持有期间返回、且不能顺便落盘」不成立：这道门跑在任何 mutation **之前**，没有 `rollbackTask()` 之后的快照恢复问题；`recordGuardRefusalLocked` 自己 `saveLocked()`，行会持久化。
+
+`TestDecisionApproveRefusesALanePathAsTheIssueArtifact` 现在断言这一行（去掉记录即红：`got 0`），并断言 summary 带路径与 lane id；`TestDecisionApproveWithoutALanePathLeavesNoGuardRow` 钉住「干净的 approve 不留行」，避免这个计数变成噪音。
