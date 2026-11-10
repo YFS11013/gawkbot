@@ -1,0 +1,8 @@
+a39067d 2026-11-10 22:58:13 +0800 archivist: entity article companies/vp-ops (3 facts)
+3b08980 2026-11-10 22:58:12 +0800 fact: companies/vp-ops — Completed task JOURN-1 ("Journey 15: Acme renewal pack (final)") involved this entity. Goal: Journey 15: Acme renewal pack (final).
+2de19d3 2026-11-10 22:58:11 +0800 decision: promote JOURN-1 on approval
+934459f 2026-11-10 22:54:29 +0800 archivist: update playbook draft journ-1a-acme from JOURN-17
+f82d1aa 2026-11-10 22:54:29 +0800 librarian: compile skill journ-1a-acme
+b8e1e75 2026-11-10 22:54:28 +0800 learning: operational/journ-1b-acme
+0726639 2026-11-10 22:54:27 +0800 archivist: compile playbook journ-1a-acme
+7e60c8d 2026-11-10 22:54:26 +0800 archivist: entity article companies/vp-ops (2 facts)

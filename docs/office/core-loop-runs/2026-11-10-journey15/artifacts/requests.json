@@ -1,0 +1,194 @@
+[
+  {
+    "id": "request-4",
+    "kind": "interview",
+    "status": "answered",
+    "dedupe_key": null,
+    "question": "Acme 这次续约的商业方案是哪种？",
+    "options": [
+      {
+        "id": "straight",
+        "label": "直接续约（同方案、标准价）",
+        "description": "到期续签，方案与价格基本不变"
+      },
+      {
+        "id": "expansion",
+        "label": "扩容续约（加量/升档）",
+        "description": "增加席位、用量，或升级到更高档位"
+      },
+      {
+        "id": "renegotiation",
+        "label": "重新谈判（条款/价格有变）",
+        "description": "方案、价格或周期需要重新商定"
+      },
+      {
+        "id": "something_else",
+        "label": "Something else",
+        "description": "None of these fit — write your own answer.",
+        "requires_text": true,
+        "text_hint": "Type your own answer for the team."
+      }
+    ],
+    "answered_at": null,
+    "answer": null
+  },
+  {
+    "id": "request-11",
+    "kind": "approval",
+    "status": "answered",
+    "dedupe_key": "plan-approval:JOURN-1",
+    "question": "@cos wants to start work on Journey 15: Acme renewal pack (final) (JOURN-1).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\n收到——直接续约、40 席位 $21,600/年、Dana 唯一签字人，我按这个事实基础拆两条子任务开始起草。事实已锁定，但 JOURN-1 的计划还在等你批准——计划没批， broker 不放行子任务。 **已确认的续约事实（两份文件共用）** - 现方案：40 席位，$18,000/年，2026-12-31 到期，30 天付款 - 续约：同方案直接续期，报价 $21,600/年（40 席位不变），有效期 14 天 - 决策人：Dana（VP Ops），唯一签字人 **下一步**：请批准 JOURN-1 的计划卡（Planning → Running）。批准后我立刻拆两条子任务——JOURN-1a 一页报价单、JOURN-1b 跟进邮件——并开始起草。",
+    "options": [
+      {
+        "id": "approve",
+        "label": "Approve",
+        "description": "Green-light this and let the team execute immediately."
+      },
+      {
+        "id": "approve_with_note",
+        "label": "Approve with note",
+        "description": "Proceed, but attach explicit constraints or guardrails.",
+        "requires_text": true,
+        "text_hint": "Type the conditions, constraints, or guardrails the team must follow."
+      },
+      {
+        "id": "needs_more_info",
+        "label": "Need more info",
+        "description": "Gather more context before making the approval call."
+      },
+      {
+        "id": "reject",
+        "label": "Reject",
+        "description": "Do not proceed with this."
+      },
+      {
+        "id": "reject_with_steer",
+        "label": "Reject with steer",
+        "description": "Do not proceed as proposed. Redirect the team with clearer steering.",
+        "requires_text": true,
+        "text_hint": "Type the steering, redirect, or rationale for rejecting this request."
+      }
+    ],
+    "answered_at": null,
+    "answer": null
+  },
+  {
+    "id": "request-19",
+    "kind": "interview",
+    "status": "pending",
+    "dedupe_key": "definition-gap:JOURN-15",
+    "question": "Before the team starts \"JOURN-1a 一页 Acme 续约报价单（英文）\", a few details are missing:\n- access needed: wiki 写入权限（artifact_scope 已授予）\nReply with the missing details (or tell the team to proceed as-is).",
+    "options": [
+      {
+        "id": "answer_directly",
+        "label": "Answer directly",
+        "description": "Respond in your own words below.",
+        "requires_text": true,
+        "text_hint": "Type your answer for the team."
+      },
+      {
+        "id": "need_more_context",
+        "label": "Need more context",
+        "description": "Ask the team to bring back more context before you decide.",
+        "requires_text": true,
+        "text_hint": "Type what context is missing or what should be clarified next."
+      }
+    ],
+    "answered_at": null,
+    "answer": null
+  },
+  {
+    "id": "request-22",
+    "kind": "interview",
+    "status": "pending",
+    "dedupe_key": "definition-gap:JOURN-17",
+    "question": "Before the team starts \"JOURN-1b Acme 续约跟进邮件（英文）\", a few details are missing:\n- access needed: wiki 写入权限（artifact_scope 已授予）\nReply with the missing details (or tell the team to proceed as-is).",
+    "options": [
+      {
+        "id": "answer_directly",
+        "label": "Answer directly",
+        "description": "Respond in your own words below.",
+        "requires_text": true,
+        "text_hint": "Type your answer for the team."
+      },
+      {
+        "id": "need_more_context",
+        "label": "Need more context",
+        "description": "Ask the team to bring back more context before you decide.",
+        "requires_text": true,
+        "text_hint": "Type what context is missing or what should be clarified next."
+      }
+    ],
+    "answered_at": null,
+    "answer": null
+  },
+  {
+    "id": "request-31",
+    "kind": "approval",
+    "status": "answered",
+    "dedupe_key": "decision:JOURN-15",
+    "question": "@cos finished JOURN-1a 一页 Acme 续约报价单（英文） (JOURN-15) and the review is in. Nothing else moves until you call it.\n\nThe deliverable is team/accounts/acme-renewal-quote.md.\nApprove and the lane closes. Send it back and the owner picks up your note as the rework.",
+    "options": [
+      {
+        "id": "approve_decision",
+        "label": "Approve",
+        "description": "Accept the deliverable and close this lane."
+      },
+      {
+        "id": "request_changes_decision",
+        "label": "Send back",
+        "description": "Hand it back to the owner with what must change.",
+        "requires_text": true,
+        "text_hint": "Type what must change before this can be accepted."
+      }
+    ],
+    "answered_at": null,
+    "answer": null
+  },
+  {
+    "id": "request-34",
+    "kind": "approval",
+    "status": "answered",
+    "dedupe_key": "decision:JOURN-17",
+    "question": "@cos finished JOURN-1b Acme 续约跟进邮件（英文） (JOURN-17) and the review is in. Nothing else moves until you call it.\n\nThe deliverable is team/emails/acme-renewal-followup.md.\nApprove and the lane closes. Send it back and the owner picks up your note as the rework.",
+    "options": [
+      {
+        "id": "approve_decision",
+        "label": "Approve",
+        "description": "Accept the deliverable and close this lane."
+      },
+      {
+        "id": "request_changes_decision",
+        "label": "Send back",
+        "description": "Hand it back to the owner with what must change.",
+        "requires_text": true,
+        "text_hint": "Type what must change before this can be accepted."
+      }
+    ],
+    "answered_at": null,
+    "answer": null
+  },
+  {
+    "id": "request-46",
+    "kind": "approval",
+    "status": "answered",
+    "dedupe_key": "decision:JOURN-1",
+    "question": "@cos finished Journey 15: Acme renewal pack (final) (JOURN-1) and the review is in. Nothing else moves until you call it.\n\nThis Issue's lanes delivered 2 file(s):\n\n- team/accounts/acme-renewal-quote.md\n- team/emails/acme-renewal-followup.md\n\nThe Issue ships no single file of its own; those are what you are accepting.\nApprove and the lane closes. Send it back and the owner picks up your note as the rework.",
+    "options": [
+      {
+        "id": "approve_decision",
+        "label": "Approve",
+        "description": "Accept the deliverable and close this lane."
+      },
+      {
+        "id": "request_changes_decision",
+        "label": "Send back",
+        "description": "Hand it back to the owner with what must change.",
+        "requires_text": true,
+        "text_hint": "Type what must change before this can be accepted."
+      }
+    ],
+    "answered_at": null,
+    "answer": null
+  }
+]

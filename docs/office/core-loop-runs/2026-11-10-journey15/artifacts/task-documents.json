@@ -1,0 +1,213 @@
+{
+  "JOURN-1": {
+    "taskId": "JOURN-1",
+    "lifecycleState": "approved",
+    "spec": {},
+    "sessionReport": {
+      "highlights": "",
+      "topWins": null,
+      "deadEnds": null,
+      "metadata": null
+    },
+    "changedFiles": null,
+    "reviewerGrades": null,
+    "dependencies": {
+      "parentTaskId": "",
+      "blockedOn": null
+    },
+    "updatedAt": "2026-11-10T14:58:11.4622604Z",
+    "task": {
+      "id": "JOURN-1",
+      "channel": "cos__human",
+      "title": "Journey 15: Acme renewal pack (final)",
+      "details": "Journey 15: Acme renewal pack（收尾版）\nAcme 续约（VP Ops：Dana）要两份**各自独立**的英文交付物：① 一页续约报价单（独立文件）② 一封跟进邮件（独立文件）。请拆成**两条子任务**，每条交付自己的文件。\n这个 Issue 自己不写文件——它只是把两件事办完、然后**收尾**：我要看到它进 done。方案/价格/周期、续约调整、联系人都不在办公室里，走采访或直接问我。",
+      "owner": "cos",
+      "status": "done",
+      "created_by": "you",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "ship",
+      "execution_mode": "office",
+      "review_state": "not_required",
+      "lifecycle_state": "approved",
+      "ledger": [
+        {
+          "agent": "cos",
+          "at": "2026-11-10T14:47:59Z",
+          "outcome": "exit status 1",
+          "said": "采访卡片请求超时了，我重试一次。"
+        },
+        {
+          "agent": "cos",
+          "at": "2026-11-10T14:58:00Z",
+          "outcome": "ok",
+          "said": "JOURN-1 已进 review，两条子任务 done、两份英文文件已发布。等你在审阅卡上批准后，Issue 即进 done。",
+          "actions": [
+            "task_updated: Journey 15: Acme renewal pack (final) [review]"
+          ],
+          "context_used": [
+            "journal:JOURN-1"
+          ]
+        }
+      ],
+      "created_at": "2026-11-10T14:37:59Z",
+      "updated_at": "2026-11-10T14:58:34Z"
+    }
+  },
+  "JOURN-15": {
+    "taskId": "JOURN-15",
+    "lifecycleState": "approved",
+    "spec": {
+      "feedback": [
+        {
+          "appendedAt": "2026-11-10T14:53:26.3320411Z",
+          "author": "cos",
+          "body": "📤 Submitted for review:\n一页英文续约报价单初稿，基于已确认事实（40 席位、$21,600/年、14 天有效期、Dana 唯一签字人）。公司名/联系方式留占位。"
+        }
+      ]
+    },
+    "sessionReport": {
+      "highlights": "",
+      "topWins": null,
+      "deadEnds": null,
+      "metadata": null
+    },
+    "changedFiles": null,
+    "reviewerGrades": null,
+    "dependencies": {
+      "parentTaskId": "",
+      "blockedOn": null
+    },
+    "updatedAt": "2026-11-10T14:54:23.6741834Z",
+    "task": {
+      "id": "JOURN-15",
+      "channel": "cos__human",
+      "title": "JOURN-1a 一页 Acme 续约报价单（英文）",
+      "details": "已确认事实：现方案 40 席位 $18,000/年，2026-12-31 到期，30 天付款；续约同方案直接续期，报价 $21,600/年（40 席位不变），有效期 14 天；决策人 Dana（VP Ops），唯一签字人。\n\n一页英文续约报价单初稿，基于已确认事实（40 席位、$21,600/年、14 天有效期、Dana 唯一签字人）。公司名/联系方式留占位。",
+      "owner": "cos",
+      "status": "done",
+      "created_by": "cos",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "review",
+      "execution_mode": "office",
+      "review_state": "not_required",
+      "parent_issue_id": "JOURN-1",
+      "lifecycle_state": "approved",
+      "verification": {
+        "kind": "wiki_artifact",
+        "spec": "team/accounts/acme-renewal-quote.md",
+        "required": true
+      },
+      "verification_result": {
+        "pass": true,
+        "kind": "wiki_artifact",
+        "detail": "wiki artifact team\\accounts\\acme-renewal-quote.md (765 bytes)",
+        "checked_at": "2026-11-10T14:54:23Z"
+      },
+      "definition": {
+        "goal": "产出一页英文 Acme 续约报价单，发布到 team/accounts/acme-renewal-quote.md，内容基于已确认事实。",
+        "deliverables": [
+          {
+            "name": "Acme 续约报价单",
+            "format": "一页英文 markdown，wiki 文件 team/accounts/acme-renewal-quote.md"
+          }
+        ],
+        "success_criteria": [
+          "文件 team/accounts/acme-renewal-quote.md 存在且非空",
+          "全文英文",
+          "控制在一页内",
+          "包含：客户名 Acme、对接人 Dana（VP Ops）、当前方案（40 席位 $18,000/年，2026-12-31 到期）、续约报价 $21,600/年（40 席位不变）、有效期 14 天、下一步"
+        ],
+        "access_needed": [
+          "wiki 写入权限（artifact_scope 已授予）"
+        ],
+        "artifact_path": "team/accounts/acme-renewal-quote.md",
+        "defined_at": "2026-11-10T14:52:00Z"
+      },
+      "artifact": "team/accounts/acme-renewal-quote.md",
+      "done_posted_for": "2026-11-10T14:54:23Z",
+      "created_at": "2026-11-10T14:51:43Z",
+      "updated_at": "2026-11-10T14:54:23Z",
+      "completed_at": "2026-11-10T14:54:23Z"
+    }
+  },
+  "JOURN-17": {
+    "taskId": "JOURN-17",
+    "lifecycleState": "approved",
+    "spec": {
+      "feedback": [
+        {
+          "appendedAt": "2026-11-10T14:53:27.3930415Z",
+          "author": "cos",
+          "body": "📤 Submitted for review:\n英文续约跟进邮件初稿，口径与报价单一致，含给 Dana 的明确行动项。发件人信息留占位。"
+        }
+      ]
+    },
+    "sessionReport": {
+      "highlights": "",
+      "topWins": null,
+      "deadEnds": null,
+      "metadata": null
+    },
+    "changedFiles": null,
+    "reviewerGrades": null,
+    "dependencies": {
+      "parentTaskId": "",
+      "blockedOn": null
+    },
+    "updatedAt": "2026-11-10T14:54:25.239847Z",
+    "task": {
+      "id": "JOURN-17",
+      "channel": "cos__human",
+      "title": "JOURN-1b Acme 续约跟进邮件（英文）",
+      "details": "已确认事实：现方案 40 席位 $18,000/年，2026-12-31 到期，30 天付款；续约同方案直接续期，报价 $21,600/年（40 席位不变），有效期 14 天；决策人 Dana（VP Ops），唯一签字人。\n\n英文续约跟进邮件初稿，口径与报价单一致，含给 Dana 的明确行动项。发件人信息留占位。",
+      "owner": "cos",
+      "status": "done",
+      "created_by": "cos",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "review",
+      "execution_mode": "office",
+      "review_state": "not_required",
+      "parent_issue_id": "JOURN-1",
+      "lifecycle_state": "approved",
+      "verification": {
+        "kind": "wiki_artifact",
+        "spec": "team/emails/acme-renewal-followup.md",
+        "required": true
+      },
+      "verification_result": {
+        "pass": true,
+        "kind": "wiki_artifact",
+        "detail": "wiki artifact team\\emails\\acme-renewal-followup.md (740 bytes)",
+        "checked_at": "2026-11-10T14:54:25Z"
+      },
+      "definition": {
+        "goal": "产出一封可发送的英文 Acme 续约跟进邮件，发布到 team/emails/acme-renewal-followup.md，口径与报价单一致，含明确行动项给 Dana。",
+        "deliverables": [
+          {
+            "name": "Acme 续约跟进邮件",
+            "format": "英文 markdown，wiki 文件 team/emails/acme-renewal-followup.md"
+          }
+        ],
+        "success_criteria": [
+          "文件 team/emails/acme-renewal-followup.md 存在且非空",
+          "全文英文",
+          "长度可发送（非一页限制，但不超过约 250 词）",
+          "包含：主题行、正文（报价 $21,600/年、40 席位不变、14 天有效期，与报价单口径一致）、给 Dana 的明确行动项、签名"
+        ],
+        "access_needed": [
+          "wiki 写入权限（artifact_scope 已授予）"
+        ],
+        "artifact_path": "team/emails/acme-renewal-followup.md",
+        "defined_at": "2026-11-10T14:52:04Z"
+      },
+      "artifact": "team/emails/acme-renewal-followup.md",
+      "done_posted_for": "2026-11-10T14:54:25Z",
+      "created_at": "2026-11-10T14:51:46Z",
+      "updated_at": "2026-11-10T14:54:25Z",
+      "completed_at": "2026-11-10T14:54:25Z"
+    }
+  }
+}

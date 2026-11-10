@@ -1,0 +1,32 @@
+[
+  {
+    "id": "JOURN-1",
+    "title": "Journey 15: Acme renewal pack (final)",
+    "status": "done",
+    "lifecycle_state": "approved",
+    "parent_issue_id": null,
+    "artifact": null,
+    "definition_artifact_path": null,
+    "session_report": null
+  },
+  {
+    "id": "JOURN-15",
+    "title": "JOURN-1a 一页 Acme 续约报价单（英文）",
+    "status": "done",
+    "lifecycle_state": "approved",
+    "parent_issue_id": "JOURN-1",
+    "artifact": "team/accounts/acme-renewal-quote.md",
+    "definition_artifact_path": "team/accounts/acme-renewal-quote.md",
+    "session_report": null
+  },
+  {
+    "id": "JOURN-17",
+    "title": "JOURN-1b Acme 续约跟进邮件（英文）",
+    "status": "done",
+    "lifecycle_state": "approved",
+    "parent_issue_id": "JOURN-1",
+    "artifact": "team/emails/acme-renewal-followup.md",
+    "definition_artifact_path": "team/emails/acme-renewal-followup.md",
+    "session_report": null
+  }
+]

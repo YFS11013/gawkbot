@@ -1,0 +1,12 @@
+[
+  {
+    "created_at": "2026-11-10T14:56:26Z",
+    "kind": "guard_refused",
+    "summary": "container artifact: team/accounts/acme-renewal-quote.md is JOURN-15's deliverable"
+  },
+  {
+    "created_at": "2026-11-10T14:57:11Z",
+    "kind": "guard_refused",
+    "summary": "container close: cos tried to close it with 2 delivered lane(s)"
+  }
+]

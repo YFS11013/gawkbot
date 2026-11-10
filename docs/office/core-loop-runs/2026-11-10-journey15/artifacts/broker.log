@@ -1,0 +1,32 @@
+Launching WUPHF Office web view... the browser is the team now.
+2026/11/10 22:37:42 WARNING wiki: gbrain unavailable (wiki_index_gbrain_entity: connect: connect gbrain mcp: calling "initialize": EOF); falling back to the in-memory index. Facts will NOT persist across restarts. Install gbrain, or set WUPHF_WIKI_BACKEND=memory to silence this.
+2026/11/10 22:37:43 wiki lint cron: disabled (set WUPHF_LINT_CRON=HH:MM to enable a daily run)
+2026/11/10 22:37:43 INFO skill_compile cron: started interval=30m0s
+2026/11/10 22:37:43 wiki_index: boot reconcile complete
+2026/11/10 22:37:43 INFO skill_consolidation_migration: no overlapping clusters found
+2026/11/10 22:37:44 INFO skill_crud: backfilled missing SKILL.md from broker state name=app-building path=team/skills/app-building.md
+2026/11/10 22:37:44 INFO skill_crud: backfilled missing SKILL.md from broker state name=wiki-maintenance path=team/skills/wiki-maintenance.md
+2026/11/10 22:37:45 [transport] share: registered (human-share)
+
+  Web UI:  http://127.0.0.1:7911
+  Broker:  http://127.0.0.1:7910
+  Press Ctrl+C to stop.
+
+2026/11/10 22:37:45 INFO skill_crud: backfilled missing SKILL.md from broker state name=data-modeling path=team/skills/data-modeling.md
+2026/11/10 22:38:00 scheduler: loop started (poll=20s)
+2026/11/10 22:48:00 scheduler: heartbeat (uptime=10m0s, poll=20s)
+2026/11/10 22:53:11 wiki write-task: task=JOURN-15 slug=cos path=team/accounts/acme-renewal-quote.md bytes=765
+2026/11/10 22:53:14 wiki write-task: task=JOURN-17 slug=cos path=team/emails/acme-renewal-followup.md bytes=740
+2026/11/10 22:54:23 task review: no reviewer available for JOURN-15 (owner "cos")
+2026/11/10 22:54:23 workflow detect JOURN-15: no recurring/end-to-end shape in corpus — skipping
+2026/11/10 22:54:25 task review: no reviewer available for JOURN-17 (owner "cos")
+2026/11/10 22:54:25 workflow detect JOURN-17: no recurring/end-to-end shape in corpus — skipping
+2026/11/10 22:54:26 source_capture: write note source "note-team-learnings-02e23bef": put_page "note-team-learnings-02e23bef": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 22:54:27 source_capture: write note source "note-journ-1a-acme-33f7635d": put_page "note-journ-1a-acme-33f7635d": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 22:54:28 source_capture: write note source "note-team-learnings-fe0a2a1a": put_page "note-team-learnings-fe0a2a1a": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 22:54:29 INFO writeCompiledSkillLocked: compiled skill created name=journ-1a-acme slug=journ-1a-acme created_by=librarian sha=f82d1aa owner_agents=1
+2026/11/10 22:54:29 source_capture: write note source "note-journ-1a-acme-33f7635d": put_page "note-journ-1a-acme-33f7635d": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 22:56:00 scheduler: dispatched 1 due job(s)
+2026/11/10 22:56:40 scheduler: dispatched 1 due job(s)
+2026/11/10 22:58:00 scheduler: heartbeat (uptime=20m0s, poll=20s)
+2026/11/10 22:58:11 source_capture: write task source "task-journ-1": put_page "task-journ-1": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
