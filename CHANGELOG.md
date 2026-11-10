@@ -13,6 +13,9 @@ All notable changes to WUPHF will be documented in this file.
 
 ### Fixed
 
+- **`team_wiki_search` accepts `query`, and zero hits now says what it searched.** Journey 11 (`core-loop-runs/2026-11-10-journey11`, JOURN-26): a QA lane called the tool with `query` — the argument name its sibling retrieval tools use — got `pattern is required`, and reported to the human that both deliverables "exist nowhere" while `/wiki/read` answered 200 for them. The tool now treats `query` as an alias (`pattern` still wins when both are sent), the empty-argument error names both fields, and a search with no matches answers `No hits for the literal substring "X" in <reader>. This is a substring match over article bodies, not a list of what exists…` instead of `[]`, so silence cannot be read as absence. Tests `TestTeamWikiSearchAcceptsQueryAlias`, `TestTeamWikiSearchPrefersPatternOverQuery`, `TestTeamWikiSearchZeroHitsSaysWhatItSearched`, `TestTeamWikiSearchEmptyArgsNameBothFields`.
+- **A refused task comment now says why and where.** `POST /tasks/{id}/comment` on a task living in a bot↔bot DM returned `500 {"error":"failed to post message"}` and dropped the text — the operator had no way to learn the channel was the problem (Journey 11: the cos↔reviewer lane). The bot-DM guard is a refusal, not a server error, so it now answers `403 {"error":"failed to post message","channel":"cos__reviewer","detail":"bot DMs are observer-only for humans; open the thread from its consult marker instead"}`, and every other failure carries the underlying reason in `detail` too. Test `TestTaskCommentOnBotDMReturnsTheReason` (also asserts a refused comment is not stored).
+
 - **A decision card for an Issue now names every file its lanes shipped, even
   when the Issue carries one of those paths as its own `artifact`.** Journey 11
   (`core-loop-runs/2026-11-10-journey11`): the parent Issue's card appeared 24

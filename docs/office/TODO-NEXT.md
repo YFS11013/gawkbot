@@ -148,9 +148,11 @@ prereg `0c2d1ac`，被测 `54ad984`，判分 `core-loop-runs/2026-11-10-journey1
 - **没站住的**：
   - **D2 的正文口径（中）→ 已修。** 卡只写了 `The deliverable is team/accounts/acme-renewal-quote.md.`，因为 cos 在 `submit_for_review` 时把一条 lane 的路径盖成了 Issue 的 `artifact`，而卡片先读这个字段。现在「容器」优先于「自己的 artifact」：有 lane 交付就逐条列出，自己的路径只在没有 lane 认领时追加一句。回归 `TestDecisionCardNamesEveryLaneEvenWhenIssueCarriesOneArtifact`（反向改回分支顺序即失败）。**注意：§9.22 的聚合谓词这一轮没被真机锻炼**（父 Issue 进 decision 时已有 artifact），只有进程内测试证明。
   - **`submit_for_review(artifact_path)` 给容器盖单文件戳（中，未修）**：F-d 的源头在写入侧，不在读取侧。可选修法见 §9.23。
-  - **`/tasks/{id}/comment` 对 bot 私有频道 500（中，未修）**：`JOURN-26` 的频道是 `cos__reviewer`，人类写不进去，只回 `failed to post message`。
-  - **QA lane 假阴性（模型行为，未修）**：`JOURN-26` 断言两份交付物「全库不存在」，同一时刻 `/wiki/read?reader=reviewer` 返 200。`team_wiki_search` 的 `pattern` 必填是真实契约陷阱（传 `query` → `400 pattern is required`），且空结果回 `[]`，容易被读成「不存在」。
-  - **干预 6 次 vs 预算 2 次**：多出来的是两张 lane 卡与一次 QA 取消。下一轮预算按「每 lane 一张卡」重算。
+  - **`/tasks/{id}/comment` 对 bot 私有频道 500 → 已修**：守卫本来就该拒（人类在 bot↔bot DM 只读），但响应既不说原因也不说频道。现在 403 + `{"channel":…,"detail":…}`，底层原因一律带在 `detail` 里；测试 `TestTaskCommentOnBotDMReturnsTheReason`（含「被拒的评论不得入库」）。
+  - **`team_wiki_search` 的契约陷阱 → 已修**：接受 `query` 作 `pattern` 的别名（两者都传时 `pattern` 优先），错误文案点名两个字段，零命中回「No hits for the literal substring "…" in <reader>；这是子串匹配，不是存在性清单」而不是 `[]`；测试 `internal/teammcp/wiki_search_alias_test.go` 四条。**留下的仍是模型行为**：`JOURN-26` 全程没打开声明路径。
+  - **干预 7 次 vs 预算 2 次**：多出来的是两张 lane 卡、更正 QA 前提、取消 QA、催交终审。下一轮预算按「每 lane 一张卡」重算。
+- **顺手修的两处**：`team_wiki_search` 接受 `query` 别名 + 零命中不再回 `[]`；`/tasks/{id}/comment` 对 bot↔bot DM 改回 403 并带 `channel`/`detail`。见 §9.23。
+- **测试基建的已知 flake（未修，与业务无关）**：`TestObsidianWatcher_*` 在整包并行跑时偶发 `TempDir RemoveAll cleanup: … .wuphf\agent-scratch\cos: The process cannot access the file`（2026-11-10 连续两次，分别是 `DebounceCoalescesRapidWrites` 与 `StopDuringPendingDebounce`）。单独跑 `-run TestObsidianWatcher` 14.6s 全绿，整包 `-skip TestObsidianWatcher` 全绿。假设：包内 256 处 `t.Parallel()` 共享进程环境，`WUPHF_RUNTIME_HOME` 指向另一个（已结束的）测试的 `t.TempDir()`，并行测试按它写 `agent-scratch/<slug>`，句柄没关就在别人的 RemoveAll 里撞上。要修得先审计哪些并行测试写 scratch 目录，不是本轮范围。
 - **这一轮证不了**：`task_not_decomposed` 的提醒路径、撞写范围守卫、`ra_` 收 done——场景内 0 次。
 
 ### Journey 10 复核（2026-11-10，父 Issue 的 decision 卡）
