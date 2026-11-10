@@ -228,10 +228,18 @@ func handleTeamWikiRead(ctx context.Context, _ *mcp.CallToolRequest, args TeamWi
 func handleTeamWikiSearch(ctx context.Context, _ *mcp.CallToolRequest, args TeamWikiSearchArgs) (*mcp.CallToolResult, any, error) {
 	pattern := strings.TrimSpace(args.Pattern)
 	if pattern == "" {
-		return toolError(fmt.Errorf("pattern is required")), nil, nil
+		// `query` is the name the sibling retrieval tools use, so models reach
+		// for it here too. Accepting it costs nothing; rejecting it produced a
+		// silence a bot reported as "the deliverable does not exist" (Journey
+		// 11, JOURN-26), which no human could trace back to an argument name.
+		pattern = strings.TrimSpace(args.Query)
 	}
+	if pattern == "" {
+		return toolError(fmt.Errorf(`pattern is required: pass {"pattern": "<literal substring>"} (the name "query" is accepted too)`)), nil, nil
+	}
+	slug := strings.TrimSpace(trustedEnvBotSlug())
 	path := "/wiki/search?pattern=" + url.QueryEscape(pattern)
-	if slug := strings.TrimSpace(trustedEnvBotSlug()); slug != "" {
+	if slug != "" {
 		path += "&reader=" + url.QueryEscape(slug)
 	}
 	var result struct {
@@ -239,6 +247,16 @@ func handleTeamWikiSearch(ctx context.Context, _ *mcp.CallToolRequest, args Team
 	}
 	if err := brokerGetJSON(ctx, path, &result); err != nil {
 		return toolError(err), nil, nil
+	}
+	// Zero hits is a statement about one literal substring, not about the wiki.
+	// Returning `[]` invited the reader to conclude "this file does not exist"
+	// without ever opening it, so say what was searched and what to do next.
+	if len(result.Hits) == 0 {
+		reader := slug
+		if reader == "" {
+			reader = "the shared wiki"
+		}
+		return textResult(fmt.Sprintf("No hits for the literal substring %q in %s. This is a substring match over article bodies, not a list of what exists: try a shorter token (e.g. a single name), or open the path you expect with team_wiki_read.", pattern, reader)), nil, nil
 	}
 	payload, _ := json.Marshal(result.Hits)
 	return textResult(string(payload)), nil, nil

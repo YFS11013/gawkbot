@@ -391,8 +391,15 @@ type TeamWikiReadArgs struct {
 }
 
 // TeamWikiSearchArgs is the contract for team_wiki_search.
+//
+// `pattern` is the real field; `query` is accepted as an alias because the
+// sibling retrieval tools (wuphf_wiki_lookup, ask_wiki) take `query`, and a bot
+// that carries that habit over used to get `pattern is required` — an error it
+// then reported to the human as "the file does not exist" (Journey 11,
+// core-loop-runs/2026-11-10-journey11, JOURN-26).
 type TeamWikiSearchArgs struct {
-	Pattern string `json:"pattern" jsonschema:"Literal substring to search (not regex)"`
+	Pattern string `json:"pattern,omitempty" jsonschema:"Literal substring to search (not regex)"`
+	Query   string `json:"query,omitempty" jsonschema:"Alias for pattern; use whichever name you like"`
 }
 
 // TeamWikiListArgs is intentionally empty — team_wiki_list takes no args.
