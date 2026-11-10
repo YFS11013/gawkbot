@@ -359,10 +359,19 @@ func (b *Broker) attachSelfHealCompletionToParentLocked(child *teamTask) {
 	if artifact == "" {
 		return
 	}
-	if strings.TrimSpace(parent.Artifact) == "" {
-		parent.Artifact = artifact
-	}
+	// Journey 11/12 (core-loop-runs/2026-11-10-journey11/12): this child is a lane
+	// of the parent Issue, so its file is already on record under that lane.
+	// Restating it as the container's own artifact would make the Issue carry one
+	// lane's path as its own, and every consumer — decision card, promotion,
+	// channel summary — would then describe a multi-file Issue by one of its
+	// files. The parent's own artifact stays empty; the decision card names every
+	// lane file. The self-heal lane itself still holds the artifact.
+	_, laneOwnsArtifact := b.childOwningArtifactLocked(parent, artifact)
 	note := fmt.Sprintf("Self-heal %s delivered for this task — artifact: %s. The deliverable belongs to THIS task; review it here.", child.ID, artifact)
+	if laneOwnsArtifact {
+		note = fmt.Sprintf("Self-heal %s delivered for this task — artifact: %s. The deliverable belongs to lane %s; the Issue stays a container and its decision card names every lane file.", child.ID, artifact, child.ID)
+		log.Printf("self-healing: %s delivered %s for container %s; leaving the Issue artifact empty (the lane owns it)", child.ID, artifact, parent.ID)
+	}
 	if err := appendTaskDetailLocked(parent, note); err != nil {
 		log.Printf("self-healing: attach completion note to parent %s: %v", parent.ID, err)
 	}

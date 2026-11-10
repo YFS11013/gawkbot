@@ -176,9 +176,10 @@ func evalJobTaskIntegrity(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		dupReused && dup.ID == child.ID && openLanes == 1,
 		fmt.Sprintf("dupID=%s childID=%s reused=%v openLanes=%d", dup.ID, child.ID, dupReused, openLanes), "")
 
-	// Complete the repair lane WITH a deliverable: the artifact + completion
-	// must attach to the PARENT (artifact recorded, parent advanced into
-	// Review for the human's decision), and the lane closes as the child.
+	// Complete the repair lane WITH a deliverable: the lane keeps its artifact,
+	// the PARENT stays a container (its own artifact stays empty) and advances
+	// into Review so the human decides on the aggregate — the lane file is named
+	// by the decision card, never restated as the Issue's own deliverable.
 	const healArtifact = "team/accounts/q4-renewal-emails.md"
 	// The reference must be real: every done transition now stats its artifact
 	// (J2-1), so the repair lane publishes the deliverable before claiming it.
@@ -206,11 +207,12 @@ func evalJobTaskIntegrity(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	}
 	childDone := fx.broker.TaskByID(child.ID)
 	parentAfterHeal := fx.broker.TaskByID(parentAID)
-	r.add(job, "self-heal completion attaches the artifact to the parent",
+	r.add(job, "self-heal completion keeps the lane's artifact off the container",
 		childDone != nil && strings.EqualFold(strings.TrimSpace(childDone.Status()), "done") &&
-			parentAfterHeal != nil && parentAfterHeal.Artifact == healArtifact &&
+			parentAfterHeal != nil && strings.TrimSpace(parentAfterHeal.Artifact) == "" &&
 			parentAfterHeal.LifecycleState == LifecycleStateReview &&
-			strings.Contains(parentAfterHeal.Details, childDone.ID),
+			strings.Contains(parentAfterHeal.Details, childDone.ID) &&
+			strings.Contains(parentAfterHeal.Details, healArtifact),
 		fmt.Sprintf("child=%s parentArtifact=%q parentState=%s", strings.TrimSpace(childDone.Status()), parentAfterHeal.Artifact, parentAfterHeal.LifecycleState), "")
 
 	// ── (c) no clipped title feeds the repair lane's bot-facing context ──

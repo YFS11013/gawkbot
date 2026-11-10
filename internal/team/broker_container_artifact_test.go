@@ -194,3 +194,36 @@ func TestEmptyContainerStillClosesFromTheTaskEndpoint(t *testing.T) {
 		t.Fatal("a container that shipped nothing IS hollow: the flag has to say so")
 	}
 }
+
+// The self-heal path is the third writer of a parent's artifact: a finished
+// self-heal lane's file used to be stamped onto the stalled Issue. That is the
+// same lie J11 caught on the submit path — a container carrying one lane's path
+// as its own. The lane keeps the artifact; the Issue's stays empty.
+func TestSelfHealLaneDoesNotStampItsArtifactOnTheContainer(t *testing.T) {
+	b := newTestBroker(t)
+	const issueID = "JOURN-7"
+	now := time.Date(2026, 11, 10, 9, 20, 0, 0, time.UTC).Format(time.RFC3339)
+	b.mu.Lock()
+	b.tasks = append(b.tasks,
+		teamTask{ID: issueID, Title: "Issue", Channel: "team", Owner: "cos",
+			TaskType: "issue", status: "in_progress", LifecycleState: "running",
+			CreatedBy: "cos", CreatedAt: now, UpdatedAt: now},
+		teamTask{ID: "JOURN-70", Title: "Self-heal missing capability", Channel: "team", Owner: "cos",
+			ParentIssueID: issueID, PipelineID: "incident", status: "done",
+			Artifact: "team/accounts/acme-renewal-quote.md",
+			CreatedBy: "cos", CreatedAt: now, UpdatedAt: now},
+	)
+	b.mu.Unlock()
+
+	b.attachSelfHealCompletionToParentLocked(&b.tasks[1])
+
+	if got := strings.TrimSpace(b.tasks[0].Artifact); got != "" {
+		t.Fatalf("a lane's file must not become the container's own artifact, got %q", got)
+	}
+	if !strings.Contains(b.tasks[0].Details, "lane JOURN-70") {
+		t.Fatalf("the parent note must say the deliverable belongs to the lane: %q", b.tasks[0].Details)
+	}
+	if got := strings.TrimSpace(b.tasks[1].Artifact); got != "team/accounts/acme-renewal-quote.md" {
+		t.Fatalf("the lane keeps its own artifact, got %q", got)
+	}
+}
