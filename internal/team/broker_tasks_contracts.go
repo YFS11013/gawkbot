@@ -41,7 +41,7 @@ type TaskPostRequest struct {
 	ParentIssueID string   `json:"parent_issue_id"`
 	// VerificationKind/Spec/Required set the machine-checkable definition
 	// of done on create (U1.1, task_verification.go). Kind is one of
-	// command|artifact|url|none.
+	// command|artifact|wiki_artifact|url|none.
 	VerificationKind     string `json:"verification_kind,omitempty"`
 	VerificationSpec     string `json:"verification_spec,omitempty"`
 	VerificationRequired bool   `json:"verification_required,omitempty"`

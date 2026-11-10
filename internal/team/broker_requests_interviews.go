@@ -1185,6 +1185,15 @@ func (b *Broker) reopenRequestAfterRefusedDecision(id, messageID string) {
 		b.requests[i].Status = "pending"
 		b.requests[i].Answered = nil
 		b.requests[i].UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+		// applyRequestAnswerLocked cleared the deadlines and completed the
+		// scheduler job; a reopened card is a live question again, so re-arm
+		// both — otherwise the retried card sits with no reminder and no
+		// watchdog nudge.
+		b.scheduleRequestLifecycleLocked(&b.requests[i])
+		// applyRequestAnswerLocked cleared the deadlines and completed the
+		// scheduler job; a reopened card is a live question again, so re-arm
+		// both — otherwise the retried card sits with no reminder and no
+		// watchdog nudge.
 		msgID := strings.TrimSpace(messageID)
 		if msgID != "" {
 			kept := b.messages[:0]

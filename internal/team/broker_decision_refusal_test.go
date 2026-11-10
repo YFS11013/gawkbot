@@ -50,6 +50,9 @@ func TestRefusedDecisionCardAnswerStaysOpen(t *testing.T) {
 	if req.Answered != nil {
 		t.Fatalf("a refused decision must not record an answer, got %+v", req.Answered)
 	}
+	if req.ReminderAt == "" || req.DueAt == "" {
+		t.Fatalf("a reopened card must be live again: no reminder/deadline armed, got %+v", req)
+	}
 	for _, m := range b.messages {
 		if strings.Contains(m.Content, "Approved") {
 			t.Fatalf("a refused decision must not announce an approval, got %q", m.Content)
