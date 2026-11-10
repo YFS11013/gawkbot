@@ -147,7 +147,7 @@ prereg `0c2d1ac`，被测 `54ad984`，判分 `core-loop-runs/2026-11-10-journey1
   - **回归**：计划卡唯一、`task_not_decomposed` 0 条、声明路径与落盘逐字一致。
 - **没站住的**：
   - **D2 的正文口径（中）→ 已修。** 卡只写了 `The deliverable is team/accounts/acme-renewal-quote.md.`，因为 cos 在 `submit_for_review` 时把一条 lane 的路径盖成了 Issue 的 `artifact`，而卡片先读这个字段。现在「容器」优先于「自己的 artifact」：有 lane 交付就逐条列出，自己的路径只在没有 lane 认领时追加一句。回归 `TestDecisionCardNamesEveryLaneEvenWhenIssueCarriesOneArtifact`（反向改回分支顺序即失败）。**注意：§9.22 的聚合谓词这一轮没被真机锻炼**（父 Issue 进 decision 时已有 artifact），只有进程内测试证明。
-  - **`submit_for_review(artifact_path)` 给容器盖单文件戳（中，未修）**：F-d 的源头在写入侧，不在读取侧。可选修法见 §9.23。
+  - **`submit_for_review(artifact_path)` 给容器盖单文件戳 → 已修**：两条写路径都查 `childOwningArtifactLocked`，命中已交付 lane 的路径就 409 并点名那个 lane；容器自己写的文件仍可记录。测试 `TestContainerRefusesALanePathAsItsOwnArtifact`、`TestDecisionApproveRefusesALanePathAsTheIssueArtifact`、`TestLaneStillRecordsItsOwnArtifact`。**下一轮真机应能看到 409 与随后的无 artifact 重试**，父 Issue 的 `artifact` 保持为空，聚合谓词才会第一次被真机锻炼。
   - **`/tasks/{id}/comment` 对 bot 私有频道 500 → 已修**：守卫本来就该拒（人类在 bot↔bot DM 只读），但响应既不说原因也不说频道。现在 403 + `{"channel":…,"detail":…}`，底层原因一律带在 `detail` 里；测试 `TestTaskCommentOnBotDMReturnsTheReason`（含「被拒的评论不得入库」）。
   - **`team_wiki_search` 的契约陷阱 → 已修**：接受 `query` 作 `pattern` 的别名（两者都传时 `pattern` 优先），错误文案点名两个字段，零命中回「No hits for the literal substring "…" in <reader>；这是子串匹配，不是存在性清单」而不是 `[]`；测试 `internal/teammcp/wiki_search_alias_test.go` 四条。**留下的仍是模型行为**：`JOURN-26` 全程没打开声明路径。
   - **干预 7 次 vs 预算 2 次**：多出来的是两张 lane 卡、更正 QA 前提、取消 QA、催交终审。下一轮预算按「每 lane 一张卡」重算。

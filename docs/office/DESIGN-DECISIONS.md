@@ -568,9 +568,12 @@ Journey 9 的 26 分钟静默（F-H）不是因为没人干活、也不是调度
 
 回归：`TestDecisionCardNamesEveryLaneEvenWhenIssueCarriesOneArtifact`（父 Issue 带一条 lane 路径时正文必须出现两条、且不重复）。**双向实证**：把分支顺序换回 `own != ""` 优先 → 报 `the card must name every delivered lane file, missing "team/emails/acme-renewal-followup.md"`，正文与本轮真机逐字同形。
 
-**没修、下一轮要决定的**：
+**写入侧也修了（F-d 收口）**：
 
-- **`submit_for_review(artifact_path)` 允许给容器任务盖单文件戳**。这是 F-d 的源头：任一条 lane 的路径都能变成 Issue 的「交付物」，而 `hollowChildrenBlockingParentLocked`、频道卡、wiki promotion 都读这个字段。可选：容器任务拒收 `artifact_path`；或改成 `artifacts[]` 多值。本轮只把卡的读法改对，没动写入路径。
+- **`submit_for_review(artifact_path)` 不再能给容器盖单文件戳。** 两条写路径（`MutateTask` 的 `artifact_path` 分支、decision approve 的 `DecisionDelivery.ArtifactPath`）都先用 `childOwningArtifactLocked` 查这条路径是不是某个已交付 lane 的交付物；是就 409，文案点名是哪个 lane 的：
+  `task JOURN-2 is a container: team/accounts/acme-renewal-quote.md is JOURN-22's deliverable, not this Issue's own. Leave artifact_path empty — its lanes' files are already on record and the decision card names every one of them — or pass a file JOURN-2 wrote itself.`
+  容器自己写的文件（没有 lane 认领）仍然允许记录——那是「Issue 自己产出了什么」，不是冒充。测试 `TestContainerRefusesALanePathAsItsOwnArtifact`（另含「容器自己的路径可记」）、`TestDecisionApproveRefusesALanePathAsTheIssueArtifact`（拒后不得终态化）、`TestLaneStillRecordsItsOwnArtifact`（规则不外溢到 lane）。
+- **副作用**：下一轮真机跑里 cos 若照旧带 lane 路径提交，会拿到 409 并重试；父 Issue 的 `artifact` 因此保持为空，**§9.22 的聚合谓词这才第一次会在真机上被锻炼**——J11 恰好被模型自己盖的戳短路了。
 - **QA lane 的假阴性（模型行为 + 已修的契约陷阱）**：`JOURN-26` 04:13:59 `status=ok final_chars=945` 断言两份交付物「在 wiki、notebook、artifact 和全库检索中均不存在」，而同一时刻 `/wiki/read?path=…&reader=reviewer` 返 200、`/wiki/search?pattern=Acme` 命中该路径。它的自述里写了「Reading both deliverables now」，然后给出相反结论——**声明做过检查、实际没读到正文**。触发面已收口：`team_wiki_search` 现在接受 `query` 作为 `pattern` 的别名（同族工具 `wuphf_wiki_lookup` 用的就是 `query`，模型会串），错误文案点名两个字段，**零命中不再回 `[]`** 而是回 `No hits for the literal substring "…" in <reader>. This is a substring match over article bodies, not a list of what exists: try a shorter token, or open the path you expect with team_wiki_read.`（`server_wiki_tools.go`，测试 `wiki_search_alias_test.go` 四条）。剩下的仍是模型行为：它没有打开声明路径。
 - **人写不进 bot 私有频道 → 已修**：`POST /tasks/JOURN-26/comment` 曾回 **500 `{"error":"failed to post message"}`**（该 lane 的频道是 `cos__reviewer`）。守卫本身是对的（人类在 bot↔bot DM 里只读），但响应既不说原因也不说频道。现在回 **403** 并带 `{"channel": "cos__reviewer", "detail": "bot DMs are observer-only for humans; open the thread from its consult marker instead"}`；人类仍要改道父 Issue 的 `cos__human`，但至少知道自己撞的是什么。测试 `TestTaskCommentOnBotDMReturnsTheReason`（含「被拒的评论不得入库」）。
 - **干预 6 次 ≫ 预算 2 次**：语言采访 1、计划卡 1、`JOURN-22`/`JOURN-24` 两张 lane 卡各 1、取消 `JOURN-26` 1、父 Issue 留言（更正 QA 前提 + 催 `submit_for_review`）1。lane 卡是新增的（J10 没有任何 lane 进 decision），说明 office 模式下的 lane 现在也会停人——预算要按「每 lane 一张卡」重算。
