@@ -329,9 +329,10 @@ func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	//     changes-requested/blocked/done) also get the task_followup wake.
 	// In-memory writes only; saveLocked below persists them.
 	var answerCascade []pendingTaskTransition
+	answeredRequestID := ""
 	if isHumanMessageSender(msg.From) {
 		var answeredInterview bool
-		answeredInterview, answerCascade = b.answerInterviewFromHumanThreadReplyLocked(msg)
+		answeredInterview, answeredRequestID, answerCascade = b.answerInterviewFromHumanThreadReplyLocked(msg)
 		if !answeredInterview && humanSenderMayCancelInterviews(msg.From) {
 			b.cancelActiveHumanInterviewsLocked(msg.From, "Human sent a new message; unanswered interview canceled.", channel, replyTo)
 		}
@@ -374,6 +375,13 @@ func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	// handler performs.
 	b.flushPendingAutoNotebookTransitionsLocked(answerCascade, "system")
 	b.mu.Unlock()
+	// A decision card answered by a thread reply owes a task action; apply it
+	// outside the lock, exactly like the /requests/answer path does.
+	if answeredRequestID != "" {
+		if decisionErr := b.applyDecisionCardAnswer(answeredRequestID, msg.From); decisionErr != nil {
+			b.reportDecisionAnswerFailure(channel, decisionErr)
+		}
+	}
 	if err := b.writeBrokerState(write); err != nil {
 		http.Error(w, "failed to persist broker state", http.StatusInternalServerError)
 		return
@@ -548,14 +556,29 @@ func (b *Broker) PostSystemMessage(channel, content, kind string) {
 	b.appendMessageLocked(msg)
 }
 
+// PostMessage posts a channel message on behalf of a caller inside the
+// process. It is the locked core plus one follow-through: a human thread reply
+// that answered a decision card owes a task action, and that action must run
+// with b.mu RELEASED (see applyDecisionCardAnswer), so it happens in this thin
+// wrapper rather than inside the locked body.
 func (b *Broker) PostMessage(from, channel, content string, tagged []string, replyTo string) (channelMessage, error) {
+	msg, answeredRequestID, err := b.postMessageLocked(from, channel, content, tagged, replyTo)
+	if answeredRequestID != "" {
+		if decisionErr := b.applyDecisionCardAnswer(answeredRequestID, msg.From); decisionErr != nil {
+			b.reportDecisionAnswerFailure(msg.Channel, decisionErr)
+		}
+	}
+	return msg, err
+}
+
+func (b *Broker) postMessageLocked(from, channel, content string, tagged []string, replyTo string) (channelMessage, string, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	// Channel-scoped gate — see handlePostMessage for the rationale. Only the
 	// human's own posts wait on a decision; bots keep reporting here, because a
 	// pending card must not swallow the work that continues around it.
 	if isHumanMessageSender(from) && firstBlockingRequestInChannel(b.requests, channel) != nil {
-		return channelMessage{}, fmt.Errorf("request pending in this channel; answer required before chat resumes here")
+		return channelMessage{}, "", fmt.Errorf("request pending in this channel; answer required before chat resumes here")
 	}
 	// A post with no channel goes to the SENDER's own DM. It used to be
 	// laundered into "general", which after the retirement fails the lookup
@@ -575,14 +598,14 @@ func (b *Broker) PostMessage(from, channel, content string, tagged []string, rep
 			}
 		}
 		if b.findChannelLocked(channel) == nil {
-			return channelMessage{}, fmt.Errorf("channel not found")
+			return channelMessage{}, "", fmt.Errorf("channel not found")
 		}
 	}
 	if !b.canAccessChannelLocked(from, channel) {
-		return channelMessage{}, fmt.Errorf("channel access denied")
+		return channelMessage{}, "", fmt.Errorf("channel access denied")
 	}
 	if reason := b.guardBotDMPostLocked(channel, from); reason != "" {
-		return channelMessage{}, fmt.Errorf("%s", reason)
+		return channelMessage{}, "", fmt.Errorf("%s", reason)
 	}
 	b.counter++
 	msg := channelMessage{
@@ -603,9 +626,10 @@ func (b *Broker) PostMessage(from, channel, content string, tagged []string, rep
 	// stamped on this channel's tasks with the task_followup wake for
 	// waiting states.
 	var answerCascade []pendingTaskTransition
+	answeredRequestID := ""
 	if isHumanMessageSender(msg.From) {
 		var answeredInterview bool
-		answeredInterview, answerCascade = b.answerInterviewFromHumanThreadReplyLocked(msg)
+		answeredInterview, answeredRequestID, answerCascade = b.answerInterviewFromHumanThreadReplyLocked(msg)
 		if !answeredInterview && humanSenderMayCancelInterviews(msg.From) {
 			b.cancelActiveHumanInterviewsLocked(msg.From, "Human sent a new message; unanswered interview canceled.", channel, msg.ReplyTo)
 		}
@@ -617,7 +641,7 @@ func (b *Broker) PostMessage(from, channel, content string, tagged []string, rep
 	}
 	b.appendActionLocked("automation", msg.Source, channel, msg.From, truncateSummary(msg.Title+" "+msg.Content, 140), msg.ID)
 	if err := b.saveLocked(); err != nil {
-		return channelMessage{}, err
+		return channelMessage{}, "", err
 	}
 	b.flushPendingAutoNotebookTransitionsLocked(answerCascade, "system")
 	// PostMessage intentionally does NOT auto-write notebook entries.
@@ -633,7 +657,7 @@ func (b *Broker) PostMessage(from, channel, content string, tagged []string, rep
 	if b.humanWikiWriter != nil && isHumanMessageSender(msg.From) {
 		b.humanWikiWriter.Handle(msg)
 	}
-	return msg, nil
+	return msg, answeredRequestID, nil
 }
 
 func (b *Broker) PostAutomationMessage(from, channel, title, content, eventID, source, sourceLabel string, tagged []string, replyTo string) (channelMessage, bool, error) {

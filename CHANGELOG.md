@@ -13,6 +13,31 @@ All notable changes to WUPHF will be documented in this file.
 
 ### Fixed
 
+- **A lane that lands in `decision` now asks the human where they work — and
+  answering the ask does the thing it says.** Journey 9's stop table: `JOURN-16`
+  finished its email draft at 13:48:03, reviewer convergence moved it to
+  `decision`, and it sat there with `pending_interview=null` and no request
+  pointing at it. The only surface saying a call was owed was a web inbox row;
+  the channel carried prose, so the office read as silent for the rest of the
+  run. Convergence now raises one **non-blocking** card per lane — in the lane's
+  channel, anchored to the task, naming the deliverable it is asking the human
+  to accept — deduped on `decision:<taskID>` so the 30-second sweeper cannot
+  stack copies, and retired automatically when the lane closes. It skips lanes
+  with nothing to accept (no artifact and no `not_required` declaration): asking
+  someone to approve nothing only teaches them to ignore these cards.
+  Answering performs the decision through `RecordTaskDecisionWithComment` — the
+  same chokepoint the Inbox's Approve / Request-changes buttons use, not a
+  `/tasks` approve, which would have set `status=done` while leaving the task in
+  the decision bucket. "Approve" lands `approved`; "send back" lands
+  `changes_requested` with the human's note stamped on the task for the owner.
+  A free-text thread reply on the card counts as "send back", not consent.
+  Applying the same answer twice (a double click, or the same answer arriving
+  from two entry points) is a no-op against a lane already in that state, and a
+  refused decision is reported — 409 with the reason on the click path, a
+  channel note on the reply path — instead of a 200 that changed nothing.
+  Blocking stays false: the card is a request to the human, not a reason to park
+  a bot.
+
 - **A declared scope must be the file that lands — not merely "some non-visual
   file".** Journey 9 reproduced two escapes from the Journey 8 gate.
   `JOURN-18` declared `team/reviews/acme-renewal-check.md`, never wrote it, and

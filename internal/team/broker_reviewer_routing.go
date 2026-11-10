@@ -307,6 +307,10 @@ func (b *Broker) evaluateConvergenceLocked(taskID string) error {
 		// immediately. The Decision Packet will surface as "no review
 		// required" — the human still gates the merge.
 		_, err := b.transitionLifecycleLocked(taskID, LifecycleStateDecision, "convergence: no reviewers assigned")
+		if err == nil {
+			// The ball is with the human now; put the ask where they work.
+			b.raiseDecisionCardAfterConvergenceLocked(taskID)
+		}
 		return err
 	}
 
@@ -328,6 +332,9 @@ func (b *Broker) evaluateConvergenceLocked(taskID string) error {
 		// transition layer rejects duplicate transitions because the
 		// state will already be decision after this call.
 		_, err := b.transitionLifecycleLocked(taskID, LifecycleStateDecision, "convergence: all reviewers graded")
+		if err == nil {
+			b.raiseDecisionCardAfterConvergenceLocked(taskID)
+		}
 		return err
 	}
 
@@ -374,6 +381,9 @@ func (b *Broker) evaluateConvergenceLocked(taskID string) error {
 	}
 
 	_, err := b.transitionLifecycleLocked(taskID, LifecycleStateDecision, "convergence: timeout")
+	if err == nil {
+		b.raiseDecisionCardAfterConvergenceLocked(taskID)
+	}
 	return err
 }
 

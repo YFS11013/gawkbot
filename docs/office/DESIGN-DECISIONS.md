@@ -503,6 +503,26 @@ broker 在进程启动时就把 provider 定下来了，而 `workspace create` �
 
 钉住这件事的测试是 `TestWriteTaskMismatchStaysOnTheCall`：403 body 必须同时含声明路径、尝试路径和 "declares artifact_path"；频道消息数与 action 数必须不变；用声明路径重试必须落盘。
 
+### 9.19 球在人手里时必须有一张点得动的卡（2026-11-09，Journey 9 D2）
+
+Journey 9 的 26 分钟静默（F-H）不是因为没人干活、也不是调度器睡过头，而是**最后一步要人点头，而系统从没问过人**：`JOURN-16` 13:48:03 进入 `decision`，`pending_interview` 为 null，全库没有一条请求指向它，人只能从 13:53:52 的一句聊天里读到「待你确认发送」。父 Issue 的下一次唤醒 `14:23:42` 也晚于 15 分钟停表点。
+
+三处代码把这件事钉死在「系统知道、但不说」上：`evaluateConvergenceLocked` 的三条出口只 `transitionLifecycleLocked(..., Decision, ...)`（注释还写着「the human still gates the merge」）；`OnReviewerConvergence` 只 emit `decision.required` manifest；`postRequestRaisedChatMessageLocked` 这个「把卡推到人真正工作的地方」的机制，注释里明说它是为了修「blocking interview 埋在 Inbox 44 分钟没人推」——**decision 态没走它**。
+
+**决定：收敛进入 `decision` 时物化一张非阻塞卡。**
+
+- **非阻塞**。`Blocking=false`，`pendingInterview` 不动：这张卡是「请你拍板」，不是「所有人等你」。给 decision 加阻塞会让每一轮都被自己的人工闸门挂起，和 J9 的教训正好相反。
+- **挂在收敛出口，不挂在状态机里**。三个出口都调 `raiseDecisionCardAfterConvergenceLocked`；`transitionLifecycleLocked` 不动，因为它的调用面还包括迁移/重开会话，那里造卡等于给历史任务补发一堆过期提问。
+- **`dedupe_key=decision:<taskID>`**。30 秒 sweeper 会反复评估，去重是硬性要求（关掉去重后测试立刻报「got 2」）。
+- **没有可接受的东西就不发卡**。`artifact` 与 `artifact_not_required` 都为空时跳过：让人批准「空」，只会训练人忽略这类卡。同时这也避开了「approve 撞上完成门 409、卡已答而事没做」的死胡同。
+- **应答必须走 `RecordTaskDecisionWithComment`**，不是 `/tasks` 的 `approve`。实测：`MutateTask(approve)` 只把 `status` 置成 done，`lifecycle_state` 留在 `decision`，于是 Inbox 会继续把一条已完成的 lane 列成「decision required」（状态分裂）。决策通道才是权威关闭点：Review/Decision → Approved、写 wiki Decision 文章、广播、蒸馏、并按 `IssueID` 撤销该 lane 的所有卡（`cancelRequestsForClosedTaskLocked`），卡因此天然一次性。
+- **线程回复 ≠ 同意**。人在卡下面直接回话，映射成 `request_changes` 并把原话作为返工说明（`answer_directly` 分支）；把人写的一段话当成 approve 是更坏的错。
+- **应答只落地一次，且失败必须说出口**。同一个应答会从 HTTP、Slack 闸门、两条消息入口进来；第二次应用会把决策再走一遍（再广播、再排蒸馏）。执行器先读 lane 的当前状态：已经是这次动作的产物（`approved` / `changes_requested`）就直接返回成功、什么都不动。反过来，决策被拒（例如 lane 已被别人关掉、DoD 校验没过）时，点击路径返回 409 + 原因，线程回复路径在频道里回一句「这句话答了卡，但决策没落地：…」——答完卡却悄悄什么都没发生，正是这张卡要消灭的失败。
+- **卡随 lane 关闭而消失**。`IssueID` 挂接让 `cancelRequestsForClosedTaskLocked` 在终态转移时自动撤卡；「点得动、点了没事干」的卡比没有卡更坏。
+- **`PostMessage` 拆成锁内核心 + 锁外跟进**。线程回复的应答原本在 `b.mu` 里完成，而决策通道自己取锁；不拆就会死锁。拆法是机械的（`postMessageLocked` 返回原告答请求 id，`PostMessage` 在锁外补一次决策落地），行为不变。
+
+**下一步要观察的**（Journey 10）：卡出现后，人是否会点、点了之后 `changes_requested` 的返工是否在同一轮内发生；以及非阻塞卡是否被误读成「办公室停了」。
+
 ### 9.18 Journey 9：写范围守到了「非视觉」，没守到「就是那份文件」（2026-11-09）
 
 Journey 9（`core-loop-runs/2026-11-09-journey9/`，prereg `4863c50`，被测 `690b601`，独立判分 **5/10**）用 J7/J8 逐字相同的场景重跑。§9.16 的三条修复里，两条在半路被证伪，一条站住。

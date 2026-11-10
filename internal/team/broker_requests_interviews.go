@@ -1146,6 +1146,15 @@ func (b *Broker) answerRequestFromActor(answerActor, id, choiceIDRaw, choiceText
 		}
 		b.flushPendingAutoNotebookTransitionsLocked(pendingCascade, "system")
 		b.mu.Unlock()
+		// A decision card's answer IS a decision (approve / send back). It is
+		// applied here, with the lock released, because the decision chokepoint
+		// owns the transition, the gates, and the wake, and takes its own lock.
+		// Every caller of this function (the HTTP answer endpoint and the Slack
+		// gate) gets the same follow-through — including the refusal, which is
+		// returned to whoever clicked instead of being swallowed after a 200.
+		if err := b.applyDecisionCardAnswer(id, answerActor); err != nil {
+			return http.StatusConflict, err.Error()
+		}
 		return http.StatusOK, ""
 	}
 	b.mu.Unlock()
@@ -1227,14 +1236,14 @@ func (b *Broker) threadRootLocked(channel, msgID string) string {
 // answer reaches the bot without any extra wake. Returns the answered
 // request's unblock cascade (nil when nothing matched). Caller holds b.mu
 // and is responsible for saveLocked + flushing the cascade.
-func (b *Broker) answerInterviewFromHumanThreadReplyLocked(msg channelMessage) (answered bool, cascade []pendingTaskTransition) {
+func (b *Broker) answerInterviewFromHumanThreadReplyLocked(msg channelMessage) (answered bool, requestID string, cascade []pendingTaskTransition) {
 	if !isHumanMessageSender(msg.From) {
-		return false, nil
+		return false, "", nil
 	}
 	content := strings.TrimSpace(msg.Content)
 	replyTo := strings.TrimSpace(msg.ReplyTo)
 	if content == "" || replyTo == "" {
-		return false, nil
+		return false, "", nil
 	}
 	channel := normalizeChannelSlug(msg.Channel)
 	msgRoot := b.threadRootLocked(channel, replyTo)
@@ -1259,9 +1268,9 @@ func (b *Broker) answerInterviewFromHumanThreadReplyLocked(msg channelMessage) (
 			CustomText: content,
 			AnsweredAt: time.Now().UTC().Format(time.RFC3339),
 		}
-		return true, b.applyRequestAnswerLocked(req, answer, strings.TrimSpace(msg.From))
+		return true, req.ID, b.applyRequestAnswerLocked(req, answer, strings.TrimSpace(msg.From))
 	}
-	return false, nil
+	return false, "", nil
 }
 
 // humanRequestRaisedPayload is the structured card payload on a

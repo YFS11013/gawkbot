@@ -89,7 +89,15 @@ warning: --workspace="j1" ignored: workspace orchestrator not wired (Lane B inte
 
 这个构建里它是空操作，且会静默回落到**真办公室**。隔离只能靠 `workspace create` 起的那个进程 + 按端口说话。
 
-## 6. 每次运行要留的证据
+## 6. 判据口径（2026-11-09 Journey 9 之后定，写进每一份 prereg）
+
+Journey 9 出现了同一现象在两轮里结论相反、以及判据要求了代码故意不做的事。三条口径从此固定：
+
+1. **`watchdog_alert` 只认一个计数源。** `actions[].kind` 里 `task_stalled` 每条告警记一条；`messages` 里**没有**这种消息（J9 实测：actions 2 条、messages 0 条，于是 V4 在 J8 过、J9 不过是纯口径差）。prereg 必须写明读的是 `<home>/team/broker-state.json` 的 `actions`。
+2. **403/409 的文案要求按探针实际命中的分支写。** `wiki/write-task` 的「路径不匹配」分支只点名两条路径、不点名 creator（§9.17：能自愈的错误回到调用点）；只有「未声明」分支才点名 creator。照抄上一个 journey 的文案要求会判一条正确行为为失败。
+3. **「静默」要区分「球在人手里」。** 自 `fdb6fa8` 之后，lane 进入 `decision` 会物化一张 `dedupe_key=decision:<taskID>` 的非阻塞卡。判定「办公室在等人」看 `requests` 里这张未答的卡，不看频道里有没有新消息；判定「没人能动」才看停表。非阻塞卡**不进** `pending_interview`（那是阻塞闸门的位置），所以 F5 的可达性要求是：卡同时出现在任务频道与 `/requests`，不要求挂起任何 bot。
+
+## 7. 每次运行要留的证据
 
 `prereg.md`、`observations.md`（带时间戳的原始观察，不写结论）、任务 JSON（含 `verification`）、wiki 的 `git log` 与 artifact 原文、日志片段、`scorecard.md`、`delta-vs-<上一次>.md`。
 
