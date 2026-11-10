@@ -14,12 +14,33 @@
 - `fdb6fa8` fix(team): 写范围门（foreign artifact / 视觉替代 / 落地后改 artifact 一律拒绝）
 - 基线：`690b601`（J9 被测）、`4863c50`（J9 prereg）
 
+### 1.1 模型在上游被撤（2026-11-10 10:36 本地，提交场景之前）
+
+J7/J8/J9 全用的 `opencode-go/crouton-alpha-free` 已从 opencode-go 的模型表里消失。硬证据：
+
+```
+$ opencode run --model opencode-go/crouton-alpha-free "reply with the single word: pong"
+Error: Model not found: opencode-go/crouton-alpha-free. Did you mean: beam-free, iceman-contributor-free, longcat-2.5-free?
+```
+
+同一个标识在办公室里的表现是另一副样子：每个 headless 回合 2 秒内 `exit status 1`，频道里落一堆 `UnknownError: Unexpected server error`（`journey10/logs/headless-codex-*.log`、`broker-state.json` 的 `msg-5…28`），没有一条可读的「模型不存在」。
+
+替换模型的三个候选都实测可用（同一句 `pong` 探针全过），再按「同一道带工具的真活儿」比较：
+
+| 候选 | 结果 | 耗时 |
+|---|---|---|
+| `opencode-go/beam-free` | 读两次才落到 `internal/buildinfo/VERSION` | 22 s |
+| `opencode-go/longcat-2.5-free` | 一次读对 | 16 s |
+| `opencode-go/iceman-contributor-free` | 仅拼 `pong`，未测工具 | — |
+
+**本轮选 `longcat-2.5-free`**：两个可用候选里更快且一次读对。代价写在这里：**与 J7/J8/J9 不再同模型**，因此跨轮差异里必须扣掉「模型换了」这一项——凡是只在 J10 出现的失败，先排除模型能力差异再归因到机制。主办公室同步换成同一个模型（同一晚 crouton 撤掉后它的每个回合也在失败）。
+
 ## 2. 环境
 
 | 项 | 值 |
 |---|---|
 | 隔离办公室 | `journey10`（broker :7910，web :7911） |
-| 模型 | `WUPHF_OPENCODE_MODEL=opencode-go/crouton-alpha-free` |
+| 模型 | `WUPHF_OPENCODE_MODEL=opencode-go/longcat-2.5-free`（**赛前改动，见 §1.1**） |
 | 蓝图 | `ai-revops`，agents `cos, revops, analyst, ae, reviewer` |
 | 主办公室 | 7891/7892，**不得被本轮任何命令指向** |
 
