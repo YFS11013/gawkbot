@@ -109,3 +109,5 @@ G4 写的是「三次撞门后容器仍 `in_progress`、`artifact=null`」，只
 同时确认了一件与判据有关的事：`complete` + `verification=not_required` **不带** `verification_reason` 会在更早的门被拒（`verification=not_required needs verification_reason`），所以撞容器关闭门时必须像真机那样把 reason 也带上，否则测的是另一道门。
 
 **没有一起改的同类点（留作已知缺口）**：决策批准路径（`broker_decision_packet.go`，`RecordTaskDecision*` 的 pre-phase）对同一个 `childOwningArtifactLocked` 拒绝**仍然不留痕**。那里在 `b.mu` 持有期间返回（`defer Unlock` 在 895 行），只能用 locked 变体追加、且不能顺便落盘；既然这一轮没有覆盖它的测试，就先不动，把它写成缺口而不是加一条没人测的代码。
+
+**同一处缺陷的第二面（同轮补）**：`byID` 也读的是洗过的 `channel`，所以**裸 `?id=<rid>`** 同样恒假，落进 `reqChannel != "general"` 过滤 → `200 {"requests":[]}`。这条比列表那条更难发现，因为它有真实调用方：`web/src/api/botKnowledge.ts:151` 的 `getPendingPromotion` 只传 `{id, viewer_slug}`，不传 channel——而提升请求建在 agent 自己的频道（如 `cos__human`）里，所以待批准的知识提升快照在这个构建上**基本显示不出来**（只有恰好落在 `general` 的才碰巧能读到）。顺带修掉早期那道 `canAccessChannelLocked(viewerSlug, "general")` 的 403 闸：by-ID 读不该先要求 general 的可见性，可见性按每条请求单独判。测试补了三段：裸 `?id=<存在的 id>`（跨频道）必须命中一条、未知 id 必须 200 空列表、裸列表必须 400。去掉 `rawChannel` 那处改动即红：`a bare by-ID read must return the request it names (cross-channel), got []`。

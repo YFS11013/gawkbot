@@ -210,7 +210,7 @@ prereg `core-loop-runs/2026-11-10-guards/prereg.md`，判据 G1–G7、失败模
 - **判据外发现**：
   - **被拒的变更不落 action、也不进 broker 日志（已修）**：`actions.json` 26 条全是成功事件，三次 409 一个痕迹都没有。三条容器守卫（写范围 / artifact / bot 关闭）的拒绝现在各写一条 `guard_refused`（`related_id=任务`，summary 带被我撞的那条路径与 lane id），测试 `TestContainerGuardRefusalsLeaveALedgerRow`（去掉记录即红）。注意：记录必须发生在 `rollbackTask()` **之后**——`brokerTaskMutationSnapshot.restore` 会把 `b.actions` 重置回快照，先记就白记。
   - **一个任务可以写另一个任务已交付的 `artifact`**：`GUARD-4` 覆盖了 `GUARD-12` 的 `team/accounts/guard-quote.md`（33 → 1642 字节）。`mode=create` 没有独占校验；是否该独占需要产品决策（`mode=append_section` 的共享写法是有意的）。
-- **同轮查出来的缺陷（已修）**：裸 `GET /requests` 静默答「没有请求」——`normalizeChannelSlug` 把 `""` 洗成 `general`，那条「channel is required」的 400 分支读的是洗过的值、永远是死代码，于是裸调用按 `general` 过滤出一条空列表（驱动脚本因此误报 `NO CARD` 两分钟）。现在判断改用原始 query 值，裸调用报 400 并说清该传什么；`?channel=`/`?scope=all`/`?id=` 不受影响。测试 `TestGetRequestsWithoutAChannelSaysSo`（去掉修复即红）。详见 `…/2026-11-10-guards/observations.md` §6。
+- **同轮查出来的缺陷（已修）**：裸 `GET /requests` 静默答「没有请求」——`normalizeChannelSlug` 把 `""` 洗成 `general`，那条「channel is required」的 400 分支读的是洗过的值、永远是死代码，于是裸调用按 `general` 过滤出一条空列表（驱动脚本因此误报 `NO CARD` 两分钟）。现在判断改用原始 query 值，裸调用报 400 并说清该传什么；`?channel=`/`?scope=all` 不受影响。**同一处缺陷还有第二面**：`byID` 也读洗过的值，裸 `?id=<rid>` 同样返回 `200 {"requests":[]}`——而 `web/src/api/botKnowledge.ts` 的 `getPendingPromotion` 正是这样轮询的（只传 `id`+`viewer_slug`），于是凡是落在非 `general` 频道的待批准提升快照都拿不到——而提升请求正是建在 agent 自己的频道里；一并改成原始 query 值，可见性改按每条请求单独判。测试 `TestGetRequestsWithoutAChannelSaysSo`（裸列表 400 / 裸 by-ID 命中 / 未知 id 空列表；去掉修复即红）。详见 `…/2026-11-10-guards/observations.md` §6。
 
 
 
