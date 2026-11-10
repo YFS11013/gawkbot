@@ -1,0 +1,1492 @@
+{
+ "channel_store": {
+  "channels": [
+   {
+    "id": "cc82e774-177d-4ac5-9345-0f08d7a00bf3",
+    "name": "DM: human & cos",
+    "slug": "cos__human",
+    "type": "D",
+    "created_by": "human",
+    "created_at": "2026-11-10T07:30:23Z",
+    "updated_at": "2026-11-10T07:30:23Z"
+   }
+  ],
+  "members": [
+   {
+    "channel_id": "cc82e774-177d-4ac5-9345-0f08d7a00bf3",
+    "slug": "human",
+    "mention_count": 0,
+    "notify_level": "all",
+    "joined_at": "2026-11-10T07:30:23Z"
+   },
+   {
+    "channel_id": "cc82e774-177d-4ac5-9345-0f08d7a00bf3",
+    "slug": "cos",
+    "mention_count": 0,
+    "notify_level": "all",
+    "joined_at": "2026-11-10T07:30:23Z"
+   }
+  ],
+  "messages": [],
+  "counter": 0
+ },
+ "messages": [
+  {
+   "id": "msg-2",
+   "from": "system",
+   "channel": "cos__human",
+   "kind": "issue_created",
+   "title": "Journey 12: Acme renewal pack",
+   "content": "Issue created: JOURN-1 — Journey 12: Acme renewal pack",
+   "tagged": [
+    "cos",
+    "human"
+   ],
+   "timestamp": "2026-11-10T07:31:20Z",
+   "source_task_id": "JOURN-1",
+   "payload": {
+    "channel": "cos__human",
+    "created_by": "human",
+    "lifecycle_state": "planning",
+    "owner": "cos",
+    "task_id": "JOURN-1",
+    "title": "Journey 12: Acme renewal pack"
+   }
+  },
+  {
+   "id": "msg-3",
+   "from": "cos",
+   "channel": "cos__human",
+   "content": "正在查看 Acme 的现有资料，再把计划端上来。",
+   "tagged": null,
+   "timestamp": "2026-11-10T07:32:34Z"
+  },
+  {
+   "id": "msg-5",
+   "from": "system",
+   "channel": "cos__human",
+   "kind": "human_request_raised",
+   "title": "Human interview",
+   "content": "❓ @cos asks you (interview request-4): Acme 的续约事实（现有方案/价格/周期、续约调整、Dana 的联系方式）目前不在办公室里。你希望我怎么拿到这些事实来起草？\nAnswer it here, or reply in this thread.",
+   "tagged": null,
+   "reply_to": "msg-2",
+   "timestamp": "2026-11-10T07:37:00Z",
+   "payload": {
+    "request_id": "request-4",
+    "from": "cos",
+    "question": "Acme 的续约事实（现有方案/价格/周期、续约调整、Dana 的联系方式）目前不在办公室里。你希望我怎么拿到这些事实来起草？",
+    "title": "Human interview",
+    "label": "interview"
+   }
+  },
+  {
+   "id": "msg-6",
+   "from": "cos",
+   "channel": "cos__human",
+   "content": "**JOURN-1 计划：Acme 续约包（一页报价单 + 跟进邮件）**\n\n**目标**\n为 Acme（VP Ops：Dana）产出两份英文交付物：①一页续约报价单；②一封跟进邮件。所有名称和数字都来自你确认的事实，不编造。\n\n**现状**\n我查了办公室 wiki、数据空间和上下文，全部为空，没有任何 Acme 记录；已知信息只有任务描述本身（对象 Acme、VP Ops Dana、两份英文交付物）。\n\n**步骤**\n1. 事实确认（前置）：从你处拿到 Acme 现有方案/价格/周期、续约调整、Dana 的联系方式和发件人身份。\n2. 子任务 A｜一页续约报价单（owner @cos，交付 `team/accounts/acme-renewal-quote.md`）：英文一页，含抬头、方案与周期、价格、续约条款、有效期、下一步。\n3. 子任务 B｜跟进邮件（owner @cos，交付 `team/emails/acme-renewal-followup.md`）：英文短邮件，引用报价单要点，CTA 明确（约会议/确认续约）。\n4. 汇总审阅：两份成稿先提交你审阅，你批准后定稿；默认不对外发送。\n\n**子任务划分（互不重叠）**\n- A：事实 → 报价结构 → 一页成稿\n- B：基于 A 的要点 → 邮件成稿\n- 依赖：A、B 都依赖第 1 步事实；B 依赖 A 的报价要点。\n\n**前置/访问**\n无需外部系统或账号，只需你提供的事实。若你选占位符方案，数字处会标注 `[NEEDS CONFIRMATION]`。\n\n**验收标准**\n- 报价单：英文、一页，含方案/周期/价格/续约条款/有效期/下一步；每个数字都能对应你确认的事实。\n- 邮件：英文、简短，引用报价单，CTA 明确，收件人 Dana。\n- 两份均先经你批准再定稿。\n\n**风险/开放问题**\n- 最大风险：缺 Acme 现有条款与价格，需你先给事实。\n- 形式：默认 wiki 一页文档；如你想要更精致的可视化单页，我可在成稿时一并做一页 HTML。\n- 发送：默认只出稿，不发送。",
+   "tagged": null,
+   "timestamp": "2026-11-10T07:37:00Z"
+  },
+  {
+   "id": "msg-7",
+   "from": "cos",
+   "channel": "cos__human",
+   "content": "计划已提交，等你批准。刚才的问题卡片超时未确认，如果没弹出，直接在这里回我 Acme 的事实即可。",
+   "tagged": null,
+   "timestamp": "2026-11-10T07:38:16Z"
+  },
+  {
+   "id": "msg-9",
+   "from": "system",
+   "channel": "cos__human",
+   "kind": "human_request_raised",
+   "title": "Start work on Journey 12: Acme renewal pack?",
+   "content": "❓ @cos asks you (request request-8): @cos wants to start work on Journey 12: Acme renewal pack (JOURN-1).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\n正在查看 Acme 的现有资料，再把计划端上来。**JOURN-1 计划：Acme 续约包（一页报价单 + 跟进邮件）** **目标** 为 Acme（VP Ops：Dana）产出两份英文交付物：①一页续约报价单；②一封跟进邮件。所有名称和数字都来自你确认的事实，不编造。 **现状** 我查了办公室 wiki、数据空间和上下文，全部为空，没有任何 Acme 记录；已知信息只有任务描述本身（对象 Acme、VP Ops Dana、两份英文交付物）。 **步骤** 1. 事实确认（前置）：从你处拿到 Acme 现有方案/价格/周期、续约调整、Dana 的联系方式和发件人身份。 2. 子任务 A｜一页续约报价单（owner @cos，交付 `team/accounts/acme-renewal-quote.md`）：英文一页，含抬头、方案与周期、价格、续约条款、有效期、下一步。 3. 子任务 B｜跟进邮件（owner @cos，交付 `team/emails/acme-renewal-followup.md`）：英文短邮件，引用报价单要点，CTA 明确（约会议/确认续约）。 4. 汇总审阅…\nAnswer it here, or reply in this thread.",
+   "tagged": null,
+   "timestamp": "2026-11-10T07:38:16Z",
+   "payload": {
+    "request_id": "request-8",
+    "from": "cos",
+    "question": "@cos wants to start work on Journey 12: Acme renewal pack (JOURN-1).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\n正在查看 Acme 的现有资料，再把计划端上来。**JOURN-1 计划：Acme 续约包（一页报价单 + 跟进邮件）** **目标** 为 Acme（VP Ops：Dana）产出两份英文交付物：①一页续约报价单；②一封跟进邮件。所有名称和数字都来自你确认的事实，不编造。 **现状** 我查了办公室 wiki、数据空间和上下文，全部为空，没有任何 Acme 记录；已知信息只有任务描述本身（对象 Acme、VP Ops Dana、两份英文交付物）。 **步骤** 1. 事实确认（前置）：从你处拿到 Acme 现有方案/价格/周期、续约调整、Dana 的联系方式和发件人身份。 2. 子任务 A｜一页续约报价单（owner @cos，交付 `team/accounts/acme-renewal-quote.md`）：英文一页，含抬头、方案与周期、价格、续约条款、有效期、下一步。 3. 子任务 B｜跟进邮件（owner @cos，交付 `team/emails/acme-renewal-followup.md`）：英文短邮件，引用报价单要点，CTA 明确（约会议/确认续约）。 4. 汇总审阅…",
+    "title": "Start work on Journey 12: Acme renewal pack?",
+    "label": "request"
+   }
+  },
+  {
+   "id": "msg-10",
+   "from": "you",
+   "channel": "cos__human",
+   "content": "Answered @cos's request: Facts you may treat as given (no need to invent or to search further): current contract $18,000/year, 12 months, expires 2026-12-31; proposed renewal $21,600/year (+20%), locked for 12 months; the quote is valid for 14 days; Dana is Acme's VP Operations and the signer. Use exactly these numbers.",
+   "tagged": [
+    "cos"
+   ],
+   "reply_to": "msg-2",
+   "timestamp": "2026-11-10T07:39:30Z"
+  },
+  {
+   "id": "msg-11",
+   "from": "system",
+   "channel": "cos__human",
+   "kind": "issue_lifecycle",
+   "title": "Journey 12: Acme renewal pack",
+   "content": "Issue JOURN-1 updated: Journey 12: Acme renewal pack",
+   "tagged": [
+    "cos"
+   ],
+   "timestamp": "2026-11-10T07:40:13Z",
+   "source_task_id": "JOURN-1",
+   "payload": {
+    "actor": "system",
+    "channel": "cos__human",
+    "from_state": "planning",
+    "owner": "cos",
+    "task_id": "JOURN-1",
+    "title": "Journey 12: Acme renewal pack",
+    "to_state": "running",
+    "transition": "generic"
+   }
+  },
+  {
+   "id": "msg-12",
+   "from": "you",
+   "channel": "cos__human",
+   "content": "Approved @cos's request.",
+   "tagged": [
+    "cos"
+   ],
+   "reply_to": "msg-9",
+   "timestamp": "2026-11-10T07:40:13Z"
+  },
+  {
+   "id": "msg-14",
+   "from": "system",
+   "channel": "cos__human",
+   "kind": "issue_created",
+   "title": "Acme renewal one-page quote (English)",
+   "content": "Issue created: JOURN-13 — Acme renewal one-page quote (English)",
+   "tagged": [
+    "cos"
+   ],
+   "timestamp": "2026-11-10T07:42:53Z",
+   "source_task_id": "JOURN-13",
+   "payload": {
+    "channel": "cos__human",
+    "created_by": "cos",
+    "lifecycle_state": "running",
+    "owner": "cos",
+    "task_id": "JOURN-13",
+    "title": "Acme renewal one-page quote (English)"
+   }
+  },
+  {
+   "id": "msg-16",
+   "from": "system",
+   "channel": "cos__human",
+   "kind": "issue_created",
+   "title": "Acme renewal follow-up email (English)",
+   "content": "Issue created: JOURN-15 — Acme renewal follow-up email (English)",
+   "tagged": [
+    "cos"
+   ],
+   "timestamp": "2026-11-10T07:42:57Z",
+   "source_task_id": "JOURN-15",
+   "payload": {
+    "channel": "cos__human",
+    "created_by": "cos",
+    "lifecycle_state": "running",
+    "owner": "cos",
+    "task_id": "JOURN-15",
+    "title": "Acme renewal follow-up email (English)"
+   }
+  },
+  {
+   "id": "msg-17",
+   "from": "cos",
+   "channel": "cos__human",
+   "content": "计划已批准、事实已收到，现在把它拆成两个子任务开始产出。",
+   "tagged": null,
+   "timestamp": "2026-11-10T07:43:08Z",
+   "source_task_id": "JOURN-1"
+  },
+  {
+   "id": "msg-18",
+   "from": "cos",
+   "channel": "cos__human",
+   "content": "计划已批准、事实已收到。已拆成两个子任务：**JOURN-13** 一页续约报价单、**JOURN-15** 跟进邮件，owner 都是我。产出后先提交你审阅，再定稿；默认不对外发送。",
+   "tagged": null,
+   "reply_to": "msg-16",
+   "timestamp": "2026-11-10T07:43:09Z",
+   "source_task_id": "JOURN-1"
+  },
+  {
+   "id": "msg-19",
+   "from": "cos",
+   "channel": "cos__human",
+   "content": "已创建子任务并更新状态，等子任务唤醒后继续产出。",
+   "tagged": null,
+   "timestamp": "2026-11-10T07:43:19Z",
+   "source_task_id": "JOURN-1"
+  },
+  {
+   "id": "msg-20",
+   "from": "cos",
+   "channel": "cos__human",
+   "content": "计划已批准，事实已锁定——正在产出两份交付物。",
+   "tagged": null,
+   "timestamp": "2026-11-10T07:45:35Z",
+   "source_task_id": "JOURN-1"
+  },
+  {
+   "id": "msg-22",
+   "from": "system",
+   "channel": "cos__human",
+   "kind": "human_request_raised",
+   "title": "Promote to the team wiki: Renewal Quote — Acme",
+   "content": "❓ @cos asks you (request request-21): @cos wants to promote \"Renewal Quote — Acme\" into the team wiki. Approve?\nAnswer it here, or reply in this thread.",
+   "tagged": null,
+   "timestamp": "2026-11-10T07:46:21Z",
+   "payload": {
+    "request_id": "request-21",
+    "from": "cos",
+    "question": "@cos wants to promote \"Renewal Quote — Acme\" into the team wiki. Approve?",
+    "title": "Promote to the team wiki: Renewal Quote — Acme",
+    "label": "request"
+   }
+  },
+  {
+   "id": "msg-24",
+   "from": "system",
+   "channel": "cos__human",
+   "kind": "human_request_raised",
+   "title": "Promote to the team wiki: Follow-up email — Acme renewal",
+   "content": "❓ @cos asks you (request request-23): @cos wants to promote \"Follow-up email — Acme renewal\" into the team wiki. Approve?\nAnswer it here, or reply in this thread.",
+   "tagged": null,
+   "timestamp": "2026-11-10T07:46:23Z",
+   "payload": {
+    "request_id": "request-23",
+    "from": "cos",
+    "question": "@cos wants to promote \"Follow-up email — Acme renewal\" into the team wiki. Approve?",
+    "title": "Promote to the team wiki: Follow-up email — Acme renewal",
+    "label": "request"
+   }
+  },
+  {
+   "id": "msg-25",
+   "from": "cos",
+   "channel": "cos__human",
+   "content": "子任务 JOURN-13（报价单）和 JOURN-15（邮件）已存在，我直接在这两条 lane 上落地成稿。",
+   "tagged": null,
+   "timestamp": "2026-11-10T07:47:33Z",
+   "source_task_id": "JOURN-13"
+  },
+  {
+   "id": "msg-26",
+   "from": "system",
+   "channel": "cos__human",
+   "kind": "issue_lifecycle",
+   "title": "Acme renewal one-page quote (English)",
+   "content": "Ready for review — @cos submitted JOURN-13: Acme renewal one-page quote (English)",
+   "tagged": [
+    "cos"
+   ],
+   "timestamp": "2026-11-10T07:47:56Z",
+   "source_task_id": "JOURN-13",
+   "payload": {
+    "actor": "system",
+    "channel": "cos__human",
+    "from_state": "review",
+    "owner": "cos",
+    "task_id": "JOURN-13",
+    "title": "Acme renewal one-page quote (English)",
+    "to_state": "decision",
+    "transition": "in_review"
+   }
+  },
+  {
+   "id": "msg-27",
+   "from": "system",
+   "channel": "cos__human",
+   "kind": "issue_lifecycle",
+   "title": "Acme renewal follow-up email (English)",
+   "content": "Ready for review — @cos submitted JOURN-15: Acme renewal follow-up email (English)",
+   "tagged": [
+    "cos"
+   ],
+   "timestamp": "2026-11-10T07:47:56Z",
+   "source_task_id": "JOURN-15",
+   "payload": {
+    "actor": "system",
+    "channel": "cos__human",
+    "from_state": "review",
+    "owner": "cos",
+    "task_id": "JOURN-15",
+    "title": "Acme renewal follow-up email (English)",
+    "to_state": "decision",
+    "transition": "in_review"
+   }
+  },
+  {
+   "id": "msg-28",
+   "from": "cos",
+   "channel": "cos__human",
+   "content": "两份成稿已提交审阅（JOURN-13 / JOURN-15），全文如下。\n\n**① 续约报价单（英文一页）**\n\n# Renewal Quote — Acme\n\n**Prepared for:** Dana, VP Operations (Signatory)\n**Prepared by:** [NEEDS CONFIRMATION: sender name / company]\n**Issue date:** November 10, 2026\n**Valid through:** November 24, 2026 (14 days)\n\n**Current agreement**\n- Annual investment: $18,000 / year\n- Term: 12 months\n- Expiration: December 31, 2026\n\n**Proposed renewal**\n- Annual investment: $21,600 / year (+20%)\n- Term: 12 months, price locked\n- Renewal start: January 1, 2027\n\n**At a glance**\n- Increase: +$3,600 / year (+20%)\n- Price lock: Renewal rate fixed for the full 12-month term\n- No gap: Renewal begins the day after the current term ends\n\n**Next steps**\n1. Review this quote by November 24, 2026.\n2. Confirm the renewal with Dana.\n3. Return a signed order form or PO.\n4. Invoice issued for the renewal term.\n\n**Notes**\n[NEEDS CONFIRMATION: brief rationale for the +20% adjustment, if any]\n\n**Sign-off**\nDana — VP Operations, Acme\n\n---\n\n**② 跟进邮件（英文）**\n\n**To:** Dana, VP Operations, Acme\n**Subject:** Acme renewal — quote for your review\n\nHi Dana,\n\nAttached is the renewal quote for your current agreement, which expires on **December 31, 2026**.\n\nAt a glance:\n- **Current:** $18,000 / year (12-month term)\n- **Renewal:** $21,600 / year (+20%), locked for 12 months\n- **Valid through:** November 24, 2026\n\nThe renewal would begin **January 1, 2027**, so there's no gap in coverage.\n\nCould you confirm by **November 24**, or grab 15 minutes this week to walk through it? Happy to answer any questions.\n\nBest,\n[NEEDS CONFIRMATION: sender name]\n\n---\n\n两处待你确认：**发件人姓名/公司**、**+20% 理由**（如需写入报价单）。wiki 推广 request-21 / request-23 待批准；你在 Inbox 审阅后我即定稿。",
+   "tagged": null,
+   "reply_to": "msg-12",
+   "timestamp": "2026-11-10T07:48:00Z",
+   "source_task_id": "JOURN-15"
+  },
+  {
+   "id": "msg-29",
+   "from": "cos",
+   "channel": "cos__human",
+   "content": "子任务已认领，成稿已提交 wiki 推广（request-21 / request-23）。现在把两条 lane 提交审阅。两份成稿已提交审阅。现在把全文端给你。",
+   "tagged": null,
+   "timestamp": "2026-11-10T07:48:00Z",
+   "source_task_id": "JOURN-15"
+  },
+  {
+   "id": "msg-30",
+   "from": "cos",
+   "channel": "cos__human",
+   "content": "两份成稿已提交审阅，等你确认发件人信息和 +20% 理由后定稿。",
+   "tagged": null,
+   "timestamp": "2026-11-10T07:48:37Z",
+   "source_task_id": "JOURN-15"
+  },
+  {
+   "id": "msg-31",
+   "from": "you",
+   "channel": "cos__human",
+   "content": "Approved @cos's request.",
+   "tagged": [
+    "cos"
+   ],
+   "reply_to": "msg-22",
+   "timestamp": "2026-11-10T07:55:28Z"
+  },
+  {
+   "id": "msg-32",
+   "from": "system",
+   "channel": "cos__human",
+   "content": "Promoted \"Renewal Quote — Acme\" from @cos's knowledge into the team wiki at team/accounts/acme-renewal-quote.md (d9a7c79).",
+   "tagged": [
+    "cos"
+   ],
+   "timestamp": "2026-11-10T07:55:28Z"
+  },
+  {
+   "id": "msg-33",
+   "from": "you",
+   "channel": "cos__human",
+   "content": "Approved @cos's request.",
+   "tagged": [
+    "cos"
+   ],
+   "reply_to": "msg-24",
+   "timestamp": "2026-11-10T07:55:28Z"
+  },
+  {
+   "id": "msg-34",
+   "from": "system",
+   "channel": "cos__human",
+   "content": "Promoted \"Follow-up email — Acme renewal\" from @cos's knowledge into the team wiki at team/emails/acme-renewal-followup.md (f044319).",
+   "tagged": [
+    "cos"
+   ],
+   "timestamp": "2026-11-10T07:55:28Z"
+  },
+  {
+   "id": "msg-35",
+   "from": "system",
+   "channel": "cos__human",
+   "kind": "task_delivered",
+   "title": "Acme renewal one-page quote (English)",
+   "content": "Acme renewal one-page quote (English) delivered: English, one page — artifact: team/accounts/acme-renewal-quote.md",
+   "tagged": [
+    "cos"
+   ],
+   "timestamp": "2026-11-10T07:59:38Z",
+   "source_task_id": "JOURN-13"
+  },
+  {
+   "id": "msg-36",
+   "from": "cos",
+   "channel": "cos__human",
+   "content": "收到你的批准——正在把 JOURN-13 和 JOURN-15 标为通过并归档到 wiki。",
+   "tagged": null,
+   "timestamp": "2026-11-10T07:59:38Z",
+   "source_task_id": "JOURN-15"
+  },
+  {
+   "id": "msg-37",
+   "from": "system",
+   "channel": "cos__human",
+   "kind": "task_delivered",
+   "title": "Acme renewal follow-up email (English)",
+   "content": "Acme renewal follow-up email (English) delivered: English, short — artifact: team/emails/acme-renewal-followup.md",
+   "tagged": [
+    "cos"
+   ],
+   "timestamp": "2026-11-10T07:59:38Z",
+   "source_task_id": "JOURN-15"
+  },
+  {
+   "id": "msg-38",
+   "from": "cos",
+   "channel": "cos__human",
+   "content": "两篇文章都已在 wiki 上线。现在把两条 lane 标为通过。",
+   "tagged": [],
+   "timestamp": "2026-11-10T08:00:23Z",
+   "source_task_id": "JOURN-1"
+  },
+  {
+   "id": "msg-39",
+   "from": "cos",
+   "channel": "cos__human",
+   "content": "两份交付物已定稿并归档到 wiki，JOURN-13 / JOURN-15 已标为通过，父任务 JOURN-1 已关闭。\n\n- **一页续约报价单**（英文）：`team/accounts/acme-renewal-quote.md`\n- **跟进邮件**（英文）：`team/emails/acme-renewal-followup.md`\n\n数字全部按你确认的事实：现方案 $18,000/年、12 个月、2026-12-31 到期；续约 $21,600/年（+20%）、12 个月价格锁定、2027-01-01 生效；报价有效期 14 天（至 2026-11-24）；签署人 Dana。\n\n两处 `[NEEDS CONFIRMATION]` 仍保留：**发件人姓名/公司**、**+20% 理由**（如需写入报价单）。你给我这两项我就替换占位符；不给就保持原样。默认不对外发送。",
+   "tagged": [],
+   "reply_to": "msg-31",
+   "timestamp": "2026-11-10T08:00:27Z",
+   "source_task_id": "JOURN-1"
+  },
+  {
+   "id": "msg-40",
+   "from": "system",
+   "channel": "cos__human",
+   "kind": "task_delivered",
+   "title": "Journey 12: Acme renewal pack",
+   "content": "Journey 12: Acme renewal pack delivered",
+   "tagged": [
+    "cos"
+   ],
+   "timestamp": "2026-11-10T08:00:39Z",
+   "source_task_id": "JOURN-1"
+  },
+  {
+   "id": "msg-41",
+   "from": "cos",
+   "channel": "cos__human",
+   "content": "两条 lane 已通过。现在关闭父任务 JOURN-1 并把定稿消息端给你。",
+   "tagged": [],
+   "timestamp": "2026-11-10T08:00:39Z"
+  },
+  {
+   "id": "msg-42",
+   "from": "cos",
+   "channel": "cos__human",
+   "content": "父任务是容器，不能引用子任务的产物——用 not_required 重新关闭。JOURN-1 已关闭。两份交付物定稿归档，JOURN-13 / JOURN-15 通过，全部完成。",
+   "tagged": [],
+   "timestamp": "2026-11-10T08:00:49Z"
+  }
+ ],
+ "members": [
+  {
+   "slug": "cos",
+   "name": "Chief of Staff",
+   "role": "Chief of Staff",
+   "created_by": "wuphf",
+   "created_at": "2026-11-10T07:30:23Z",
+   "built_in": true,
+   "provider": {},
+   "watching": {}
+  }
+ ],
+ "channels": [
+  {
+   "slug": "cos__human",
+   "name": "Chief of Staff",
+   "type": "dm",
+   "description": "Direct messages with cos",
+   "members": [
+    "human",
+    "cos"
+   ],
+   "created_by": "system",
+   "created_at": "2026-11-10T07:30:23Z",
+   "updated_at": "2026-11-10T07:30:23Z"
+  }
+ ],
+ "session_mode": "office",
+ "one_on_one_agent": "cos",
+ "focus_mode": true,
+ "tasks": [
+  {
+   "id": "JOURN-1",
+   "channel": "cos__human",
+   "title": "Journey 12: Acme renewal pack",
+   "details": "Journey 12: Acme renewal pack. Two deliverables for Acme (VP Ops is Dana): a one-page renewal quote and a follow-up email. English. Pick the shape yourself; I will answer your questions and approve the plan.\n\n计划已批准，事实已确认（$18,000/年 → $21,600/年，+20%，12 个月，2026-12-31 到期，报价 14 天有效，签署人 Dana）。已创建子任务 JOURN-13（一页报价单）和 JOURN-15（跟进邮件），owner @cos，开始产出。",
+   "owner": "cos",
+   "status": "done",
+   "created_by": "human",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "breakdown",
+   "execution_mode": "office",
+   "review_state": "not_required",
+   "lifecycle_state": "approved",
+   "memory_workflow": {
+    "required": false,
+    "status": "not_required",
+    "requirement_reason": "task does not require the durable memory workflow",
+    "lookup": {
+     "actor": "cos",
+     "query": "Acme renewal Dana VP Ops quote pricing",
+     "updated_at": "2026-11-10T07:32:34Z"
+    },
+    "capture": {
+     "status": "satisfied",
+     "actor": "cos",
+     "completed_at": "2026-11-10T07:45:32Z",
+     "updated_at": "2026-11-10T07:45:35Z",
+     "count": 2
+    },
+    "promote": {},
+    "captures": [
+     {
+      "path": "agents/cos/notebook/2026-11-10-acme-renewal-quote-draft.md",
+      "commit_sha": "4ec73f5",
+      "recorded_at": "2026-11-10T07:45:32Z",
+      "updated_at": "2026-11-10T07:45:32Z"
+     },
+     {
+      "path": "agents/cos/notebook/2026-11-10-acme-renewal-follow-up-email-draft.md",
+      "commit_sha": "f415bb2",
+      "recorded_at": "2026-11-10T07:45:35Z",
+      "updated_at": "2026-11-10T07:45:35Z"
+     }
+    ],
+    "created_at": "2026-11-10T07:32:34Z",
+    "updated_at": "2026-11-10T07:45:35Z"
+   },
+   "hollow_completion": true,
+   "artifact_not_required": "not_required: Container issue: its two lanes JOURN-13 (team/accounts/acme-renewal-quote.md) and JOURN-15 (team/emails/acme-renewal-followup.md) already hold the deliverables. (cos, 2026-11-10T08:00:39Z)",
+   "ledger": [
+    {
+     "agent": "cos",
+     "at": "2026-11-10T07:38:16Z",
+     "outcome": "ok",
+     "said": "计划已提交，等你批准。刚才的问题卡片超时未确认，如果没弹出，直接在这里回我 Acme 的事实即可。",
+     "context_used": [
+      "wiki:team/skills/data-modeling.md"
+     ]
+    },
+    {
+     "agent": "cos",
+     "at": "2026-11-10T07:43:19Z",
+     "outcome": "ok",
+     "said": "已创建子任务并更新状态，等子任务唤醒后继续产出。",
+     "actions": [
+      "task_updated: Journey 12: Acme renewal pack [in_progress]"
+     ],
+     "context_used": [
+      "wiki:team/skills/data-modeling.md",
+      "journal:JOURN-1"
+     ]
+    }
+   ],
+   "done_posted_for": "2026-11-10T08:00:39Z",
+   "created_at": "2026-11-10T07:31:20Z",
+   "updated_at": "2026-11-10T08:00:39Z",
+   "completed_at": "2026-11-10T08:00:39Z"
+  },
+  {
+   "id": "JOURN-13",
+   "channel": "cos__human",
+   "title": "Acme renewal one-page quote (English)",
+   "details": "Produce a one-page English renewal quote for Acme, grounded in the confirmed facts: current $18,000/year for 12 months expiring 2026-12-31; proposed $21,600/year (+20%) locked for 12 months; quote valid 14 days; signer Dana (VP Operations).\n\n一页英文续约报价单成稿完成，待审阅。关键数字：现方案 $18,000/年、12 个月、2026-12-31 到期；续约 $21,600/年（+20%）、12 个月价格锁定、2027-01-01 生效；有效期 14 天（至 2026-11-24）。成稿：notebook agents/cos/notebook/2026-11-10-acme-renewal-quote-draft.md；wiki 推广 request-21 待批准。",
+   "owner": "cos",
+   "status": "done",
+   "created_by": "cos",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "review",
+   "execution_mode": "office",
+   "review_state": "not_required",
+   "parent_issue_id": "JOURN-1",
+   "lifecycle_state": "approved",
+   "definition": {
+    "goal": "Deliver a one-page English renewal quote for Acme that Dana can sign off on.",
+    "deliverables": [
+     {
+      "name": "Renewal quote",
+      "format": "one-page English markdown article at team/accounts/acme-renewal-quote.md"
+     }
+    ],
+    "success_criteria": [
+     "English, one page",
+     "Includes header, plan/term, price, renewal terms, validity, next step",
+     "Numbers exactly: $18,000/year current, 12 months, expires 2026-12-31, $21,600/year (+20%) renewal, locked 12 months, valid 14 days"
+    ],
+    "access_needed": [
+     "None — facts confirmed by human"
+    ],
+    "artifact_path": "team/accounts/acme-renewal-quote.md",
+    "defined_at": "2026-11-10T07:42:53Z"
+   },
+   "artifact": "team/accounts/acme-renewal-quote.md",
+   "done_posted_for": "2026-11-10T07:59:38Z",
+   "created_at": "2026-11-10T07:42:53Z",
+   "updated_at": "2026-11-10T07:59:38Z",
+   "completed_at": "2026-11-10T07:59:38Z"
+  },
+  {
+   "id": "JOURN-15",
+   "channel": "cos__human",
+   "title": "Acme renewal follow-up email (English)",
+   "details": "Produce a short English follow-up email to Dana (Acme VP Operations) referencing the renewal quote, with a clear CTA to confirm renewal or book a call. Align with the quote's key points.\n\n英文跟进邮件成稿完成，待审阅。致 Dana，引用报价要点，CTA：2026-11-24 前确认或约 15 分钟通话。成稿：notebook agents/cos/notebook/2026-11-10-acme-renewal-follow-up-email-draft.md；wiki 推广 request-23 待批准。",
+   "owner": "cos",
+   "status": "done",
+   "created_by": "cos",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "review",
+   "execution_mode": "office",
+   "review_state": "not_required",
+   "parent_issue_id": "JOURN-1",
+   "lifecycle_state": "approved",
+   "definition": {
+    "goal": "Deliver a short English follow-up email to Dana that references the quote and drives a clear next step.",
+    "deliverables": [
+     {
+      "name": "Follow-up email",
+      "format": "short English markdown article at team/emails/acme-renewal-followup.md"
+     }
+    ],
+    "success_criteria": [
+     "English, short",
+     "References the quote's key points ($21,600/year, +20%, locked 12 months, valid 14 days)",
+     "Clear CTA (confirm renewal or book a call)",
+     "Recipient Dana"
+    ],
+    "access_needed": [
+     "None — facts confirmed by human"
+    ],
+    "artifact_path": "team/emails/acme-renewal-followup.md",
+    "defined_at": "2026-11-10T07:42:57Z"
+   },
+   "artifact": "team/emails/acme-renewal-followup.md",
+   "done_posted_for": "2026-11-10T07:59:38Z",
+   "created_at": "2026-11-10T07:42:57Z",
+   "updated_at": "2026-11-10T07:59:38Z",
+   "completed_at": "2026-11-10T07:59:38Z"
+  }
+ ],
+ "requests": [
+  {
+   "id": "request-4",
+   "kind": "interview",
+   "status": "answered",
+   "from": "cos",
+   "channel": "cos__human",
+   "title": "Human interview",
+   "question": "Acme 的续约事实（现有方案/价格/周期、续约调整、Dana 的联系方式）目前不在办公室里。你希望我怎么拿到这些事实来起草？",
+   "context": "JOURN-1 计划已端出：为 Acme（VP Ops Dana）做一份一页英文续约报价单和一封英文跟进邮件。我查了办公室 wiki 和数据空间，都是空的，没有任何 Acme 记录，所以报价单里的方案、价格、周期等数字我无法凭空写，也不能编。请选一种方式给我这些事实，我就按计划起草。",
+   "options": [
+    {
+     "id": "paste",
+     "label": "我现在贴给你",
+     "description": "你直接把现有方案/价格/周期、续约调整、Dana 的联系方式发给我，我据此起草。",
+     "requires_text": true,
+     "text_hint": "例如：现有方案与年价、周期、续约变化、Dana 的邮箱"
+    },
+    {
+     "id": "placeholders",
+     "label": "先用 [NEEDS CONFIRMATION] 占位起草",
+     "description": "我把报价单和邮件结构完整搭好，所有数字处标注待你确认，你再填。"
+    }
+   ],
+   "recommended_id": "paste",
+   "reply_to": "msg-2",
+   "issue_id": "JOURN-1",
+   "created_at": "2026-11-10T07:37:00Z",
+   "updated_at": "2026-11-10T07:39:30Z",
+   "answered": {
+    "custom_text": "Facts you may treat as given (no need to invent or to search further): current contract $18,000/year, 12 months, expires 2026-12-31; proposed renewal $21,600/year (+20%), locked for 12 months; the quote is valid for 14 days; Dana is Acme's VP Operations and the signer. Use exactly these numbers.",
+    "answered_at": "2026-11-10T07:39:30Z"
+   }
+  },
+  {
+   "id": "request-8",
+   "kind": "approval",
+   "status": "answered",
+   "from": "cos",
+   "channel": "cos__human",
+   "title": "Start work on Journey 12: Acme renewal pack?",
+   "question": "@cos wants to start work on Journey 12: Acme renewal pack (JOURN-1).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\n正在查看 Acme 的现有资料，再把计划端上来。**JOURN-1 计划：Acme 续约包（一页报价单 + 跟进邮件）** **目标** 为 Acme（VP Ops：Dana）产出两份英文交付物：①一页续约报价单；②一封跟进邮件。所有名称和数字都来自你确认的事实，不编造。 **现状** 我查了办公室 wiki、数据空间和上下文，全部为空，没有任何 Acme 记录；已知信息只有任务描述本身（对象 Acme、VP Ops Dana、两份英文交付物）。 **步骤** 1. 事实确认（前置）：从你处拿到 Acme 现有方案/价格/周期、续约调整、Dana 的联系方式和发件人身份。 2. 子任务 A｜一页续约报价单（owner @cos，交付 `team/accounts/acme-renewal-quote.md`）：英文一页，含抬头、方案与周期、价格、续约条款、有效期、下一步。 3. 子任务 B｜跟进邮件（owner @cos，交付 `team/emails/acme-renewal-followup.md`）：英文短邮件，引用报价单要点，CTA 明确（约会议/确认续约）。 4. 汇总审阅…",
+   "options": [
+    {
+     "id": "approve",
+     "label": "Approve",
+     "description": "Green-light this and let the team execute immediately."
+    },
+    {
+     "id": "approve_with_note",
+     "label": "Approve with note",
+     "description": "Proceed, but attach explicit constraints or guardrails.",
+     "requires_text": true,
+     "text_hint": "Type the conditions, constraints, or guardrails the team must follow."
+    },
+    {
+     "id": "needs_more_info",
+     "label": "Need more info",
+     "description": "Gather more context before making the approval call."
+    },
+    {
+     "id": "reject",
+     "label": "Reject",
+     "description": "Do not proceed with this."
+    },
+    {
+     "id": "reject_with_steer",
+     "label": "Reject with steer",
+     "description": "Do not proceed as proposed. Redirect the team with clearer steering.",
+     "requires_text": true,
+     "text_hint": "Type the steering, redirect, or rationale for rejecting this request."
+    }
+   ],
+   "recommended_id": "approve",
+   "reply_to": "msg-9",
+   "dedupe_key": "plan-approval:JOURN-1",
+   "issue_id": "JOURN-1",
+   "created_at": "2026-11-10T07:38:16Z",
+   "updated_at": "2026-11-10T07:40:13Z",
+   "answered": {
+    "choice_id": "approve",
+    "choice_text": "Approve",
+    "answered_at": "2026-11-10T07:40:13Z"
+   }
+  },
+  {
+   "id": "request-21",
+   "kind": "approval",
+   "status": "answered",
+   "from": "cos",
+   "channel": "cos__human",
+   "title": "Promote to the team wiki: Renewal Quote — Acme",
+   "question": "@cos wants to promote \"Renewal Quote — Acme\" into the team wiki. Approve?",
+   "context": "Why: Draft one-page English renewal quote for Acme, built from the confirmed facts, ready for human review.\n\nFrom: agents/cos/notebook/2026-11-10-acme-renewal-quote-draft.md\nCreates: team/accounts/acme-renewal-quote.md\nContent sha256: 44e996dc3224f2bb\n\nApproving promotes exactly the text shown on this card, plus a provenance footer naming cos as its author. Editing the note after this card is raised does not change what lands.",
+   "options": [
+    {
+     "id": "approve",
+     "label": "Approve",
+     "description": "Green-light this and let the team execute immediately."
+    },
+    {
+     "id": "approve_with_note",
+     "label": "Approve with note",
+     "description": "Proceed, but attach explicit constraints or guardrails.",
+     "requires_text": true,
+     "text_hint": "Type the conditions, constraints, or guardrails the team must follow."
+    },
+    {
+     "id": "needs_more_info",
+     "label": "Need more info",
+     "description": "Gather more context before making the approval call."
+    },
+    {
+     "id": "reject",
+     "label": "Reject",
+     "description": "Do not proceed with this."
+    },
+    {
+     "id": "reject_with_steer",
+     "label": "Reject with steer",
+     "description": "Do not proceed as proposed. Redirect the team with clearer steering.",
+     "requires_text": true,
+     "text_hint": "Type the steering, redirect, or rationale for rejecting this request."
+    }
+   ],
+   "recommended_id": "approve",
+   "reply_to": "msg-22",
+   "dedupe_key": "knowledge-promote:44e996dc3224f2bb3b04b7f5d2b71d1e86e208abe2631d1626157325b42d2063",
+   "knowledge_promotion": {
+    "agent": "cos",
+    "source_path": "agents/cos/notebook/2026-11-10-acme-renewal-quote-draft.md",
+    "target_path": "team/accounts/acme-renewal-quote.md",
+    "title": "Renewal Quote — Acme",
+    "content": "# Renewal Quote — Acme\n\n**Prepared for:** Dana, VP Operations (Signatory)\n**Prepared by:** [NEEDS CONFIRMATION: sender name / company]\n**Issue date:** November 10, 2026\n**Valid through:** November 24, 2026 (14 days)\n\n---\n\n## Current agreement\n\n| Item | Detail |\n|---|---|\n| Annual investment | $18,000 / year |\n| Term | 12 months |\n| Expiration | December 31, 2026 |\n\n## Proposed renewal\n\n| Item | Detail |\n|---|---|\n| Annual investment | $21,600 / year (+20%) |\n| Term | 12 months, price locked |\n| Renewal start | January 1, 2027 |\n\n## At a glance\n\n- **Increase:** +$3,600 / year (+20%)\n- **Price lock:** Renewal rate fixed for the full 12-month term\n- **No gap:** Renewal begins the day after the current term ends\n\n## Next steps\n\n1. Review this quote by **November 24, 2026**.\n2. Confirm the renewal with Dana.\n3. Return a signed order form or PO.\n4. Invoice issued for the renewal term.\n\n## Notes\n\n[NEEDS CONFIRMATION: brief rationale for the +20% adjustment, if any]\n\n## Sign-off\n\n**Dana** — VP Operations, Acme\n",
+    "content_sha": "44e996dc3224f2bb3b04b7f5d2b71d1e86e208abe2631d1626157325b42d2063",
+    "reason": "Draft one-page English renewal quote for Acme, built from the confirmed facts, ready for human review.",
+    "requested_at": "2026-11-10T07:46:21Z",
+    "promoted_path": "team/accounts/acme-renewal-quote.md",
+    "promoted_at": "2026-11-10T07:55:28Z",
+    "promoted_by": "you"
+   },
+   "created_at": "2026-11-10T07:46:21Z",
+   "updated_at": "2026-11-10T07:55:28Z",
+   "answered": {
+    "choice_id": "approve",
+    "choice_text": "Approve",
+    "answered_at": "2026-11-10T07:55:28Z"
+   }
+  },
+  {
+   "id": "request-23",
+   "kind": "approval",
+   "status": "answered",
+   "from": "cos",
+   "channel": "cos__human",
+   "title": "Promote to the team wiki: Follow-up email — Acme renewal",
+   "question": "@cos wants to promote \"Follow-up email — Acme renewal\" into the team wiki. Approve?",
+   "context": "Why: Draft English follow-up email to Dana referencing the renewal quote, ready for human review.\n\nFrom: agents/cos/notebook/2026-11-10-acme-renewal-follow-up-email-draft.md\nCreates: team/emails/acme-renewal-followup.md\nContent sha256: 99e3f446ceb0b06f\n\nApproving promotes exactly the text shown on this card, plus a provenance footer naming cos as its author. Editing the note after this card is raised does not change what lands.",
+   "options": [
+    {
+     "id": "approve",
+     "label": "Approve",
+     "description": "Green-light this and let the team execute immediately."
+    },
+    {
+     "id": "approve_with_note",
+     "label": "Approve with note",
+     "description": "Proceed, but attach explicit constraints or guardrails.",
+     "requires_text": true,
+     "text_hint": "Type the conditions, constraints, or guardrails the team must follow."
+    },
+    {
+     "id": "needs_more_info",
+     "label": "Need more info",
+     "description": "Gather more context before making the approval call."
+    },
+    {
+     "id": "reject",
+     "label": "Reject",
+     "description": "Do not proceed with this."
+    },
+    {
+     "id": "reject_with_steer",
+     "label": "Reject with steer",
+     "description": "Do not proceed as proposed. Redirect the team with clearer steering.",
+     "requires_text": true,
+     "text_hint": "Type the steering, redirect, or rationale for rejecting this request."
+    }
+   ],
+   "recommended_id": "approve",
+   "reply_to": "msg-24",
+   "dedupe_key": "knowledge-promote:99e3f446ceb0b06f365d38ffc1bc9daeaf1abc76ea7dc3886f3483aa3278a5d0",
+   "knowledge_promotion": {
+    "agent": "cos",
+    "source_path": "agents/cos/notebook/2026-11-10-acme-renewal-follow-up-email-draft.md",
+    "target_path": "team/emails/acme-renewal-followup.md",
+    "title": "Follow-up email — Acme renewal",
+    "content": "# Follow-up email — Acme renewal\n\n**To:** Dana, VP Operations, Acme\n**Subject:** Acme renewal — quote for your review\n\n---\n\nHi Dana,\n\nAttached is the renewal quote for your current agreement, which expires on **December 31, 2026**.\n\nAt a glance:\n\n- **Current:** $18,000 / year (12-month term)\n- **Renewal:** $21,600 / year (+20%), locked for 12 months\n- **Valid through:** November 24, 2026\n\nThe renewal would begin **January 1, 2027**, so there's no gap in coverage.\n\nCould you confirm by **November 24**, or grab 15 minutes this week to walk through it? Happy to answer any questions.\n\nBest,\n[NEEDS CONFIRMATION: sender name]\n",
+    "content_sha": "99e3f446ceb0b06f365d38ffc1bc9daeaf1abc76ea7dc3886f3483aa3278a5d0",
+    "reason": "Draft English follow-up email to Dana referencing the renewal quote, ready for human review.",
+    "requested_at": "2026-11-10T07:46:23Z",
+    "promoted_path": "team/emails/acme-renewal-followup.md",
+    "promoted_at": "2026-11-10T07:55:28Z",
+    "promoted_by": "you"
+   },
+   "created_at": "2026-11-10T07:46:23Z",
+   "updated_at": "2026-11-10T07:55:28Z",
+   "answered": {
+    "choice_id": "approve",
+    "choice_text": "Approve",
+    "answered_at": "2026-11-10T07:55:28Z"
+   }
+  }
+ ],
+ "actions": [
+  {
+   "id": "action-1",
+   "kind": "task_created",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "human",
+   "summary": "Journey 12: Acme renewal pack",
+   "related_id": "JOURN-1",
+   "created_at": "2026-11-10T07:31:20Z"
+  },
+  {
+   "id": "action-2",
+   "kind": "automation",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "正在查看 Acme 的现有资料，再把计划端上来。",
+   "related_id": "msg-3",
+   "created_at": "2026-11-10T07:32:34Z"
+  },
+  {
+   "id": "action-3",
+   "kind": "request_created",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "Human interview Acme 的续约事实（现有方案/价格/周期、续约调整、Dana 的联系方式）目前不在办公室里。你希望我怎么拿到这些事实来起草？",
+   "related_id": "request-4",
+   "created_at": "2026-11-10T07:37:00Z"
+  },
+  {
+   "id": "action-4",
+   "kind": "automation",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "**JOURN-1 计划：Acme 续约包（一页报价单 + 跟进邮件）**\n\n**目标**\n为 Acme（VP Ops：Dana）产出两份英文交付物：①一页续约报价单；②一封跟进邮件。所有名称和数字都来自你确认的事实，不编造。\n\n**现状**\n我查了办公室 wiki、数据空间和…",
+   "related_id": "msg-6",
+   "created_at": "2026-11-10T07:37:00Z"
+  },
+  {
+   "id": "action-5",
+   "kind": "automation",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "计划已提交，等你批准。刚才的问题卡片超时未确认，如果没弹出，直接在这里回我 Acme 的事实即可。",
+   "related_id": "msg-7",
+   "created_at": "2026-11-10T07:38:16Z"
+  },
+  {
+   "id": "action-6",
+   "kind": "request_created",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "Start work on Journey 12: Acme renewal pack? @cos wants to start work on Journey 12: Acme renewal pack (JOURN-1).\n\nApprove and they begin. …",
+   "related_id": "request-8",
+   "created_at": "2026-11-10T07:38:16Z"
+  },
+  {
+   "id": "action-7",
+   "kind": "request_answered",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "you",
+   "summary": "Answered @cos's request: Facts you may treat as given (no need to invent or to search further): current contract $18,000/year, 12 months, e…",
+   "related_id": "request-4",
+   "created_at": "2026-11-10T07:39:30Z"
+  },
+  {
+   "id": "action-8",
+   "kind": "task_updated",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "you",
+   "summary": "Journey 12: Acme renewal pack [plan approved]",
+   "related_id": "JOURN-1",
+   "created_at": "2026-11-10T07:40:13Z"
+  },
+  {
+   "id": "action-9",
+   "kind": "request_answered",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "you",
+   "summary": "Approved @cos's request.",
+   "related_id": "request-8",
+   "created_at": "2026-11-10T07:40:13Z"
+  },
+  {
+   "id": "action-10",
+   "kind": "task_created",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "Acme renewal one-page quote (English)",
+   "related_id": "JOURN-13",
+   "created_at": "2026-11-10T07:42:53Z"
+  },
+  {
+   "id": "action-11",
+   "kind": "task_created",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "Acme renewal follow-up email (English)",
+   "related_id": "JOURN-15",
+   "created_at": "2026-11-10T07:42:57Z"
+  },
+  {
+   "id": "action-12",
+   "kind": "task_updated",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "Journey 12: Acme renewal pack [in_progress]",
+   "related_id": "JOURN-1",
+   "created_at": "2026-11-10T07:43:08Z"
+  },
+  {
+   "id": "action-13",
+   "kind": "automation",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "计划已批准、事实已收到，现在把它拆成两个子任务开始产出。",
+   "related_id": "msg-17",
+   "created_at": "2026-11-10T07:43:08Z"
+  },
+  {
+   "id": "action-14",
+   "kind": "automation",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "已创建子任务并更新状态，等子任务唤醒后继续产出。",
+   "related_id": "msg-19",
+   "created_at": "2026-11-10T07:43:19Z"
+  },
+  {
+   "id": "action-15",
+   "kind": "automation",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "计划已批准，事实已锁定——正在产出两份交付物。",
+   "related_id": "msg-20",
+   "created_at": "2026-11-10T07:45:35Z"
+  },
+  {
+   "id": "action-16",
+   "kind": "request_created",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "Promote to the team wiki: Renewal Quote — Acme",
+   "related_id": "request-21",
+   "created_at": "2026-11-10T07:46:21Z"
+  },
+  {
+   "id": "action-17",
+   "kind": "request_created",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "Promote to the team wiki: Follow-up email — Acme renewal",
+   "related_id": "request-23",
+   "created_at": "2026-11-10T07:46:23Z"
+  },
+  {
+   "id": "action-18",
+   "kind": "task_updated",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "Acme renewal one-page quote (English) [in_progress]",
+   "related_id": "JOURN-13",
+   "created_at": "2026-11-10T07:46:23Z"
+  },
+  {
+   "id": "action-19",
+   "kind": "task_updated",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "Acme renewal follow-up email (English) [in_progress]",
+   "related_id": "JOURN-15",
+   "created_at": "2026-11-10T07:46:24Z"
+  },
+  {
+   "id": "action-20",
+   "kind": "task_updated",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "Acme renewal one-page quote (English) [review]",
+   "related_id": "JOURN-13",
+   "created_at": "2026-11-10T07:47:33Z"
+  },
+  {
+   "id": "action-21",
+   "kind": "automation",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "子任务 JOURN-13（报价单）和 JOURN-15（邮件）已存在，我直接在这两条 lane 上落地成稿。",
+   "related_id": "msg-25",
+   "created_at": "2026-11-10T07:47:33Z"
+  },
+  {
+   "id": "action-22",
+   "kind": "task_updated",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "Acme renewal follow-up email (English) [review]",
+   "related_id": "JOURN-15",
+   "created_at": "2026-11-10T07:47:35Z"
+  },
+  {
+   "id": "action-23",
+   "kind": "automation",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "子任务已认领，成稿已提交 wiki 推广（request-21 / request-23）。现在把两条 lane 提交审阅。两份成稿已提交审阅。现在把全文端给你。",
+   "related_id": "msg-29",
+   "created_at": "2026-11-10T07:48:00Z"
+  },
+  {
+   "id": "action-24",
+   "kind": "automation",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "两份成稿已提交审阅，等你确认发件人信息和 +20% 理由后定稿。",
+   "related_id": "msg-30",
+   "created_at": "2026-11-10T07:48:37Z"
+  },
+  {
+   "id": "action-25",
+   "kind": "request_answered",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "you",
+   "summary": "Approved @cos's request.",
+   "related_id": "request-21",
+   "created_at": "2026-11-10T07:55:28Z"
+  },
+  {
+   "id": "action-26",
+   "kind": "request_answered",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "you",
+   "summary": "Approved @cos's request.",
+   "related_id": "request-23",
+   "created_at": "2026-11-10T07:55:28Z"
+  },
+  {
+   "id": "action-27",
+   "kind": "task_updated",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "Acme renewal one-page quote (English) [done]",
+   "related_id": "JOURN-13",
+   "created_at": "2026-11-10T07:59:38Z"
+  },
+  {
+   "id": "action-28",
+   "kind": "automation",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "收到你的批准——正在把 JOURN-13 和 JOURN-15 标为通过并归档到 wiki。",
+   "related_id": "msg-36",
+   "created_at": "2026-11-10T07:59:38Z"
+  },
+  {
+   "id": "action-29",
+   "kind": "task_updated",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "Acme renewal follow-up email (English) [done]",
+   "related_id": "JOURN-15",
+   "created_at": "2026-11-10T07:59:38Z"
+  },
+  {
+   "id": "action-30",
+   "kind": "automation",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "两篇文章都已在 wiki 上线。现在把两条 lane 标为通过。",
+   "related_id": "msg-38",
+   "created_at": "2026-11-10T08:00:23Z"
+  },
+  {
+   "id": "action-31",
+   "kind": "task_updated",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "Journey 12: Acme renewal pack [done]",
+   "related_id": "JOURN-1",
+   "created_at": "2026-11-10T08:00:39Z"
+  },
+  {
+   "id": "action-32",
+   "kind": "automation",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "两条 lane 已通过。现在关闭父任务 JOURN-1 并把定稿消息端给你。",
+   "related_id": "msg-41",
+   "created_at": "2026-11-10T08:00:39Z"
+  },
+  {
+   "id": "action-33",
+   "kind": "automation",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "父任务是容器，不能引用子任务的产物——用 not_required 重新关闭。JOURN-1 已关闭。两份交付物定稿归档，JOURN-13 / JOURN-15 通过，全部完成。",
+   "related_id": "msg-42",
+   "created_at": "2026-11-10T08:00:49Z"
+  }
+ ],
+ "scheduler": [
+  {
+   "slug": "one-relay-events",
+   "label": "One relay events",
+   "interval_minutes": 1,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "request_follow_up",
+   "label": "Request follow-up reminders",
+   "interval_minutes": 60,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "review-expiry",
+   "label": "Review expiry sweep",
+   "interval_minutes": 10,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "wiki-archive-sweep",
+   "label": "Wiki archive sweep",
+   "interval_minutes": 1440,
+   "next_run": "2026-11-11T07:30:26Z",
+   "last_run": "2026-11-10T07:30:26Z",
+   "status": "sleeping",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "task_follow_up",
+   "label": "Task follow-up reminders",
+   "interval_minutes": 60,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "task_recheck",
+   "label": "Task recheck cadence",
+   "interval_minutes": 15,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "task_reminder",
+   "label": "Task reminder cadence",
+   "interval_minutes": 30,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "task-follow-up:cos--human:journ-1",
+   "kind": "task_follow_up",
+   "label": "Follow up on Journey 12: Acme renewal pack",
+   "target_type": "task",
+   "target_id": "JOURN-1",
+   "channel": "cos__human",
+   "interval_minutes": 0,
+   "last_run": "2026-11-10T08:00:39Z",
+   "status": "done",
+   "payload": "Journey 12: Acme renewal pack. Two deliverables for Acme (VP Ops is Dana): a one-page renewal quote and a follow-up email. English. Pick the shape yourself; I will answer your questions and approve the plan.\n\n计划已批准，事实已确认（$18,000/年 → $21,600/年，+20%，12 个月，2026-12-31 到期，报价 14 天有效，签署人 Dana）。已创建子任务 JOURN-13（一页报价单）和 JOURN-15（跟进邮件），owner @cos，开始产出。",
+   "enabled": false,
+   "closed_at": "2026-11-10T08:00:39Z",
+   "status_reason": "target closed"
+  },
+  {
+   "slug": "request-follow-up:cos--human:request-4",
+   "kind": "request_follow_up",
+   "label": "Follow up on Human interview",
+   "target_type": "request",
+   "target_id": "request-4",
+   "channel": "cos__human",
+   "interval_minutes": 0,
+   "last_run": "2026-11-10T07:39:30Z",
+   "status": "done",
+   "payload": "Acme 的续约事实（现有方案/价格/周期、续约调整、Dana 的联系方式）目前不在办公室里。你希望我怎么拿到这些事实来起草？",
+   "enabled": false,
+   "closed_at": "2026-11-10T07:39:30Z",
+   "status_reason": "target closed"
+  },
+  {
+   "slug": "request-follow-up:cos--human:request-8",
+   "kind": "request_follow_up",
+   "label": "Follow up on Start work on Journey 12: Acme renewal pack?",
+   "target_type": "request",
+   "target_id": "request-8",
+   "channel": "cos__human",
+   "interval_minutes": 0,
+   "last_run": "2026-11-10T07:40:13Z",
+   "status": "done",
+   "payload": "@cos wants to start work on Journey 12: Acme renewal pack (JOURN-1).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\n正在查看 Acme 的现有资料，再把计划端上来。**JOURN-1 计划：Acme 续约包（一页报价单 + 跟进邮件）** **目标** 为 Acme（VP Ops：Dana）产出两份英文交付物：①一页续约报价单；②一封跟进邮件。所有名称和数字都来自你确认的事实，不编造。 **现状** 我查了办公室 wiki、数据空间和上下文，全部为空，没有任何 Acme 记录；已知信息只有任务描述本身（对象 Acme、VP Ops Dana、两份英文交付物）。 **步骤** 1. 事实确认（前置）：从你处拿到 Acme 现有方案/价格/周期、续约调整、Dana 的联系方式和发件人身份。 2. 子任务 A｜一页续约报价单（owner @cos，交付 `team/accounts/acme-renewal-quote.md`）：英文一页，含抬头、方案与周期、价格、续约条款、有效期、下一步。 3. 子任务 B｜跟进邮件（owner @cos，交付 `team/emails/acme-renewal-followup.md`）：英文短邮件，引用报价单要点，CTA 明确（约会议/确认续约）。 4. 汇总审阅…",
+   "enabled": false,
+   "closed_at": "2026-11-10T07:40:13Z",
+   "status_reason": "target closed"
+  },
+  {
+   "slug": "plan-decomposition-check:cos--human:task:journ-1",
+   "kind": "plan_decomposition_check",
+   "label": "Decomposition check Journey 12: Acme renewal pack",
+   "target_type": "task",
+   "target_id": "JOURN-1",
+   "channel": "cos__human",
+   "interval_minutes": 0,
+   "last_run": "2026-11-10T07:45:21Z",
+   "status": "done",
+   "payload": "Journey 12: Acme renewal pack. Two deliverables for Acme (VP Ops is Dana): a one-page renewal quote and a follow-up email. English. Pick the shape yourself; I will answer your questions and approve the plan.",
+   "enabled": false,
+   "last_run_status": "done",
+   "status_reason": "target closed"
+  },
+  {
+   "slug": "task-follow-up:cos--human:journ-13",
+   "kind": "task_follow_up",
+   "label": "Follow up on Acme renewal one-page quote (English)",
+   "target_type": "task",
+   "target_id": "JOURN-13",
+   "channel": "cos__human",
+   "interval_minutes": 0,
+   "last_run": "2026-11-10T07:59:38Z",
+   "status": "done",
+   "payload": "Produce a one-page English renewal quote for Acme, grounded in the confirmed facts: current $18,000/year for 12 months expiring 2026-12-31; proposed $21,600/year (+20%) locked for 12 months; quote valid 14 days; signer Dana (VP Operations).",
+   "enabled": false,
+   "closed_at": "2026-11-10T07:59:38Z",
+   "status_reason": "target closed"
+  },
+  {
+   "slug": "task-follow-up:cos--human:journ-15",
+   "kind": "task_follow_up",
+   "label": "Follow up on Acme renewal follow-up email (English)",
+   "target_type": "task",
+   "target_id": "JOURN-15",
+   "channel": "cos__human",
+   "interval_minutes": 0,
+   "last_run": "2026-11-10T07:59:38Z",
+   "status": "done",
+   "payload": "Produce a short English follow-up email to Dana (Acme VP Operations) referencing the renewal quote, with a clear CTA to confirm renewal or book a call. Align with the quote's key points.",
+   "enabled": false,
+   "closed_at": "2026-11-10T07:59:38Z",
+   "status_reason": "target closed"
+  },
+  {
+   "slug": "request-follow-up:cos--human:request-21",
+   "kind": "request_follow_up",
+   "label": "Follow up on Promote to the team wiki: Renewal Quote — Acme",
+   "target_type": "request",
+   "target_id": "request-21",
+   "channel": "cos__human",
+   "interval_minutes": 0,
+   "last_run": "2026-11-10T07:55:28Z",
+   "status": "done",
+   "payload": "@cos wants to promote \"Renewal Quote — Acme\" into the team wiki. Approve?",
+   "enabled": false,
+   "closed_at": "2026-11-10T07:55:28Z",
+   "status_reason": "target closed"
+  },
+  {
+   "slug": "request-follow-up:cos--human:request-23",
+   "kind": "request_follow_up",
+   "label": "Follow up on Promote to the team wiki: Follow-up email — Acme renewal",
+   "target_type": "request",
+   "target_id": "request-23",
+   "channel": "cos__human",
+   "interval_minutes": 0,
+   "last_run": "2026-11-10T07:55:28Z",
+   "status": "done",
+   "payload": "@cos wants to promote \"Follow-up email — Acme renewal\" into the team wiki. Approve?",
+   "enabled": false,
+   "closed_at": "2026-11-10T07:55:28Z",
+   "status_reason": "target closed"
+  },
+  {
+   "slug": "recheck:cos--human:task:journ-13",
+   "kind": "recheck",
+   "label": "Recheck task Acme renewal one-page quote (English)",
+   "target_type": "task",
+   "target_id": "JOURN-13",
+   "channel": "cos__human",
+   "interval_minutes": 0,
+   "last_run": "2026-11-10T07:59:38Z",
+   "status": "done",
+   "payload": "Produce a one-page English renewal quote for Acme, grounded in the confirmed facts: current $18,000/year for 12 months expiring 2026-12-31; proposed $21,600/year (+20%) locked for 12 months; quote valid 14 days; signer Dana (VP Operations).\n\n一页英文续约报价单成稿完成，待审阅。关键数字：现方案 $18,000/年、12 个月、2026-12-31 到期；续约 $21,600/年（+20%）、12 个月价格锁定、2027-01-01 生效；有效期 14 天（至 2026-11-24）。成稿：notebook agents/cos/notebook/2026-11-10-acme-renewal-quote-draft.md；wiki 推广 request-21 待批准。",
+   "enabled": false,
+   "closed_at": "2026-11-10T07:59:38Z",
+   "status_reason": "target closed"
+  },
+  {
+   "slug": "recheck:cos--human:task:journ-15",
+   "kind": "recheck",
+   "label": "Recheck task Acme renewal follow-up email (English)",
+   "target_type": "task",
+   "target_id": "JOURN-15",
+   "channel": "cos__human",
+   "interval_minutes": 0,
+   "last_run": "2026-11-10T07:59:38Z",
+   "status": "done",
+   "payload": "Produce a short English follow-up email to Dana (Acme VP Operations) referencing the renewal quote, with a clear CTA to confirm renewal or book a call. Align with the quote's key points.\n\n英文跟进邮件成稿完成，待审阅。致 Dana，引用报价要点，CTA：2026-11-24 前确认或约 15 分钟通话。成稿：notebook agents/cos/notebook/2026-11-10-acme-renewal-follow-up-email-draft.md；wiki 推广 request-23 待批准。",
+   "enabled": false,
+   "closed_at": "2026-11-10T07:59:38Z",
+   "status_reason": "target closed"
+  }
+ ],
+ "scheduler_runs": {
+  "plan-decomposition-check:cos--human:task:journ-1": [
+   {
+    "slug": "plan-decomposition-check:cos--human:task:journ-1",
+    "started_at": "2026-11-10T07:45:21Z",
+    "finished_at": "2026-11-10T07:45:21Z",
+    "status": "done",
+    "triggered_by": "scheduler",
+    "target_type": "task",
+    "target_id": "JOURN-1"
+   }
+  ]
+ },
+ "skills": [
+  {
+   "id": "skill-app-building",
+   "name": "app-building",
+   "title": "App building",
+   "description": "Build and update internal tools (Apps) for the office. A system skill every bot carries.",
+   "content": "Every bot can build Apps — small internal tools published under the Apps rail.\n\n1. Call list_apps first. If a related app exists, improve it (propose_app with app_id) instead of duplicating it.\n2. When the human asked for an app (or approved a proposal), create the task FIRST: team_task action=create, title \"Build app: <Name>\", owner yourself. The reply carries \"App workspace ready: … as `app_…`\" with the ABSOLUTE path of a project the broker already scaffolded for you (Vite/React/TS, bun.lock committed, src/wuphf-bridge.ts for office data). Work in THAT directory — never scaffold from scratch, never build in /tmp.\n3. Implement in src/, then `bun install && bun run verify` there (tsc, then vite build → dist/index.html). Fix errors until it passes.\n4. Publish with register_app(app_id=<the id from the brief>, html_path=<absolute path to dist/index.html>, source_path=<absolute project root>). Then tell the human it is live under Apps and complete the task. Keep the whole build to a handful of tool calls — your turn budget is finite.\n5. When you merely notice a repeatable workflow, raise propose_app and keep working — never block on the answer.\n\nBuilds flow through the host-owned build and publish gates regardless of which bot registers them.\n\nData the human should be able to browse and edit under Data belongs in a data space (the data_* tools, the data-modeling system skill), not in the app's per-app db tables; the per-app db stays for values only that app derives and renders.",
+   "created_by": "wuphf",
+   "usage_count": 0,
+   "status": "active",
+   "system": true,
+   "created_at": "2026-11-10T07:30:23Z",
+   "updated_at": "2026-11-10T07:30:23Z"
+  },
+  {
+   "id": "skill-wiki-maintenance",
+   "name": "wiki-maintenance",
+   "title": "Wiki maintenance",
+   "description": "Keep the team wiki current: draft in notebooks, promote for review, write directly only on the human's explicit ask. A system skill every bot carries.",
+   "content": "Every bot maintains the team wiki.\n\n1. Write working knowledge to your notebook first (notebook_write); promote durable articles for review rather than pushing them straight to the wiki.\n2. Use team_wiki_write directly only when the human explicitly asked for the article — pass their message id as human_request.\n3. Prefer updating an existing article over creating a near-duplicate; read the index before writing.",
+   "created_by": "wuphf",
+   "usage_count": 0,
+   "status": "active",
+   "system": true,
+   "created_at": "2026-11-10T07:30:23Z",
+   "updated_at": "2026-11-10T07:30:23Z"
+  },
+  {
+   "id": "skill-data-modeling",
+   "name": "data-modeling",
+   "title": "Data modeling",
+   "description": "Define object types, attributes and relationships in a data space, then fill them with records. A system skill every bot carries.",
+   "content": "When the human asks you to TRACK something — investors, clients, projects, candidates, deliverables — that is structured data. Build the model with the data_* tools; do not keep it in prose, and do not reach for an app unless they ask for one.\n\n1. Call data_list_spaces, then data_get_schema on the space that fits. One space per use case. If none fits, data_create_space — it is private to you and the human by default.\n2. Check the existing types before creating. If a type already exists, add to it with data_add_attributes; never create a second near-duplicate type.\n3. Create the types, their attributes AND the relationships between them in ONE data_create_object_types call. A relationship IS an attribute: type=relationship plus `relationship` also creates the mirrored attribute on the other type. State cardinality from the side you are defining, because it cannot be changed later.\n4. Re-read the schema right after any create or change: the store adds a required primary `name` attribute you did not define and mints your select option ids, so your own call is NOT the effective schema. Never invent an attribute slug or an option value — an invalid option comes back listing the valid ones. Never add a near-duplicate option; map onto the existing one or ask.\n5. Write records with data_upsert_records on a UNIQUE attribute whenever the source could be read again, so a second run updates instead of duplicating. Every write returns {succeeded, failed, summary, entries[]} in request order — read `entries`, do not assume the whole call worked.\n6. Deleting is two calls: data_delete_preview, show the human the impact counts, then data_delete with the token. Sharing is the human's call: a space goes shared or global only when they ask.",
+   "created_by": "wuphf",
+   "usage_count": 0,
+   "status": "active",
+   "system": true,
+   "created_at": "2026-11-10T07:30:23Z",
+   "updated_at": "2026-11-10T07:30:23Z"
+  }
+ ],
+ "counter": 42,
+ "usage": {
+  "session": {
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "cache_read_tokens": 0,
+   "cache_creation_tokens": 0,
+   "total_tokens": 0,
+   "cost_usd": 0,
+   "requests": 0
+  },
+  "total": {
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "cache_read_tokens": 0,
+   "cache_creation_tokens": 0,
+   "total_tokens": 0,
+   "cost_usd": 0,
+   "requests": 0
+  }
+ }
+}

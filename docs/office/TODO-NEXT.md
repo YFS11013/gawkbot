@@ -154,6 +154,21 @@ prereg `0c2d1ac`，被测 `54ad984`，判分 `core-loop-runs/2026-11-10-journey1
 - **顺手修的两处**：`team_wiki_search` 接受 `query` 别名 + 零命中不再回 `[]`；`/tasks/{id}/comment` 对 bot↔bot DM 改回 403 并带 `channel`/`detail`。见 §9.23。
 - **测试基建的已知 flake（未修，与业务无关）**：`TestObsidianWatcher_*` 在整包并行跑时偶发 `TempDir RemoveAll cleanup: … .wuphf\agent-scratch\cos: The process cannot access the file`（2026-11-10 连续两次，分别是 `DebounceCoalescesRapidWrites` 与 `StopDuringPendingDebounce`）。单独跑 `-run TestObsidianWatcher` 14.6s 全绿，整包 `-skip TestObsidianWatcher` 全绿。假设：包内 256 处 `t.Parallel()` 共享进程环境，`WUPHF_RUNTIME_HOME` 指向另一个（已结束的）测试的 `t.TempDir()`，并行测试按它写 `agent-scratch/<slug>`，句柄没关就在别人的 RemoveAll 里撞上。要修得先审计哪些并行测试写 scratch 目录，不是本轮范围。
 - **这一轮证不了**：`task_not_decomposed` 的提醒路径、撞写范围守卫、`ra_` 收 done——场景内 0 次。
+### Journey 12 复核（2026-11-10，容器守卫生效了，模型转去用 not_required 自己关父 Issue）
+
+prereg `core-loop-runs/2026-11-10-journey12/prereg.md`，被测 `4c53083`，判分 `core-loop-runs/2026-11-10-journey12/scorecard.md`（独立子代理）。场景同 J10/J11，模型 `opencode-go/longcat-2.5-free`，无 QA lane。
+
+- **站住的**：
+  - **容器守卫真的拦住了**：cos 自述「父任务是容器，不能引用子任务的产物」（msg-42），父 Issue 的 `artifact` 最终为空、`artifact_not_required` 里点名的两条路径与 lane 的 `artifact` 逐字一致（`broker-state.json`）。J11 的 `artifact_path` 盖戳没有复现。
+  - **lane 交付闭合**：`JOURN-13`/`JOURN-15` 各自 `artifact` 与 wiki 提交（`d9a7c79`/`f044319`）逐字一致；计划卡唯一、`task_not_decomposed` 0 条。
+- **没站住的**：
+  - **F-a 的变体：人类主权的旁路（重）→ 已修。** 守卫拒了 lane 路径，但 `MutateTask` 的 `complete` + `verification=not_required` 仍然允许 **bot** 把有已交付 lane 的容器关掉：不产生决策卡、人类没被问、`hollow_completion=true`（`JOURN-1`，08:00:39Z）。这正是 J10 记下的「故意的不对称」，J12 证明它不是对称问题而是旁路。现在 bot 关这类容器一律 409 并指回 `submit_for_review`（无 artifact）→ 决策卡 → 人工批准；人类自己仍可从任务端点关，空容器照常关。`HollowCompletion` 在该路径也按聚合交付算。测试 `TestContainerWithDeliveredLanesCannotCloseFromTheTaskEndpoint`、`TestEmptyContainerStillClosesFromTheTaskEndpoint`。**§9.22 的聚合谓词仍然没被真机锻炼**——父 Issue 从未进入 `decision`，卡一次没发（V3/V4/V5 判失败/未观察）。
+  - **lane 自己也没有卡**：两条 lane 07:47 进 `decision`，`requests` 里没有任何 `decision:JOURN-13/15`；当时 `artifact` 仍空，谓词判「没什么可批」。真正让文件上线的是两张 `knowledge-promote` 卡（干预 3、4）之后 cos 自己把 lane 标通过——**lane 的交付未经人类**，这与 §9.22 只保证「有交付物的容器有卡」一致，但意味着「lane 层的人工确认」在 office 模式仍是空的。
+  - **lane 无 reviewer**：日志 `task review: no reviewer available for JOURN-13/JOURN-15 (owner "cos")`（J11 有 QA lane）。
+- **干预 4 次 vs 预算 3 次**：request-4 事实、request-8 计划卡、request-21/23 知识提升。后两张是产品流程自己逼出来的——没有父 Issue 卡，lane 的文件只能走知识提升上线；不是操作员急躁。下一轮预算按「事实 + 计划 + 可能的知识提升」重算。
+- **顺手修的一处**：`HollowCompletion` 从「只看 artifact」改成「artifact 空 **且** 无已交付子任务」；两条关闭路径（决策端点、任务端点）现在口径一致。
+- **这一轮证不了**：父 Issue 决策卡正文（V4）、人工点击闭环（V5）、`decision:` 卡的去重、容器 409 之后模型是否转走 `submit_for_review`（本轮它走了 not_required，代码允许；修复后才有下一轮）。**J13 才可能第一次锻炼 §9.22 的聚合谓词**：要断言父 Issue 进 `decision` 且 `artifact=null`，并加一条「bot 对这类容器的 `complete` 必须 409」。
+
 
 ### Journey 10 复核（2026-11-10，父 Issue 的 decision 卡）
 

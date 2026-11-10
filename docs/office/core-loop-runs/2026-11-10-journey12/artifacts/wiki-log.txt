@@ -1,0 +1,232 @@
+commit 713fb5fcbf46e8f233c55e90f01a7d5f95e0307c
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 16:00:43 +0800
+
+    archivist: entity article companies/english-pick (1 facts)
+
+ index/all.md                   |  1 +
+ team/companies/english-pick.md | 35 +++++++++++++++++++++++++++++++++++
+ 2 files changed, 36 insertions(+)
+
+commit 683b91c3bde5389406d516e691602296990baba4
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 16:00:41 +0800
+
+    archivist: entity article companies/vp-ops (1 facts)
+
+ index/all.md             |  1 +
+ team/companies/vp-ops.md | 35 +++++++++++++++++++++++++++++++++++
+ 2 files changed, 36 insertions(+)
+
+commit 68dbd711c6dec9d2805ad5413099270ea72cebca
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 16:00:41 +0800
+
+    archivist: entity article people/cos (1 facts)
+
+ index/all.md       |  4 ++++
+ team/people/cos.md | 35 +++++++++++++++++++++++++++++++++++
+ 2 files changed, 39 insertions(+)
+
+commit 977572325ae3773169cdc8e1167f34126cf850c1
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 16:00:41 +0800
+
+    graph: companies/english-pick → 2 ref(s)
+
+ team/entities/.graph.jsonl | 2 ++
+ 1 file changed, 2 insertions(+)
+
+commit 0937bd5ca8d207c49ebba6e72597817b0fbf787b
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 16:00:40 +0800
+
+    fact: companies/english-pick — Completed task JOURN-1 ("Journey 12: Acme renewal pack") involved this entity. Goal: Journey 12: Acme renewal pack. Co-occurring entities: [[people/cos]], [[companies/vp-ops]].
+
+ team/entities/companies-english-pick.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit eb43c200cd23591a3317def4f6101dd534291f58
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 16:00:40 +0800
+
+    graph: companies/vp-ops → 2 ref(s)
+
+ team/entities/.graph.jsonl | 2 ++
+ 1 file changed, 2 insertions(+)
+
+commit ef63ef1c24361bad4663b469440d00052eb391ca
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 16:00:40 +0800
+
+    fact: companies/vp-ops — Completed task JOURN-1 ("Journey 12: Acme renewal pack") involved this entity. Goal: Journey 12: Acme renewal pack. Co-occurring entities: [[people/cos]], [[companies/english-pick]].
+
+ team/entities/companies-vp-ops.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit d5eb5c85ba22be320191f7901a34e53d349ea7ba
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 16:00:40 +0800
+
+    graph: people/cos → 2 ref(s)
+
+ team/entities/.graph.jsonl | 2 ++
+ 1 file changed, 2 insertions(+)
+
+commit 29dc59bafccbb2533bf2d5019f00d2952f581a43
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 16:00:39 +0800
+
+    fact: people/cos — Completed task JOURN-1 ("Journey 12: Acme renewal pack") involved this entity. Goal: Journey 12: Acme renewal pack. Co-occurring entities: [[companies/vp-ops]], [[companies/english-pick]].
+
+ team/entities/people-cos.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit a6c0b30479e232a7bbe3362051c18fc3dc99ef46
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 15:59:39 +0800
+
+    archivist: entity article companies/acme-vp-operations (1 facts)
+
+ index/all.md                         |  1 +
+ team/companies/acme-vp-operations.md | 30 ++++++++++++++++++++++++++++++
+ 2 files changed, 31 insertions(+)
+
+commit 3b4e82e1d116aabb6c9396dc00eb13ec80ff2fee
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 15:59:39 +0800
+
+    fact: companies/acme-vp-operations — Completed task JOURN-15 ("Acme renewal follow-up email (English)") involved this entity. Goal: Deliver a short English follow-up email to Dana that references the quote and drives a clear next step.. Produced artifact: team/emails/acme-renewal-followup.md.
+
+ team/entities/companies-acme-vp-operations.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 131a2a8ad17c68e4bce3d8c0494a547ff6be6e21
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 15:59:39 +0800
+
+    archivist: entity article companies/vp-operations (1 facts)
+
+ index/all.md                    |  4 ++++
+ team/companies/vp-operations.md | 30 ++++++++++++++++++++++++++++++
+ 2 files changed, 34 insertions(+)
+
+commit ba666c1852b336fed97540823aaefed6668fb210
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 15:59:38 +0800
+
+    fact: companies/vp-operations — Completed task JOURN-13 ("Acme renewal one-page quote (English)") involved this entity. Goal: Deliver a one-page English renewal quote for Acme that Dana can sign off on.. Produced artifact: team/accounts/acme-renewal-quote.md.
+
+ team/entities/companies-vp-operations.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit f044319ec6a0ddac1a0329fe532590e5b46cb227
+Author: YFS11013 <83509926@qq.com>
+Date:   2026-11-10 15:55:28 +0800
+
+    human: create team/emails/acme-renewal-followup.md
+
+ index/all.md                         |  4 ++++
+ team/emails/acme-renewal-followup.md | 30 ++++++++++++++++++++++++++++++
+ 2 files changed, 34 insertions(+)
+
+commit d9a7c79150cdfbc45e3db8749271a0ed9395082a
+Author: YFS11013 <83509926@qq.com>
+Date:   2026-11-10 15:55:28 +0800
+
+    human: create team/accounts/acme-renewal-quote.md
+
+ index/all.md                        |  4 ++-
+ team/accounts/acme-renewal-quote.md | 52 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 55 insertions(+), 1 deletion(-)
+
+commit f415bb22888229d725bdee7dc3cb9bc16278b549
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 15:45:35 +0800
+
+    Acme renewal follow-up email — draft
+
+ ...026-11-10-acme-renewal-follow-up-email-draft.md | 23 ++++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+
+commit 4ec73f5ae2d9c378d3b8cd9a2225f8042fe42c1d
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 15:45:32 +0800
+
+    Acme renewal quote — draft
+
+ .../2026-11-10-acme-renewal-quote-draft.md         | 45 ++++++++++++++++++++++
+ 1 file changed, 45 insertions(+)
+
+commit 69a20e723f9b94e37fbc2578ab4cf4aa704da898
+Author: data-modeling <data-modeling@wuphf.local>
+Date:   2026-11-10 15:30:26 +0800
+
+    wuphf: backfill skill data-modeling from broker state
+
+ team/skills/data-modeling.md | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
+
+commit 623304676acb08b53e6445a5eb232462a9bad1d1
+Author: .system <.system@wuphf.local>
+Date:   2026-11-10 15:30:25 +0800
+
+    archivist: skill consolidation migration sentinel
+
+ team/skills/.system/migrated-skill-consolidation.md | 3 +++
+ 1 file changed, 3 insertions(+)
+
+commit b522094fd2809b3d86c0d867b9a20c47a1dffa4b
+Author: wiki-maintenance <wiki-maintenance@wuphf.local>
+Date:   2026-11-10 15:30:25 +0800
+
+    wuphf: backfill skill wiki-maintenance from broker state
+
+ team/skills/wiki-maintenance.md | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+commit 310e6a8cee204102659c805080424e4dc41165c7
+Author: app-building <app-building@wuphf.local>
+Date:   2026-11-10 15:30:25 +0800
+
+    wuphf: backfill skill app-building from broker state
+
+ index/all.md                |  5 +++++
+ team/skills/app-building.md | 27 +++++++++++++++++++++++++++
+ 2 files changed, 32 insertions(+)
+
+commit f22220efa4776d15946f93016c962e5880708187
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 15:30:25 +0800
+
+    bot: seed office/USER.md
+
+ office/USER.md | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+commit ea66e93ffb8d726820b7ab75ba04fe52fd917fe1
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 15:30:24 +0800
+
+    bot: seed agents/cos/TOOLS.md
+
+ agents/cos/TOOLS.md | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+commit 1efd842f5f86e84045f62ff04149b90ce47085ba
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 15:30:24 +0800
+
+    bot: seed agents/cos/OPERATIONS.md
+
+ agents/cos/OPERATIONS.md | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+commit 08f2094be8beacac2ae73ce96a96be3b3fd6f2de
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 15:30:24 +0800
+
+    bot: seed agents/cos/IDENTITY.md
+
+ agents/cos/IDENTITY.md | 7 +++++++
+ 1 file changed, 7 insertions(+)
