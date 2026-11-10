@@ -1460,7 +1460,7 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		// them one chat thread at a time (ACMER-2757/2764/2785 all had this
 		// shape: done, no artifact, the only "answer" was a done-post).
 		if reachedDone {
-			task.HollowCompletion = strings.TrimSpace(task.Artifact) == ""
+			task.HollowCompletion = strings.TrimSpace(task.Artifact) == "" && len(b.childDeliverablesLocked(task)) == 0
 			if !task.HollowCompletion {
 				// A later cycle delivered real work: the old "ships nothing"
 				// declaration is stale and must not outlive the artifact.
@@ -1559,6 +1559,24 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 				),
 				nil,
 			)
+		}
+		// Journey 12 (core-loop-runs/2026-11-10-journey12): the container guard
+		// refused cos's artifact_path, and cos read that correctly ("a container
+		// cannot cite a lane's deliverable") — then closed the Issue from here
+		// with verification=not_required instead, because this path lets any
+		// actor terminalize a task. No decision card was ever raised and the
+		// human was never asked; the delivered Issue was recorded
+		// hollow_completion=true. An Issue with delivered lanes closes through
+		// its decision card (recordTaskDecisionInternal), which is the only
+		// route that asks the human and counts aggregate delivery.
+		if reachedDone && !isHumanMessageSender(actor) {
+			if delivered := len(b.childDeliverablesLocked(task)); delivered > 0 {
+				rollbackTask()
+				return TaskResponse{}, taskMutationError(TaskMutationConflict,
+					fmt.Sprintf("task %s is a container with %d delivered lane(s): a bot may not close it from here — that would skip the human. Call submit_for_review on it with no artifact_path; the card names every lane file and the human's approve closes the Issue. verification=not_required does not describe an Issue whose lanes shipped files.", task.ID, delivered),
+					nil,
+				)
+			}
 		}
 		// Hollow completion must not settle a parent Issue (J2-1): a child that
 		// landed done with nothing on record leaves the parent aggregating
