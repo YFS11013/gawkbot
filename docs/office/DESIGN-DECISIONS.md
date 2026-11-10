@@ -594,6 +594,28 @@ Journey 9 的 26 分钟静默（F-H）不是因为没人干活、也不是调度
 
 **J10 与 J11 的机制差异**：J10 父 Issue 进 `decision` 无卡（F-I）；J11 有卡、能点、能闭环。J10 没有 lane 进 `decision`；J11 的 `JOURN-22`/`JOURN-24` 都走了 `review → decision → approved`（`taskNeedsStructuredReview` 判真），因为这一轮拆了带 reviewer 的 lane。
 
+### 9.24 三道容器守卫的第一次实测：操作员剧本（2026-11-10，guard exercise）
+
+J14 的评分卡把 V1/V7 判成**未观察**——模型那一轮自发走了正路，容器写入守卫和「bot 不得从任务端点关容器」两道门从未被调用过。等模型自发撞门的概率不可控，而门的语义是确定的，所以这一轮**不用模型**：操作员直接打 broker HTTP API 扮演抄近路的 agent（`core-loop-runs/2026-11-10-guards/prereg.md`，G1–G7）。
+
+场景在隔离工作区 `guards15`：容器 `GUARD-9` + 两条 lane（`GUARD-12`/`GUARD-14`），各自 `definition.artifact_path` + `verification_kind=wiki_artifact`，文件写进 wiki、`complete` 带 `artifact_path` → `done/approved`、校验 `pass=true`。
+
+**结果**：三条路全被拒、正路全通（原文见 `observations.md`）。
+
+- `complete` + lane 路径 → 409 `is a container: … is GUARD-12's deliverable, not this Issue's own`；
+- `define` 的 `definition.artifact_path` = lane 路径 → 409 `… is not a file this Issue writes itself`；
+- bot `complete` + `verification=not_required` → 409 `is a container with 2 delivered lane(s): a bot may not close it from here — that would skip the human`；
+- 三次之后容器 `in_progress`、`artifact=null`（没有任何一次写入留下痕迹）；
+- `submit_for_review` → 200 → 卡 `request-21` 列出两条 lane 路径 + `The Issue ships no single file of its own` → 人工 `approve_decision` 200 → `done/approved`、`artifact=null`、`hollow=false`。
+
+**判据外发现（已修）**：`childOwningArtifactLocked` 只看子任务**已记录**的 `Artifact`。第一次试跑里 lane 还没交付（只声明了 `definition.artifact_path`），容器 `define` 指向那条声明路径被 **200 接受**——lane 创建到交付之间有一段窗口，容器可以在窗口里取得那条 lane 将来要写的文件的写权限，正是 §9.23 要堵的越权提前一步发生。现在匹配也看**声明的写范围**，并跳过 `canceled/cancelled/archived/rejected`（退场的 lane 不再拥有旧路径）。测试 `TestContainerCannotClaimAPendingLanesWriteScope`（去掉修复即红）、`TestCanceledLaneWriteScopeDoesNotBlockTheContainer`。
+
+**确认的边界**：空容器（无已交付 lane）从任务端点 `complete` + `not_required` 仍然合法，`hollow_completion=true` 是诚实的——门只在「有已交付 lane」时才存在。这不是缺陷，是 `TestEmptyContainerStillClosesFromTheTaskEndpoint` 写下的约定在真机上的第一次复现。
+
+**判据层面的教训**：第一次试跑因为 `write-task` 少了 `mode` 而没落地文件，三条门**全部不适用**——它们没有报错，只是安静地不存在（`complete` 被存在性门拦下、`define` 200、`not_required` 200 关掉空容器）。所以在真机上「门没拦住」有两种解释：门坏了，或者对象根本没成立。断言必须同时断言前置条件（「lane 确实 done」），否则「未观察」会伪装成「成立」。
+
+**留下的观察（未处理）**：① 一个任务可以写另一个任务**已交付**的 `artifact`（`GUARD-4` 覆盖了 `GUARD-12` 的 `team/accounts/guard-quote.md`）；文件是否该独占未定，`mode=append_section` 的共享写法是有意的。② `GET /requests` 在 `0464f91` 上返回 `requests: []`，而同一刻状态文件里有 pending 卡。
+
 ### 9.22 Journey 10：卡没发出来，不是「没到 decision」，是「Issue 没有自己的文件」（2026-11-10）
 
 **赛前**：`crouton-alpha-free` 被上游撤掉（§9.21），换 `opencode-go/longcat-2.5-free`；prereg §1.1 写明跨轮可比性代价。被测提交 `52456d3`（+ `76e6171`、`fdb6fa8`）。评分卡由独立子代理写（`core-loop-runs/2026-11-10-journey10/scorecard.md`），记录者只写时间线（`observations.md`）。

@@ -1,0 +1,7 @@
+2026/11/10 21:21:39 wiki write-task: task=GUARD-12 slug=cos path=team/accounts/guard-quote.md bytes=33
+2026/11/10 21:21:40 wiki write-task: task=GUARD-14 slug=cos path=team/emails/guard-email.md bytes=33
+2026/11/10 21:21:40 task review: no reviewer available for GUARD-12 (owner "cos")
+2026/11/10 21:21:40 workflow detect GUARD-12: no recurring/end-to-end shape in corpus — skipping
+2026/11/10 21:21:40 task review: no reviewer available for GUARD-14 (owner "cos")
+2026/11/10 21:21:40 workflow detect GUARD-14: no recurring/end-to-end shape in corpus — skipping
+2026/11/10 21:25:40 wiki write-task: task=GUARD-4 slug=cos path=team/accounts/guard-quote.md bytes=1642

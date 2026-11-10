@@ -1,0 +1,253 @@
+{
+  "tasks": [
+    {
+      "id": "GUARD-1",
+      "channel": "cos__human",
+      "title": "Guard exercise: two-lane pack",
+      "details": "Two independent files, one per lane. Deliver them as wiki articles.",
+      "owner": "cos",
+      "status": "done",
+      "created_by": "you",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "breakdown",
+      "execution_mode": "office",
+      "review_state": "not_required",
+      "lifecycle_state": "approved",
+      "definition": {
+        "goal": "Aggregate the two lane files.",
+        "artifact_path": "team/emails/guard-email.md",
+        "defined_at": "2026-11-10T13:21:16Z"
+      },
+      "hollow_completion": true,
+      "artifact_not_required": "not_required: container (cos, 2026-11-10T13:21:16Z)",
+      "ledger": [
+        {
+          "agent": "cos",
+          "at": "2026-11-10T13:23:43Z",
+          "outcome": "ok",
+          "said": "…�片超时了，我直接把问题放这里。）\n\n唯一卡住的问题：**这两条 lane 应该是什么？** 我读不到任何定义——team wiki 是空的，任务包只点名了三个系统技能。\n\n三个可选方向：\n- **Guard 策略 + Guard 测试**（一篇讲策略，一篇讲 enforcement/测试）— 我的推荐\n- **两个系统技能**（data-modeling、app-building 各一篇）\n- **两个 guard 场景**（每个场景一篇，例如 prompt injection、data exfiltration）\n\n你定一个（或自己写一个），我就按上面的计划建两个子任务并交付到 wiki。",
+          "actions": [
+            "task_updated: Guard exercise: two-lane pack [in_progress]",
+            "task_updated: Guard exercise: two-lane pack [done]"
+          ],
+          "context_used": [
+            "wiki:team/skills/data-modeling.md",
+            "wiki:team/skills/app-building.md",
+            "wiki:team/skills/wiki-maintenance.md"
+          ]
+        }
+      ],
+      "done_posted_for": "2026-11-10T13:21:16Z",
+      "created_at": "2026-11-10T13:19:27Z",
+      "updated_at": "2026-11-10T13:23:43Z",
+      "completed_at": "2026-11-10T13:21:16Z"
+    },
+    {
+      "id": "GUARD-4",
+      "channel": "cos__human",
+      "title": "Guard lane: quote",
+      "details": "Deliver team/accounts/guard-quote.md as a wiki article.",
+      "owner": "cos",
+      "status": "done",
+      "created_by": "cos",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "implement",
+      "execution_mode": "office",
+      "review_state": "not_required",
+      "parent_issue_id": "GUARD-1",
+      "lifecycle_state": "approved",
+      "verification": {
+        "kind": "wiki_artifact",
+        "spec": "team/accounts/guard-quote.md",
+        "required": true
+      },
+      "verification_result": {
+        "pass": true,
+        "kind": "wiki_artifact",
+        "detail": "wiki artifact team\\accounts\\guard-quote.md (1642 bytes)",
+        "checked_at": "2026-11-10T13:25:57Z"
+      },
+      "definition": {
+        "goal": "Produce team/accounts/guard-quote.md as a standalone English article.",
+        "deliverables": [
+          {
+            "name": "quote",
+            "format": "team/accounts/guard-quote.md (wiki)"
+          }
+        ],
+        "success_criteria": [
+          "file team/accounts/guard-quote.md exists"
+        ],
+        "artifact_path": "team/accounts/guard-quote.md",
+        "defined_at": "2026-11-10T13:21:13Z"
+      },
+      "artifact": "team/accounts/guard-quote.md",
+      "done_posted_for": "2026-11-10T13:25:57Z",
+      "created_at": "2026-11-10T13:21:13Z",
+      "updated_at": "2026-11-10T13:25:57Z",
+      "completed_at": "2026-11-10T13:25:57Z"
+    },
+    {
+      "id": "GUARD-6",
+      "channel": "cos__human",
+      "title": "Guard lane: email",
+      "details": "Deliver team/emails/guard-email.md as a wiki article.",
+      "owner": "cos",
+      "status": "in_progress",
+      "created_by": "cos",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "implement",
+      "execution_mode": "office",
+      "review_state": "pending_review",
+      "parent_issue_id": "GUARD-1",
+      "lifecycle_state": "running",
+      "due_at": "2026-11-10T13:27:57Z",
+      "follow_up_at": "2026-11-10T13:27:57Z",
+      "reminder_at": "2026-11-10T14:51:13Z",
+      "recheck_at": "2026-11-10T14:36:13Z",
+      "verification": {
+        "kind": "wiki_artifact",
+        "spec": "team/emails/guard-email.md",
+        "required": true
+      },
+      "verification_result": {
+        "pass": false,
+        "kind": "wiki_artifact",
+        "detail": "artifact \"team/emails/guard-email.md\" is not in the wiki (GetFileAttributesEx C:\\Users\\ireke\\.wuphf-spaces\\guards15\\.wuphf\\wiki\\team\\emails\\guard-email.md: The system cannot find the path specified.)",
+        "checked_at": "2026-11-10T13:21:13Z"
+      },
+      "definition": {
+        "goal": "Produce team/emails/guard-email.md as a standalone English article.",
+        "deliverables": [
+          {
+            "name": "email",
+            "format": "team/emails/guard-email.md (wiki)"
+          }
+        ],
+        "success_criteria": [
+          "file team/emails/guard-email.md exists"
+        ],
+        "artifact_path": "team/emails/guard-email.md",
+        "defined_at": "2026-11-10T13:21:13Z"
+      },
+      "created_at": "2026-11-10T13:21:13Z",
+      "updated_at": "2026-11-10T13:21:13Z"
+    },
+    {
+      "id": "GUARD-9",
+      "channel": "cos__human",
+      "title": "Guard exercise 2: two-lane pack",
+      "details": "Two independent files, one per lane. Deliver them as wiki articles.",
+      "owner": "cos",
+      "status": "done",
+      "created_by": "you",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "ship",
+      "execution_mode": "office",
+      "review_state": "approved",
+      "lifecycle_state": "approved",
+      "due_at": "2026-11-10T13:36:43Z",
+      "follow_up_at": "2026-11-10T13:36:43Z",
+      "reminder_at": "2026-11-10T14:06:43Z",
+      "recheck_at": "2026-11-10T13:36:43Z",
+      "created_at": "2026-11-10T13:21:39Z",
+      "updated_at": "2026-11-10T13:21:43Z"
+    },
+    {
+      "id": "GUARD-12",
+      "channel": "cos__human",
+      "title": "Guard lane: quote",
+      "details": "Deliver team/accounts/guard-quote.md as a wiki article.",
+      "owner": "cos",
+      "status": "done",
+      "created_by": "cos",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "implement",
+      "execution_mode": "office",
+      "review_state": "not_required",
+      "parent_issue_id": "GUARD-9",
+      "lifecycle_state": "approved",
+      "verification": {
+        "kind": "wiki_artifact",
+        "spec": "team/accounts/guard-quote.md",
+        "required": true
+      },
+      "verification_result": {
+        "pass": true,
+        "kind": "wiki_artifact",
+        "detail": "wiki artifact team\\accounts\\guard-quote.md (33 bytes)",
+        "checked_at": "2026-11-10T13:21:40Z"
+      },
+      "definition": {
+        "goal": "Produce team/accounts/guard-quote.md as a standalone English article.",
+        "deliverables": [
+          {
+            "name": "quote",
+            "format": "team/accounts/guard-quote.md (wiki)"
+          }
+        ],
+        "success_criteria": [
+          "file team/accounts/guard-quote.md exists"
+        ],
+        "artifact_path": "team/accounts/guard-quote.md",
+        "defined_at": "2026-11-10T13:21:39Z"
+      },
+      "artifact": "team/accounts/guard-quote.md",
+      "done_posted_for": "2026-11-10T13:21:40Z",
+      "created_at": "2026-11-10T13:21:39Z",
+      "updated_at": "2026-11-10T13:21:40Z",
+      "completed_at": "2026-11-10T13:21:40Z"
+    },
+    {
+      "id": "GUARD-14",
+      "channel": "cos__human",
+      "title": "Guard lane: email",
+      "details": "Deliver team/emails/guard-email.md as a wiki article.",
+      "owner": "cos",
+      "status": "done",
+      "created_by": "cos",
+      "task_type": "issue",
+      "pipeline_id": "issue",
+      "pipeline_stage": "implement",
+      "execution_mode": "office",
+      "review_state": "not_required",
+      "parent_issue_id": "GUARD-9",
+      "lifecycle_state": "approved",
+      "verification": {
+        "kind": "wiki_artifact",
+        "spec": "team/emails/guard-email.md",
+        "required": true
+      },
+      "verification_result": {
+        "pass": true,
+        "kind": "wiki_artifact",
+        "detail": "wiki artifact team\\emails\\guard-email.md (33 bytes)",
+        "checked_at": "2026-11-10T13:21:40Z"
+      },
+      "definition": {
+        "goal": "Produce team/emails/guard-email.md as a standalone English article.",
+        "deliverables": [
+          {
+            "name": "email",
+            "format": "team/emails/guard-email.md (wiki)"
+          }
+        ],
+        "success_criteria": [
+          "file team/emails/guard-email.md exists"
+        ],
+        "artifact_path": "team/emails/guard-email.md",
+        "defined_at": "2026-11-10T13:21:39Z"
+      },
+      "artifact": "team/emails/guard-email.md",
+      "done_posted_for": "2026-11-10T13:21:40Z",
+      "created_at": "2026-11-10T13:21:39Z",
+      "updated_at": "2026-11-10T13:21:40Z",
+      "completed_at": "2026-11-10T13:21:40Z"
+    }
+  ]
+}

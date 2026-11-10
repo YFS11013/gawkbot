@@ -191,6 +191,29 @@ prereg `core-loop-runs/2026-11-10-journey14/prereg.md`，被测 `6caf6cf`（+自
 
 - **第五处修补(评分卡 §3 判据外)**:容器守卫漏了 `definition.artifact_path` 这条写范围(父 Issue 被 define 钉上 lane 路径=授权覆写);`define` 省略 `artifact_path` 会清空已有范围(操作员的 define 把两条 lane 清成 null)。都已修并有双向测试。
 - **评分卡结论**(独立子代理,`.../journey14/scorecard.md`):V2–V6 成立、**V1/V7 未观察**(本轮模型没去碰容器守卫)、F-a…F-i 全不成立。即:**聚合谓词第一次真机成立**;容器写入/关闭门仍是未被锻炼的代码。
+### Guard exercise（2026-11-10，操作员剧本：容器守卫 V1/V1b/V7 第一次被真正踩到）
+
+prereg `core-loop-runs/2026-11-10-guards/prereg.md`，判据 G1–G7、失败模式 H-a…H-e；证据 `…/2026-11-10-guards/`（`observations.md` + `artifacts/`，含驱动脚本、broker 状态、两份 lane 文件、wiki `git log`）。被测 `0464f91`，工作区 `guards15`（broker :7910）。**不用模型**：操作员直接打 broker HTTP API 扮演抄近路的 agent，因为 J14 的评分卡把 V1/V7 判成「未观察」，等模型自发撞门的概率不可控。
+
+- **站住的（7/7，H-a…H-e 全未命中）**：
+  - **G1** 容器 `complete` + lane 路径 → 409 `task GUARD-9 is a container: team/accounts/guard-quote.md is GUARD-12's deliverable, not this Issue's own. …`
+  - **G2** 容器 `define` 的 `definition.artifact_path` = lane 路径 → 409 `… is not a file this Issue writes itself. …`
+  - **G3** bot `complete` + `verification=not_required` → 409 `… is a container with 2 delivered lane(s): a bot may not close it from here — that would skip the human. Call submit_for_review …`
+  - **G4** 三次撞门后容器仍 `in_progress/running`、`artifact=null`、`artifact_not_required=null`（没有被任何一次写入污染）。
+  - **G5** 正路 `submit_for_review`（无 `artifact_path`）→ 200，进 `review`。
+  - **G6** `request-21`（`dedupe_key=decision:GUARD-9`）正文逐字列出两条 lane 路径，并写明 `The Issue ships no single file of its own`。
+  - **G7** 人工 `approve_decision` → 200 `{"ok":true}`；容器 `done/approved`、`artifact=null`、`hollow_completion` 不出现(=false)。
+- **新发现（判据外，已修）**：`childOwningArtifactLocked` 只匹配子任务**已记录**的 `Artifact`，不看子任务**声明**的 `Definition.ArtifactPath`。第一次试跑里容器 `define` 指向一条尚未交付的 lane 的声明路径 → **200 接受**：lane 创建到交付之间有一段窗口，容器可以在窗口里把自己授权去写那条 lane 将来要写的文件。现在匹配也看声明写范围，并跳过 `canceled/cancelled/archived/rejected`（退场的 lane 不再拥有旧路径）。测试 `TestContainerCannotClaimAPendingLanesWriteScope`、`TestCanceledLaneWriteScopeDoesNotBlockTheContainer`（前者去掉修复即红）。
+- **边界被实测确认（非缺陷）**：空容器（无已交付 lane）从任务端点 `complete` + `not_required` 仍是**合法**的，`hollow_completion=true` 是诚实的——它确实什么都没交付。门只在「有已交付 lane」时存在。
+- **未深挖的观察**：① 一个任务可以写另一个任务**已交付**的 `artifact`（`GUARD-4` 覆盖了 `GUARD-12` 的 `team/accounts/guard-quote.md`）；文件是否该独占未定，`mode=append_section` 的共享写法是有意的。② `GET /requests` 在 `0464f91` 上返回 `requests: []`，而同一刻状态文件里有 pending 卡；脚本改用状态文件取卡 id。
+- **判分**：独立子代理 `GuardScore`（`…/2026-11-10-guards/scorecard.md`）：**G1–G7 全部成立、H-a…H-e 均未命中、硬失败无**；并指出三处 409 的响应原文没有落盘（只存在于操作员记录），G1/G2 的文案判据区分不了「容器门」和「存在性门」，G4 必须连前置条件一起断言。
+- **待办（判据外，未修）**：
+  - **被拒的变更不落 action、也不进 broker 日志**：`actions.json` 26 条全是成功事件，三次 409 一个痕迹都没有。要么把拒绝记成 `decision_refused`/`mutation_refused` 事件，要么让驱动脚本自己落盘探针响应——否则同一类演练永远只能靠操作员粘贴。
+  - **一个任务可以写另一个任务已交付的 `artifact`**：`GUARD-4` 覆盖了 `GUARD-12` 的 `team/accounts/guard-quote.md`（33 → 1642 字节）。`mode=create` 没有独占校验；是否该独占需要产品决策（`mode=append_section` 的共享写法是有意的）。
+  - **`GET /requests` 视图与状态文件不一致**：`0464f91` 上返回 `requests: []` 而状态文件里有 pending 卡。需单独查（是 scope 过滤还是快照未刷新）。
+
+
+
 ### Journey 13 复核（2026-11-10，形状没钉死，模型把两份交付物塞进一个文件、一条 lane 都没拆）
 
 prereg `core-loop-runs/2026-11-10-journey13/prereg.md`，被测 `6caf6cf`，判分 `…/journey13/scorecard.md`（独立子代理，含操作员勘误）。场景同 J12，模型 `opencode-go/longcat-2.5-free`。

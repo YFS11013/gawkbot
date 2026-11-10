@@ -1,0 +1,81 @@
+{
+  "requests": [
+    {
+      "id": "request-21",
+      "kind": "approval",
+      "status": "answered",
+      "from": "cos",
+      "channel": "cos__human",
+      "title": "Approve Guard exercise 2: two-lane pack?",
+      "question": "@cos finished Guard exercise 2: two-lane pack (GUARD-9) and the review is in. Nothing else moves until you call it.\n\nThis Issue's lanes delivered 2 file(s):\n\n- team/accounts/guard-quote.md\n- team/emails/guard-email.md\n\nThe Issue ships no single file of its own; those are what you are accepting.\nApprove and the lane closes. Send it back and the owner picks up your note as the rework.",
+      "options": [
+        {
+          "id": "approve_decision",
+          "label": "Approve",
+          "description": "Accept the deliverable and close this lane."
+        },
+        {
+          "id": "request_changes_decision",
+          "label": "Send back",
+          "description": "Hand it back to the owner with what must change.",
+          "requires_text": true,
+          "text_hint": "Type what must change before this can be accepted."
+        }
+      ],
+      "recommended_id": "approve_decision",
+      "reply_to": "msg-22",
+      "dedupe_key": "decision:GUARD-9",
+      "issue_id": "GUARD-9",
+      "created_at": "2026-11-10T13:22:08Z",
+      "updated_at": "2026-11-10T13:24:36Z",
+      "answered": {
+        "choice_id": "approve_decision",
+        "choice_text": "Approve",
+        "answered_at": "2026-11-10T13:24:36Z"
+      }
+    },
+    {
+      "id": "request-23",
+      "kind": "interview",
+      "status": "pending",
+      "from": "cos",
+      "channel": "cos__human",
+      "title": "Human interview",
+      "question": "这个 exercise 说「two independent files, one per lane」，但两条 lane 在我能读到的任何地方都没有定义——team wiki 是空的，任务包只点名了三个系统技能（data-modeling、app-building、wiki-maintenance）。这两条 lane 应该是什么？",
+      "context": "GUARD-1 要的是一个「two-lane pack」：两份独立的 wiki 文章，每份对应一条 lane。我查过 team wiki（目前没有任何文章），也查过任务包（只有三个系统技能）。没有你的定义，我无法命名这两条 lane，也不能凭空编。你告诉我之后，我会在 GUARD-1 下建两个子任务——每条 lane 一篇文章——然后交付到 wiki。",
+      "options": [
+        {
+          "id": "policy-test",
+          "label": "Guard 策略 + Guard 测试",
+          "description": "一篇文章定义 guard 策略，一篇讲它如何被 enforcement / 测试。"
+        },
+        {
+          "id": "skills",
+          "label": "两个系统技能",
+          "description": "data-modeling 和 app-building 各一篇文章。"
+        },
+        {
+          "id": "scenarios",
+          "label": "两个 guard 场景",
+          "description": "每个场景一篇文章（例如 prompt injection、data exfiltration）。"
+        },
+        {
+          "id": "something_else",
+          "label": "Something else",
+          "description": "None of these fit — write your own answer.",
+          "requires_text": true,
+          "text_hint": "Type your own answer for the team."
+        }
+      ],
+      "recommended_id": "policy-test",
+      "reply_to": "msg-20",
+      "issue_id": "GUARD-1",
+      "due_at": "2026-11-10T13:52:21Z",
+      "follow_up_at": "2026-11-10T14:52:21Z",
+      "reminder_at": "2026-11-10T13:52:21Z",
+      "recheck_at": "2026-11-10T13:52:21Z",
+      "created_at": "2026-11-10T13:22:21Z",
+      "updated_at": "2026-11-10T13:22:21Z"
+    }
+  ]
+}
