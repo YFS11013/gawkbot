@@ -567,3 +567,9 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 4. ~~**空壳 workflow 收尾**~~ —— scheduler job 无 DELETE 端点，保持 disabled + 清单 `requires_file` 把关。
    skill `daily-opencode-model-snapshot` 于 **2026-11-01 重新 archive 并验证落盘**：10-31 那次归档只改了内存/state，wiki 文件没重写（mtime 停在 10-29、frontmatter 仍 `active`），broker 重启后被 scanner 按文件重新导入 → 复活成 active。重做后 `team/skills/daily-opencode-model-snapshot.md` 的 `metadata.wuphf.status: archived`（提交 `0062abe`），`/skills` 回到 3 个 active。验收命令见 `RUNTIME-API.md` §7。
    **教训**：归档/禁用这类"看起来生效"的操作，必须读回落盘产物（frontmatter、文件 mtime、git log），否则重启就是一次回滚。
+
+### 待决策（不是缺陷，需要产品判断；证据已齐）
+
+1. **lane 层要不要人工确认**：J15 两条 lane `decision` → `done/approved` 由 `task review: no reviewer available (owner "cos")` 自动通过，人的点击落在已关闭的 lane 上（卡现在会被自动撤，见 Journey 15 段）。现状等于「lane 自证、容器须人批」。改哪边都是产品选择：给 lane 配 reviewer、或让 lane 也停在 `decision`。
+2. **`definition-gap:` 里「access needed」的语义**：`raiseDefinitionGapInterviewLocked` 把模型 `define` 里的 `AccessNeeded` 原文变成一张卡（J13 起四次复现，J15 问的是已经授予的 wiki 写入权限）。要修得先定「什么算已满足的 access」——按文本猜（`wiki 写入`/`write access`）会在真实缺权限时漏问，按结构改要动 `TaskDefinition.AccessNeeded` 的模型。未动。
+3. **一个任务能否覆盖另一个任务已交付的 `artifact`**：guard exercise 的 `GUARD-4` 覆盖了 `GUARD-12` 的 `team/accounts/guard-quote.md`（33 → 1642 字节），`mode=create` 没有独占校验；`mode=append_section` 的共享写法是有意的。要不要给「已交付 artifact」加独占，是产品决策。
