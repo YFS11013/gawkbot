@@ -537,6 +537,83 @@ Journey 9 的 26 分钟静默（F-H）不是因为没人干活、也不是调度
 
 **判读口径补充**（进 `core-loop-runs/README.md` §6）：`/wiki/write-task` 的 200 只证明「入队并提交了某次写」，不证明「这个路径上有文件」。验收任务产物一律以「盘上文件 + 完成门放行」为准，日志里的 `bytes=` 不是证据。
 
+### 9.22 Journey 10：卡没发出来，不是「没到 decision」，是「Issue 没有自己的文件」（2026-11-10）
+
+**赛前**：`crouton-alpha-free` 被上游撤掉（§9.21），换 `opencode-go/longcat-2.5-free`；prereg §1.1 写明跨轮可比性代价。被测提交 `52456d3`（+ `76e6171`、`fdb6fa8`）。评分卡由独立子代理写（`core-loop-runs/2026-11-10-journey10/scorecard.md`），记录者只写时间线（`observations.md`）。
+
+**结论**（V1–V15 / F-A…F-M 全量见评分卡 §0）：
+
+| 项 | 结论 | 本轮唯一证据 |
+|---|---|---|
+| V2 | 通过 | `dce4efc`（`team/accounts/acme.md` 617 B）+ `5c3c6b3`（`team/emails/acme-renewal-followup.md` 910 B），声明路径与落盘路径逐字一致 |
+| V9 | 通过（带保留） | `JOURN-21` 落地 02:46:55 → `task-follow-up` 提前到 02:48:55（+2 分钟）；第二条 lane `JOURN-23` 落地后没有再提前（`due_at` 停在 03:19:02） |
+| V10 | 通过 | `plan-decomposition-check` `status_reason="decomposed into 2 sub-issue(s); 1 still open"` 与实际 2 条 lane 一致 |
+| V15 | 通过 | 场景两条 + 探针 `355e3b7` / `0a4c053`：相似名邻居未被追加，未声明路径 403 且未落盘 |
+| V4 | **未通过** | `actions` 里 2 条 `watchdog_alert`（02:49:02，`action-32`/`action-33`），而 cos 当时回合 02:49:03–02:49:38、ae 02:50:03 出稿 |
+| V11 | **未通过** | 父 Issue 02:54:20 进 `decision`，10 分钟后 `requests` 仍只有已答的 `request-17` |
+| V3/V6/V8 | 未观察/未锻炼 | 场景内 0 次撞写范围守卫、0 次 `ra_` 收 done |
+| V12/V13/V14 | 未观察 | 从未出现 `decision:` 卡，无从检验去重与点击 |
+| F-I | 触发 | 同 V11 |
+| F-A/F-B/F-C/F-D/F-E/F-F/F-G/F-H/F-J/F-K/F-L/F-M | 未触发 | 见评分卡 §2 |
+
+**根因链**（比「卡没发」更准）：
+
+1. cos 在 02:54:20 自己 `submit_for_review`（`ledger` 记 `task_updated … [review]`，正文「#JOURN-14 已进入待审」），任务进 `LifecycleStateReview`；
+2. 父 Issue 没有 reviewer（`reviewers=null`），30 秒收敛 sweep 走 `convergence: no reviewers assigned` 分支 → `decision`，并调用 `raiseDecisionCardAfterConvergenceLocked`；
+3. `hasApprovableDeliverable` 只读任务自己的 `Artifact` / `ArtifactNotRequired`，两者皆 null → 返回假 → 卡不发；
+4. 人工补点也被拦：`/tasks/JOURN-14/decision {approve}` 返 **409** `… cannot be approved into done without a delivered artifact. Have the owner publish the deliverable…`，加 `artifact_path=team/accounts/acme.md` 才 200。
+
+所以 D2 的机制**不是**「真机不成立」，是**判据与实现的共同盲区**：prereg 把对象写成「lane 进 decision」，而这一轮没有任何 lane 进 decision（office 模式的 lane `taskNeedsStructuredReview` 判假，交付后直接 `done/approved`）；唯一进 decision 的是**父 Issue**，它按设计不持有任何文件。
+
+**修法**（不改写 artifact 字段，理由见下）：
+
+- `Broker.childDeliverablesLocked(task)`：列出 `ParentIssueID == task.ID` 且已交付的子任务所落下的文件（`not_required` 的子任务单独标注「ships no file」）。
+- `hasApprovableDeliverableLocked` = 自己的 artifact/not_required **或** 子任务交付物非空。
+- 卡的正文按容器口径写：自己没文件时逐条列出各 lane 落下的路径，并说明「Approve 关闭 Issue，这些文件记在案」——不挑一个路径冒充 Issue 的交付物。
+- 决策 approve 门（`broker_decision_packet.go` (2)）加聚合分支：`effectiveArtifact`、`effectiveNotRequired`、子任务交付物全空才算 vapor；`HollowCompletion` 同理只在三者皆空时置真。
+
+**明确否决的两种写法**：
+
+- **把第一个子任务的路径写进父 Issue 的 `Artifact`**（评审建议过）：`Artifact` 是「这份工作产出了什么」的单值字段，父 Issue 有两个文件，写一个就是错一个；`hollowChildrenBlockingParentLocked`、频道卡片、wiki promotion 都读它，会在别处变成第二个谎。这次的人工探针 P1b 正是这么绕过去的（`artifact=team/accounts/acme.md`），可接受于探针，不可接受于代码。
+- **把应答改成阻塞闸门**：prereg §5 的回退条款提到过这条，但触发原因不是「非阻塞」，而是「卡没发」；改成阻塞只会让每一轮被人工闸门挂起，且救不回这一次。非阻塞保持不变。
+
+**没修、下一轮要处理的**（评分卡 §3，全部有证据）：
+
+- **V4 的判据错了，不是代码错了**：02:49:02 两条 `watchdog_alert`（`action-32/33`）来自两条到期的 `task_follow_up`，同一个 `processTaskJob` 在记录后立刻 `deliverTask` 唤醒 owner——cos 的回合 02:49:03 起、ae 02:50:03 出稿。`actions[].kind="watchdog_alert"` 同时表示「按点叫了人」，所以「0 条」这条判据在任何跑得够久的健康轮次都会红（J9 也是这么红的）。已写进 `core-loop-runs/README.md` §6 第 5 条：判「叫不动」（`No turn could be dispatched` / 告警后 2 分钟内该 owner 无回合无消息），不判条数。- `recheck` 唤醒后 ae 连发 `msg-63/64/65` 重复播报（03:09:11–03:09:19），无新事实。
+- 模型 id 永久错误被当成可重试错误（§9.21）。
+- gbrain 全程 `EOF`（环境，未影响判定）。
+
+**这一轮唯一改进到用户可见面的地方**：父 Issue 有已批准 lane 交付时，人类能拿到一张点名全部文件的卡，点 Approve 就能收尾——而不是像本轮那样，看着一个「已进入待审」的 Issue 等 10 分钟，然后被一条把下一步交给 bot 的 409 顶回来。
+
+### 9.21 模型被上游撤掉时，办公室是「安静」而不是「报错」（2026-11-10）
+
+`opencode-go/crouton-alpha-free` 在 11-09 晚到 11-10 早之间从 opencode-go 的模型表里消失。办公室里的表现**没有任何一条能指向原因**：
+
+- 每个 headless 回合 2 秒内 `exit status 1`（`headless-codex-latency.log`：`status=error total_ms≈2000 detail="exit status 1"`）；
+- 频道里落的是 `{"type":"error", … "UnknownError", "message":"Unexpected server error. Check server logs for details."}`（`journey10` 首轮的 `msg-5…28`，2 秒一条）；
+- 5 个 bot 各自重试 2 次、error-recovery 判定「already produced durable progress」后不动任务状态，于是办公室看起来在跑、其实一个字也产不出；broker 还据此建了一条 `JOURN-3`「Repeated errors blocked」交给 cos。
+
+直连同一个标识才拿到真正的错：
+
+```
+$ opencode run --model opencode-go/crouton-alpha-free "reply with the single word: pong"
+Error: Model not found: opencode-go/crouton-alpha-free. Did you mean: beam-free, iceman-contributor-free, longcat-2.5-free?
+```
+
+**换模型**（赛前改动，写进 J10 prereg §1.1）：三个候选 `pong` 全过，带工具的同一题里 `longcat-2.5-free` 一次读对 `internal/buildinfo/VERSION`（16 s），`beam-free` 读两次（22 s）。定 `opencode-go/longcat-2.5-free`，主办公室与隔离办公室同步。
+
+**同一形状在三处会重演，所以三处一起改**（这是本条的重点，不是换了个名字）：
+
+| 位置 | 改前 | 风险 |
+|---|---|---|
+| 主办公室进程的启动参数 | `WUPHF_OPENCODE_MODEL=…crouton…` | 现进程死了就再也起不来 |
+| 用户级环境变量（`setx`） | `bear/deepseek-chat`（更早的兜底，未回滚） | 手工重启会静默换模型，质量基线漂移 |
+| `~/.wuphf/data/broker-watchdog.ps1`（看门狗重启分支） | 硬编码 `opencode-go/crouton-alpha-free` | **看门狗一重启就把办公室救回一个死模型**，比不重启更糟：进程活着、回合全废、没人报警 |
+
+三处现在都是 `opencode-go/longcat-2.5-free`；看门狗的 `WUPHF_HEADLESS_MODEL_FALLBACK=opencode-go/iceman-contributor-free` 保持不变（它是另一条兜底，只在单模型失败时用）。
+
+**没修的部分，记在这里**：`UnknownError` 被当成「连不上、可重试」这一类处理，`transient-retry` 在同一模型上重试 2 次、`recoverFailedHeadlessTurn` 不换模型——所以「模型 id 不存在」这种**永久性**错误会被反复重试并吞掉，只留下 `exit status 1`。判定一次失败是否值得重试，应当读 provider 的分类（`Model not found` / 401 / 404 → 不重试，直接报告），而不是看退出码。这一条在 §14.x 的 fallback 家族里是同一个缺口，留给下一轮。
+
 ### 9.18 Journey 9：写范围守到了「非视觉」，没守到「就是那份文件」（2026-11-09）
 
 Journey 9（`core-loop-runs/2026-11-09-journey9/`，prereg `4863c50`，被测 `690b601`，独立判分 **5/10**）用 J7/J8 逐字相同的场景重跑。§9.16 的三条修复里，两条在半路被证伪，一条站住。

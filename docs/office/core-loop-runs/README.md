@@ -98,6 +98,8 @@ Journey 9 出现了同一现象在两轮里结论相反、以及判据要求了�
 3. **「静默」要区分「球在人手里」。** 自 `fdb6fa8` 之后，lane 进入 `decision` 会物化一张 `dedupe_key=decision:<taskID>` 的非阻塞卡。判定「办公室在等人」看 `requests` 里这张未答的卡，不看频道里有没有新消息；判定「没人能动」才看停表。非阻塞卡**不进** `pending_interview`（那是阻塞闸门的位置），所以 F5 的可达性要求是：卡同时出现在任务频道与 `/requests`，不要求挂起任何 bot。
 4. **落地一律以盘上文件为准。** `/wiki/write-task` 的 200 只说明「入队并提交了某次写」，`broker.log` 里的 `bytes=` 也只是请求体长度：`decsmoke` 冒烟的 `dec-smoke-answer.md` 返回 200、日志有行，实际内容却被 update-first 追加进了邻居 `dec-smoke.md`（§9.20，`PinnedPath` 已修）。验收任何产物都是「`git log` 里有该路径的提交 + 盘上文件存在」，需要时再叠完成门的放行结果。
 
+5. **`watchdog_alert` 不是「卡住」的同义词，别把它写成 0。** `processTaskJob`（小时级 `task_follow_up`）、`processRequestJob`（请求提醒）、`processPlanDecompositionCheck` 三处都先 `RecordAction("watchdog_alert", …)` **再** `deliverTask` 唤醒 owner——也就是说这一条记录同时是「我按点叫了人」。Journey 10 实测 02:49:02 两条 `action-32/33`（`@cos`/`@ae still needs to move …`）来自两条到期的 `task_follow_up`，下一行调度日志就是 `dispatched 2 due job(s)`，cos 的回合 02:49:03 起、ae 02:50:03 出稿——人叫到了，活干了。把「0 条 `watchdog_alert`」写进判据（J9 的 V4）会让任何跑得够久的健康轮次永远判红。真正「卡住」的形状是**叫不动**：`deliverTask` 返回假 → `escalateRefusedWake` 往频道写 `No turn could be dispatched to wake @owner — retrying shortly`（J3 的 02:00–02:04 四条）。判据要写「`watchdog_alert` 里有多少条带 `No turn could be dispatched`」，或直接断言「每条 `watchdog_alert` 之后 ≤2 分钟该 owner 有回合或消息」。
+
 ## 7. 每次运行要留的证据
 
 `prereg.md`、`observations.md`（带时间戳的原始观察，不写结论）、任务 JSON（含 `verification`）、wiki 的 `git log` 与 artifact 原文、日志片段、`scorecard.md`、`delta-vs-<上一次>.md`。

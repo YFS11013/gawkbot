@@ -1,0 +1,539 @@
+{
+ "tasks": [
+  {
+   "id": "ai-revops-1",
+   "channel": "hygiene",
+   "title": "Run the first CRM hygiene sweep",
+   "details": "Dedupe accounts, backfill missing owners, and flag stale opportunities, with destructive changes gated.\n\nCanceled by operator.",
+   "owner": "revops",
+   "status": "canceled",
+   "created_by": "wuphf",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "canceled",
+   "execution_mode": "live_external",
+   "review_state": "canceled",
+   "lifecycle_state": "canceled",
+   "ledger": [
+    {
+     "agent": "revops",
+     "at": "2026-11-10T02:41:25Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    },
+    {
+     "agent": "cos",
+     "at": "2026-11-10T02:41:25Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    }
+   ],
+   "created_at": "2026-11-10T02:40:27Z",
+   "updated_at": "2026-11-10T02:41:25Z",
+   "completed_at": "2026-11-10T02:41:25Z"
+  },
+  {
+   "id": "ai-revops-2",
+   "channel": "pipeline",
+   "title": "Establish the pipeline-truth baseline",
+   "details": "Define clean records and produce the honest first read of the funnel.\n\nCanceled by operator.",
+   "owner": "analyst",
+   "status": "canceled",
+   "created_by": "wuphf",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "canceled",
+   "execution_mode": "office",
+   "review_state": "canceled",
+   "lifecycle_state": "canceled",
+   "ledger": [
+    {
+     "agent": "analyst",
+     "at": "2026-11-10T02:41:25Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    },
+    {
+     "agent": "cos",
+     "at": "2026-11-10T02:41:25Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    }
+   ],
+   "created_at": "2026-11-10T02:40:27Z",
+   "updated_at": "2026-11-10T02:41:25Z",
+   "completed_at": "2026-11-10T02:41:25Z"
+  },
+  {
+   "id": "ai-revops-3",
+   "channel": "outreach",
+   "title": "Draft the first follow-up sequence",
+   "details": "Sequence re-engagement for stale-but-real opportunities, queued for approval.\n\nCanceled by operator.",
+   "owner": "ae",
+   "status": "canceled",
+   "created_by": "wuphf",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "canceled",
+   "execution_mode": "office",
+   "review_state": "canceled",
+   "lifecycle_state": "canceled",
+   "ledger": [
+    {
+     "agent": "ae",
+     "at": "2026-11-10T02:41:25Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/wiki-maintenance.md",
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/data-modeling.md"
+     ]
+    },
+    {
+     "agent": "cos",
+     "at": "2026-11-10T02:41:25Z",
+     "outcome": "exit status 1",
+     "context_used": [
+      "wiki:team/skills/wiki-maintenance.md",
+      "wiki:team/skills/app-building.md",
+      "wiki:team/skills/data-modeling.md"
+     ]
+    }
+   ],
+   "created_at": "2026-11-10T02:40:27Z",
+   "updated_at": "2026-11-10T02:41:25Z",
+   "completed_at": "2026-11-10T02:41:25Z"
+  },
+  {
+   "id": "ai-revops-4",
+   "channel": "review",
+   "title": "Set the hygiene scorecard and review cadence",
+   "details": "Define success metrics, the review rhythm, and the evidence trail for each iteration.\n\nCanceled by operator.",
+   "owner": "reviewer",
+   "status": "canceled",
+   "created_by": "wuphf",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "canceled",
+   "execution_mode": "office",
+   "review_state": "canceled",
+   "lifecycle_state": "canceled",
+   "ledger": [
+    {
+     "agent": "reviewer",
+     "at": "2026-11-10T02:41:26Z",
+     "outcome": "context canceled",
+     "context_used": [
+      "wiki:team/skills/data-modeling.md",
+      "wiki:team/skills/wiki-maintenance.md"
+     ]
+    }
+   ],
+   "created_at": "2026-11-10T02:40:27Z",
+   "updated_at": "2026-11-10T02:41:26Z",
+   "completed_at": "2026-11-10T02:41:25Z"
+  },
+  {
+   "id": "JOURN-14",
+   "channel": "cos__human",
+   "title": "Journey 10: Acme 续约报价与跟进",
+   "details": "客户 Acme（40 席位，SaaS）。现行合同：年付 $18,000，2026-12-31 到期，付款 30 天。\n拟续约：年付 $21,600（+20%），条款不变，有效期 14 天。对方决策人 Dana（VP Ops）。\n两件交付物：① 一页报价说明（价格/范围/有效期/付款/决策点）② 48 小时内的跟进邮件草稿。\n只认以上数字，不要引入其它假设。",
+   "owner": "cos",
+   "status": "in_progress",
+   "created_by": "human",
+   "task_type": "issue",
+   "pipeline_id": "issue",
+   "pipeline_stage": "breakdown",
+   "execution_mode": "office",
+   "review_state": "pending_review",
+   "lifecycle_state": "running",
+   "due_at": "2026-11-10T03:44:33Z",
+   "follow_up_at": "2026-11-10T03:44:33Z",
+   "reminder_at": "2026-11-10T04:14:33Z",
+   "recheck_at": "2026-11-10T03:59:33Z",
+   "ledger": [
+    {
+     "agent": "cos",
+     "at": "2026-11-10T02:42:13Z",
+     "outcome": "ok",
+     "said": "…�件中的每个数字、日期、人名都能在给定 5 项事实中逐字找到，无第六个数字。\n- 报价说明含齐 5 个板块；邮件含主题行与正文。\n\n**前置条件 / 所需访问**\n- 无需连接外部系统；两人都只在团队 wiki 内写 markdown。\n- 邮件草稿仅落 wiki，**不发送**——对外发送需你另行批准。\n\n**风险与未决问题**\n- 无阻塞性未决问题。唯一需你确认的是：邮件草稿是否要在报价说明定稿后再发，还是并行交付（当前计划按并行处理）。\n\n计划如上，批准即按此拆分执行。",
+     "context_used": [
+      "wiki:team/getting-started/channels.md",
+      "wiki:team/getting-started/connecting-your-work.md",
+      "wiki:team/getting-started/index.md",
+      "wiki:team/getting-started/skills-and-runtimes.md",
+      "wiki:team/getting-started/the-wiki.md"
+     ]
+    }
+   ],
+   "created_at": "2026-11-10T02:41:28Z",
+   "updated_at": "2026-11-10T02:44:33Z"
+  }
+ ],
+ "requests": [
+  {
+   "id": "request-17",
+   "kind": "approval",
+   "status": "answered",
+   "from": "cos",
+   "channel": "cos__human",
+   "title": "Start work on Journey 10: Acme 续约报价与跟进?",
+   "question": "@cos wants to start work on Journey 10: Acme 续约报价与跟进 (JOURN-14).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\nScoping the two deliverables under #JOURN-14 and handing the renewal quote page to @revops and the follow-up email to @ae.## 计划：Acme 续约报价与跟进（#JOURN-14） **目标** 在 Acme 合同 2026-12-31 到期前，交付两件可直接使用的客户侧材料：一页报价说明 + 48 小时跟进邮件草稿。所有数字只取自任务给定的 5 项事实，不引入任何其它假设。 **给定事实（唯一数据源）** - 客户：Acme，40 席位，SaaS - 现行合同：年付 $18,000，2026-12-31 到期，付款 30 天 - 拟续约：年付 $21,600（+20%），条款不变，有效期 14 天 - 决策人：Dana（VP Ops） **步骤** 1. 拆出两条独立子任务，分别交给最合适的现有同事并行执行： - **子任务 A → @revops**：一页报价说明，落 `team/accounts/acme.md`。必须覆盖 5 个板块：价格（$18,000 …",
+   "options": [
+    {
+     "id": "approve",
+     "label": "Approve",
+     "description": "Green-light this and let the team execute immediately."
+    },
+    {
+     "id": "approve_with_note",
+     "label": "Approve with note",
+     "description": "Proceed, but attach explicit constraints or guardrails.",
+     "requires_text": true,
+     "text_hint": "Type the conditions, constraints, or guardrails the team must follow."
+    },
+    {
+     "id": "needs_more_info",
+     "label": "Need more info",
+     "description": "Gather more context before making the approval call."
+    },
+    {
+     "id": "reject",
+     "label": "Reject",
+     "description": "Do not proceed with this."
+    },
+    {
+     "id": "reject_with_steer",
+     "label": "Reject with steer",
+     "description": "Do not proceed as proposed. Redirect the team with clearer steering.",
+     "requires_text": true,
+     "text_hint": "Type the steering, redirect, or rationale for rejecting this request."
+    }
+   ],
+   "recommended_id": "approve",
+   "reply_to": "msg-18",
+   "dedupe_key": "plan-approval:JOURN-14",
+   "issue_id": "JOURN-14",
+   "created_at": "2026-11-10T02:42:13Z",
+   "updated_at": "2026-11-10T02:44:33Z",
+   "answered": {
+    "choice_id": "approve",
+    "choice_text": "Approve",
+    "answered_at": "2026-11-10T02:44:33Z"
+   }
+  }
+ ],
+ "scheduler": [
+  {
+   "slug": "one-relay-events",
+   "label": "One relay events",
+   "interval_minutes": 1,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "request_follow_up",
+   "label": "Request follow-up reminders",
+   "interval_minutes": 60,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "review-expiry",
+   "label": "Review expiry sweep",
+   "interval_minutes": 10,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "wiki-archive-sweep",
+   "label": "Wiki archive sweep",
+   "interval_minutes": 1440,
+   "next_run": "2026-11-11T02:40:07Z",
+   "last_run": "2026-11-10T02:40:07Z",
+   "status": "sleeping",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "task_follow_up",
+   "label": "Task follow-up reminders",
+   "interval_minutes": 60,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "task_recheck",
+   "label": "Task recheck cadence",
+   "interval_minutes": 15,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "task_reminder",
+   "label": "Task reminder cadence",
+   "interval_minutes": 30,
+   "status": "scheduled",
+   "enabled": true,
+   "system_managed": true
+  },
+  {
+   "slug": "task-follow-up:cos--human:journ-14",
+   "kind": "task_follow_up",
+   "label": "Follow up on Journey 10: Acme 续约报价与跟进",
+   "target_type": "task",
+   "target_id": "JOURN-14",
+   "channel": "cos__human",
+   "interval_minutes": 0,
+   "due_at": "2026-11-10T03:44:33Z",
+   "next_run": "2026-11-10T03:44:33Z",
+   "status": "scheduled",
+   "payload": "客户 Acme（40 席位，SaaS）。现行合同：年付 $18,000，2026-12-31 到期，付款 30 天。\n拟续约：年付 $21,600（+20%），条款不变，有效期 14 天。对方决策人 Dana（VP Ops）。\n两件交付物：① 一页报价说明（价格/范围/有效期/付款/决策点）② 48 小时内的跟进邮件草稿。\n只认以上数字，不要引入其它假设。",
+   "enabled": false
+  },
+  {
+   "slug": "request-follow-up:cos--human:request-17",
+   "kind": "request_follow_up",
+   "label": "Follow up on Start work on Journey 10: Acme 续约报价与跟进?",
+   "target_type": "request",
+   "target_id": "request-17",
+   "channel": "cos__human",
+   "interval_minutes": 0,
+   "last_run": "2026-11-10T02:44:33Z",
+   "status": "done",
+   "payload": "@cos wants to start work on Journey 10: Acme 续约报价与跟进 (JOURN-14).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\nScoping the two deliverables under #JOURN-14 and handing the renewal quote page to @revops and the follow-up email to @ae.## 计划：Acme 续约报价与跟进（#JOURN-14） **目标** 在 Acme 合同 2026-12-31 到期前，交付两件可直接使用的客户侧材料：一页报价说明 + 48 小时跟进邮件草稿。所有数字只取自任务给定的 5 项事实，不引入任何其它假设。 **给定事实（唯一数据源）** - 客户：Acme，40 席位，SaaS - 现行合同：年付 $18,000，2026-12-31 到期，付款 30 天 - 拟续约：年付 $21,600（+20%），条款不变，有效期 14 天 - 决策人：Dana（VP Ops） **步骤** 1. 拆出两条独立子任务，分别交给最合适的现有同事并行执行： - **子任务 A → @revops**：一页报价说明，落 `team/accounts/acme.md`。必须覆盖 5 个板块：价格（$18,000 …",
+   "enabled": false,
+   "closed_at": "2026-11-10T02:44:33Z",
+   "status_reason": "target closed"
+  },
+  {
+   "slug": "plan-decomposition-check:cos--human:task:journ-14",
+   "kind": "plan_decomposition_check",
+   "label": "Decomposition check Journey 10: Acme 续约报价与跟进",
+   "target_type": "task",
+   "target_id": "JOURN-14",
+   "channel": "cos__human",
+   "interval_minutes": 0,
+   "due_at": "2026-11-10T02:49:33Z",
+   "next_run": "2026-11-10T02:49:33Z",
+   "status": "scheduled",
+   "payload": "客户 Acme（40 席位，SaaS）。现行合同：年付 $18,000，2026-12-31 到期，付款 30 天。\n拟续约：年付 $21,600（+20%），条款不变，有效期 14 天。对方决策人 Dana（VP Ops）。\n两件交付物：① 一页报价说明（价格/范围/有效期/付款/决策点）② 48 小时内的跟进邮件草稿。\n只认以上数字，不要引入其它假设。",
+   "enabled": false
+  }
+ ],
+ "actions": [
+  {
+   "id": "action-1",
+   "kind": "task_created",
+   "source": "office",
+   "channel": "hygiene",
+   "actor": "wuphf",
+   "summary": "Run the first CRM hygiene sweep",
+   "related_id": "ai-revops-1",
+   "created_at": "2026-11-10T02:40:27Z"
+  },
+  {
+   "id": "action-2",
+   "kind": "task_created",
+   "source": "office",
+   "channel": "pipeline",
+   "actor": "wuphf",
+   "summary": "Establish the pipeline-truth baseline",
+   "related_id": "ai-revops-2",
+   "created_at": "2026-11-10T02:40:27Z"
+  },
+  {
+   "id": "action-3",
+   "kind": "task_created",
+   "source": "office",
+   "channel": "outreach",
+   "actor": "wuphf",
+   "summary": "Draft the first follow-up sequence",
+   "related_id": "ai-revops-3",
+   "created_at": "2026-11-10T02:40:27Z"
+  },
+  {
+   "id": "action-4",
+   "kind": "task_created",
+   "source": "office",
+   "channel": "review",
+   "actor": "wuphf",
+   "summary": "Set the hygiene scorecard and review cadence",
+   "related_id": "ai-revops-4",
+   "created_at": "2026-11-10T02:40:27Z"
+  },
+  {
+   "id": "action-5",
+   "kind": "automation",
+   "channel": "analyst__human",
+   "actor": "analyst",
+   "summary": "On it — pulling the current data landscape to define clean records and produce the honest funnel read.",
+   "related_id": "msg-3",
+   "created_at": "2026-11-10T02:40:47Z"
+  },
+  {
+   "id": "action-6",
+   "kind": "automation",
+   "channel": "ae__human",
+   "actor": "ae",
+   "summary": "On it — gathering the pipeline context to draft the sequence.",
+   "related_id": "msg-4",
+   "created_at": "2026-11-10T02:40:51Z"
+  },
+  {
+   "id": "action-7",
+   "kind": "automation",
+   "channel": "human__revops",
+   "actor": "revops",
+   "summary": "正在检查已连接的 CRM 和数据空间，确定从哪里开始首次清洗。",
+   "related_id": "msg-5",
+   "created_at": "2026-11-10T02:40:53Z"
+  },
+  {
+   "id": "action-8",
+   "kind": "automation",
+   "channel": "analyst__human",
+   "actor": "analyst",
+   "summary": "Reading the existing pipeline definitions and raw signals.",
+   "related_id": "msg-6",
+   "created_at": "2026-11-10T02:41:02Z"
+  },
+  {
+   "id": "action-9",
+   "kind": "automation",
+   "channel": "analyst__human",
+   "actor": "analyst",
+   "summary": "Wiki pages are empty templates — no baseline exists yet. Checking connected systems and channels for where the real pipeline data lives.",
+   "related_id": "msg-7",
+   "created_at": "2026-11-10T02:41:04Z"
+  },
+  {
+   "id": "action-10",
+   "kind": "automation",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "On it — checking what CRM system we're working with before splitting the sweep into owned lanes.",
+   "related_id": "msg-8",
+   "created_at": "2026-11-10T02:41:13Z"
+  },
+  {
+   "id": "action-11",
+   "kind": "task_canceled",
+   "source": "office",
+   "channel": "hygiene",
+   "actor": "owner",
+   "summary": "Run the first CRM hygiene sweep canceled",
+   "related_id": "ai-revops-1",
+   "created_at": "2026-11-10T02:41:25Z"
+  },
+  {
+   "id": "action-12",
+   "kind": "task_canceled",
+   "source": "office",
+   "channel": "pipeline",
+   "actor": "owner",
+   "summary": "Establish the pipeline-truth baseline canceled",
+   "related_id": "ai-revops-2",
+   "created_at": "2026-11-10T02:41:25Z"
+  },
+  {
+   "id": "action-13",
+   "kind": "task_canceled",
+   "source": "office",
+   "channel": "outreach",
+   "actor": "owner",
+   "summary": "Draft the first follow-up sequence canceled",
+   "related_id": "ai-revops-3",
+   "created_at": "2026-11-10T02:41:25Z"
+  },
+  {
+   "id": "action-14",
+   "kind": "task_canceled",
+   "source": "office",
+   "channel": "review",
+   "actor": "owner",
+   "summary": "Set the hygiene scorecard and review cadence canceled",
+   "related_id": "ai-revops-4",
+   "created_at": "2026-11-10T02:41:25Z"
+  },
+  {
+   "id": "action-15",
+   "kind": "automation",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "正在读取外联与 CRM 相关资料，然后把跟进序列拆成可执行的子任务。",
+   "related_id": "msg-13",
+   "created_at": "2026-11-10T02:41:25Z"
+  },
+  {
+   "id": "action-16",
+   "kind": "task_created",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "human",
+   "summary": "Journey 10: Acme 续约报价与跟进",
+   "related_id": "JOURN-14",
+   "created_at": "2026-11-10T02:41:28Z"
+  },
+  {
+   "id": "action-17",
+   "kind": "automation",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "Scoping the two deliverables under #JOURN-14 and handing the renewal quote page to @revops and the follow-up email to @ae.## 计划：Acme 续约报价与跟…",
+   "related_id": "msg-16",
+   "created_at": "2026-11-10T02:42:12Z"
+  },
+  {
+   "id": "action-18",
+   "kind": "request_created",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "cos",
+   "summary": "Start work on Journey 10: Acme 续约报价与跟进? @cos wants to start work on Journey 10: Acme 续约报价与跟进 (JOURN-14).\n\nApprove and they begin. Decline a…",
+   "related_id": "request-17",
+   "created_at": "2026-11-10T02:42:13Z"
+  },
+  {
+   "id": "action-19",
+   "kind": "task_updated",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "you",
+   "summary": "Journey 10: Acme 续约报价与跟进 [plan approved]",
+   "related_id": "JOURN-14",
+   "created_at": "2026-11-10T02:44:33Z"
+  },
+  {
+   "id": "action-20",
+   "kind": "request_answered",
+   "source": "office",
+   "channel": "cos__human",
+   "actor": "you",
+   "summary": "Approved @cos's request.",
+   "related_id": "request-17",
+   "created_at": "2026-11-10T02:44:33Z"
+  }
+ ]
+}

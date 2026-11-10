@@ -137,6 +137,23 @@ prereg `4863c50`，被测 `690b601`（运行时等同 `000c4b7`），判分 `cor
   - **D5（中，判据问题非代码）** V5 照抄 J8 的「403 点名 creator」，但 J9 探针命中的是路径不匹配分支，那一支本来就只点名两条路径（见 §9.17）。判据应按探针实际命中分支写。
 - **本轮证不了**：CJK 去重的真阳性（场景里只有 0.875 的近 miss 与精确标题拦截）；规划者在场景内被 `ra_` 拒绝后自修正；人类确认链闭环（父 Issue 停表时仍 `in_progress`）。
 
+### Journey 10 复核（2026-11-10，父 Issue 的 decision 卡）
+
+prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（+ `76e6171`、`fdb6fa8`），判分 `core-loop-runs/2026-11-10-journey10/scorecard.md`（独立 reviewer）。场景与 J7/J8/J9 逐字相同，模型换成 `opencode-go/longcat-2.5-free`（`crouton-alpha-free` 被上游撤掉，§9.21）。
+
+- **站住的**（这一轮唯一有正向证据的）：
+  - **D6 路径钉真机成立**：两条 lane 声明路径与落盘逐字一致（`dce4efc` 617 B、`5c3c6b3` 910 B）；探针 `JOURN-70`/`JOURN-73` 用相似名（`pin-probe.md` / `pin-probe-v2.md`）各自落地（`355e3b7`/`0a4c053`），邻居未被追加；未声明路径 403 点名两条路径且未落盘。**J9 的「200 但落邻居」没有复现。**
+  - **D5 计数准确**：`decomposed into 2 sub-issue(s); 1 still open` 与实际一致（规划者这次只拆 2 条）。
+  - **D4 提前唤醒**：`JOURN-21` 02:46:55 落地 → 父 Issue 与兄弟 lane 的 `task-follow-up` 都提前到 02:48:55。
+  - **计划卡只有一张**、`task_not_decomposed` 0 条、DecompositionCheck 正常收尾。
+- **没站住的**：
+  - **D2（重）父 Issue 进 decision 后 10 分钟没有卡 → 已修（§9.22）。** `JOURN-14` 02:54:20 进 `decision`，`requests` 全程只有已答的 `request-17`；根因是 `hasApprovableDeliverable` 只读任务自己的 `Artifact`/`ArtifactNotRequired`，而父 Issue 两者皆 null（它的两条 lane 都交付了）。同一处还有第二个后果：人工补点 `POST /tasks/JOURN-14/decision {approve}` 返 409，文案把下一步交给 owner。现在卡的谓词与决策 approve 门都认「父 Issue 有已交付子任务」，卡正文逐条点名各 lane 的文件。测试 `TestDecisionCardRaisedForParentIssueWithDeliveredLanes`（走真实路径 submit_for_review → 无 reviewer → 收敛 → 卡 → approve）、`TestDecisionCardSkippedForParentIssueWithHollowLanes`。
+  - **V4 的判据错（判据已改，代码不动）**：02:49:02 `action-32/33` 两条 `@cos/@ae still needs to move …` 是两条到期的 `task_follow_up` 按点叫人的记录，记录后同一函数立刻 `deliverTask`：cos 回合 02:49:03 起、ae 02:50:03 出稿。`actions[].kind=watchdog_alert` 同时表示「我按点叫了人」，所以「0 条」不可能成立（J9 也是这么红的）。口径见 `core-loop-runs/README.md` §6 第 5 条：判「叫不动」，不判条数。
+  - **`recheck` 唤醒后重复播报（未修）**：03:09:03 `recheck` 触发，ae 连发 `msg-63/64/65`（03:09:11–03:09:19）复述同一结论，无新事实。
+- **留下不对称（未修，故意的）**：`/tasks` 的 approve 路径（`MutateTask` 的 `complete`/`approve`）对父 Issue 仍会 409 并可能标 `hollow_completion=true`。人类批准 Issue 的行进路线是 decision 端点（`RecordTaskDecisionWithComment`，§9.19），这次只修了那条；两条路径的判定要保持一致得等它们合并，或者在同一处抽一个 `deliveredAggregateLocked`。记在这里，不假装已经收口。
+- **这一轮证不了**：任何 `decision:` 卡的去重（V12）、点击闭环（V13/V14）——本轮卡从未物化；create 守卫的「撞后改做法」（V3/V6，场景内 0 次撞）；`ra_` 收 done 的拦截（V8，场景内 0 次）。
+- **判据本身的教训**：prereg 把 V11 的对象写成「lane 进 decision」，而 office 模式的 lane 交付后直接 `done/approved`（`taskNeedsStructuredReview` 判假），**没有任何 lane 会进 decision**；进 decision 的只有父 Issue。下一轮 prereg 要把对象写成「任一任务（lane 或 Issue）进 `decision`」，否则同一条缺陷会以「未观察」的形式年年躲过去。
+
 ### 2026-11-09 复核
 
 - **J3-1 已修**：`runHeadlessOpencodeTurn` 在回合开始时算 `planning := l.resolveTurnPosture(ctx, slug) == posturePlan`，回合成功且有正文时 `emitHeadlessPlan(...)` 出计划卡，并在末尾 `l.raisePlanApprovalAfterTurn(taskID, slug, text)`（空计划不发、非 planning 任务 `RaisePlanApproval` 自会 no-op）。测试：`TestOpencodePlanningTurnRaisesPlanApproval`（去掉 raise 调用即失败：`raised 0 plan-approval interviews, want 1`）、`TestOpencodeRunningTurnRaisesNoPlanApproval`。opencode 仍无原生 plan/read-only 模式，姿态只改结果处理，不改权限——这一点与 Claude/Codex 不同，注释已写清。
@@ -403,8 +420,8 @@ prereg `4863c50`，被测 `690b601`（运行时等同 `000c4b7`），判分 `cor
 | 项 | 值 |
 |---|---|
 | 启动命令 | `gawkbot-fix.exe --broker-port 7892 --provider opencode --no-open` |
-| 模型 | `WUPHF_OPENCODE_MODEL=opencode-go/beam-free`（用户级环境变量，已 `setx` 持久化）；兜底 `bear/deepseek-chat`。
-**2026-11-01 19:35 起运行态是 `bear/deepseek-chat`**（beam-free 挂死，见 P0-0） |
+| 模型 | `WUPHF_OPENCODE_MODEL=opencode-go/longcat-2.5-free`（用户级环境变量 + 看门狗脚本 + 启动参数三处一致，2026-11-10 起）；看门狗兜底 `opencode-go/iceman-contributor-free`。`crouton-alpha-free` 已被上游撤掉（§9.21）。 |
+
 | broker token | `%TEMP%\wuphf-broker-token-7892`，**每次重启都变** |
 | 桥 | Windows 计划任务跑 `forex-bridge-run.vbs`，每 6 小时；健康时无 `wiki/team/alerts.md` |
 | 记分卡 | 计划任务 `WUPHF-RoutineScorecard` 每天 09:05 跑 `~/.wuphf/data/routine-scorecard.ps1`（collector + `--publish`）；日志 `~/.wuphf/logs/routine-scorecard.log`；判据 `python scripts/office/check_routine_scorecard.py` |

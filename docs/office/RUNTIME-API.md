@@ -209,7 +209,7 @@ curl -s http://127.0.0.1:7892/health   # 不需要 token
 
 | 想确认 | 字段 | 备注 |
 |---|---|---|
-| 模型是否进了进程 | `provider_model` | 回显 `WUPHF_OPENCODE_MODEL`，正常值 `opencode-go/beam-free`。**响应里没有 `model` 字段**，按 `model` 取只会得到 `null`，别据此判定"模型没传进去" |
+| 模型是否进了进程 | `provider_model` | 回显 `WUPHF_OPENCODE_MODEL`，当前值 `opencode-go/longcat-2.5-free`（2026-11-10 起；`crouton-alpha-free` 已被上游撤掉，见 DESIGN-DECISIONS §9.21）。**响应里没有 `model` 字段**，按 `model` 取只会得到 `null`，别据此判定"模型没传进去" |
 | 进程号 | — | **响应里没有 `pid`**；查进程用 `Get-CimInstance Win32_Process -Filter 'ProcessId=<n>'` 看 `CommandLine` |
 | 审阅者 | — | 环境变量 `WUPHF_TASK_REVIEWER`（bot slug，或 `off|none|disabled` 关闭审阅回合）；不设则走 lead → 首个非作者成员。**不回显在 `/health`** |
 | 其余 | `status` / `provider` / `focus_mode` / `dispatch` / `memory_backend*` / `build` / `session_mode` / `one_on_one_agent` | `build.version=dev` 表示这是本地 `go build` 产物 |

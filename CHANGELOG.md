@@ -13,6 +13,30 @@ All notable changes to WUPHF will be documented in this file.
 
 ### Fixed
 
+- **An Issue whose lanes all shipped now has something to click, and approving
+  it no longer demands a file the Issue does not have.** Journey 10
+  (`core-loop-runs/2026-11-10-journey10`, F-I): the parent Issue `JOURN-14`
+  reached `decision` at 02:54:20Z four seconds after `JOURN-23` landed its email
+  draft — both lanes had files on disk (`dce4efc`, `5c3c6b3`) — yet the Issue's
+  own `artifact` and `artifact_not_required` were both null, so
+  `hasApprovableDeliverable` said "nothing to accept" and no `decision:` card
+  was raised. Ten minutes later the run's stop table fired on a delivered Issue
+  nobody had been asked about. Approving by hand did not help either: with no
+  `artifact_path` the same run's probe got
+  `409 … cannot be approved into done without a delivered artifact. Have the
+  owner publish the deliverable…` — advice aimed at a bot, for work that was
+  finished. An Issue is a container, so the predicate now counts what its lanes
+  landed (`Broker.childDeliverablesLocked`): a parent with ≥1 delivered child
+  carrying an artifact (or an explicit `not_required`) is approvable, the card
+  names **every** file rather than one arbitrary path, and the decision approve
+  gate accepts aggregate delivery while still refusing vapor. Approving records
+  the Issue as delivered, not `hollow_completion`. Tests
+  `TestDecisionCardRaisedForParentIssueWithDeliveredLanes` (drives the real path
+  — `submit_for_review` → no reviewers → convergence → card → approve) and
+  `TestDecisionCardSkippedForParentIssueWithHollowLanes`; the first fails without
+  the predicate with the wire symptom `a parent Issue whose lanes delivered owes
+  the human a card, got 0`, and fails without the gate with the same 409 text the
+  live probe returned.
 - **A task's declared artifact now lands on the path the task declared.**
   `/wiki/write-task` answered `200 {path: team/reviews/dec-smoke-answer.md,
   bytes_written: 15}` while appending those bytes to the similar-slug neighbour

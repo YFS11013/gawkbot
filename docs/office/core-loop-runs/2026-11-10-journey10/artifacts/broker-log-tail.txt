@@ -1,0 +1,67 @@
+Launching WUPHF Office web view... the browser is the team now.
+2026/11/10 10:40:05 WARNING wiki: gbrain unavailable (wiki_index_gbrain_entity: connect: connect gbrain mcp: calling "initialize": EOF); falling back to the in-memory index. Facts will NOT persist across restarts. Install gbrain, or set WUPHF_WIKI_BACKEND=memory to silence this.
+2026/11/10 10:40:06 wiki lint cron: disabled (set WUPHF_LINT_CRON=HH:MM to enable a daily run)
+2026/11/10 10:40:06 INFO skill_compile cron: started interval=30m0s
+2026/11/10 10:40:06 wiki_index: boot reconcile complete
+2026/11/10 10:40:06 INFO skill_crud: backfilled missing SKILL.md from broker state name=app-building path=team/skills/app-building.md
+2026/11/10 10:40:06 INFO skill_consolidation_migration: no overlapping clusters found
+2026/11/10 10:40:07 INFO skill_crud: backfilled missing SKILL.md from broker state name=wiki-maintenance path=team/skills/wiki-maintenance.md
+2026/11/10 10:40:07 INFO skill_crud: backfilled missing SKILL.md from broker state name=data-modeling path=team/skills/data-modeling.md
+2026/11/10 10:40:07 [transport] share: registered (human-share)
+
+  Web UI:  http://127.0.0.1:7911
+  Broker:  http://127.0.0.1:7910
+  Press Ctrl+C to stop.
+
+2026/11/10 10:40:21 onboarding: transition broker callback failed (phase=identity): onboarding: persist PendingSuggestion for phase identity: onboarding: rename temp: rename C:\Users\ireke\.wuphf-spaces\journey10\.wuphf\.onboarded-2320767206.json C:\Users\ireke\.wuphf-spaces\journey10\.wuphf\onboarded.json: Access is denied.
+2026/11/10 10:40:22 onboarding: transition broker callback failed (phase=website): onboarding: persist PendingSuggestion for phase website: onboarding: rename temp: rename C:\Users\ireke\.wuphf-spaces\journey10\.wuphf\.onboarded-4219108409.json C:\Users\ireke\.wuphf-spaces\journey10\.wuphf\onboarded.json: Access is denied.
+2026/11/10 10:40:22 scheduler: loop started (poll=20s)
+2026/11/10 10:40:24 onboarding: transition broker callback failed (phase=team): onboarding: persist PendingSuggestion for phase team: onboarding: rename temp: rename C:\Users\ireke\.wuphf-spaces\journey10\.wuphf\.onboarded-2552558399.json C:\Users\ireke\.wuphf-spaces\journey10\.wuphf\onboarded.json: Access is denied.
+2026/11/10 10:40:33 onboarding: wiki materialized blueprint=ai-revops dirs=5 articles_created=5 articles_skipped=0
+2026/11/10 10:40:34 onboarding: wiki bootstrap committed 5f77952 (blueprint=ai-revops)
+2026/11/10 10:40:34 onboarding: getting-started pages committed 243a0d8
+2026/11/10 10:46:02 wiki write-task: task=JOURN-21 slug=revops path=team/accounts/acme.md bytes=617
+2026/11/10 10:46:55 workflow detect JOURN-21: no recurring/end-to-end shape in corpus — skipping
+2026/11/10 10:46:55 source_capture: write note source "note-team-learnings-81f3703f": put_page "note-team-learnings-81f3703f": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 10:46:56 source_capture: write note source "note-acme-team-accounts-acme-md-06cf67b2": put_page "note-acme-team-accounts-acme-md-06cf67b2": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 10:46:56 INFO writeCompiledSkillLocked: compiled skill created name=acme-team-accounts-acme-md slug=acme-team-accounts-acme-md created_by=librarian sha=9b5bb71 owner_agents=5
+2026/11/10 10:49:03 scheduler: dispatched 2 due job(s)
+2026/11/10 10:49:18 wiki write-task: task=JOURN-30 slug=cos path=team/reviews/JOURN-21.md bytes=2668
+2026/11/10 10:49:27 workflow detect JOURN-30: no recurring/end-to-end shape in corpus — skipping
+2026/11/10 10:49:28 source_capture: write note source "note-team-learnings-5c32e187": put_page "note-team-learnings-5c32e187": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 10:49:29 source_capture: write note source "note-acme-team-accounts-acme-md-06cf67b2": put_page "note-acme-team-accounts-acme-md-06cf67b2": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 10:49:43 scheduler: dispatched 1 due job(s)
+2026/11/10 10:50:03 wiki write-task: task=JOURN-23 slug=ae path=team/emails/acme-renewal-followup.md bytes=910
+2026/11/10 10:50:23 scheduler: heartbeat (uptime=10m0s, poll=20s)
+2026/11/10 10:53:29 wiki write-task refused: task=JOURN-23 slug=cos path=team/emails/acme-renewal-followup.md: task JOURN-23 is owned by ae, not cos
+2026/11/10 10:54:16 workflow detect JOURN-23: no recurring/end-to-end shape in corpus — skipping
+2026/11/10 10:54:18 source_capture: write note source "note-team-learnings-4076a725": put_page "note-team-learnings-4076a725": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 10:54:18 source_capture: write note source "note-acme-48-team-emails-acme-renewal-followup-md-fe8f72c4": put_page "note-acme-48-team-emails-acme-renewal-followup-md-fe8f72c4": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 10:54:19 INFO enhanceSkillLocked: skill enhanced name=acme-team-accounts-acme-md slug=acme-team-accounts-acme-md
+2026/11/10 10:54:19 INFO writeCompiledSkillLocked: enhanced existing skill candidate=acme-48-team-emails-acme-renewal-followup-md existing=acme-team-accounts-acme-md tier=2
+2026/11/10 10:56:32 wiki write-task: task=JOURN-46 slug=cos path=team/reviews/JOURN-23.md bytes=3584
+2026/11/10 10:56:42 workflow detect JOURN-46: no recurring/end-to-end shape in corpus — skipping
+2026/11/10 10:56:42 source_capture: write note source "note-team-learnings-a5a9e62c": put_page "note-team-learnings-a5a9e62c": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 10:56:43 source_capture: write note source "note-acme-48-team-emails-acme-renewal-followup-md-fe8f72c4": put_page "note-acme-48-team-emails-acme-renewal-followup-md-fe8f72c4": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 10:56:44 INFO enhanceSkillLocked: skill enhanced name=acme-team-accounts-acme-md slug=acme-team-accounts-acme-md
+2026/11/10 10:56:44 INFO writeCompiledSkillLocked: enhanced existing skill candidate=acme-48-team-emails-acme-renewal-followup-md existing=acme-team-accounts-acme-md tier=2
+2026/11/10 10:57:43 wiki write-task refused: task=JOURN-46 slug=cos path=team/reviews/JOURN-23.md: task is already closed: JOURN-46 is done
+2026/11/10 11:00:23 scheduler: heartbeat (uptime=20m0s, poll=20s)
+2026/11/10 11:02:14 wiki write-task refused: task=JOURN-46 slug=cos path=team/reviews/JOURN-23.md: task is already closed: JOURN-46 is done
+2026/11/10 11:09:03 scheduler: dispatched 1 due job(s)
+2026/11/10 11:10:06 INFO enhanceSkillLocked: skill enhanced name=acme-team-accounts-acme-md slug=acme-team-accounts-acme-md
+2026/11/10 11:10:06 INFO writeCompiledSkillLocked: enhanced existing skill candidate=acme-48-team-emails-acme-renewal-followup-md existing=acme-team-accounts-acme-md tier=2
+2026/11/10 11:10:23 scheduler: heartbeat (uptime=30m0s, poll=20s)
+2026/11/10 11:20:23 scheduler: heartbeat (uptime=40m0s, poll=20s)
+2026/11/10 11:26:08 wiki write-task refused: task=JOURN-23 slug=cos path=team/emails/wrong-path-probe.md: task JOURN-23 is owned by ae, not cos
+2026/11/10 11:26:08 wiki write-task refused: task=JOURN-23 slug=cos path=team/emails/acme-renewal-followup-v2.md: task JOURN-23 is owned by ae, not cos
+2026/11/10 11:26:08 source_capture: write task source "task-journ-14": put_page "task-journ-14": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 11:26:17 broker: wiki promotion for task "JOURN-14" failed: wiki: article already exists at "team/decisions/JOURN-14.md"; use replace or append_section
+2026/11/10 11:26:17 wiki write-task refused: task=JOURN-23 slug=cos path=team/emails/wrong-path-probe.md: task JOURN-23 is owned by ae, not cos
+2026/11/10 11:26:17 wiki write-task refused: task=JOURN-23 slug=cos path=team/emails/acme-renewal-followup-v2.md: task JOURN-23 is owned by ae, not cos
+2026/11/10 11:26:17 source_capture: write task source "task-journ-14": put_page "task-journ-14": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 11:26:17 source_capture: write task source "task-journ-14": put_page "task-journ-14": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 11:26:18 broker: wiki promotion for task "JOURN-14" failed: wiki: article already exists at "team/decisions/JOURN-14.md"; use replace or append_section
+2026/11/10 11:26:43 wiki write-task: task=JOURN-70 slug=cos path=team/reviews/pin-probe.md bytes=10
+2026/11/10 11:26:44 wiki write-task: task=JOURN-73 slug=cos path=team/reviews/pin-probe-v2.md bytes=10
+2026/11/10 11:26:44 wiki write-task refused: task=JOURN-73 slug=cos path=team/reviews/not-declared.md: task JOURN-73 declares artifact_path "team/reviews/pin-probe-v2.md", not "team/reviews/not-declared.md"
