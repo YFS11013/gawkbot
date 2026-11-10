@@ -81,6 +81,18 @@ func (b *Broker) childDeliverablesLocked(task *teamTask) []string {
 	return out
 }
 
+// containsPath reports whether path already appears in a list of deliverables.
+// The parent card uses it to avoid naming the same file twice: an Issue's own
+// `artifact` is often just one of its lanes' paths, restated.
+func containsPath(paths []string, path string) bool {
+	for _, candidate := range paths {
+		if strings.TrimSpace(candidate) == path {
+			return true
+		}
+	}
+	return false
+}
+
 // hasApprovableDeliverableLocked reports whether a task has anything for the
 // human to accept: its own artifact, its own not_required declaration, or the
 // deliverables its lanes already landed. A task with none of those has nothing
@@ -141,14 +153,23 @@ func (b *Broker) raiseDecisionCardLocked(task *teamTask) string {
 	var qb strings.Builder
 	fmt.Fprintf(&qb, "%s finished %s (%s) and the review is in. Nothing else moves until you call it.\n\n", ownerLabelForPlan(from), title, task.ID)
 	lanes := b.childDeliverablesLocked(task)
+	own := strings.TrimSpace(task.Artifact)
 	switch {
-	case strings.TrimSpace(task.Artifact) != "":
-		fmt.Fprintf(&qb, "The deliverable is %s.\n", strings.TrimSpace(task.Artifact))
 	case len(lanes) > 0:
-		// An Issue is a container: name every file its lanes landed, so the
-		// human sees what they are signing off instead of one arbitrary path.
-		fmt.Fprintf(&qb, "This Issue ships no single file of its own — its lanes delivered %d:\n\n%s\n\nApproving closes the Issue with those on record.\n",
-			len(lanes), "- "+strings.Join(lanes, "\n- "))
+		// An Issue is a container: name every file its lanes landed. Journey
+		// 11 showed why the container case must win over the Issue's own
+		// artifact: cos submitted JOURN-2 for review with a single child's
+		// path as the Issue artifact, so a card that led with that field told
+		// the human "the deliverable is team/accounts/acme-renewal-quote.md"
+		// while the follow-up email sat in the same Issue, unreported.
+		fmt.Fprintf(&qb, "This Issue's lanes delivered %d file(s):\n\n%s\n", len(lanes), "- "+strings.Join(lanes, "\n- "))
+		if own != "" && !containsPath(lanes, own) {
+			fmt.Fprintf(&qb, "\nThe Issue itself also records %s.\n", own)
+		} else if own == "" {
+			qb.WriteString("\nThe Issue ships no single file of its own; those are what you are accepting.\n")
+		}
+	case own != "":
+		fmt.Fprintf(&qb, "The deliverable is %s.\n", own)
 	case strings.TrimSpace(task.ArtifactNotRequired) != "":
 		fmt.Fprintf(&qb, "The owner declared this lane ships no file (%s).\n", strings.TrimSpace(task.ArtifactNotRequired))
 	}

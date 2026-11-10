@@ -353,3 +353,62 @@ func TestDecisionCardSkippedForParentIssueWithHollowLanes(t *testing.T) {
 		t.Fatal("approving an Issue whose lanes shipped nothing must still be refused")
 	}
 }
+
+// Journey 11 (core-loop-runs/2026-11-10-journey11): the office itself stamps a
+// single lane's path onto the Issue when cos submits it for review. The card
+// then read that field first and told the human "The deliverable is
+// team/accounts/acme-renewal-quote.md" while the follow-up email sat in the same
+// Issue, unreported. An Issue is a container: when its lanes delivered, the card
+// names every one of them, and the Issue's own field is only mentioned if it
+// points somewhere the lanes did not.
+func TestDecisionCardNamesEveryLaneEvenWhenIssueCarriesOneArtifact(t *testing.T) {
+	b, taskID := seedDecisionCardParent(t)
+	b.mu.Lock()
+	parent := b.taskByIDLocked(taskID)
+	parent.Artifact = "team/accounts/acme.md"
+	b.mu.Unlock()
+
+	if err := b.EvaluateConvergence(taskID); err != nil {
+		t.Fatalf("convergence: %v", err)
+	}
+	cards := decisionCards(b)
+	if len(cards) != 1 {
+		t.Fatalf("a parent Issue whose lanes delivered owes the human a card, got %d", len(cards))
+	}
+	question := cards[0].Question
+	for _, want := range []string{"team/accounts/acme.md", "team/emails/acme-renewal-followup.md"} {
+		if !strings.Contains(question, want) {
+			t.Fatalf("the card must name every delivered lane file, missing %q in %q", want, question)
+		}
+	}
+	if strings.Contains(question, "The Issue itself also records") {
+		t.Fatalf("the Issue artifact is one of the lane files, so it must not be restated: %q", question)
+	}
+	if strings.Count(question, "team/accounts/acme.md") != 1 {
+		t.Fatalf("the card must name each file once, got %q", question)
+	}
+
+	// A gutted Issue whose own artifact is the only thing left still has to
+	// report that file, and must say it is the Issue's, not a lane's.
+	b2, taskID2 := seedDecisionCardParent(t)
+	b2.mu.Lock()
+	parent = b2.taskByIDLocked(taskID2)
+	parent.Artifact = "team/accounts/issue-level.md"
+	for i := range b2.tasks {
+		if b2.tasks[i].ParentIssueID == taskID2 {
+			b2.tasks[i].Artifact = ""
+			b2.tasks[i].ArtifactNotRequired = "review notes only, no file"
+		}
+	}
+	b2.mu.Unlock()
+	if err := b2.EvaluateConvergence(taskID2); err != nil {
+		t.Fatalf("convergence: %v", err)
+	}
+	cards = decisionCards(b2)
+	if len(cards) != 1 {
+		t.Fatalf("lanes that shipped nothing leave the Issue's own artifact as the only deliverable, got %d cards", len(cards))
+	}
+	if q := cards[0].Question; !strings.Contains(q, "team/accounts/issue-level.md") || !strings.Contains(q, "The Issue itself also records") {
+		t.Fatalf("an Issue artifact no lane claimed must still be named, got %q", q)
+	}
+}
