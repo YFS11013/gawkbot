@@ -6,6 +6,8 @@ All notable changes to WUPHF will be documented in this file.
 
 ### Fixed
 
+- The decision endpoint's container refusal (`POST /tasks/{id}/decision` with a lane's file as `artifact_path`) now writes the same `guard_refused` row the task-endpoint guards write. It was the one refusal in the family that left no trace: an approve carrying a lane's deliverable was rejected on screen and nowhere else, so the attempts an operator most needs to count — the ones a human clicks — were invisible.
+
 - `GET /tasks` with no `channel` answered `{"channel":"general","tasks":[]}` — ListTasks launders an empty channel into `general`, so an operator or script reading the bare endpoint concluded the office was idle while the work sat in another room (Journey 15 recorded seven minutes of exactly that). It now answers 400 and says what to pass instead: a channel, `all_channels=true`, or `parent_issue_id`. A parent-scoped read (`?parent_issue_id=`) is no longer channel-filtered, so sub-tasks resolve without the caller also having to pass `all_channels=true`. The web client already carried a `|| "general"` workaround for this; the server no longer needs it.
 
 ### Security

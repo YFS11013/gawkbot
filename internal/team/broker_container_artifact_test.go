@@ -119,6 +119,61 @@ func TestDecisionApproveRefusesALanePathAsTheIssueArtifact(t *testing.T) {
 	if task := b.TaskByID(issueID); task.LifecycleState == LifecycleStateApproved {
 		t.Fatal("a refused approve must not terminalize the Issue")
 	}
+	// The Approve button is a second door onto the same container rule, and an
+	// attempt is the event an operator needs to count. Until this row existed
+	// the decision path refused silently: guard exercise 2026-11-10 left three
+	// refusals with no trace on the task-endpoint side, the fix covered those
+	// three call sites, and this one — the one a human clicks — stayed dark
+	// (noted in that run's observations §7).
+	rows := 0
+	for _, action := range b.Actions() {
+		if action.Kind != "guard_refused" || action.RelatedID != issueID {
+			continue
+		}
+		rows++
+		if !strings.Contains(action.Summary, "team/accounts/acme-renewal-quote.md") ||
+			!strings.Contains(action.Summary, "JOURN-40") {
+			t.Fatalf("the row must name the path and the lane that owns it, got %q", action.Summary)
+		}
+	}
+	if rows != 1 {
+		t.Fatalf("a refused approve must leave exactly one guard_refused row, got %d", rows)
+	}
+}
+
+// The row is for refusals, not for every approve: the same button on a
+// container that names no lane file must stay quiet, or the counter stops
+// meaning anything.
+func TestDecisionApproveWithoutALanePathLeavesNoGuardRow(t *testing.T) {
+	b := newTestBroker(t)
+	const issueID = "JOURN-6"
+	now := time.Date(2026, 11, 10, 9, 0, 0, 0, time.UTC).Format(time.RFC3339)
+	b.mu.Lock()
+	b.tasks = append(b.tasks,
+		teamTask{ID: issueID, Title: "Issue", Channel: "team", Owner: "cos",
+			TaskType: "issue", status: "review", CreatedBy: "cos", CreatedAt: now, UpdatedAt: now},
+		teamTask{ID: "JOURN-60", Title: "Lane", Channel: "team", Owner: "analyst",
+			ParentIssueID: issueID, status: "done", Artifact: "team/accounts/acme-renewal-quote.md",
+			CreatedAt: now, UpdatedAt: now},
+	)
+	parent := b.taskByIDLocked(issueID)
+	parent.LifecycleState = LifecycleStateDecision
+	parent.pipelineStage = "decision"
+	b.mu.Unlock()
+
+	// No delivery: the Issue ships no file of its own, its lane already did.
+	if err := b.recordTaskDecisionInternal(issueID, "approve", decisionActor{slug: "you", isHuman: true}, "",
+		DecisionDelivery{}); err != nil {
+		t.Fatalf("approving a container on its lane's delivery must work: %v", err)
+	}
+	for _, action := range b.Actions() {
+		if action.Kind == "guard_refused" && action.RelatedID == issueID {
+			t.Fatalf("a clean approve must not leave a guard_refused row: %+v", action)
+		}
+	}
+	if task := b.TaskByID(issueID); task.LifecycleState != LifecycleStateApproved {
+		t.Fatalf("the approve must terminalize the Issue, got %s", task.LifecycleState)
+	}
 }
 
 // Journey 12 (core-loop-runs/2026-11-10-journey12): refused the lane path, cos
@@ -210,7 +265,7 @@ func TestSelfHealLaneDoesNotStampItsArtifactOnTheContainer(t *testing.T) {
 			CreatedBy: "cos", CreatedAt: now, UpdatedAt: now},
 		teamTask{ID: "JOURN-70", Title: "Self-heal missing capability", Channel: "team", Owner: "cos",
 			ParentIssueID: issueID, PipelineID: "incident", status: "done",
-			Artifact: "team/accounts/acme-renewal-quote.md",
+			Artifact:  "team/accounts/acme-renewal-quote.md",
 			CreatedBy: "cos", CreatedAt: now, UpdatedAt: now},
 	)
 	b.mu.Unlock()
