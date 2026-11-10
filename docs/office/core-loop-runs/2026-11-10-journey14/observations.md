@@ -20,6 +20,10 @@
 | 10:34 前后 | cos 自己诊断出问题（msg-50）：**「校验卡在 artifact（工作区文件）上，而交付物是 wiki 文章。改用 define 把校验方式修正为 none。」** 但 `define` 的 `task.Verification != nil` 分支静默拒绝了替换，lane 的 `verification` 仍是 `artifact` | `messages`、`tasks` |
 | 10:38:57 | 停机前状态：三条任务 `in_progress`（`JOURN-12`/`JOURN-14` 的 `verification_result.pass=false` 仍挂在 `artifact` 上），三张卡未答 | `broker-state.json` |
 
+| 11:2x | **修复二未生效**(旧二进制):两 lane 仍 `in_progress/review`、`verification_result.pass=false`;卡片 `request-37`/`request-40` 待决。 |
+| 11:28 | 用新二进制重启 journey14 broker(`pause --force` + `resume`),并 `POST /tasks` 两次 `define`(`verification_kind=wiki_artifact`)-> 均 200,两 lane 的门被替换。**修复二真机生效。** |
+| 11:28:26 | 人工批准两张 lane 卡 -> 均 **409** `no artifact_path on the completion: pass the wiki-relative path of the deliverable` —— 卡本身不带 `artifact_path`,而 `wiki_artifact` 校验只读请求体。**新发现:lane 自己记录过的 artifact 不被校验采用**,lane 仍不可关闭。 |
+
 ## 待补
 
 - 停机（被 DoD 缺陷卡死）、归档、评分卡。

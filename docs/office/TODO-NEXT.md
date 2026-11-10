@@ -184,6 +184,9 @@ prereg `core-loop-runs/2026-11-10-journey14/prereg.md`，被测 `6caf6cf`（+自
 - **这一轮证不了**：父 Issue 的容器 409（V1）、父决策卡（V3/V4）、人工批准闭环（V5）、bot 关闭门（V7）——**都被 lane 卡死拖住了**。修复后才有 J15。
 - **处置**：lane 卡死属于产品缺陷而非场景问题，J14 停机归档；修复（schema + 失败 gate 可替换）经全量测试后部署，**J15 用修好的二进制重跑同一场景**。
 
+- **第三处修补(同轮真机)**:重启 broker + `define` 换 `wiki_artifact` 之后,人工点 lane 卡仍 409 `no artifact_path on the completion` —— 卡批准不带 `artifact_path`,校验只读请求体。已改为回落到任务已记录的 `Artifact`(显式值仍优先);什么都没记录仍 fail closed。**J14 的 lane 卡在部署这一版后才可能真正通过。**
+- **下一步**:部署后 approve 两张 lane 卡 -> lane done -> cos 提交父 Issue -> 验证 V1(父 `submit_for_review` 不带 artifact_path)/V3(父卡出现且 `artifact=null`)/V4/V5(人工点卡 -> 父关)。这是聚合谓词的**第一次**真机机会。
+
 ### Journey 13 复核（2026-11-10，形状没钉死，模型把两份交付物塞进一个文件、一条 lane 都没拆）
 
 prereg `core-loop-runs/2026-11-10-journey13/prereg.md`，被测 `6caf6cf`，判分 `…/journey13/scorecard.md`（独立子代理，含操作员勘误）。场景同 J12，模型 `opencode-go/longcat-2.5-free`。
