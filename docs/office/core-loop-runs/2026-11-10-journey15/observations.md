@@ -74,5 +74,5 @@
 ## 5 判据外发现（本轮记录、未修）
 
 - **D1 裸 `GET /tasks` 静默落到 `general`**（§1 14:41–14:44 行）。与 `GET /requests` 同一类「没有默认房间却答得很自信」；本轮已修（`a7ec9f8`：裸列表 400 并点名三种读法，`?parent_issue_id=` 不再被频道过滤）。
-- **D2 lane 决策卡是装饰性的**：`14:53:50` 两条 lane 已进 `decision` 且 `artifact` 已写好、`request-31`/`request-34` 已发；`14:54:40`（人批之前）两条 lane 变成 `done/approved`——`task review: no reviewer available (owner "cos")` 之后它们自己走完了。人的批准 `14:55:09` 落在已关闭的 lane 上。也就是说 **lane 层的人工确认仍是空的**，只有容器那一步真的需要人（J12 记的是「lane 根本没卡」，本轮是「有卡但卡追不上关闭」）。
+- **D2 lane 决策卡是装饰性的**：`14:53:50` 两条 lane 已进 `decision` 且 `artifact` 已写好、`request-31`/`request-34` 已发；`14:54:40`（人批之前）两条 lane 变成 `done/approved`——`task review: no reviewer available (owner "cos")` 之后它们自己走完了。人的批准 `14:55:09` 落在已关闭的 lane 上。也就是说 **lane 层的人工确认仍是空的**，只有容器那一步真的需要人（J12 记的是「lane 根本没卡」，本轮是「有卡但卡追不上关闭」）。 **（已修：`b.cancelRequestsForClosedTaskLocked` 现在也在 `MutateTask` 的终态分支里调用，测试 `TestCompletingALaneClosesItsOrphanedDecisionCard`；本例是这条路径漏掉清理的真机证据）**
 - **D3 `definition-gap:` 追问把已授予的 scope 当缺口**：`request-19`/`request-22` 都在问「wiki 写入权限」，而同一时刻 `artifact_scope` 已授予、lane 也已写完文件。两卡至今 `pending`，无人需要（J13 已知形状，本轮第四次复现）。

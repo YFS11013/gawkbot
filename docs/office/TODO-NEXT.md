@@ -205,7 +205,7 @@ prereg `6c91bfd`（开跑前单独提交），被测 `8f0cee0`，判分 `core-lo
 - **干预 4 次 vs 预算 3 次**：事实采访 → 计划卡 → 两张 lane 卡 → 父卡。prereg 没给 lane 卡留位，而它是产品固定流程（且两张都批在 lane 自己关闭之后，等于空操作）。下一轮预算按「事实 + 计划 + lane 卡 + 父卡」写。
 - **判据外发现**：
   - **裸 `GET /tasks` 落到 `general`（已修 `a7ec9f8`）**：`ListTasks` 把空 channel 洗成 `general`，裸列表永远答 `{"channel":"general","tasks":[]}`；Journey 15 的观察脚本因此连续读到「0 个任务」而 `JOURN-1` 就在 `cos__human`。现在裸列表 400 并点名三种读法，`?parent_issue_id=` 不再被频道过滤。与 `GET /requests` 同一类：**没有默认房间就必须报错**。
-  - **lane 决策卡追不上 lane 自己的关闭（未修）**：两条 lane `14:53:50` 进 `decision`、卡已发，`14:54:40`（人批之前）已是 `done/approved`（`task review: no reviewer available (owner "cos")`）。**lane 层的人工确认仍是空的**，只有容器那一步真需要人。
+  - **lane 决策卡追不上 lane 自己的关闭（已修 `01bfcb8` 之后）**：两条 lane `14:53:50` 进 `decision`、卡已发，`14:54:40`（人批之前）已是 `done/approved`（`task review: no reviewer available (owner "cos")`），人的批准落在已关闭的 lane 上。根因不是「无 reviewer 自动通过」——`TransitionLifecycle` 自 Journey 6 起就在终态时撤卡，而 lane 走的是 `MutateTask` 的 `complete`/`approve`/`reject`/`cancel`，那条路径从没调用过 `cancelRequestsForClosedTaskLocked`。现在终态分支补上，`TestCompletingALaneClosesItsOrphanedDecisionCard`（去掉调用即红：`the lane's own card survived its close`）并断言兄弟 lane 的卡仍可答。**lane 层的人工确认**仍取决于「无 reviewer 自动通过」这条规则，未动。
   - **`definition-gap:` 把已授予的 scope 当缺口再问一遍（未修，第四次复现）**：`request-19`/`request-22` 问「wiki 写入权限」，同一时刻 `artifact_scope` 已授予、文件已写完；两卡至今 `pending`，无人需要。
 
 ### Guard exercise（2026-11-10，操作员剧本：容器守卫 V1/V1b/V7 第一次被真正踩到）

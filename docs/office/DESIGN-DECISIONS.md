@@ -635,7 +635,7 @@ J14 的评分卡把 V1/V7 判成**未观察**——模型那一轮自发走了�
 **判据外的三处（本轮查、只修了一处）**：
 
 1. **裸 `GET /tasks` 静默落到 `general`** → 已修（`a7ec9f8`）。`ListTasks` 把空 channel 洗成 `general`，于是裸列表永远答 `{"channel":"general","tasks":[]}`。Journey 15 的操作员脚本因此连续读到「0 个任务」而 `JOURN-1` 就在 `cos__human`；web 客户端早就带了 `|| "general"` 的绕法并留了注释。现在裸列表 400 并点名三种读法（channel / `all_channels=true` / `parent_issue_id`），`?parent_issue_id=` 不再被频道过滤。与 §9.24 末尾 `GET /requests` 同一类：**没有默认房间就必须报错，不能落到一个死房间还答得很自信**。
-2. **lane 决策卡追不上 lane 自己的关闭**：两条 lane `14:53:50` 进 `decision`、卡已发，`14:54:40`（人批之前）它们已是 `done/approved`（`task review: no reviewer available (owner "cos")`），人的批准落在已关闭的 lane 上。也就是说 **lane 层的人工确认仍是空的**，只有容器那一步真的需要人。未修：这是 §9.22 谓词「有交付物才发卡」与「无 reviewer 自动通过」两条规则的交界，改哪一边都要先定「lane 算不算需要人」。
+2. **lane 决策卡追不上 lane 自己的关闭 → 已修（`01bfcb8` 之后）**：两条 lane `14:53:50` 进 `decision`、卡已发，`14:54:40`（人批之前）它们已是 `done/approved`（`task review: no reviewer available (owner "cos")`），人的批准落在已关闭的 lane 上。根因不是「无 reviewer 自动通过」，而是**两条关闭路径的清理不对称**：`TransitionLifecycle` 自 Journey 6 起在终态时调 `cancelRequestsForClosedTaskLocked`，而 lane 实际走的是 `MutateTask` 的 `complete`/`approve`/`reject`/`cancel`，那条路径一次都没调过——同一份状态有两条收尾路径，只有一条记得撤卡。现在 `MutateTask` 的终态分支也调，`TestCompletingALaneClosesItsOrphanedDecisionCard` 钉住「自己的卡被撤、兄弟 lane 的卡还能答」（去掉调用即红：`the lane's own card survived its close`）。**仍然成立的一半**：lane 层的人工确认本身仍由「无 reviewer 自动通过」决定，这一层要不要人拍板是产品问题，没有动。
 3. **`definition-gap:` 把已授予的 scope 当缺口再问一遍**（`request-19`/`request-22` 问「wiki 写入权限」，同一时刻 `artifact_scope` 已授予、文件已写完）。J13 起第四次复现，未修。
 
 **干预 4 次 vs 预算 3 次**：事实采访 → 计划卡 → 两张 lane 卡 → 父卡。prereg 的预算没给 lane 卡留位，而 lane 卡是产品固定流程；下一轮预算按「事实 + 计划 + lane 卡 + 父卡」写。
