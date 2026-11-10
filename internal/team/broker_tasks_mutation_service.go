@@ -1305,14 +1305,33 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 			// the CEO dropped a human-stated DoD anyway, the conservative
 			// deriver (task_dod_derive.go) backstops it from the criteria
 			// text and stamps the action log.
-			if task.Verification == nil {
+			//
+			// Journey 14 (core-loop-runs/2026-11-10-journey14): a lane was
+			// created with verification_kind=artifact and a wiki-relative spec,
+			// so its own deliverable could never satisfy the gate — the human's
+			// approve 409'd forever, and the model's diagnosis ("校验卡在 artifact
+			// （工作区文件）上，而交付物是 wiki 文章。改用 define 把校验方式修正为
+			// none") was silently ignored because a re-define could not touch an
+			// established gate. A gate that has already FAILED is not an
+			// established gate worth protecting: let the re-define replace it,
+			// and record the swap in the action log so the change is visible.
+			verificationReplaceable := task.Verification == nil ||
+				(task.VerificationResult != nil && !task.VerificationResult.Pass)
+			prevVerification := task.Verification
+			if verificationReplaceable {
 				if defVerification != nil {
 					task.Verification = defVerification
+				} else if task.Verification != nil {
+					task.Verification = nil
 				} else if derived := deriveTaskVerificationFromDefinition(def); derived != nil {
 					task.Verification = derived
 					b.appendActionLocked("verification_derived", "office", taskChannel, "system",
 						truncateSummary("verification auto-derived from DoD: "+derived.Spec, 140), task.ID)
 				}
+			}
+			if !sameVerification(prevVerification, task.Verification) {
+				b.appendActionLocked("verification_replaced", "office", taskChannel, actor,
+					truncateSummary(fmt.Sprintf("verification %s -> %s", verificationLabel(prevVerification), verificationLabel(task.Verification)), 140), task.ID)
 			}
 			appendDetails = true
 		case "reject":

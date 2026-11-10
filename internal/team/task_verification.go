@@ -107,6 +107,23 @@ func normalizeTaskVerification(kind, spec string, required bool) (*TaskVerificat
 	return &TaskVerification{Kind: kind, Spec: spec, Required: required}, nil
 }
 
+// sameVerification reports whether two gates are the same check. Used to log a
+// real change when a re-define replaces a failed gate (Journey 14).
+func sameVerification(a, b *TaskVerification) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return a.Kind == b.Kind && a.Spec == b.Spec && a.Required == b.Required
+}
+
+// verificationLabel renders a gate for the action log; "none" means no gate.
+func verificationLabel(v *TaskVerification) string {
+	if v == nil {
+		return "none"
+	}
+	return v.Kind + " " + v.Spec
+}
+
 // runTaskVerification executes a verification check. It MUST be called
 // without b.mu held. workDir is the directory the task's work actually
 // lives in — its worktree, or the owner's bot scratch dir when the task
