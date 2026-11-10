@@ -537,6 +537,46 @@ Journey 9 的 26 分钟静默（F-H）不是因为没人干活、也不是调度
 
 **判读口径补充**（进 `core-loop-runs/README.md` §6）：`/wiki/write-task` 的 200 只证明「入队并提交了某次写」，不证明「这个路径上有文件」。验收任务产物一律以「盘上文件 + 完成门放行」为准，日志里的 `bytes=` 不是证据。
 
+### 9.23 Journey 11：卡发了，但只点了一个文件——Issue 的 `artifact` 被自己的 lane 顶替（2026-11-10）
+
+**赛前**：被测 `54ad984`（§9.22 的聚合谓词）。prereg 写死 V1–V7 / F-a…F-f，点击预算 2 次。评分卡由独立子代理写（`core-loop-runs/2026-11-10-journey11/scorecard.md`），记录者只写时间线（`observations.md`）。模型 `opencode-go/longcat-2.5-free`，broker :7910 / web :7911，隔离 home `C:\Users\ireke\.wuphf-spaces\journey11`。
+
+**结论**（逐条见评分卡 §1）：
+
+| 项 | 结论 | 本轮唯一证据 |
+|---|---|---|
+| V1 卡出现 | 通过 | `JOURN-2` 04:24:27Z 进 `decision`，`request-83`（`dedupe_key=decision:JOURN-2`）04:24:51Z 出现，间隔 24 秒 |
+| V2 点名全部交付物 | **失败** | 卡正文 `The deliverable is team/accounts/acme-renewal-quote.md.`——只一条，缺 `team/emails/acme-renewal-followup.md` |
+| V3 不阻塞 | 通过 | 卡上 `blocking`/`required` 均 null，`pending_interview=null` |
+| V4 点击落地 | 通过 | 04:25:00 点 `approve_decision` → 200；`JOURN-2` 04:25:06 `done/approved`；wiki commit `002deee`（12:25:01+08:00）落 `team/decisions/JOURN-2.md` 10 行 |
+| V5 不再 409 | 通过 | 点击未带 `artifact_path`，无 409 |
+| V6 不撒谎 | 部分 | `hollow_completion=null` 通过；`artifact` 被写成某条 lane 的路径 |
+| V7 回归 | 通过 | 计划卡唯一、`task_not_decomposed` 0 条、3 条 lane 与实际一致、两条声明路径与落盘逐字一致（`0f9d1af` 582 B、`8e8f10c` 955 B） |
+| F-d 新谎 | 触发 | 同 V6 |
+
+**这一轮最值钱的发现**：父 Issue 进 `decision` 时**自己的 `artifact` 已经有值**——`team/accounts/acme-renewal-quote.md`，是 cos 在 `submit_for_review` 时把其中一条 lane 的路径当成 Issue 的交付物报上去的。于是：
+
+1. 旧谓词（只读自己的两个字段）同样会发卡——**§9.22 的聚合分支没有被真机锻炼**，它只在进程内测试里被证明（`TestDecisionCardRaisedForParentIssueWithDeliveredLanes`）；
+2. 卡先读 `task.Artifact` 再退回 lane 列表，所以正文只说了一个文件——**代码自己把「Issue 产出了什么」压缩成一条 lane 的路径**，这正是 §9.22 明确否决的写法，只是这次是模型写进去的，不是代码。
+
+**修法**（`broker_decision_card.go`）：卡片正文里「是不是容器」优先于「自己有没有 artifact」——
+
+- `len(childDeliverablesLocked(task)) > 0` → 逐条列出各 lane 落下的文件；
+- 自己的 `Artifact` 若不在该列表里（没有 lane 认领）→ 追加一句 `The Issue itself also records <path>.`；
+- 自己的 `Artifact` 恰是其中一条 → 不重复点名（`containsPath`）；
+- 只有当自己既无 lane 交付也无 lane 记录时，才退回旧的两句（`The deliverable is …` / `ships no file`）。
+
+回归：`TestDecisionCardNamesEveryLaneEvenWhenIssueCarriesOneArtifact`（父 Issue 带一条 lane 路径时正文必须出现两条、且不重复）。**双向实证**：把分支顺序换回 `own != ""` 优先 → 报 `the card must name every delivered lane file, missing "team/emails/acme-renewal-followup.md"`，正文与本轮真机逐字同形。
+
+**没修、下一轮要决定的**：
+
+- **`submit_for_review(artifact_path)` 允许给容器任务盖单文件戳**。这是 F-d 的源头：任一条 lane 的路径都能变成 Issue 的「交付物」，而 `hollowChildrenBlockingParentLocked`、频道卡、wiki promotion 都读这个字段。可选：容器任务拒收 `artifact_path`；或改成 `artifacts[]` 多值。本轮只把卡的读法改对，没动写入路径。
+- **QA lane 的假阴性（模型行为，不是代码）**：`JOURN-26` 04:13:59 `status=ok final_chars=945` 断言两份交付物「在 wiki、notebook、artifact 和全库检索中均不存在」，而同一时刻 `/wiki/read?path=…&reader=reviewer` 返 200、`/wiki/search?pattern=Acme` 命中该路径。它的自述里写了「Reading both deliverables now」，然后给出相反结论——**声明做过检查、实际没读到正文**。`team_wiki_search` 的 `pattern` 必填（传 `query` 得 `400 pattern is required`）是一个真实的契约陷阱，值得下一轮改成接受别名并在空结果里回「searched N articles, 0 hits」而不是 `[]`。
+- **人写不进 bot 私有频道**：`POST /tasks/JOURN-26/comment` → **500 `{"error":"failed to post message"}`**（该 lane 的频道是 `cos__reviewer`）。错误不回原因，人类只能改道父 Issue 的 `cos__human`。这是接口缺陷，不是模型行为。
+- **干预 6 次 ≫ 预算 2 次**：语言采访 1、计划卡 1、`JOURN-22`/`JOURN-24` 两张 lane 卡各 1、取消 `JOURN-26` 1、父 Issue 留言（更正 QA 前提 + 催 `submit_for_review`）1。lane 卡是新增的（J10 没有任何 lane 进 decision），说明 office 模式下的 lane 现在也会停人——预算要按「每 lane 一张卡」重算。
+
+**J10 与 J11 的机制差异**：J10 父 Issue 进 `decision` 无卡（F-I）；J11 有卡、能点、能闭环。J10 没有 lane 进 `decision`；J11 的 `JOURN-22`/`JOURN-24` 都走了 `review → decision → approved`（`taskNeedsStructuredReview` 判真），因为这一轮拆了带 reviewer 的 lane。
+
 ### 9.22 Journey 10：卡没发出来，不是「没到 decision」，是「Issue 没有自己的文件」（2026-11-10）
 
 **赛前**：`crouton-alpha-free` 被上游撤掉（§9.21），换 `opencode-go/longcat-2.5-free`；prereg §1.1 写明跨轮可比性代价。被测提交 `52456d3`（+ `76e6171`、`fdb6fa8`）。评分卡由独立子代理写（`core-loop-runs/2026-11-10-journey10/scorecard.md`），记录者只写时间线（`observations.md`）。

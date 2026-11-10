@@ -13,6 +13,21 @@ All notable changes to WUPHF will be documented in this file.
 
 ### Fixed
 
+- **A decision card for an Issue now names every file its lanes shipped, even
+  when the Issue carries one of those paths as its own `artifact`.** Journey 11
+  (`core-loop-runs/2026-11-10-journey11`): the parent Issue's card appeared 24
+  seconds after `JOURN-2` entered `decision` and the click landed, but the card
+  read `The deliverable is team/accounts/acme-renewal-quote.md.` — one file,
+  while `team/emails/acme-renewal-followup.md` sat in the same Issue,
+  unreported. Cause: cos submitted the Issue for review with one child's path as
+  the Issue `artifact`, and the card preferred that field over the lanes. The
+  card now treats a task with delivered children as a container: it lists every
+  lane's file, mentions the Issue's own path only when no lane claims it, and
+  never names the same file twice. Test
+  `TestDecisionCardNamesEveryLaneEvenWhenIssueCarriesOneArtifact`; with the old
+  branch order restored it fails with the live wording
+  (`the card must name every delivered lane file, missing
+  "team/emails/acme-renewal-followup.md"`).
 - **An Issue whose lanes all shipped now has something to click, and approving
   it no longer demands a file the Issue does not have.** Journey 10
   (`core-loop-runs/2026-11-10-journey10`, F-I): the parent Issue `JOURN-14`

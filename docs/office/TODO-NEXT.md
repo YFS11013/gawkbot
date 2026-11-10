@@ -137,6 +137,22 @@ prereg `4863c50`，被测 `690b601`（运行时等同 `000c4b7`），判分 `cor
   - **D5（中，判据问题非代码）** V5 照抄 J8 的「403 点名 creator」，但 J9 探针命中的是路径不匹配分支，那一支本来就只点名两条路径（见 §9.17）。判据应按探针实际命中分支写。
 - **本轮证不了**：CJK 去重的真阳性（场景里只有 0.875 的近 miss 与精确标题拦截）；规划者在场景内被 `ra_` 拒绝后自修正；人类确认链闭环（父 Issue 停表时仍 `in_progress`）。
 
+### Journey 11 复核（2026-11-10，父 Issue 的卡出现了，但只点名一个文件）
+
+prereg `0c2d1ac`，被测 `54ad984`，判分 `core-loop-runs/2026-11-10-journey11/scorecard.md`（独立子代理）。场景同 J10，模型 `opencode-go/longcat-2.5-free`。
+
+- **站住的**：
+  - **父 Issue 的卡真的会发、真的能点**：`JOURN-2` 04:24:27Z 进 `decision`，`request-83` 04:24:51Z 出现（24 秒），04:25:00 点 `approve_decision` → 200，04:25:06 `done/approved`，wiki 落 `team/decisions/JOURN-2.md`（`002deee`）。J10 的 F-I 没有复现。
+  - **lane 也会进 decision 并停人**：`JOURN-22`/`JOURN-24` 各自出现 `decision:` 卡并被点击批准；J10 一条都没有。
+  - **回归**：计划卡唯一、`task_not_decomposed` 0 条、声明路径与落盘逐字一致。
+- **没站住的**：
+  - **D2 的正文口径（中）→ 已修。** 卡只写了 `The deliverable is team/accounts/acme-renewal-quote.md.`，因为 cos 在 `submit_for_review` 时把一条 lane 的路径盖成了 Issue 的 `artifact`，而卡片先读这个字段。现在「容器」优先于「自己的 artifact」：有 lane 交付就逐条列出，自己的路径只在没有 lane 认领时追加一句。回归 `TestDecisionCardNamesEveryLaneEvenWhenIssueCarriesOneArtifact`（反向改回分支顺序即失败）。**注意：§9.22 的聚合谓词这一轮没被真机锻炼**（父 Issue 进 decision 时已有 artifact），只有进程内测试证明。
+  - **`submit_for_review(artifact_path)` 给容器盖单文件戳（中，未修）**：F-d 的源头在写入侧，不在读取侧。可选修法见 §9.23。
+  - **`/tasks/{id}/comment` 对 bot 私有频道 500（中，未修）**：`JOURN-26` 的频道是 `cos__reviewer`，人类写不进去，只回 `failed to post message`。
+  - **QA lane 假阴性（模型行为，未修）**：`JOURN-26` 断言两份交付物「全库不存在」，同一时刻 `/wiki/read?reader=reviewer` 返 200。`team_wiki_search` 的 `pattern` 必填是真实契约陷阱（传 `query` → `400 pattern is required`），且空结果回 `[]`，容易被读成「不存在」。
+  - **干预 6 次 vs 预算 2 次**：多出来的是两张 lane 卡与一次 QA 取消。下一轮预算按「每 lane 一张卡」重算。
+- **这一轮证不了**：`task_not_decomposed` 的提醒路径、撞写范围守卫、`ra_` 收 done——场景内 0 次。
+
 ### Journey 10 复核（2026-11-10，父 Issue 的 decision 卡）
 
 prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（+ `76e6171`、`fdb6fa8`），判分 `core-loop-runs/2026-11-10-journey10/scorecard.md`（独立 reviewer）。场景与 J7/J8/J9 逐字相同，模型换成 `opencode-go/longcat-2.5-free`（`crouton-alpha-free` 被上游撤掉，§9.21）。

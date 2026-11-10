@@ -1,0 +1,382 @@
+commit 2fa32d7fa4b320121853dbf10e1feaaf7ba01cf1
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 12:25:04 +0800
+
+    archivist: entity article companies/dana-vp-ops (1 facts)
+
+ index/all.md                  |  1 +
+ team/companies/dana-vp-ops.md | 37 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 38 insertions(+)
+
+commit 5eb53eca15ef3f2d9504b62d7446466411b6c4f8
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 12:25:03 +0800
+
+    archivist: entity article companies/vp-ops (3 facts)
+
+ index/all.md             |  2 +-
+ team/companies/vp-ops.md | 13 ++++++++-----
+ 2 files changed, 9 insertions(+), 6 deletions(-)
+
+commit c3ff6f535fdbb35f91513464f69b1950af7b6f1e
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 12:25:03 +0800
+
+    graph: companies/dana-vp-ops → 1 ref(s)
+
+ team/entities/.graph.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 4232ac77a6d91da8555c8fc431dae4cec1cb8538
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 12:25:03 +0800
+
+    fact: companies/dana-vp-ops — Completed task JOURN-2 ("Journey 11: Acme 续约报价与跟进") involved this entity. Goal: Journey 11: Acme 续约报价与跟进. Produced artifact: team/accounts/acme-renewal-quote.md. Co-occurring entities: [[companies/vp-ops]].
+
+ team/entities/companies-dana-vp-ops.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 9974ac926e8299324cc5400f2d301f2836fdc90b
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 12:25:02 +0800
+
+    graph: companies/vp-ops → 1 ref(s)
+
+ team/entities/.graph.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 300080204d1eb7cab8e3f738cc91c54092064e76
+Author: cos <cos@wuphf.local>
+Date:   2026-11-10 12:25:01 +0800
+
+    fact: companies/vp-ops — Completed task JOURN-2 ("Journey 11: Acme 续约报价与跟进") involved this entity. Goal: Journey 11: Acme 续约报价与跟进. Produced artifact: team/accounts/acme-renewal-quote.md. Co-occurring entities: [[companies/dana-vp-ops]].
+
+ team/entities/companies-vp-ops.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 002deee26c4057eaa3b75a5a4ab20c118a84eb1f
+Author: system <system@wuphf.local>
+Date:   2026-11-10 12:25:01 +0800
+
+    decision: promote JOURN-2 on approval
+
+ index/all.md              |  1 +
+ team/decisions/JOURN-2.md | 10 ++++++++++
+ 2 files changed, 11 insertions(+)
+
+commit 20a12ee4e21109d8371eecddc539e860585c7437
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 12:13:18 +0800
+
+    archivist: entity article companies/vp-ops (2 facts)
+
+ index/all.md             |  2 +-
+ team/companies/vp-ops.md | 14 ++++++++------
+ 2 files changed, 9 insertions(+), 7 deletions(-)
+
+commit f6f91db94a54e472cd98e0657da02616048b5e19
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 12:13:18 +0800
+
+    archivist: entity article companies/draft-acme (2 facts)
+
+ index/all.md                 |  2 +-
+ team/companies/draft-acme.md | 14 ++++++++------
+ 2 files changed, 9 insertions(+), 7 deletions(-)
+
+commit 621060cef6831bface2a2c9fd282d2fca1c3f4ee
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 12:13:17 +0800
+
+    graph: companies/vp-ops → 1 ref(s)
+
+ team/entities/.graph.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit a09c15b7de869dc49c5eeeb08845a6c62225fc7b
+Author: ae <ae@wuphf.local>
+Date:   2026-11-10 12:13:17 +0800
+
+    fact: companies/vp-ops — Completed task JOURN-24 ("Draft Acme renewal follow-up email") involved this entity. Goal: Draft Acme renewal follow-up email. Produced artifact: team/emails/acme-renewal-followup.md. Co-occurring entities: [[companies/draft-acme]].
+
+ team/entities/companies-vp-ops.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit ff881ff8f17776192f9668525685d424a5c3593f
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 12:13:17 +0800
+
+    graph: companies/draft-acme → 1 ref(s)
+
+ team/entities/.graph.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 22757ea1ec5b03bf884420a4b8b9a1f7c74dc92e
+Author: ae <ae@wuphf.local>
+Date:   2026-11-10 12:13:16 +0800
+
+    fact: companies/draft-acme — Completed task JOURN-24 ("Draft Acme renewal follow-up email") involved this entity. Goal: Draft Acme renewal follow-up email. Produced artifact: team/emails/acme-renewal-followup.md. Co-occurring entities: [[companies/vp-ops]].
+
+ team/entities/companies-draft-acme.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit d653896bb28e849e4eddc673c940c26d47fcb4e5
+Author: system <system@wuphf.local>
+Date:   2026-11-10 12:13:15 +0800
+
+    decision: promote JOURN-24 on approval
+
+ index/all.md               |  1 +
+ team/decisions/JOURN-24.md | 10 ++++++++++
+ 2 files changed, 11 insertions(+)
+
+commit 8e8f10ccfc0f712c1cc84c3a348ba9f9e02a305a
+Author: ae <ae@wuphf.local>
+Date:   2026-11-10 12:12:16 +0800
+
+    Draft Acme renewal follow-up email to Dana (VP Ops)
+
+ index/all.md                         |  4 ++++
+ team/emails/acme-renewal-followup.md | 32 ++++++++++++++++++++++++++++++++
+ 2 files changed, 36 insertions(+)
+
+commit 9d738636aff7e5aeecb191ab83751374d701c786
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 12:11:29 +0800
+
+    archivist: entity article companies/vp-ops (1 facts)
+
+ index/all.md             |  1 +
+ team/companies/vp-ops.md | 37 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 38 insertions(+)
+
+commit ea97159ad10da2fe195f2eaab9aeac67d1f01a10
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 12:11:29 +0800
+
+    archivist: entity article companies/draft-acme (1 facts)
+
+ index/all.md                 |  4 ++++
+ team/companies/draft-acme.md | 37 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 41 insertions(+)
+
+commit cb4e5cb455cf1ed31f497bc99ef916a2e66483c9
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 12:11:29 +0800
+
+    graph: companies/vp-ops → 1 ref(s)
+
+ team/entities/.graph.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 9f2de0a1ca9ef9899fa021c4ed526db3208f9bfe
+Author: analyst <analyst@wuphf.local>
+Date:   2026-11-10 12:11:28 +0800
+
+    fact: companies/vp-ops — Completed task JOURN-22 ("Draft Acme renewal quote one-pager") involved this entity. Goal: Draft Acme renewal quote one-pager. Produced artifact: team/accounts/acme-renewal-quote.md. Co-occurring entities: [[companies/draft-acme]].
+
+ team/entities/companies-vp-ops.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit d8c7b21992fcc0a515d140d358ed7bbdb2339925
+Author: archivist <archivist@wuphf.local>
+Date:   2026-11-10 12:11:28 +0800
+
+    graph: companies/draft-acme → 1 ref(s)
+
+ team/entities/.graph.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 0c1dec2e7f2d46cb868845c34b65b6890b1b9eac
+Author: analyst <analyst@wuphf.local>
+Date:   2026-11-10 12:11:27 +0800
+
+    fact: companies/draft-acme — Completed task JOURN-22 ("Draft Acme renewal quote one-pager") involved this entity. Goal: Draft Acme renewal quote one-pager. Produced artifact: team/accounts/acme-renewal-quote.md. Co-occurring entities: [[companies/vp-ops]].
+
+ team/entities/companies-draft-acme.facts.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 1c3f8b02e13db141e76ab70df848733fffcda1d3
+Author: system <system@wuphf.local>
+Date:   2026-11-10 12:11:27 +0800
+
+    decision: promote JOURN-22 on approval
+
+ index/all.md               |  1 +
+ team/decisions/JOURN-22.md | 10 ++++++++++
+ 2 files changed, 11 insertions(+)
+
+commit 0f9d1af1154edfee477f1d20884a8444ccd63874
+Author: analyst <analyst@wuphf.local>
+Date:   2026-11-10 12:11:03 +0800
+
+    Draft Acme renewal quote one-pager (JOURN-22)
+
+ index/all.md                        |  4 ++++
+ team/accounts/acme-renewal-quote.md | 32 ++++++++++++++++++++++++++++++++
+ 2 files changed, 36 insertions(+)
+
+commit b3a950f3257e1536a64252c954411405aa4dac47
+Author: wuphf-bootstrap <wuphf-bootstrap@wuphf.local>
+Date:   2026-11-10 12:03:25 +0800
+
+    wuphf: materialize getting-started wiki pages
+
+ index/all.md                                 | 10 ++++++++
+ team/getting-started/channels.md             | 28 +++++++++++++++++++++
+ team/getting-started/connecting-your-work.md | 32 ++++++++++++++++++++++++
+ team/getting-started/index.md                | 37 ++++++++++++++++++++++++++++
+ team/getting-started/skills-and-runtimes.md  | 28 +++++++++++++++++++++
+ team/getting-started/the-wiki.md             | 30 ++++++++++++++++++++++
+ team/getting-started/working-with-agents.md  | 31 +++++++++++++++++++++++
+ team/getting-started/your-context-graph.md   | 28 +++++++++++++++++++++
+ 8 files changed, 224 insertions(+)
+
+commit 9f80823e7180f81d0c73fa1a641dcc9f8bb6d33b
+Author: wuphf-bootstrap <wuphf-bootstrap@wuphf.local>
+Date:   2026-11-10 12:03:25 +0800
+
+    wuphf: materialize ai-revops blueprint skeletons
+
+ index/all.md                       | 20 +++++++++++++++++++-
+ team/decisions/ops-log.md          |  3 +++
+ team/hygiene/dedupe-policy.md      |  3 +++
+ team/inbox/raw-signals.md          |  3 +++
+ team/pipeline/stage-definitions.md |  3 +++
+ team/playbooks/owner-assignment.md |  3 +++
+ 6 files changed, 34 insertions(+), 1 deletion(-)
+
+commit 55b08b78f4106c5c49bf53114076e9f710c70afa
+Author: reviewer <reviewer@wuphf.local>
+Date:   2026-11-10 12:03:25 +0800
+
+    bot: seed agents/reviewer/TOOLS.md
+
+ agents/reviewer/TOOLS.md | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+commit d5a5d4ed0758189603192fbf433ebf093b0b882f
+Author: reviewer <reviewer@wuphf.local>
+Date:   2026-11-10 12:03:24 +0800
+
+    bot: seed agents/reviewer/OPERATIONS.md
+
+ agents/reviewer/OPERATIONS.md | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+commit f75e84e3f3350f04bbf4bb4e336193abb9fece07
+Author: reviewer <reviewer@wuphf.local>
+Date:   2026-11-10 12:03:24 +0800
+
+    bot: seed agents/reviewer/IDENTITY.md
+
+ agents/reviewer/IDENTITY.md | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+commit a3a31d5de7f3777e56461417ce0c0936a3030b7e
+Author: reviewer <reviewer@wuphf.local>
+Date:   2026-11-10 12:03:24 +0800
+
+    bot: seed agents/reviewer/SOUL.md
+
+ agents/reviewer/SOUL.md | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+commit af9b7f5d829eaf6c66201c39b719e0baf894b699
+Author: ae <ae@wuphf.local>
+Date:   2026-11-10 12:03:23 +0800
+
+    bot: seed agents/ae/TOOLS.md
+
+ agents/ae/TOOLS.md | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+commit ea42dc05e19241e3d47e6bd184f09c61cfd8006f
+Author: ae <ae@wuphf.local>
+Date:   2026-11-10 12:03:23 +0800
+
+    bot: seed agents/ae/OPERATIONS.md
+
+ agents/ae/OPERATIONS.md | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+commit 1309ca0d873fea22588d46edc330a14cbcd7d5f8
+Author: ae <ae@wuphf.local>
+Date:   2026-11-10 12:03:22 +0800
+
+    bot: seed agents/ae/IDENTITY.md
+
+ agents/ae/IDENTITY.md | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+commit ee18b1aa34fed191a8436f35b8cf36d411170fe3
+Author: ae <ae@wuphf.local>
+Date:   2026-11-10 12:03:22 +0800
+
+    bot: seed agents/ae/SOUL.md
+
+ agents/ae/SOUL.md | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+commit bcf8f74e22a21616c1601a430713ae225f9b18a9
+Author: analyst <analyst@wuphf.local>
+Date:   2026-11-10 12:03:21 +0800
+
+    bot: seed agents/analyst/TOOLS.md
+
+ agents/analyst/TOOLS.md | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+commit 4fdb5e747c7a9a3f1c8e1d93c495d9bc27fa9e40
+Author: analyst <analyst@wuphf.local>
+Date:   2026-11-10 12:03:21 +0800
+
+    bot: seed agents/analyst/OPERATIONS.md
+
+ agents/analyst/OPERATIONS.md | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+commit 73547d67c9aaf819be54ada1533e06aea8221d8d
+Author: analyst <analyst@wuphf.local>
+Date:   2026-11-10 12:03:21 +0800
+
+    bot: seed agents/analyst/IDENTITY.md
+
+ agents/analyst/IDENTITY.md | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+commit c156f9c82844cf1138a06650f40ac8ef8491721e
+Author: analyst <analyst@wuphf.local>
+Date:   2026-11-10 12:03:20 +0800
+
+    bot: seed agents/analyst/SOUL.md
+
+ agents/analyst/SOUL.md | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+commit 406d77249219014e2beaba0541a2d16d41fd1f91
+Author: revops <revops@wuphf.local>
+Date:   2026-11-10 12:03:20 +0800
+
+    bot: seed agents/revops/TOOLS.md
+
+ agents/revops/TOOLS.md | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+commit 45a75edbd35a900066605140f0817484b9c2dcc4
+Author: revops <revops@wuphf.local>
+Date:   2026-11-10 12:03:20 +0800
+
+    bot: seed agents/revops/OPERATIONS.md
+
+ agents/revops/OPERATIONS.md | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+commit 58a4a392b75fbf83355621b2d1d000acdd8156b0
+Author: revops <revops@wuphf.local>
+Date:   2026-11-10 12:03:19 +0800
+
+    bot: seed agents/revops/IDENTITY.md
+
+ agents/revops/IDENTITY.md | 6 ++++++
+ 1 file changed, 6 insertions(+)

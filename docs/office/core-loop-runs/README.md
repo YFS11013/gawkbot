@@ -100,6 +100,8 @@ Journey 9 出现了同一现象在两轮里结论相反、以及判据要求了�
 
 5. **`watchdog_alert` 不是「卡住」的同义词，别把它写成 0。** `processTaskJob`（小时级 `task_follow_up`）、`processRequestJob`（请求提醒）、`processPlanDecompositionCheck` 三处都先 `RecordAction("watchdog_alert", …)` **再** `deliverTask` 唤醒 owner——也就是说这一条记录同时是「我按点叫了人」。Journey 10 实测 02:49:02 两条 `action-32/33`（`@cos`/`@ae still needs to move …`）来自两条到期的 `task_follow_up`，下一行调度日志就是 `dispatched 2 due job(s)`，cos 的回合 02:49:03 起、ae 02:50:03 出稿——人叫到了，活干了。把「0 条 `watchdog_alert`」写进判据（J9 的 V4）会让任何跑得够久的健康轮次永远判红。真正「卡住」的形状是**叫不动**：`deliverTask` 返回假 → `escalateRefusedWake` 往频道写 `No turn could be dispatched to wake @owner — retrying shortly`（J3 的 02:00–02:04 四条）。判据要写「`watchdog_alert` 里有多少条带 `No turn could be dispatched`」，或直接断言「每条 `watchdog_alert` 之后 ≤2 分钟该 owner 有回合或消息」。
 
+6. **容器任务的「交付物」要按 container 读，不按字段读。** 模型会在 `submit_for_review` 时把其中**一条** lane 的路径盖成父 Issue 的 `artifact`（J11：`JOURN-2` 的 `artifact=team/accounts/acme-renewal-quote.md`，而同 Issue 的另一份 `team/emails/acme-renewal-followup.md` 也是它交付的）。所以凡是要列「这轮产出了什么」的判据（卡正文、promotion、频道摘要），都要求同时列出 `parent_issue_id` 下所有已交付子任务的 `artifact`；单个字段只当补充。J11 的 V2 就是照字段判而失败，`54ad984` 之后的卡已按容器口径写（`broker_decision_card.go`，回归 `TestDecisionCardNamesEveryLaneEvenWhenIssueCarriesOneArtifact`）。
+
 ## 7. 每次运行要留的证据
 
 `prereg.md`、`observations.md`（带时间戳的原始观察，不写结论）、任务 JSON（含 `verification`）、wiki 的 `git log` 与 artifact 原文、日志片段、`scorecard.md`、`delta-vs-<上一次>.md`。

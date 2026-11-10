@@ -1,0 +1,318 @@
+{
+ "tasks": [
+  {
+   "id": "ai-revops-1",
+   "status": "canceled",
+   "lifecycle_state": "canceled",
+   "review_state": "canceled",
+   "owner": "revops",
+   "parent_issue_id": null,
+   "artifact": null,
+   "artifact_not_required": null,
+   "hollow_completion": null,
+   "title": "Run the first CRM hygiene sweep",
+   "created_at": "2026-11-10T04:03:19Z",
+   "updated_at": "2026-11-10T04:04:51Z",
+   "completed_at": "2026-11-10T04:04:51Z"
+  },
+  {
+   "id": "ai-revops-2",
+   "status": "canceled",
+   "lifecycle_state": "canceled",
+   "review_state": "canceled",
+   "owner": "analyst",
+   "parent_issue_id": null,
+   "artifact": null,
+   "artifact_not_required": null,
+   "hollow_completion": null,
+   "title": "Establish the pipeline-truth baseline",
+   "created_at": "2026-11-10T04:03:19Z",
+   "updated_at": "2026-11-10T04:04:51Z",
+   "completed_at": "2026-11-10T04:04:51Z"
+  },
+  {
+   "id": "ai-revops-3",
+   "status": "canceled",
+   "lifecycle_state": "canceled",
+   "review_state": "canceled",
+   "owner": "ae",
+   "parent_issue_id": null,
+   "artifact": null,
+   "artifact_not_required": null,
+   "hollow_completion": null,
+   "title": "Draft the first follow-up sequence",
+   "created_at": "2026-11-10T04:03:19Z",
+   "updated_at": "2026-11-10T04:04:51Z",
+   "completed_at": "2026-11-10T04:04:51Z"
+  },
+  {
+   "id": "ai-revops-4",
+   "status": "canceled",
+   "lifecycle_state": "canceled",
+   "review_state": "canceled",
+   "owner": "reviewer",
+   "parent_issue_id": null,
+   "artifact": null,
+   "artifact_not_required": null,
+   "hollow_completion": null,
+   "title": "Set the hygiene scorecard and review cadence",
+   "created_at": "2026-11-10T04:03:19Z",
+   "updated_at": "2026-11-10T04:04:51Z",
+   "completed_at": "2026-11-10T04:04:51Z"
+  },
+  {
+   "id": "JOURN-2",
+   "status": "done",
+   "lifecycle_state": "approved",
+   "review_state": "approved",
+   "owner": "cos",
+   "parent_issue_id": null,
+   "artifact": "team/accounts/acme-renewal-quote.md",
+   "artifact_not_required": null,
+   "hollow_completion": null,
+   "title": "Journey 11: Acme 续约报价与跟进",
+   "created_at": "2026-11-10T04:03:25Z",
+   "updated_at": "2026-11-10T04:24:27Z",
+   "completed_at": null
+  },
+  {
+   "id": "JOURN-22",
+   "status": "done",
+   "lifecycle_state": "approved",
+   "review_state": "approved",
+   "owner": "analyst",
+   "parent_issue_id": "JOURN-2",
+   "artifact": "team/accounts/acme-renewal-quote.md",
+   "artifact_not_required": null,
+   "hollow_completion": null,
+   "title": "Draft Acme renewal quote one-pager",
+   "created_at": "2026-11-10T04:09:56Z",
+   "updated_at": "2026-11-10T04:11:35Z",
+   "completed_at": null
+  },
+  {
+   "id": "JOURN-24",
+   "status": "done",
+   "lifecycle_state": "approved",
+   "review_state": "approved",
+   "owner": "ae",
+   "parent_issue_id": "JOURN-2",
+   "artifact": "team/emails/acme-renewal-followup.md",
+   "artifact_not_required": null,
+   "hollow_completion": null,
+   "title": "Draft Acme renewal follow-up email",
+   "created_at": "2026-11-10T04:09:59Z",
+   "updated_at": "2026-11-10T04:13:03Z",
+   "completed_at": null
+  },
+  {
+   "id": "JOURN-26",
+   "status": "canceled",
+   "lifecycle_state": "canceled",
+   "review_state": "canceled",
+   "owner": "reviewer",
+   "parent_issue_id": "JOURN-2",
+   "artifact": null,
+   "artifact_not_required": "not_required: QA verdict only — no file deliverable; findings land as comments and an approve/request_changes decision. (cos, 2026-11-10T04:10:04Z)",
+   "hollow_completion": null,
+   "title": "QA Acme renewal deliverables",
+   "created_at": "2026-11-10T04:10:04Z",
+   "updated_at": "2026-11-10T04:23:26Z",
+   "completed_at": "2026-11-10T04:23:26Z"
+  },
+  {
+   "id": "JOURN-32",
+   "status": "canceled",
+   "lifecycle_state": "approved",
+   "review_state": "not_required",
+   "owner": "reviewer",
+   "parent_issue_id": "JOURN-2",
+   "artifact": null,
+   "artifact_not_required": "not_required: QA verdict is reported as a task comment; this lane ships no file. (cos, 2026-11-10T04:10:42Z)",
+   "hollow_completion": null,
+   "title": "QA review of Acme renewal quote brief and follow-up email",
+   "created_at": "2026-11-10T04:10:42Z",
+   "updated_at": "2026-11-10T04:13:41Z",
+   "completed_at": null
+  }
+ ],
+ "requests": [
+  {
+   "id": "request-13",
+   "status": "answered",
+   "dedupe_key": null,
+   "issue_id": null,
+   "title": "Human interview",
+   "question": "给 Dana（VP Ops）的续约跟进邮件，用哪种语言？",
+   "options": [
+    {
+     "id": "english",
+     "label": "英文",
+     "description": "Dana 是 VP Ops、SaaS 客户，英文是客户续约跟进的默认安全选择。"
+    },
+    {
+     "id": "chinese",
+     "label": "中文",
+     "description": "如果 Acme 团队以中文沟通，用中文更自然。"
+    },
+    {
+     "id": "bilingual",
+     "label": "双语",
+     "description": "英文正文 + 中文摘要，兼顾双方。"
+    },
+    {
+     "id": "something_else",
+     "label": "Something else",
+     "description": "None of these fit — write your own answer.",
+     "requires_text": true,
+     "text_hint": "Type your own answer for the team."
+    }
+   ],
+   "blocking": null,
+   "required": null,
+   "created_at": "2026-11-10T04:08:23Z",
+   "answered": {
+    "choice_id": "english",
+    "choice_text": "英文",
+    "answered_at": "2026-11-10T04:09:13Z"
+   }
+  },
+  {
+   "id": "request-18",
+   "status": "answered",
+   "dedupe_key": "plan-approval:JOURN-2",
+   "issue_id": "JOURN-2",
+   "title": "Start work on Journey 11: Acme 续约报价与跟进?",
+   "question": "@cos wants to start work on Journey 11: Acme 续约报价与跟进 (JOURN-2).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\nPlan mode — read-only this turn. Let me gather the context I need before writing the plan.Let me check the existing wiki catalog for anything related to Acme or renewals, plus any prior learnings, before I finalize the plan.计划已成形。先读完了 wiki 索引并搜索了 Acme / 续约 / 报价 / renewal，均无命中——没有现成的 Acme 账户页或续约剧本，报价说明会新建账户记录。所有数字以任务给定值为准。 # JOURN-2 执行计划：Acme 续约报价与跟进 ## 目标 为 Acme 续约产出两件客户就绪的交付物，**所有数字严格来自任务给定值，不引入任何额外假设**： 1. 一页报价说明（价格 / 范围 / 有效期 / 付款 / 决策点） 2. 48 小时内的跟进邮件草稿（收件人 Dana，VP Ops） ## 给定事实（唯一数字来源） - 客户…",
+   "options": [
+    {
+     "id": "approve",
+     "label": "Approve",
+     "description": "Green-light this and let the team execute immediately."
+    },
+    {
+     "id": "approve_with_note",
+     "label": "Approve with note",
+     "description": "Proceed, but attach explicit constraints or guardrails.",
+     "requires_text": true,
+     "text_hint": "Type the conditions, constraints, or guardrails the team must follow."
+    },
+    {
+     "id": "needs_more_info",
+     "label": "Need more info",
+     "description": "Gather more context before making the approval call."
+    },
+    {
+     "id": "reject",
+     "label": "Reject",
+     "description": "Do not proceed with this."
+    },
+    {
+     "id": "reject_with_steer",
+     "label": "Reject with steer",
+     "description": "Do not proceed as proposed. Redirect the team with clearer steering.",
+     "requires_text": true,
+     "text_hint": "Type the steering, redirect, or rationale for rejecting this request."
+    }
+   ],
+   "blocking": null,
+   "required": null,
+   "created_at": "2026-11-10T04:09:27Z",
+   "answered": {
+    "choice_id": "approve",
+    "choice_text": "Approve",
+    "answered_at": "2026-11-10T04:09:36Z"
+   }
+  },
+  {
+   "id": "request-43",
+   "status": "answered",
+   "dedupe_key": "decision:JOURN-22",
+   "issue_id": "JOURN-22",
+   "title": "Approve Draft Acme renewal quote one-pager?",
+   "question": "@analyst finished Draft Acme renewal quote one-pager (JOURN-22) and the review is in. Nothing else moves until you call it.\n\nThe deliverable is team/accounts/acme-renewal-quote.md.\nApprove and the lane closes. Send it back and the owner picks up your note as the rework.",
+   "options": [
+    {
+     "id": "approve_decision",
+     "label": "Approve",
+     "description": "Accept the deliverable and close this lane."
+    },
+    {
+     "id": "request_changes_decision",
+     "label": "Send back",
+     "description": "Hand it back to the owner with what must change.",
+     "requires_text": true,
+     "text_hint": "Type what must change before this can be accepted."
+    }
+   ],
+   "blocking": null,
+   "required": null,
+   "created_at": "2026-11-10T04:11:21Z",
+   "answered": {
+    "choice_id": "approve_decision",
+    "choice_text": "Approve",
+    "answered_at": "2026-11-10T04:11:26Z"
+   }
+  },
+  {
+   "id": "request-56",
+   "status": "answered",
+   "dedupe_key": "decision:JOURN-24",
+   "issue_id": "JOURN-24",
+   "title": "Approve Draft Acme renewal follow-up email?",
+   "question": "@ae finished Draft Acme renewal follow-up email (JOURN-24) and the review is in. Nothing else moves until you call it.\n\nThe deliverable is team/emails/acme-renewal-followup.md.\nApprove and the lane closes. Send it back and the owner picks up your note as the rework.",
+   "options": [
+    {
+     "id": "approve_decision",
+     "label": "Approve",
+     "description": "Accept the deliverable and close this lane."
+    },
+    {
+     "id": "request_changes_decision",
+     "label": "Send back",
+     "description": "Hand it back to the owner with what must change.",
+     "requires_text": true,
+     "text_hint": "Type what must change before this can be accepted."
+    }
+   ],
+   "blocking": null,
+   "required": null,
+   "created_at": "2026-11-10T04:12:51Z",
+   "answered": {
+    "choice_id": "approve_decision",
+    "choice_text": "Approve",
+    "answered_at": "2026-11-10T04:13:15Z"
+   }
+  },
+  {
+   "id": "request-83",
+   "status": "answered",
+   "dedupe_key": "decision:JOURN-2",
+   "issue_id": "JOURN-2",
+   "title": "Approve Journey 11: Acme 续约报价与跟进?",
+   "question": "@cos finished Journey 11: Acme 续约报价与跟进 (JOURN-2) and the review is in. Nothing else moves until you call it.\n\nThe deliverable is team/accounts/acme-renewal-quote.md.\nApprove and the lane closes. Send it back and the owner picks up your note as the rework.",
+   "options": [
+    {
+     "id": "approve_decision",
+     "label": "Approve",
+     "description": "Accept the deliverable and close this lane."
+    },
+    {
+     "id": "request_changes_decision",
+     "label": "Send back",
+     "description": "Hand it back to the owner with what must change.",
+     "requires_text": true,
+     "text_hint": "Type what must change before this can be accepted."
+    }
+   ],
+   "blocking": null,
+   "required": null,
+   "created_at": "2026-11-10T04:24:51Z",
+   "answered": {
+    "choice_id": "approve_decision",
+    "choice_text": "Approve",
+    "answered_at": "2026-11-10T04:25:00Z"
+   }
+  }
+ ]
+}

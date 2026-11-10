@@ -1,0 +1,160 @@
+{
+ "tasks": [
+  {
+   "id": "ai-revops-1",
+   "status": "in_progress",
+   "lifecycle_state": "running",
+   "review_state": "pending_review",
+   "owner": "revops",
+   "parent_issue_id": null,
+   "artifact": null,
+   "artifact_not_required": null,
+   "hollow_completion": null,
+   "title": "Run the first CRM hygiene sweep",
+   "created_at": "2026-11-10T04:03:19Z",
+   "updated_at": "2026-11-10T04:03:19Z",
+   "completed_at": null,
+   "definition": null
+  },
+  {
+   "id": "ai-revops-2",
+   "status": "in_progress",
+   "lifecycle_state": "running",
+   "review_state": "pending_review",
+   "owner": "analyst",
+   "parent_issue_id": null,
+   "artifact": null,
+   "artifact_not_required": null,
+   "hollow_completion": null,
+   "title": "Establish the pipeline-truth baseline",
+   "created_at": "2026-11-10T04:03:19Z",
+   "updated_at": "2026-11-10T04:03:19Z",
+   "completed_at": null,
+   "definition": null
+  },
+  {
+   "id": "ai-revops-3",
+   "status": "in_progress",
+   "lifecycle_state": "running",
+   "review_state": "pending_review",
+   "owner": "ae",
+   "parent_issue_id": null,
+   "artifact": null,
+   "artifact_not_required": null,
+   "hollow_completion": null,
+   "title": "Draft the first follow-up sequence",
+   "created_at": "2026-11-10T04:03:19Z",
+   "updated_at": "2026-11-10T04:03:19Z",
+   "completed_at": null,
+   "definition": null
+  },
+  {
+   "id": "ai-revops-4",
+   "status": "in_progress",
+   "lifecycle_state": "running",
+   "review_state": "pending_review",
+   "owner": "reviewer",
+   "parent_issue_id": null,
+   "artifact": null,
+   "artifact_not_required": null,
+   "hollow_completion": null,
+   "title": "Set the hygiene scorecard and review cadence",
+   "created_at": "2026-11-10T04:03:19Z",
+   "updated_at": "2026-11-10T04:03:19Z",
+   "completed_at": null,
+   "definition": null
+  },
+  {
+   "id": "JOURN-2",
+   "status": "in_progress",
+   "lifecycle_state": "planning",
+   "review_state": "pending_review",
+   "owner": "cos",
+   "parent_issue_id": null,
+   "artifact": null,
+   "artifact_not_required": null,
+   "hollow_completion": null,
+   "title": "Journey 11: Acme 续约报价与跟进",
+   "created_at": "2026-11-10T04:03:25Z",
+   "updated_at": "2026-11-10T04:03:25Z",
+   "completed_at": null,
+   "definition": null
+  }
+ ],
+ "requests": [],
+ "scheduler": [
+  {
+   "slug": "one-relay-events",
+   "kind": null,
+   "target_id": null,
+   "status": "scheduled",
+   "due_at": null,
+   "last_run": null,
+   "status_reason": null
+  },
+  {
+   "slug": "request_follow_up",
+   "kind": null,
+   "target_id": null,
+   "status": "scheduled",
+   "due_at": null,
+   "last_run": null,
+   "status_reason": null
+  },
+  {
+   "slug": "review-expiry",
+   "kind": null,
+   "target_id": null,
+   "status": "scheduled",
+   "due_at": null,
+   "last_run": null,
+   "status_reason": null
+  },
+  {
+   "slug": "wiki-archive-sweep",
+   "kind": null,
+   "target_id": null,
+   "status": "sleeping",
+   "due_at": null,
+   "last_run": "2026-11-10T04:02:51Z",
+   "status_reason": null
+  },
+  {
+   "slug": "task_follow_up",
+   "kind": null,
+   "target_id": null,
+   "status": "scheduled",
+   "due_at": null,
+   "last_run": null,
+   "status_reason": null
+  },
+  {
+   "slug": "task_recheck",
+   "kind": null,
+   "target_id": null,
+   "status": "scheduled",
+   "due_at": null,
+   "last_run": null,
+   "status_reason": null
+  },
+  {
+   "slug": "task_reminder",
+   "kind": null,
+   "target_id": null,
+   "status": "scheduled",
+   "due_at": null,
+   "last_run": null,
+   "status_reason": null
+  },
+  {
+   "slug": "task-follow-up:cos--human:journ-2",
+   "kind": "task_follow_up",
+   "target_id": "JOURN-2",
+   "status": "scheduled",
+   "due_at": "2026-11-10T05:03:25Z",
+   "last_run": null,
+   "status_reason": null
+  }
+ ],
+ "actions": []
+}

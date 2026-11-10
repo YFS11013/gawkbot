@@ -1,0 +1,33 @@
+{
+ "id": "request-43",
+ "kind": "approval",
+ "status": "pending",
+ "from": "analyst",
+ "channel": "analyst__human",
+ "title": "Approve Draft Acme renewal quote one-pager?",
+ "question": "@analyst finished Draft Acme renewal quote one-pager (JOURN-22) and the review is in. Nothing else moves until you call it.\n\nThe deliverable is team/accounts/acme-renewal-quote.md.\nApprove and the lane closes. Send it back and the owner picks up your note as the rework.",
+ "options": [
+  {
+   "id": "approve_decision",
+   "label": "Approve",
+   "description": "Accept the deliverable and close this lane."
+  },
+  {
+   "id": "request_changes_decision",
+   "label": "Send back",
+   "description": "Hand it back to the owner with what must change.",
+   "requires_text": true,
+   "text_hint": "Type what must change before this can be accepted."
+  }
+ ],
+ "recommended_id": "approve_decision",
+ "reply_to": "msg-44",
+ "dedupe_key": "decision:JOURN-22",
+ "issue_id": "JOURN-22",
+ "due_at": "2026-11-10T04:41:21Z",
+ "follow_up_at": "2026-11-10T05:41:21Z",
+ "reminder_at": "2026-11-10T04:41:21Z",
+ "recheck_at": "2026-11-10T04:41:21Z",
+ "created_at": "2026-11-10T04:11:21Z",
+ "updated_at": "2026-11-10T04:11:21Z"
+}

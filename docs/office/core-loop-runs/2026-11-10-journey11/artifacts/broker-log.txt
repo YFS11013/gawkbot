@@ -1,0 +1,27 @@
+Launching WUPHF Office web view... the browser is the team now.
+2026/11/10 12:02:48 WARNING wiki: gbrain unavailable (wiki_index_gbrain_entity: connect: connect gbrain mcp: calling "initialize": EOF); falling back to the in-memory index. Facts will NOT persist across restarts. Install gbrain, or set WUPHF_WIKI_BACKEND=memory to silence this.
+2026/11/10 12:02:49 wiki lint cron: disabled (set WUPHF_LINT_CRON=HH:MM to enable a daily run)
+2026/11/10 12:02:49 INFO skill_compile cron: started interval=30m0s
+2026/11/10 12:02:49 wiki_index: boot reconcile complete
+2026/11/10 12:02:50 INFO skill_crud: backfilled missing SKILL.md from broker state name=app-building path=team/skills/app-building.md
+2026/11/10 12:02:50 INFO skill_consolidation_migration: no overlapping clusters found
+2026/11/10 12:02:50 INFO skill_crud: backfilled missing SKILL.md from broker state name=wiki-maintenance path=team/skills/wiki-maintenance.md
+2026/11/10 12:02:51 INFO skill_crud: backfilled missing SKILL.md from broker state name=data-modeling path=team/skills/data-modeling.md
+2026/11/10 12:02:51 [transport] share: registered (human-share)
+
+  Web UI:  http://127.0.0.1:7911
+  Broker:  http://127.0.0.1:7910
+  Press Ctrl+C to stop.
+
+2026/11/10 12:03:06 scheduler: loop started (poll=20s)
+2026/11/10 12:03:25 onboarding: wiki materialized blueprint=ai-revops dirs=5 articles_created=5 articles_skipped=0
+2026/11/10 12:03:25 onboarding: wiki bootstrap committed 9f80823 (blueprint=ai-revops)
+2026/11/10 12:03:25 onboarding: getting-started pages committed b3a950f
+2026/11/10 12:11:03 wiki write-task: task=JOURN-22 slug=analyst path=team/accounts/acme-renewal-quote.md bytes=582
+2026/11/10 12:11:27 source_capture: write task source "task-journ-22": put_page "task-journ-22": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 12:12:16 wiki write-task: task=JOURN-24 slug=ae path=team/emails/acme-renewal-followup.md bytes=955
+2026/11/10 12:13:06 scheduler: heartbeat (uptime=10m0s, poll=20s)
+2026/11/10 12:13:15 source_capture: write task source "task-journ-24": put_page "task-journ-24": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/10 12:14:46 scheduler: dispatched 1 due job(s)
+2026/11/10 12:23:06 scheduler: heartbeat (uptime=20m0s, poll=20s)
+2026/11/10 12:25:01 source_capture: write task source "task-journ-2": put_page "task-journ-2": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF

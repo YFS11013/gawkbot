@@ -1,0 +1,210 @@
+{
+ "tasks": [
+  {
+   "id": "ai-revops-1",
+   "status": "canceled",
+   "lifecycle_state": "canceled",
+   "review_state": "canceled",
+   "owner": "revops",
+   "parent_issue_id": null,
+   "artifact": null,
+   "artifact_not_required": null,
+   "hollow_completion": null,
+   "title": "Run the first CRM hygiene sweep",
+   "created_at": "2026-11-10T04:03:19Z",
+   "updated_at": "2026-11-10T04:04:51Z",
+   "completed_at": "2026-11-10T04:04:51Z",
+   "definition": null
+  },
+  {
+   "id": "ai-revops-2",
+   "status": "canceled",
+   "lifecycle_state": "canceled",
+   "review_state": "canceled",
+   "owner": "analyst",
+   "parent_issue_id": null,
+   "artifact": null,
+   "artifact_not_required": null,
+   "hollow_completion": null,
+   "title": "Establish the pipeline-truth baseline",
+   "created_at": "2026-11-10T04:03:19Z",
+   "updated_at": "2026-11-10T04:04:51Z",
+   "completed_at": "2026-11-10T04:04:51Z",
+   "definition": null
+  },
+  {
+   "id": "ai-revops-3",
+   "status": "canceled",
+   "lifecycle_state": "canceled",
+   "review_state": "canceled",
+   "owner": "ae",
+   "parent_issue_id": null,
+   "artifact": null,
+   "artifact_not_required": null,
+   "hollow_completion": null,
+   "title": "Draft the first follow-up sequence",
+   "created_at": "2026-11-10T04:03:19Z",
+   "updated_at": "2026-11-10T04:04:51Z",
+   "completed_at": "2026-11-10T04:04:51Z",
+   "definition": null
+  },
+  {
+   "id": "ai-revops-4",
+   "status": "canceled",
+   "lifecycle_state": "canceled",
+   "review_state": "canceled",
+   "owner": "reviewer",
+   "parent_issue_id": null,
+   "artifact": null,
+   "artifact_not_required": null,
+   "hollow_completion": null,
+   "title": "Set the hygiene scorecard and review cadence",
+   "created_at": "2026-11-10T04:03:19Z",
+   "updated_at": "2026-11-10T04:04:51Z",
+   "completed_at": "2026-11-10T04:04:51Z",
+   "definition": null
+  },
+  {
+   "id": "JOURN-2",
+   "status": "in_progress",
+   "lifecycle_state": "planning",
+   "review_state": "pending_review",
+   "owner": "cos",
+   "parent_issue_id": null,
+   "artifact": null,
+   "artifact_not_required": null,
+   "hollow_completion": null,
+   "title": "Journey 11: Acme 续约报价与跟进",
+   "created_at": "2026-11-10T04:03:25Z",
+   "updated_at": "2026-11-10T04:03:25Z",
+   "completed_at": null,
+   "definition": null
+  }
+ ],
+ "requests": [
+  {
+   "id": "request-13",
+   "status": "answered",
+   "dedupe_key": null,
+   "issue_id": null,
+   "title": "Human interview",
+   "question": "给 Dana（VP Ops）的续约跟进邮件，用哪种语言？",
+   "options": [
+    {
+     "id": "english",
+     "label": "英文",
+     "description": "Dana 是 VP Ops、SaaS 客户，英文是客户续约跟进的默认安全选择。"
+    },
+    {
+     "id": "chinese",
+     "label": "中文",
+     "description": "如果 Acme 团队以中文沟通，用中文更自然。"
+    },
+    {
+     "id": "bilingual",
+     "label": "双语",
+     "description": "英文正文 + 中文摘要，兼顾双方。"
+    },
+    {
+     "id": "something_else",
+     "label": "Something else",
+     "description": "None of these fit — write your own answer.",
+     "requires_text": true,
+     "text_hint": "Type your own answer for the team."
+    }
+   ],
+   "blocking": null,
+   "required": null,
+   "created_at": "2026-11-10T04:08:23Z",
+   "answered": {
+    "choice_id": "english",
+    "choice_text": "英文",
+    "answered_at": "2026-11-10T04:09:13Z"
+   }
+  }
+ ],
+ "scheduler": [
+  {
+   "slug": "one-relay-events",
+   "kind": null,
+   "target_id": null,
+   "status": "scheduled",
+   "due_at": null,
+   "last_run": null,
+   "status_reason": null
+  },
+  {
+   "slug": "request_follow_up",
+   "kind": null,
+   "target_id": null,
+   "status": "scheduled",
+   "due_at": null,
+   "last_run": null,
+   "status_reason": null
+  },
+  {
+   "slug": "review-expiry",
+   "kind": null,
+   "target_id": null,
+   "status": "scheduled",
+   "due_at": null,
+   "last_run": null,
+   "status_reason": null
+  },
+  {
+   "slug": "wiki-archive-sweep",
+   "kind": null,
+   "target_id": null,
+   "status": "sleeping",
+   "due_at": null,
+   "last_run": "2026-11-10T04:02:51Z",
+   "status_reason": null
+  },
+  {
+   "slug": "task_follow_up",
+   "kind": null,
+   "target_id": null,
+   "status": "scheduled",
+   "due_at": null,
+   "last_run": null,
+   "status_reason": null
+  },
+  {
+   "slug": "task_recheck",
+   "kind": null,
+   "target_id": null,
+   "status": "scheduled",
+   "due_at": null,
+   "last_run": null,
+   "status_reason": null
+  },
+  {
+   "slug": "task_reminder",
+   "kind": null,
+   "target_id": null,
+   "status": "scheduled",
+   "due_at": null,
+   "last_run": null,
+   "status_reason": null
+  },
+  {
+   "slug": "task-follow-up:cos--human:journ-2",
+   "kind": "task_follow_up",
+   "target_id": "JOURN-2",
+   "status": "scheduled",
+   "due_at": "2026-11-10T05:03:25Z",
+   "last_run": null,
+   "status_reason": null
+  },
+  {
+   "slug": "request-follow-up:cos--human:request-13",
+   "kind": "request_follow_up",
+   "target_id": "request-13",
+   "status": "done",
+   "due_at": null,
+   "last_run": "2026-11-10T04:09:13Z",
+   "status_reason": "target closed"
+  }
+ ],
+ "actions": []
+}
