@@ -947,6 +947,13 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 					if err := validateTaskArtifactPath(path); err != nil {
 						return taskMutationError(TaskMutationInvalid, err.Error(), err)
 					}
+					// Same container rule as MutateTask: an Issue does not adopt
+					// one lane's file as its own (Journey 11 / JOURN-2).
+					if childID, ok := b.childOwningArtifactLocked(task, path); ok {
+						return taskMutationError(TaskMutationConflict,
+							fmt.Sprintf("task %s is a container: %s is %s's deliverable, not this Issue's own. Leave artifact_path empty — its lanes' files are already on record and the decision card names every one of them — or pass a file %s wrote itself.",
+								taskID, path, childID, taskID), nil)
+					}
 					effectiveArtifact = path
 					// A real deliverable retires an earlier "ships nothing"
 					// declaration, exactly like the MutateTask gate.

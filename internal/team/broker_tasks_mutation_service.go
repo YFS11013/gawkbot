@@ -1431,6 +1431,19 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 				rollbackTask()
 				return TaskResponse{}, taskMutationError(TaskMutationInvalid, err.Error(), err)
 			}
+			// An Issue is a container. Restating one lane's file as the Issue's
+			// own artifact makes every reader of that field describe a two-file
+			// Issue by one of its files: Journey 11's JOURN-2 carried
+			// JOURN-22's quote path from submit_for_review onward, the decision
+			// card named only it, and the promotion followed. The lanes already
+			// record what they shipped; this field is for files the container
+			// itself wrote.
+			if childID, ok := b.childOwningArtifactLocked(task, artifactPath); ok {
+				rollbackTask()
+				return TaskResponse{}, taskMutationError(TaskMutationConflict,
+					fmt.Sprintf("task %s is a container: %s is %s's deliverable, not this Issue's own. Leave artifact_path empty — its lanes' files are already on record and the decision card names every one of them — or pass a file %s wrote itself.",
+						task.ID, artifactPath, childID, task.ID), nil)
+			}
 			task.Artifact = artifactPath
 		}
 		if !strings.EqualFold(strings.TrimSpace(task.status), "done") {

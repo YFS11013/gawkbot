@@ -81,6 +81,33 @@ func (b *Broker) childDeliverablesLocked(task *teamTask) []string {
 	return out
 }
 
+// childOwningArtifactLocked reports the delivered child whose artifact is
+// exactly `path`, so a container mutation can refuse to restate one lane's
+// file as the Issue's own. Journey 11 (core-loop-runs/2026-11-10-journey11):
+// cos submitted JOURN-2 for review with artifact_path set to JOURN-22's
+// deliverable, the Issue carried that single path from then on, and the
+// promotion + the channel summary both described a two-file Issue by one of its
+// files. The read side now lists every lane (see the card), but the write side
+// is where the lie was authored. Caller holds b.mu.
+func (b *Broker) childOwningArtifactLocked(task *teamTask, path string) (string, bool) {
+	if b == nil || task == nil || strings.TrimSpace(path) == "" {
+		return "", false
+	}
+	for i := range b.tasks {
+		child := &b.tasks[i]
+		if strings.TrimSpace(child.ParentIssueID) != task.ID || child.ID == task.ID {
+			continue
+		}
+		if !isDeliveredTeamTaskStatus(child.status) {
+			continue
+		}
+		if strings.TrimSpace(child.Artifact) == strings.TrimSpace(path) {
+			return child.ID, true
+		}
+	}
+	return "", false
+}
+
 // containsPath reports whether path already appears in a list of deliverables.
 // The parent card uses it to avoid naming the same file twice: an Issue's own
 // `artifact` is often just one of its lanes' paths, restated.
