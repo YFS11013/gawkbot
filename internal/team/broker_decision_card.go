@@ -154,6 +154,23 @@ func (b *Broker) raiseDecisionCardLocked(task *teamTask) string {
 	if b == nil || task == nil || !b.hasApprovableDeliverableLocked(task) {
 		return ""
 	}
+	// A lane under a live Issue does not get its own card: its Issue's card is
+	// the acceptance surface, and that card enumerates every lane file
+	// ("This Issue's lanes delivered N file(s) … those are what you are
+	// accepting"). Journey 15 showed why a second card is worse than none —
+	// with no reviewer configured the lane approved itself 38 seconds after
+	// raising the card, so the operator's click landed on a closed lane and
+	// changed nothing. One acceptance per deliverable set, made by the party
+	// who can still move it.
+	//
+	// A lane whose Issue is already terminal has no such surface left (a
+	// container card only exists while the container is open), so it keeps its
+	// own card: that is the last place the human can see the work.
+	if parentID := strings.TrimSpace(task.ParentIssueID); parentID != "" {
+		if parent := b.taskByIDLocked(parentID); parent != nil && !isTerminalTeamTaskStatus(parent.status) {
+			return ""
+		}
+	}
 	dedupeKey := decisionCardDedupePrefix + strings.TrimSpace(task.ID)
 	for i := range b.requests {
 		if !requestIsActive(b.requests[i]) {

@@ -525,6 +525,32 @@ func (b *Broker) cancelActiveHumanInterviewsLocked(actor, reason, channel, reply
 // circuits, so a re-define never stacks duplicates. Human-authored
 // definitions never raise — the human wrote the placeholder knowingly.
 // Returns the request id ("" when nothing was raised).
+// accessNeedGrantedByWriteScope reports whether an "access needed" entry only
+// restates the write grant the task already carries. The broker can grant
+// exactly one thing structurally — permission to write inside the task's
+// declared artifact path — so that is the only need it may treat as met;
+// everything else (a Composio connection, an API key, a channel membership) is
+// asked about. Deliberately narrow: a false positive would swallow a real
+// blocker, which is worse than one redundant question.
+func accessNeedGrantedByWriteScope(task *teamTask, access string) bool {
+	if task == nil || task.Definition == nil {
+		return false
+	}
+	if strings.TrimSpace(task.Definition.ArtifactPath) == "" {
+		return false
+	}
+	text := strings.ToLower(strings.TrimSpace(access))
+	if !strings.Contains(text, "wiki") {
+		return false
+	}
+	for _, verb := range []string{"write", "写入", "写权限"} {
+		if strings.Contains(text, verb) {
+			return true
+		}
+	}
+	return false
+}
+
 func (b *Broker) raiseDefinitionGapInterviewLocked(task *teamTask, actor string) string {
 	if task == nil || task.Definition == nil || isHumanMessageSender(actor) {
 		return ""
@@ -540,7 +566,21 @@ func (b *Broker) raiseDefinitionGapInterviewLocked(task *teamTask, actor string)
 		return ""
 	}
 	gaps := definitionGapMarkers(task.Definition)
-	if len(gaps) == 0 && len(task.Definition.AccessNeeded) == 0 {
+	// Access the task already holds is not a gap. A lane created with a
+	// declared write scope has been granted wiki write by construction, yet
+	// the model keeps listing it as an access need — Journey 15's two lanes
+	// both asked for "wiki 写入权限（artifact_scope 已授予）", which is the
+	// model telling the human what the broker had already granted. Asking
+	// that question trains the human to answer without reading; the ones we
+	// cannot satisfy (a connection, an API key) are still asked.
+	accessNeeds := make([]string, 0, len(task.Definition.AccessNeeded))
+	for _, access := range task.Definition.AccessNeeded {
+		if accessNeedGrantedByWriteScope(task, access) {
+			continue
+		}
+		accessNeeds = append(accessNeeds, access)
+	}
+	if len(gaps) == 0 && len(accessNeeds) == 0 {
 		return ""
 	}
 	dedupeKey := "definition-gap:" + task.ID
@@ -574,7 +614,7 @@ func (b *Broker) raiseDefinitionGapInterviewLocked(task *teamTask, actor string)
 	for _, gap := range gaps {
 		qb.WriteString("- " + gap + "\n")
 	}
-	for _, access := range task.Definition.AccessNeeded {
+	for _, access := range accessNeeds {
 		qb.WriteString("- access needed: " + access + "\n")
 	}
 	qb.WriteString("Reply with the missing details (or tell the team to proceed as-is).")

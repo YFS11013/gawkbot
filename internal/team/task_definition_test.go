@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // newDefineTestBroker returns a broker with a general channel and a cos+eng
@@ -409,5 +410,67 @@ func TestAuthorizeTaskArtifactWriteHonoursDeclaredScope(t *testing.T) {
 	}
 	if err := b.authorizeTaskArtifactWrite("revops", "JOURN-90", "team/accounts/acme-corp.md"); err == nil {
 		t.Fatal("non-owner accepted")
+	}
+}
+
+// Journey 15 (core-loop-runs/2026-11-10-journey15): both lanes were created with
+// a declared write scope and both still asked the human for "wiki 写入权限
+// (artifact_scope 已授予)" — the model restating a grant the broker had already
+// made. A question whose answer is already true teaches the human to click
+// without reading, so access the task structurally holds is not a gap.
+func TestDefinitionGapSkipsAccessTheTaskAlreadyHolds(t *testing.T) {
+	b := newTestBroker(t)
+	now := time.Now().UTC().Format(time.RFC3339)
+
+	seed := func(id string, def *TaskDefinition) {
+		b.mu.Lock()
+		b.tasks = append(b.tasks, teamTask{
+			ID: id, Title: "Lane " + id, Channel: "cos__human", Owner: "cos",
+			status: "in_progress", LifecycleState: LifecycleStateRunning,
+			Definition: def, CreatedAt: now, UpdatedAt: now,
+		})
+		b.mu.Unlock()
+	}
+
+	seed("JOURN-15", &TaskDefinition{
+		Goal:         "Draft the renewal quote",
+		ArtifactPath: "team/accounts/acme-renewal-quote.md",
+		AccessNeeded: []string{"wiki 写入权限（artifact_scope 已授予）"},
+	})
+	seed("JOURN-17", &TaskDefinition{
+		Goal:         "Draft the follow-up email",
+		ArtifactPath: "team/emails/acme-renewal-followup.md",
+		AccessNeeded: []string{"Composio Gmail 连接"},
+	})
+	seed("JOURN-18", &TaskDefinition{
+		Goal:         "Research the account",
+		AccessNeeded: []string{"wiki write access"},
+	})
+
+	for _, id := range []string{"JOURN-15", "JOURN-17", "JOURN-18"} {
+		b.mu.Lock()
+		task := b.taskByIDLocked(id)
+		b.raiseDefinitionGapInterviewLocked(task, "cos")
+		b.mu.Unlock()
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	asked := map[string]string{}
+	for _, req := range b.requests {
+		if strings.HasPrefix(req.DedupeKey, "definition-gap:") {
+			asked[req.IssueID] = req.Question
+		}
+	}
+	if q, ok := asked["JOURN-15"]; ok {
+		t.Fatalf("wiki write is granted by the declared scope; asking anyway: %q", q)
+	}
+	if q, ok := asked["JOURN-17"]; !ok {
+		t.Fatal("a connection the broker cannot grant must still be asked about")
+	} else if !strings.Contains(q, "Composio Gmail") {
+		t.Fatalf("the ask must name the real need, got %q", q)
+	}
+	if _, ok := asked["JOURN-18"]; !ok {
+		t.Fatal("with no declared scope we cannot know wiki write is granted, so it must be asked")
 	}
 }

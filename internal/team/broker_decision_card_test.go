@@ -412,3 +412,52 @@ func TestDecisionCardNamesEveryLaneEvenWhenIssueCarriesOneArtifact(t *testing.T)
 		t.Fatalf("an Issue artifact no lane claimed must still be named, got %q", q)
 	}
 }
+
+// Journey 15 (core-loop-runs/2026-11-10-journey15): both lanes raised their own
+// decision cards and then approved themselves 38 seconds later (no reviewer was
+// configured), so the operator's two clicks landed on closed lanes. The Issue's
+// card is the surface that can still move: it lists every lane file and its
+// approve is what closes the container. A lane therefore defers to it.
+//
+// The exception matters as much: a lane whose Issue is already closed has no
+// container card left, and its own card is the last place the human can see the
+// work.
+func TestLaneDecisionCardDefersToItsLiveIssue(t *testing.T) {
+	b := newTestBroker(t)
+	now := time.Now().UTC().Format(time.RFC3339)
+	b.mu.Lock()
+	b.tasks = []teamTask{
+		{ID: "JOURN-1", Title: "Issue", Channel: testTeamRoom, Owner: "cos",
+			status: "in_progress", LifecycleState: LifecycleStateRunning, CreatedAt: now, UpdatedAt: now},
+		{ID: "JOURN-15", Title: "Lane", Channel: testTeamRoom, Owner: "cos",
+			ParentIssueID: "JOURN-1", status: "review", LifecycleState: LifecycleStateDecision,
+			Artifact: "team/accounts/acme-renewal-quote.md", CreatedAt: now, UpdatedAt: now},
+		{ID: "SOLO-1", Title: "Standalone", Channel: testTeamRoom, Owner: "cos",
+			status: "review", LifecycleState: LifecycleStateDecision,
+			Artifact: "team/reports/solo.md", CreatedAt: now, UpdatedAt: now},
+		{ID: "JOURN-9", Title: "Closed issue", Channel: testTeamRoom, Owner: "cos",
+			status: "done", LifecycleState: LifecycleStateApproved, CreatedAt: now, UpdatedAt: now},
+		{ID: "JOURN-90", Title: "Orphaned lane", Channel: testTeamRoom, Owner: "cos",
+			ParentIssueID: "JOURN-9", status: "review", LifecycleState: LifecycleStateDecision,
+			Artifact: "team/reports/orphan.md", CreatedAt: now, UpdatedAt: now},
+	}
+	b.mu.Unlock()
+
+	for _, id := range []string{"JOURN-15", "SOLO-1", "JOURN-90"} {
+		b.raiseDecisionCardAfterConvergenceLocked(id)
+	}
+
+	cards := map[string]string{}
+	for _, card := range decisionCards(b) {
+		cards[card.IssueID] = card.ID
+	}
+	if id, ok := cards["JOURN-15"]; ok {
+		t.Fatalf("a lane under a live Issue must not raise its own card, got %s", id)
+	}
+	if _, ok := cards["SOLO-1"]; !ok {
+		t.Fatal("a task with no Issue still needs its own card — it is the only surface")
+	}
+	if _, ok := cards["JOURN-90"]; !ok {
+		t.Fatal("a lane whose Issue is closed keeps its own card — nothing else can accept it")
+	}
+}
