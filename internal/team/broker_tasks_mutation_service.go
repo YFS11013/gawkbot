@@ -1298,6 +1298,31 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 				}
 				defVerification = v
 			}
+			// A re-define replaces the whole definition, and an omitted
+			// artifact_path used to clear the task's write scope with it
+			// (Journey 14: an operator define that only meant to fix the
+			// verification wiped both lanes' declared scope). The scope is an
+			// authorization, not part of the goal text: keep the existing one
+			// unless the caller declares a new path.
+			if def.ArtifactPath == "" && task.Definition != nil {
+				def.ArtifactPath = strings.TrimSpace(task.Definition.ArtifactPath)
+			}
+			// A container must not be authorized to write a lane's file: the
+			// Issue's own artifact may not be one of its lanes' deliverables
+			// (Journey 11/12 guard), and the same rule has to cover the write
+			// scope it hands its owner — otherwise one define grants the Issue
+			// permission to overwrite the very file it is meant to aggregate
+			// (Journey 14: JOURN-1's definition.artifact_path was pinned to
+			// JOURN-12's deliverable).
+			if scope := strings.TrimSpace(def.ArtifactPath); scope != "" {
+				if lane, owned := b.childOwningArtifactLocked(task, scope); owned {
+					return TaskResponse{}, taskMutationError(
+						TaskMutationConflict,
+						fmt.Sprintf("task %s is a container: %s is %s's deliverable, not a file this Issue writes itself. Leave artifact_path out of the definition — the decision card names every lane file.", task.ID, scope, lane),
+						nil,
+					)
+				}
+			}
 			task.Definition = def
 			// Machine-checkable success criteria arrive WITH their check in the
 			// same call. A gate that has not failed stays put, so the model

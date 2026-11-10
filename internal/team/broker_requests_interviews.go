@@ -1153,12 +1153,58 @@ func (b *Broker) answerRequestFromActor(answerActor, id, choiceIDRaw, choiceText
 		// gate) gets the same follow-through — including the refusal, which is
 		// returned to whoever clicked instead of being swallowed after a 200.
 		if err := b.applyDecisionCardAnswer(id, answerActor); err != nil {
+			// Journey 14 (core-loop-runs/2026-11-10-journey14): the answer
+			// was already persisted when the decision refused the transition
+			// (a lane whose definition-of-done check failed). The human's
+			// click was consumed and their card vanished — the lane had no
+			// card left to retry, and the "Approved" chat line said a
+			// decision had landed that never did. A refusal means the card
+			// is still open: reopen it and retract the false line.
+			b.reopenRequestAfterRefusedDecision(id, msg.ID)
 			return http.StatusConflict, err.Error()
 		}
 		return http.StatusOK, ""
 	}
 	b.mu.Unlock()
 	return http.StatusNotFound, "request not found"
+}
+
+// reopenRequestAfterRefusedDecision undoes the "answered" half of an answer
+// whose decision was refused downstream: the request goes back to pending, the
+// answer is cleared, and the chat line announcing it is removed. The refused
+// click then leaves the human exactly where they were — with a card to retry
+// after the gate is fixed — instead of a consumed card and a phantom approval.
+func (b *Broker) reopenRequestAfterRefusedDecision(id, messageID string) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	reopened := false
+	for i := range b.requests {
+		if b.requests[i].ID != id {
+			continue
+		}
+		b.requests[i].Status = "pending"
+		b.requests[i].Answered = nil
+		b.requests[i].UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+		msgID := strings.TrimSpace(messageID)
+		if msgID != "" {
+			kept := b.messages[:0]
+			for _, m := range b.messages {
+				if m.ID != msgID {
+					kept = append(kept, m)
+				}
+			}
+			b.messages = kept
+		}
+		channel := b.requests[i].Channel
+		b.pendingInterview = firstBlockingRequest(b.requests)
+		b.appendActionLocked("request_reopened", "office", channel, "system",
+			truncateSummary("decision refused; the card stays open: "+id, 140), id)
+		reopened = true
+		break
+	}
+	if reopened {
+		_ = b.saveLocked()
+	}
 }
 
 // applyRequestAnswerLocked is the single mutation core for answering a
