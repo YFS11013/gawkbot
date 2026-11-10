@@ -635,12 +635,24 @@ J14 的评分卡把 V1/V7 判成**未观察**——模型那一轮自发走了�
 **判据外的三处（本轮查、只修了一处）**：
 
 1. **裸 `GET /tasks` 静默落到 `general`** → 已修（`a7ec9f8`）。`ListTasks` 把空 channel 洗成 `general`，于是裸列表永远答 `{"channel":"general","tasks":[]}`。Journey 15 的操作员脚本因此连续读到「0 个任务」而 `JOURN-1` 就在 `cos__human`；web 客户端早就带了 `|| "general"` 的绕法并留了注释。现在裸列表 400 并点名三种读法（channel / `all_channels=true` / `parent_issue_id`），`?parent_issue_id=` 不再被频道过滤。与 §9.24 末尾 `GET /requests` 同一类：**没有默认房间就必须报错，不能落到一个死房间还答得很自信**。
-2. **lane 决策卡追不上 lane 自己的关闭 → 已修（`01bfcb8` 之后）**：两条 lane `14:53:50` 进 `decision`、卡已发，`14:54:40`（人批之前）它们已是 `done/approved`（`task review: no reviewer available (owner "cos")`），人的批准落在已关闭的 lane 上。根因不是「无 reviewer 自动通过」，而是**两条关闭路径的清理不对称**：`TransitionLifecycle` 自 Journey 6 起在终态时调 `cancelRequestsForClosedTaskLocked`，而 lane 实际走的是 `MutateTask` 的 `complete`/`approve`/`reject`/`cancel`，那条路径一次都没调过——同一份状态有两条收尾路径，只有一条记得撤卡。现在 `MutateTask` 的终态分支也调，`TestCompletingALaneClosesItsOrphanedDecisionCard` 钉住「自己的卡被撤、兄弟 lane 的卡还能答」（去掉调用即红：`the lane's own card survived its close`）。**仍然成立的一半**：lane 层的人工确认本身仍由「无 reviewer 自动通过」决定，这一层要不要人拍板是产品问题，没有动。
-3. **`definition-gap:` 把已授予的 scope 当缺口再问一遍**（`request-19`/`request-22` 问「wiki 写入权限」，同一时刻 `artifact_scope` 已授予、文件已写完）。J13 起第四次复现，未修。
+2. **lane 决策卡追不上 lane 自己的关闭 → 已修（`01bfcb8` 撤卡；2026-11-11 起不再发这张卡，见 §9.26）**：两条 lane `14:53:50` 进 `decision`、卡已发，`14:54:40`（人批之前）它们已是 `done/approved`（`task review: no reviewer available (owner "cos")`），人的批准落在已关闭的 lane 上。根因不是「无 reviewer 自动通过」，而是**两条关闭路径的清理不对称**：`TransitionLifecycle` 自 Journey 6 起在终态时调 `cancelRequestsForClosedTaskLocked`，而 lane 实际走的是 `MutateTask` 的 `complete`/`approve`/`reject`/`cancel`，那条路径一次都没调过——同一份状态有两条收尾路径，只有一条记得撤卡。现在 `MutateTask` 的终态分支也调，`TestCompletingALaneClosesItsOrphanedDecisionCard` 钉住「自己的卡被撤、兄弟 lane 的卡还能答」（去掉调用即红：`the lane's own card survived its close`）。**仍然成立的一半**：lane 层的人工确认本身仍由「无 reviewer 自动通过」决定，这一层要不要人拍板是产品问题，没有动。
+3. **`definition-gap:` 把已授予的 scope 当缺口再问一遍 → 已修（2026-11-11）**（`request-19`/`request-22` 问「wiki 写入权限」，同一时刻 `artifact_scope` 已授予、文件已写完）。J13 起第四次复现。
 
 **干预 4 次 vs 预算 3 次**：事实采访 → 计划卡 → 两张 lane 卡 → 父卡。prereg 的预算没给 lane 卡留位，而 lane 卡是产品固定流程；下一轮预算按「事实 + 计划 + lane 卡 + 父卡」写。
 
 **这一轮证不了**：V9（容器 `define` 的写范围）——模型从未对 `JOURN-1` 调 `define`，`actions[]` 里父 Issue 只有 `task_created`/`task_updated [review]`，所以写范围门这次仍无对象。评分卡由独立子代理写（`…/journey15/scorecard.md`），V1/V7 的证据以 ledger 的 `guard_refused` summary 为准——模型侧 409 原文不在 runtime home 里。
+
+### 9.26 三个产品决策（2026-11-11，Journey 15 的遗留项收口）
+
+§9.25 与 guard exercise 留下三件「需要产品判断」的事。这里把它们定下来，理由按「哪条路径会因此变坏」写，而不是按「哪边听起来更严」。
+
+**决策一：lane 不单独发决策卡，撤销权在容器。** §9.25 的第 2 条先按「关了就撤卡」修（`8026e40`），但撤卡只治结果不治因：J15 两张 lane 卡从发出到 lane 自批只隔 38 秒（无 reviewer 自动通过），卡在人类点之前就已经是废的。真正的分工是——**一个交付集合一次验收**：容器卡正文逐字列出每条 lane 的文件并写「those are what you are accepting」，lane 再发一张就是把同一批文件问第二遍，而问的人手里没有能移动它的东西。所以 `raiseDecisionCardLocked` 对**父 Issue 仍开着**的 lane 直接返回空；父 Issue 已终态的 lane 照旧发卡，因为没有容器卡可等，那是人唯一还能看见这份工作的地方。J14 曾把「lane 有自己的卡」记为站住项，这次是**有意反转**：那次只看到卡出现了，没看到它四分钟后必然被自批架空。
+
+**决策二：任务已经握住的权利不算缺口。** `definition-gap:` 卡是确定性的（`raiseDefinitionGapInterviewLocked` 把模型 `define` 里的 `AccessNeeded` 原文转成问题），所以模型每轮把「wiki 写入权限」写进 access 就会每轮问一次，J13 起四次。broker 在结构上只能授予一件事：**在声明的 `definition.artifact_path` 里写**。于是过滤规则定得很窄——文本里同时出现 `wiki` 与 `write`/`写入`/`写权限`，且任务**已声明写范围**，才算已满足、不问；没有声明范围的照问（这时 broker 确实不知道它有没有），连接/密钥/成员资格等一律照问。假阴性（该问没问）比假阳性（多问一句）贵得多，所以宁可窄。
+
+**决策三：覆盖别人的交付物要留痕，但不拦。** guard exercise 里 `GUARD-4` 用 `mode=create` 把 `GUARD-12` 已交付的 `team/accounts/guard-quote.md` 从 33 字节改成 1642 字节，全库没有一行记录。拦是不对的：routine 每轮重写同一个页面是合法形状，`append_section` 更是**故意**的共享写法。所以选可观测性——`create`/`replace` 落到另一个任务**已交付**的同一路径时写一条 `artifact_overwritten`（`related_id` 是动手的任务，summary 带路径与原作者），`append_section` 不算。这样「谁把谁的页面换掉了」从不可见变成可数，而不用先裁定文件归属。
+
+**代价与边界**：决策一让 lane 的人工确认彻底不存在（只剩容器那一关），这是有意接受的——J12 起就没成立过，区别只是从「假卡」变成「没有卡」；决策二的文本匹配只覆盖 wiki 写入一种情形，模型换个说法（例如「共享盘权限」）仍会问出来；决策三只记录不阻止，覆盖者依然可以覆盖。
 
 ### 9.22 Journey 10：卡没发出来，不是「没到 decision」，是「Issue 没有自己的文件」（2026-11-10）
 
