@@ -344,6 +344,13 @@ func (b *Broker) gateTaskCompletionVerification(body TaskPostRequest) error {
 	workDir := strings.TrimSpace(task.WorktreePath)
 	owner := strings.TrimSpace(task.Owner)
 	since := strings.TrimSpace(task.CreatedAt)
+	// The human's decision approve carries no artifact_path (the card names
+	// the deliverable the task already recorded) - Journey 14: a lane that
+	// had its artifact recorded still failed its own approve with "no
+	// artifact_path on the completion". The task's recorded artifact is the
+	// declaration; the body's value, when present, wins because it is the
+	// value the running mutation is about to apply.
+	recordedArtifact := strings.TrimSpace(task.Artifact)
 	b.mu.Unlock()
 
 	if v.Kind == taskVerificationKindNone {
@@ -364,11 +371,17 @@ func (b *Broker) gateTaskCompletionVerification(body TaskPostRequest) error {
 	if v.Kind == taskVerificationKindWikiArtifact {
 		// The declaring artifact rides on the SAME request (artifact_path);
 		// the task field still holds the pre-completion value here because
-		// this gate runs before the mutation applies the body.
+		// this gate runs before the mutation applies the body. When the body
+		// declares nothing (the human's decision approve), the task's own
+		// recorded artifact is the declaration.
+		declared := strings.TrimSpace(body.ArtifactPath)
+		if declared == "" {
+			declared = recordedArtifact
+		}
 		env = taskVerificationEnv{
 			WorkDir:  workDir,
 			WikiRoot: WikiRootDir(),
-			Artifact: strings.TrimSpace(body.ArtifactPath),
+			Artifact: declared,
 			Since:    since,
 		}
 	}
