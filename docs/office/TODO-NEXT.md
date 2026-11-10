@@ -153,7 +153,7 @@ prereg `0c2d1ac`，被测 `54ad984`，判分 `core-loop-runs/2026-11-10-journey1
   - **干预 7 次 vs 预算 2 次**：多出来的是两张 lane 卡、更正 QA 前提、取消 QA、催交终审。下一轮预算按「每 lane 一张卡」重算。
 - **顺手修的两处**：`team_wiki_search` 接受 `query` 别名 + 零命中不再回 `[]`；`/tasks/{id}/comment` 对 bot↔bot DM 改回 403 并带 `channel`/`detail`。见 §9.23。
 - **测试基建的已知 flake（未修，与业务无关）**：`TestObsidianWatcher_*` 在整包并行跑时偶发 `TempDir RemoveAll cleanup: … .wuphf\agent-scratch\cos: The process cannot access the file`（2026-11-10 连续两次，分别是 `DebounceCoalescesRapidWrites` 与 `StopDuringPendingDebounce`）。单独跑 `-run TestObsidianWatcher` 14.6s 全绿，整包 `-skip TestObsidianWatcher` 全绿。假设：包内 256 处 `t.Parallel()` 共享进程环境，`WUPHF_RUNTIME_HOME` 指向另一个（已结束的）测试的 `t.TempDir()`，并行测试按它写 `agent-scratch/<slug>`，句柄没关就在别人的 RemoveAll 里撞上。要修得先审计哪些并行测试写 scratch 目录，不是本轮范围。
-- **这一轮证不了**：`task_not_decomposed` 的提醒路径、撞写范围守卫、`ra_` 收 done——场景内 0 次。
+
 ### Journey 12 复核（2026-11-10，容器守卫生效了，模型转去用 not_required 自己关父 Issue）
 
 prereg `core-loop-runs/2026-11-10-journey12/prereg.md`，被测 `4c53083`，判分 `core-loop-runs/2026-11-10-journey12/scorecard.md`（独立子代理）。场景同 J10/J11，模型 `opencode-go/longcat-2.5-free`，无 QA lane。
