@@ -119,7 +119,7 @@ func (b *Broker) handleWikiWriteTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	isNew := wikiArticleIsNew(worker.Repo(), path)
-	sha, n, err := worker.Enqueue(r.Context(), slug, path, body.Content, body.Mode, body.CommitMessage)
+	sha, n, err := worker.EnqueueTaskArtifact(r.Context(), slug, path, body.Content, body.Mode, body.CommitMessage)
 	if err != nil {
 		if errors.Is(err, ErrQueueSaturated) {
 			writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": err.Error()})

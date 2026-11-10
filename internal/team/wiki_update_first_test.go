@@ -140,3 +140,49 @@ func TestWikiWorkerUpdateFirstAndFold(t *testing.T) {
 		t.Fatalf("expected one commit after the fold, got %d", len(refs))
 	}
 }
+
+// A task's declared artifact is PINNED. The update-first reroute exists to stop
+// bots minting near-duplicate articles, but it must never fire on a task-scoped
+// write: the broker authorized that one string and the completion gate checks
+// that exact file. Before the pin, the write below answered 200 with a byte
+// count while appending the bytes to team/reviews/dec-smoke.md and leaving
+// dec-smoke-answer.md absent — the lane then refused its own approve ("artifact
+// does not exist in the wiki") with nothing else to go on.
+func TestTaskArtifactWriteKeepsItsDeclaredPath(t *testing.T) {
+	worker, repo, _, teardown := newStartedWorker(t)
+	defer teardown()
+
+	if _, _, err := worker.Enqueue(context.Background(), "cos", "team/reviews/dec-smoke.md",
+		"# dec smoke\n", "create", "cos: smoke"); err != nil {
+		t.Fatalf("seed neighbour: %v", err)
+	}
+	if _, _, err := worker.EnqueueTaskArtifact(context.Background(), "cos", "team/reviews/dec-smoke-answer.md",
+		"# answer smoke\n", "create", "cos: answer smoke"); err != nil {
+		t.Fatalf("task artifact write: %v", err)
+	}
+	worker.WaitForIdle()
+
+	declared := filepath.Join(repo.Root(), "team", "reviews", "dec-smoke-answer.md")
+	body, err := os.ReadFile(declared)
+	if err != nil {
+		t.Fatalf("declared artifact was not written: %v", err)
+	}
+	if !strings.Contains(string(body), "answer smoke") {
+		t.Fatalf("declared artifact holds %q", body)
+	}
+	neighbour, err := os.ReadFile(filepath.Join(repo.Root(), "team", "reviews", "dec-smoke.md"))
+	if err != nil {
+		t.Fatalf("read neighbour: %v", err)
+	}
+	if strings.Contains(string(neighbour), "answer smoke") {
+		t.Fatalf("task artifact leaked into the similar-slug neighbour: %q", neighbour)
+	}
+	// The sibling case still rewrites through the ordinary path, so the pin
+	// did not disable update-first for bot writes generally.
+	_, mode := resolveWikiWriteTarget(repo.Root(), wikiWriteRequest{
+		Slug: "eng", Path: "team/reviews/dec-smoke-followup.md", Mode: "create",
+	})
+	if mode != "append_section" {
+		t.Fatalf("unpinned bot create of a similar slug must still reroute, got mode=%q", mode)
+	}
+}

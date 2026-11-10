@@ -13,6 +13,23 @@ All notable changes to WUPHF will be documented in this file.
 
 ### Fixed
 
+- **A task's declared artifact now lands on the path the task declared.**
+  `/wiki/write-task` answered `200 {path: team/reviews/dec-smoke-answer.md,
+  bytes_written: 15}` while appending those bytes to the similar-slug neighbour
+  `team/reviews/dec-smoke.md` and creating nothing at the declared path — caught
+  by the smoke for the decision card above, which then refused the lane's own
+  approve with `artifact "…" does not exist in the wiki`. The culprit was the
+  update-first reroute (`routeBotCreateToSimilarSlug`), which exists to stop bots
+  minting near-duplicate articles and fired on task-scoped writes too: a bot
+  `create` whose slug is ≥ 0.85 similar to a sibling becomes an `append_section`
+  on that sibling. Task writes are now **pinned**
+  (`WikiWorker.EnqueueTaskArtifact` → `wikiWriteRequest.PinnedPath` →
+  `resolveWikiWriteTarget` returns the requested path and mode untouched), so the
+  acknowledgement, the file on disk, and the completion gate's existence check
+  describe one string. Free writes (`/wiki/write`, the MCP tools) still reroute.
+  Test `TestTaskArtifactWriteKeepsItsDeclaredPath` fails without the pin with the
+  exact wire symptom (`declared artifact was not written: … cannot find the
+  file`) and also asserts the unpinned similar create still reroutes.
 - **A lane that lands in `decision` now asks the human where they work — and
   answering the ask does the thing it says.** Journey 9's stop table: `JOURN-16`
   finished its email draft at 13:48:03, reviewer convergence moved it to

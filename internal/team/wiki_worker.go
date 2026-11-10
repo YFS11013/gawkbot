@@ -108,6 +108,15 @@ type wikiWriteRequest struct {
 	// report to wiki/.lint/report-YYYY-MM-DD.md. Same serialization as entity
 	// facts; no team-wiki index regen, no backlinks recompute.
 	IsLintReport bool
+	// PinnedPath marks a TASK-SCOPED artifact write: the path came from the
+	// task's own declaration and the broker already authorized exactly that
+	// string, so update-first routing must not move it. Journey 10's smoke
+	// caught the cost: a lane declaring team/reviews/dec-smoke-answer.md got
+	// 200 {path: …, bytes_written: 15}, while the bytes were appended to the
+	// similar-slug neighbour team/reviews/dec-smoke.md and the declared file
+	// never existed — the completion gate then refused the lane's own approve,
+	// and the bot had no way to see why. One declared path is one file.
+	PinnedPath bool
 	// IsFactLog routes to Repo.CommitFactLog — mutates a fact record in
 	// wiki/facts/**/*.jsonl or team/entities/*.facts.jsonl (used by lint
 	// ResolveContradiction to update supersedes/valid_until/contradicts_with).
@@ -304,6 +313,22 @@ func (w *WikiWorker) Enqueue(ctx context.Context, slug, path, content, mode, com
 	})
 }
 
+// EnqueueTaskArtifact submits the write of a task's declared artifact. Same
+// queue and single-writer invariant as Enqueue, but the path is PINNED: the
+// task declared it and authorizeTaskArtifactWrite matched it exactly, so
+// update-first rerouting must not append the bytes to a similar-slug
+// neighbour instead.
+func (w *WikiWorker) EnqueueTaskArtifact(ctx context.Context, slug, path, content, mode, commitMsg string) (string, int, error) {
+	return w.enqueue(ctx, wikiWriteRequest{
+		Slug:       slug,
+		Path:       path,
+		Content:    content,
+		Mode:       mode,
+		CommitMsg:  commitMsg,
+		PinnedPath: true,
+	})
+}
+
 // EnqueueNotebookNote submits a bot's private notebook write. Same drain loop
 // and timeout as Enqueue — the single-writer invariant covers agents/ writes
 // too, otherwise a notebook commit could race the wiki worker's git index.
@@ -438,7 +463,10 @@ func (w *WikiWorker) process(ctx context.Context, req wikiWriteRequest) {
 		// to append onto the existing file — update, never duplicate. The
 		// rerouted path/mode are written back onto req so the event fan-out
 		// and index reconcile below see the file that actually changed.
-		req.Path, req.Mode = routeBotCreateToSimilarSlug(w.repo.Root(), req.Slug, req.Path, req.Mode)
+		// Task-scoped writes keep the path their task declared (PinnedPath):
+		// the caller was authorized for that one string, and a redirect makes
+		// the acknowledgement describe a file that does not exist.
+		req.Path, req.Mode = resolveWikiWriteTarget(w.repo.Root(), req)
 		// B4 coalesce: a byte-identical consecutive write to the same path
 		// folds into the previous commit instead of committing again.
 		foldKey := contentHashForFold(req.Mode, req.Content)

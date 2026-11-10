@@ -523,6 +523,20 @@ Journey 9 的 26 分钟静默（F-H）不是因为没人干活、也不是调度
 
 **下一步要观察的**（Journey 10）：卡出现后，人是否会点、点了之后 `changes_requested` 的返工是否在同一轮内发生；以及非阻塞卡是否被误读成「办公室停了」。
 
+**真机验证（2026-11-10，`76e6171`）**：隔离办公室 `decsmoke` 上，`DECSM-49` 走到 `review` 后无人接棒，30 秒收敛把它推进 `decision`，broker 自己发出 `request-62`（`dedupe_key=decision:DECSM-49`、选项 `approve_decision` / `request_changes_decision`、无 `blocking` 字段）。点 `approve_decision` → 200，任务 `status=done`、`lifecycle_state=approved`、`review_state=approved`，卡随即从 `/requests` 消失；同一张卡再点一次是 409 `request is not active`。失败路径也走过：artifact 尚未落盘时点击得到 409 并带回原因（`does not exist in the wiki`），而不是一个什么都没发生的 200。
+
+### 9.20 一条声明的路径就是一个文件（2026-11-10，真机冒烟暴露）
+
+`76e6171` 的冒烟卡在一个和决策卡无关的地方，但它和 §9.18 是同一个不变量在更下层的位置：**声明了交付路径的 lane，写入返回 200 之后，文件可能根本不在那个路径上。**
+
+现象（`decsmoke`，broker.log 与 wiki git 对照）：`task DECSM-36 slug=cos path=team/reviews/dec-smoke-answer.md bytes=15` → 200 `{bytes_written: 15}`；同一时刻 wiki 的 commit `1cc1786 answer smoke` 里只有 `index/all.md` 与 **`team/reviews/dec-smoke.md`**，`dec-smoke-answer.md` 全盘不存在，内容被追加到了邻居 `dec-smoke.md`（`# dec smoke` → `# dec smoke\n\n# answer smoke`）。
+
+**根因是 §9.16 之前装的 update-first（`routeBotCreateToSimilarSlug`，`wiki_update_first.go`）**：bot 发起的 `mode=create` 若同目录已有 Jaro-Winkler ≥ 0.85 的相似 slug，就改道成对既有文章的 `append_section`——这是为了不在知识库里堆近似重复页（v3 的 "Corti brief" 双份）。它对**自由写**是对的，对**任务声明的产物**是错的：路径是任务契约，`authorizeTaskArtifactWrite` 逐字匹配过它，完成门又按它 stat，改道让「返回 200」「文件在盘」「能收 done」三者分裂。冒烟里正是完成门挡住了这一层（approve 报 `artifact "…" does not exist in the wiki`），否则这条 lane 会带着一份不存在的交付物被批准。
+
+**修法**：`wikiWriteRequest.PinnedPath` + `WikiWorker.EnqueueTaskArtifact`，`resolveWikiWriteTarget` 对 pinned 请求直接返回原路径/原 mode，只有 `/wiki/write-task`（路径已被任务声明并授权）走这条；`/wiki/write` 与 MCP 的自由写仍然享受 update-first。测试 `TestTaskArtifactWriteKeepsItsDeclaredPath`：相似名的任务写必须落在声明路径、不得渗进邻居，同时未 pinned 的相似 create 仍要改道——去掉 pin 后该测试红（`declared artifact was not written: … The system cannot find the file specified.`），与真机现象逐字一致。
+
+**判读口径补充**（进 `core-loop-runs/README.md` §6）：`/wiki/write-task` 的 200 只证明「入队并提交了某次写」，不证明「这个路径上有文件」。验收任务产物一律以「盘上文件 + 完成门放行」为准，日志里的 `bytes=` 不是证据。
+
 ### 9.18 Journey 9：写范围守到了「非视觉」，没守到「就是那份文件」（2026-11-09）
 
 Journey 9（`core-loop-runs/2026-11-09-journey9/`，prereg `4863c50`，被测 `690b601`，独立判分 **5/10**）用 J7/J8 逐字相同的场景重跑。§9.16 的三条修复里，两条在半路被证伪，一条站住。

@@ -197,3 +197,15 @@ func routeBotCreateToSimilarSlug(repoRoot, authorSlug, relPath, mode string) (st
 	}
 	return filepath.ToSlash(filepath.Join(dirRel, existing+".md")), "append_section"
 }
+
+// resolveWikiWriteTarget chooses the (path, mode) a queued write commits
+// against. Task-scoped artifact writes are PINNED: the broker authorized the
+// exact string the task declared, so the update-first reroute — which exists to
+// stop bots from minting near-duplicate articles — must not apply. Rerouting
+// one would make the write acknowledge a path that never gets the bytes.
+func resolveWikiWriteTarget(repoRoot string, req wikiWriteRequest) (string, string) {
+	if req.PinnedPath {
+		return req.Path, req.Mode
+	}
+	return routeBotCreateToSimilarSlug(repoRoot, req.Slug, req.Path, req.Mode)
+}
