@@ -162,6 +162,79 @@ func TestHeadlessQueueRetriesOfficeTurnAfterTransientProviderError(t *testing.T)
 	}
 }
 
+// TestHeadlessQueueSilentStallCancelsEarlyAndRetries proves the zero-output
+// budget: an attempt that never emits anything is cancelled well before the
+// turn's own timeout, and the work moves to the fallback model. This is the
+// only lever that shortens the Journey 17 stall (per-provider timeouts in
+// opencode's config do not apply to its builtin providers).
+func TestHeadlessQueueSilentStallCancelsEarlyAndRetries(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("WUPHF_HEADLESS_MODEL_FALLBACK", "opencode-go/iceman-contributor-free")
+	t.Setenv(headlessSilentTurnBudgetEnv, "600ms")
+
+	b := newTestBroker(t)
+	task := newOfficeModeTaskForTestWithOwner(t, b, "cmo")
+
+	var mu sync.Mutex
+	calls := 0
+	done := make(chan struct{}, 4)
+	setHeadlessCodexRunTurnForTest(t, func(_ *Launcher, ctx context.Context, slug, _ string, _ ...string) error {
+		if slug != "cmo" {
+			return nil
+		}
+		mu.Lock()
+		calls++
+		n := calls
+		mu.Unlock()
+		select {
+		case done <- struct{}{}:
+		default:
+		}
+		if n > 1 {
+			return nil // the fallback turn answers
+		}
+		<-ctx.Done() // never emits a single event: exactly the stall
+		return ctx.Err()
+	})
+
+	l := newHeadlessLauncherForTest(t)
+	l.broker = b
+
+	l.enqueueHeadlessCodexTurnRecord("cmo", headlessCodexTurn{
+		Prompt:  "Work the team build for #" + task.ID,
+		Channel: task.Channel,
+		TaskID:  task.ID,
+	})
+
+	for i := 0; i < 2; i++ {
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Fatalf("expected attempt %d to run", i+1)
+		}
+	}
+	l.waitForHeadlessIdle(t)
+
+	mu.Lock()
+	gotCalls := calls
+	mu.Unlock()
+	if gotCalls != 2 {
+		t.Fatalf("expected the silent attempt plus one fallback attempt, got %d calls", gotCalls)
+	}
+
+	logBytes, err := os.ReadFile(filepath.Join(wuphfLogDir(), "headless-codex-cmo.log"))
+	if err != nil {
+		t.Fatalf("read headless log: %v", err)
+	}
+	logText := string(logBytes)
+	if !strings.Contains(logText, "silent-stall: no model output in") {
+		t.Fatalf("expected a silent-stall log line, got:\n%s", logText)
+	}
+	if !strings.Contains(logText, "retrying on opencode-go/iceman-contributor-free") {
+		t.Fatalf("expected the retry to name the fallback model, got:\n%s", logText)
+	}
+}
+
 // TestHeadlessQueueSilentTimeoutSwitchesToFallbackModel drives the real worker
 // through the Journey 17 failure: the turn times out without producing a byte
 // of model output. That turn must get one attempt on the configured fallback

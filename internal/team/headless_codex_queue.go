@@ -14,8 +14,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
@@ -569,7 +571,19 @@ func (l *Launcher) runHeadlessCodexQueue(lane headlessLane, stop <-chan struct{}
 			appendHeadlessCodexLatency(slug, fmt.Sprintf("stage=started queue_wait_ms=%d", time.Since(turn.EnqueuedAt).Milliseconds()))
 			l.updateHeadlessProgress(slug, "active", "queued", "queued work packet received", headlessProgressMetrics{})
 
+			var silentFired atomic.Bool
+			silentDone := make(chan struct{})
+			if budget := headlessSilentTurnBudget(); budget > 0 &&
+				headlessTurnFallbackModel(turn) != "" && turn.TaskID != "" {
+				l.headless.mu.Lock()
+				active := l.headless.active[lane]
+				l.headless.mu.Unlock()
+				if active != nil && active.Cancel != nil {
+					go l.watchSilentHeadlessTurn(slug, turn, startedAt, budget, silentDone, &silentFired, active.Cancel)
+				}
+			}
 			err := headlessCodexRunTurn(l, turnCtx, slug, turn.Prompt, turn.Channel)
+			close(silentDone)
 			ctxErr := turnCtx.Err()
 			isDurabilityError := false
 			if err == nil {
@@ -611,6 +625,11 @@ func (l *Launcher) runHeadlessCodexQueue(lane headlessLane, stop <-chan struct{}
 					break
 				}
 				l.recoverTimedOutHeadlessTurn(slug, turn, startedAt, timeout)
+			case silentFired.Load():
+				// The watchdog above already logged, queued the fallback retry
+				// and cancelled this attempt. Nothing else to recover: the
+				// task never moved and the retry carries the same turn.
+				appendHeadlessCodexLog(slug, "silent-stall: attempt cancelled; fallback retry is queued")
 			case errors.Is(ctxErr, context.Canceled) || errors.Is(err, context.Canceled):
 				appendHeadlessCodexLog(slug, "error: headless codex turn cancelled so newer queued work can run")
 				l.updateHeadlessProgress(slug, "active", "queued", "restarting on newer queued work", headlessProgressMetrics{})
@@ -1220,6 +1239,80 @@ func headlessLastErrorTurnID(stream *botStreamBuffer, taskID string, notBefore t
 		return strings.TrimSpace(evt.TurnID)
 	}
 	return ""
+}
+
+// headlessSilentTurnBudgetEnv bounds how long a turn may run with no model
+// output at all before the queue cancels it and hands the work to the fallback
+// model. It exists because the stall itself is outside our control: a
+// rate-limited upstream answers 429, the runner retries inside its own SDK and
+// then sits on a request that never returns, and all the broker ever sees is a
+// turn timeout at the end of the full budget (Journey 17: zero events for ten
+// minutes, twice). Per-provider timeout knobs in opencode's config do not apply
+// to its builtin providers, so the only lever left is on this side.
+//
+// Only turns that have produced NOTHING are eligible: no text, no tool call, no
+// plan. A turn that emitted anything is making progress and keeps its normal
+// budget, so this cannot cut short real work. Unset means the four-minute
+// default; "0" or a negative value disables the guard.
+const headlessSilentTurnBudgetEnv = "WUPHF_TURN_SILENT_BUDGET"
+
+const headlessSilentTurnBudgetDefault = 4 * time.Minute
+
+func headlessSilentTurnBudget() time.Duration {
+	raw := strings.TrimSpace(os.Getenv(headlessSilentTurnBudgetEnv))
+	if raw == "" {
+		return headlessSilentTurnBudgetDefault
+	}
+	d, err := time.ParseDuration(raw)
+	if err != nil {
+		return headlessSilentTurnBudgetDefault
+	}
+	if d <= 0 {
+		return 0
+	}
+	return d
+}
+
+// watchSilentHeadlessTurn cancels an attempt that has produced no model output
+// within budget, and queues one retry on the fallback model. It returns as soon
+// as the attempt speaks (nothing to guard), the attempt ends, or it fires.
+func (l *Launcher) watchSilentHeadlessTurn(slug string, turn headlessCodexTurn, startedAt time.Time, budget time.Duration, done <-chan struct{}, fired *atomic.Bool, cancel context.CancelFunc) {
+	if l == nil || l.broker == nil || cancel == nil || budget <= 0 {
+		return
+	}
+	interval := budget / 4
+	if interval < 250*time.Millisecond {
+		interval = 250 * time.Millisecond
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-done:
+			return
+		case <-ticker.C:
+			if !l.headlessTurnSilent(slug, turn, startedAt) {
+				return // it spoke; the normal budget owns this turn now
+			}
+			if time.Since(startedAt) < budget {
+				continue
+			}
+			fallback := headlessTurnFallbackModel(turn)
+			if fallback == "" {
+				return // nowhere to go; let the turn's own budget expire
+			}
+			fired.Store(true)
+			appendHeadlessCodexLog(slug, "silent-stall: no model output in "+budget.String()+" — cancelling this attempt, retrying on "+fallback)
+			l.updateHeadlessProgress(slug, "active", "queued", "model never responded — retrying on fallback", headlessProgressMetrics{})
+			retryTurn := turn
+			retryTurn.ModelOverride = fallback
+			retryTurn.TransientRetries = headlessCodexTransientTurnRetryLimit
+			retryTurn.EnqueuedAt = time.Now()
+			l.enqueueHeadlessCodexTurnRecord(slug, retryTurn)
+			cancel()
+			return
+		}
+	}
 }
 
 // headlessTurnProducedNoOutput reports whether an attempt pushed no model
