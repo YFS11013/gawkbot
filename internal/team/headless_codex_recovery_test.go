@@ -214,6 +214,41 @@ func TestHeadlessQueueDoesNotRetryOfficeTurnAfterNonTransientError(t *testing.T)
 	}
 }
 
+// TestHeadlessTurnEmittedNothing pins the silence check that routes a
+// zero-event timeout to the fallback model. Journey 17: a rate-limited primary
+// kept the runner alive for the whole turn budget without emitting anything,
+// so the broker only saw a timeout and blocked the task.
+func TestHeadlessTurnEmittedNothing(t *testing.T) {
+	start := time.Now().Add(-time.Minute)
+	start = start.Truncate(time.Second)
+
+	fresh := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
+	if !headlessTurnEmittedNothing(fresh, "task-1", start) {
+		t.Fatalf("empty stream should read as silent")
+	}
+
+	spoke := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
+	pushHeadlessEvent(spoke, HeadlessEvent{Type: HeadlessEventTypeIdle, Bot: "cos", TaskID: "task-1", Text: "hi"})
+	if headlessTurnEmittedNothing(spoke, "task-1", start) {
+		t.Fatalf("a turn that emitted an event is not silent")
+	}
+
+	// Events from an EARLIER attempt must not make this attempt look alive.
+	stale := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
+	pushHeadlessEvent(stale, HeadlessEvent{
+		Type: HeadlessEventTypeIdle, Bot: "cos", TaskID: "task-1", Text: "old",
+		StartedAt: start.Add(-5 * time.Minute).UTC().Format(time.RFC3339),
+	})
+	if !headlessTurnEmittedNothing(stale, "task-1", start) {
+		t.Fatalf("an event stamped before the attempt started must not count")
+	}
+
+	// No task id means nothing to judge; stay conservative (not silent).
+	if headlessTurnEmittedNothing(spoke, " ", start) {
+		t.Fatalf("blank task id should not be classified as silent")
+	}
+}
+
 func TestIsTransientProviderError(t *testing.T) {
 	cases := []struct {
 		name string
@@ -232,6 +267,10 @@ func TestIsTransientProviderError(t *testing.T) {
 		// Chain-typed stream failures survive the parse-path wrap.
 		{"wrapped unexpected EOF", fmt.Errorf("read claude json stream: %w", io.ErrUnexpectedEOF), true},
 		{"wrapped closed pipe", fmt.Errorf("read claude json stream: %w", io.ErrClosedPipe), true},
+		// Quota exhaustion (Journey 17): the real body from opencode-go.
+		{"provider rate limit", errors.New(`exit status 1: {"error":{"type":"rate_limit_error","message":"Rate limit exceeded. Please try again later."}}`), true},
+		{"rate limit underscore type", errors.New("stream error: rate_limit_error"), true},
+		{"too many requests", errors.New("http 429 Too Many Requests"), true},
 		// Non-transient failures keep the old recovery path.
 		{"nil", nil, false},
 		{"context canceled", context.Canceled, false},

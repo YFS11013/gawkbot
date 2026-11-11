@@ -593,6 +593,23 @@ func (l *Launcher) runHeadlessCodexQueue(lane headlessLane, stop <-chan struct{}
 				appendHeadlessCodexLog(slug, fmt.Sprintf("error: headless codex turn timed out after %s", timeout))
 				l.updateHeadlessProgress(slug, "error", "error", fmt.Sprintf("turn timed out after %s", timeout), headlessProgressMetrics{})
 				l.noteChatTurnStall(slug, turn, fmt.Sprintf("the reply timed out after %s", timeout))
+				if fallback := headlessTurnFallbackModel(turn); fallback != "" &&
+					l.headlessTurnSilent(slug, turn, startedAt) {
+					// A budget spent with zero events is not a slow turn. Spend
+					// one attempt on the fallback model before blocking the
+					// task: the alternative is the Journey 17 stall, where a
+					// rate-limited primary held the lane for ten minutes and
+					// then blocked it while a working model sat configured.
+					retryTurn := turn
+					retryTurn.ModelOverride = fallback
+					retryTurn.TransientRetries = headlessCodexTransientTurnRetryLimit
+					retryTurn.EnqueuedAt = time.Now()
+					appendHeadlessCodexLog(slug, "model-fallback: primary produced no events in "+timeout.String()+", retrying on "+fallback)
+					l.emitHeadlessReconnecting(slug, turn, startedAt)
+					l.updateHeadlessProgress(slug, "active", "queued", "model never responded — retrying on fallback", headlessProgressMetrics{})
+					l.enqueueHeadlessCodexTurnRecord(slug, retryTurn)
+					break
+				}
 				l.recoverTimedOutHeadlessTurn(slug, turn, startedAt, timeout)
 			case errors.Is(ctxErr, context.Canceled) || errors.Is(err, context.Canceled):
 				appendHeadlessCodexLog(slug, "error: headless codex turn cancelled so newer queued work can run")
@@ -1130,6 +1147,15 @@ func isTransientProviderErrorText(detail string) bool {
 		"bad gateway",
 		"service unavailable",
 		"api error: 5", // claude CLI shape for provider 5xx ("API Error: 529 …")
+		// Quota, not a dead pipe. Journey 17: longcat-2.5-free answered 429
+		// for the whole office, the turn failed three times, and the one
+		// model with quota left (iceman-contributor-free) was never tried —
+		// the classifier did not know "rate limit", so the turn went straight
+		// to blocked. Same-model retries are cheap; the value here is that
+		// they expire and the fallback model gets its one attempt.
+		"rate limit",
+		"rate_limit",
+		"too many requests",
 	}
 	for _, marker := range markers {
 		if strings.Contains(s, marker) {
@@ -1137,6 +1163,19 @@ func isTransientProviderErrorText(detail string) bool {
 		}
 	}
 	return bareExitStatusPattern.MatchString(s)
+}
+
+// headlessTurnSilent resolves the turn's task stream and asks whether the
+// attempt produced any event at all.
+func (l *Launcher) headlessTurnSilent(slug string, turn headlessCodexTurn, attemptStartedAt time.Time) bool {
+	if l == nil || l.broker == nil {
+		return false
+	}
+	taskID := strings.TrimSpace(turn.TaskID)
+	if taskID == "" {
+		taskID = l.botActiveTaskID(slug)
+	}
+	return headlessTurnEmittedNothing(l.broker.BotStream(slug), taskID, attemptStartedAt)
 }
 
 // headlessLastErrorTurnID recovers the turn id of the runner turn that just
@@ -1181,6 +1220,44 @@ func headlessLastErrorTurnID(stream *botStreamBuffer, taskID string, notBefore t
 		return strings.TrimSpace(evt.TurnID)
 	}
 	return ""
+}
+
+// headlessTurnEmittedNothing reports whether an attempt pushed nothing at all
+// onto its task stream: no reply text, no tool call, no error event.
+//
+// This is the only in-process evidence that distinguishes "the model was
+// unreachable" from "the work ran long". Journey 17: the primary model
+// answered 429 on every request, the runner retried inside its own SDK and
+// never exited, and ten minutes later the broker saw a bare timeout — the
+// provider error never reached the queue, so neither the transient retry nor
+// the model fallback could fire. A turn that produced zero events in the
+// whole budget did not do half a job; it never started.
+func headlessTurnEmittedNothing(stream *botStreamBuffer, taskID string, attemptStartedAt time.Time) bool {
+	if stream == nil || strings.TrimSpace(taskID) == "" {
+		return false
+	}
+	// Same second precision as headlessLastErrorTurnID: an event from the
+	// second the attempt started belongs to this attempt.
+	cutoff := attemptStartedAt.Truncate(time.Second)
+	for _, line := range stream.recentTask(taskID) {
+		var evt struct {
+			Kind      string `json:"kind"`
+			Type      string `json:"type"`
+			StartedAt string `json:"started_at"`
+		}
+		if err := json.Unmarshal([]byte(strings.TrimSpace(line)), &evt); err != nil {
+			continue
+		}
+		if evt.Kind != HeadlessEventKind || strings.TrimSpace(evt.Type) == "" {
+			continue
+		}
+		ts, err := time.Parse(time.RFC3339, strings.TrimSpace(evt.StartedAt))
+		if err != nil || ts.Before(cutoff) {
+			continue
+		}
+		return false // this attempt produced something
+	}
+	return true
 }
 
 // emitHeadlessReconnecting pushes the "reconnecting" HeadlessEvent for a
