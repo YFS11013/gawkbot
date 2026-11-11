@@ -1,0 +1,21 @@
+2026/11/11 09:16:02 WARNING wiki: gbrain unavailable (wiki_index_gbrain_entity: connect: connect gbrain mcp: calling "initialize": EOF); falling back to the in-memory index. Facts will NOT persist across restarts. Install gbrain, or set WUPHF_WIKI_BACKEND=memory to silence this.
+2026/11/11 09:16:02 wiki lint cron: disabled (set WUPHF_LINT_CRON=HH:MM to enable a daily run)
+2026/11/11 09:16:02 INFO skill_compile cron: started interval=30m0s
+2026/11/11 09:16:02 wiki_index: boot reconcile complete
+2026/11/11 09:16:02 [transport] share: registered (human-share)
+2026/11/11 09:16:17 scheduler: loop started (poll=20s)
+2026/11/11 09:26:17 scheduler: heartbeat (uptime=10m0s, poll=20s)
+2026/11/11 09:32:54 wiki write-task: task=JOURN-18 slug=cos path=team/accounts/acme-renewal-quote.md bytes=848
+2026/11/11 09:32:58 wiki write-task: task=JOURN-20 slug=cos path=team/emails/acme-renewal-followup.md bytes=811
+2026/11/11 09:33:35 task review: no reviewer available for JOURN-18 (owner "cos")
+2026/11/11 09:33:35 workflow detect JOURN-18: no recurring/end-to-end shape in corpus — skipping
+2026/11/11 09:33:36 source_capture: write note source "note-team-learnings-fece5bdd": put_page "note-team-learnings-fece5bdd": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/11 09:33:36 task review: no reviewer available for JOURN-20 (owner "cos")
+2026/11/11 09:33:36 workflow detect JOURN-20: no recurring/end-to-end shape in corpus — skipping
+2026/11/11 09:33:37 source_capture: write note source "note-acme-83ab08b2": put_page "note-acme-83ab08b2": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/11 09:33:37 INFO writeCompiledSkillLocked: compiled skill created name=acme slug=acme created_by=librarian sha=bd3cb9f owner_agents=1
+2026/11/11 09:33:38 source_capture: write note source "note-team-learnings-ec70f8dd": put_page "note-team-learnings-ec70f8dd": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/11 09:33:39 source_capture: write note source "note-acme-83ab08b2": put_page "note-acme-83ab08b2": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/11 09:35:57 scheduler: dispatched 1 due job(s)
+2026/11/11 09:36:17 source_capture: write task source "task-journ-1": put_page "task-journ-1": gbrain call put_page (after reconnect): connect gbrain mcp: calling "initialize": EOF
+2026/11/11 09:36:17 scheduler: heartbeat (uptime=20m0s, poll=20s)

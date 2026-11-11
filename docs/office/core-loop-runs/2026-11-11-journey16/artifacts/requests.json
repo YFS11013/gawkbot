@@ -1,0 +1,189 @@
+[
+ {
+  "id": "request-3",
+  "kind": "interview",
+  "status": "answered",
+  "from": "cos",
+  "channel": "cos__human",
+  "title": "Human interview",
+  "question": "Acme 续约的条款（方案、价格、周期、续约调整）和 Dana 的联系方式不在办公室里，两份交付物都要用。你现在能提供吗？",
+  "context": "JOURN-1 要为 Acme 续约（VP Ops：Dana）产出两份独立英文文件：① 一页续约报价单 ② 一封跟进邮件。我在办公室（wiki/记录）里查不到续约方案、价格、周期、续约调整和 Dana 的联系方式，不能凭空编造。请提供这些条款，或告诉我从哪里取；拿到后我会拆成两条子任务（各自独立文件）并推进到 done。",
+  "options": [
+   {
+    "id": "provide_now",
+    "label": "我现在提供条款",
+    "description": "直接在回复里给出方案、价格、周期、续约调整和 Dana 的联系方式",
+    "requires_text": true,
+    "text_hint": "例：方案 / 年价 / 周期 / 续约调整 / Dana 邮箱"
+   },
+   {
+    "id": "point_source",
+    "label": "我指向一个来源",
+    "description": "条款在某封邮件或文件里，你去取",
+    "requires_text": true,
+    "text_hint": "来源位置或线索"
+   },
+   {
+    "id": "placeholder",
+    "label": "先出占位版",
+    "description": "用 [NEEDS CONFIRMATION] 占位，你事后补"
+   }
+  ],
+  "recommended_id": "provide_now",
+  "reply_to": "msg-2",
+  "issue_id": "JOURN-1",
+  "created_at": "2026-11-11T01:22:36Z",
+  "updated_at": "2026-11-11T01:27:06Z",
+  "answered": {
+   "custom_text": "可以，全部按下面这些死数字写，不要编：Acme，40 席位，现有 $18,000/年，合同 2026-12-31 到期，30 天付款；续约报价 $21,600/年，报价 14 天有效期；唯一签字人 Dana（VP Ops）。公司名和发件人姓名还没定，用占位符。",
+   "answered_at": "2026-11-11T01:27:06Z"
+  }
+ },
+ {
+  "id": "request-7",
+  "kind": "approval",
+  "status": "answered",
+  "from": "cos",
+  "channel": "cos__human",
+  "title": "Start work on Journey 16: Acme renewal pack（收尾版）?",
+  "question": "@cos wants to start work on Journey 16: Acme renewal pack（收尾版） (JOURN-1).\n\nApprove and they begin. Decline and nothing happens until you say otherwise.\n\nTheir plan, in short:\nJOURN-1 收尾计划如下 —— 拆成两条独立文件的子任务，条款缺口最后向你确认。 **目标**：为 Acme 续约（VP Ops：Dana）产出两份互不依赖的英文文件，并把 JOURN-1 推进到 done。本 Issue 只统筹，不亲自写文件。 **两条子任务（parent=JOURN-1，互不重叠）**： - **A｜一页续约报价单（独立文件）**：英文 one-page renewal quote / price sheet，含续约方案、价格、周期、续约调整。验收：独立文件、英文、一页、四项齐全。 - **B｜跟进邮件（独立文件）**：致 Dana（VP Ops）的英文续约跟进邮件，呼应报价单要点。验收：独立文件、英文、收件人 Dana、主题+正文完整。 **执行先决条件（写入计划）**： - 续约条款（方案、价格、周期、续约调整）与 Dana 的联系方式 —— 不在办公室，须由你提供。 - 两份文件均为英文。 **开放问题（执行时定，不阻塞）**：文件落点/格式 —— wiki 独立文章，报价单可出一页视觉版。 **收尾**：两条子任务各自落地文件后，本 Issue 汇总…",
+  "options": [
+   {
+    "id": "approve",
+    "label": "Approve",
+    "description": "Green-light this and let the team execute immediately."
+   },
+   {
+    "id": "approve_with_note",
+    "label": "Approve with note",
+    "description": "Proceed, but attach explicit constraints or guardrails.",
+    "requires_text": true,
+    "text_hint": "Type the conditions, constraints, or guardrails the team must follow."
+   },
+   {
+    "id": "needs_more_info",
+    "label": "Need more info",
+    "description": "Gather more context before making the approval call."
+   },
+   {
+    "id": "reject",
+    "label": "Reject",
+    "description": "Do not proceed with this."
+   },
+   {
+    "id": "reject_with_steer",
+    "label": "Reject with steer",
+    "description": "Do not proceed as proposed. Redirect the team with clearer steering.",
+    "requires_text": true,
+    "text_hint": "Type the steering, redirect, or rationale for rejecting this request."
+   }
+  ],
+  "recommended_id": "approve",
+  "reply_to": "msg-8",
+  "dedupe_key": "plan-approval:JOURN-1",
+  "issue_id": "JOURN-1",
+  "created_at": "2026-11-11T01:26:17Z",
+  "updated_at": "2026-11-11T01:30:55Z",
+  "answered": {
+   "choice_id": "approve",
+   "choice_text": "Approve",
+   "answered_at": "2026-11-11T01:30:55Z"
+  }
+ },
+ {
+  "id": "request-22",
+  "kind": "interview",
+  "status": "canceled",
+  "from": "cos",
+  "channel": "cos__human",
+  "title": "Missing details for JOURN-18",
+  "question": "Before the team starts \"Acme 一页续约报价单（独立英文文件）\", a few details are missing:\n- success criterion: \"公司名与发件人使用占位符 [COMPANY NAME] / [SENDER NAME]\"\nReply with the missing details (or tell the team to proceed as-is).",
+  "options": [
+   {
+    "id": "answer_directly",
+    "label": "Answer directly",
+    "description": "Respond in your own words below.",
+    "requires_text": true,
+    "text_hint": "Type your answer for the team."
+   },
+   {
+    "id": "need_more_context",
+    "label": "Need more context",
+    "description": "Ask the team to bring back more context before you decide.",
+    "requires_text": true,
+    "text_hint": "Type what context is missing or what should be clarified next."
+   }
+  ],
+  "recommended_id": "answer_directly",
+  "reply_to": "msg-23",
+  "dedupe_key": "definition-gap:JOURN-18",
+  "issue_id": "JOURN-18",
+  "created_at": "2026-11-11T01:32:25Z",
+  "updated_at": "2026-11-11T01:33:35Z"
+ },
+ {
+  "id": "request-25",
+  "kind": "interview",
+  "status": "canceled",
+  "from": "cos",
+  "channel": "cos__human",
+  "title": "Missing details for JOURN-20",
+  "question": "Before the team starts \"Acme 续约跟进邮件（致 Dana，独立英文文件）\", a few details are missing:\n- success criterion: \"公司名与发件人使用占位符 [COMPANY NAME] / [SENDER NAME]\"\nReply with the missing details (or tell the team to proceed as-is).",
+  "options": [
+   {
+    "id": "answer_directly",
+    "label": "Answer directly",
+    "description": "Respond in your own words below.",
+    "requires_text": true,
+    "text_hint": "Type your answer for the team."
+   },
+   {
+    "id": "need_more_context",
+    "label": "Need more context",
+    "description": "Ask the team to bring back more context before you decide.",
+    "requires_text": true,
+    "text_hint": "Type what context is missing or what should be clarified next."
+   }
+  ],
+  "recommended_id": "answer_directly",
+  "reply_to": "msg-26",
+  "dedupe_key": "definition-gap:JOURN-20",
+  "issue_id": "JOURN-20",
+  "created_at": "2026-11-11T01:32:29Z",
+  "updated_at": "2026-11-11T01:33:36Z"
+ },
+ {
+  "id": "request-35",
+  "kind": "approval",
+  "status": "answered",
+  "from": "cos",
+  "channel": "cos__human",
+  "title": "Approve Journey 16: Acme renewal pack（收尾版）?",
+  "question": "@cos finished Journey 16: Acme renewal pack（收尾版） (JOURN-1) and the review is in. Nothing else moves until you call it.\n\nThis Issue's lanes delivered 2 file(s):\n\n- team/accounts/acme-renewal-quote.md\n- team/emails/acme-renewal-followup.md\n\nThe Issue ships no single file of its own; those are what you are accepting.\nApprove and the lane closes. Send it back and the owner picks up your note as the rework.",
+  "options": [
+   {
+    "id": "approve_decision",
+    "label": "Approve",
+    "description": "Accept the deliverable and close this lane."
+   },
+   {
+    "id": "request_changes_decision",
+    "label": "Send back",
+    "description": "Hand it back to the owner with what must change.",
+    "requires_text": true,
+    "text_hint": "Type what must change before this can be accepted."
+   }
+  ],
+  "recommended_id": "approve_decision",
+  "reply_to": "msg-36",
+  "dedupe_key": "decision:JOURN-1",
+  "issue_id": "JOURN-1",
+  "created_at": "2026-11-11T01:34:32Z",
+  "updated_at": "2026-11-11T01:36:16Z",
+  "answered": {
+   "choice_id": "approve_decision",
+   "choice_text": "Approve",
+   "answered_at": "2026-11-11T01:36:16Z"
+  }
+ }
+]

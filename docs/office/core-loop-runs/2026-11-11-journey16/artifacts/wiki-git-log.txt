@@ -1,0 +1,90 @@
+d2abbce archivist: entity article companies/sender-name (1 facts)
+index/all.md
+team/companies/sender-name.md
+4123b85 archivist: entity article companies/company-name (1 facts)
+index/all.md
+team/companies/company-name.md
+6225a54 archivist: entity article companies/vp-ops (3 facts)
+index/all.md
+team/companies/vp-ops.md
+adbced2 graph: companies/sender-name → 2 ref(s)
+team/entities/.graph.jsonl
+5b93563 fact: companies/sender-name — Completed task JOURN-1 ("Journey 16: Acme renewal pack（收尾版）") involved this entity. Goal: 为 Acme 续约（VP Ops：Dana）产出两份各自独立的英文交付物 —— ① 一页续约报价单 ② 一封跟进邮件 —— 并推进 JOURN-1 到 done。本 Issue 只统筹，不亲自写文件。. Co-occurring entities: [[companies/vp-ops]], [[companies/company-name]].
+team/entities/companies-sender-name.facts.jsonl
+6f1ad2c graph: companies/company-name → 2 ref(s)
+team/entities/.graph.jsonl
+1938839 fact: companies/company-name — Completed task JOURN-1 ("Journey 16: Acme renewal pack（收尾版）") involved this entity. Goal: 为 Acme 续约（VP Ops：Dana）产出两份各自独立的英文交付物 —— ① 一页续约报价单 ② 一封跟进邮件 —— 并推进 JOURN-1 到 done。本 Issue 只统筹，不亲自写文件。. Co-occurring entities: [[companies/vp-ops]], [[companies/sender-name]].
+team/entities/companies-company-name.facts.jsonl
+bf4eb59 graph: companies/vp-ops → 2 ref(s)
+team/entities/.graph.jsonl
+7ad561c fact: companies/vp-ops — Completed task JOURN-1 ("Journey 16: Acme renewal pack（收尾版）") involved this entity. Goal: 为 Acme 续约（VP Ops：Dana）产出两份各自独立的英文交付物 —— ① 一页续约报价单 ② 一封跟进邮件 —— 并推进 JOURN-1 到 done。本 Issue 只统筹，不亲自写文件。. Co-occurring entities: [[companies/company-name]], [[companies/sender-name]].
+team/entities/companies-vp-ops.facts.jsonl
+99ba193 decision: promote JOURN-1 on approval
+index/all.md
+team/decisions/JOURN-1.md
+602434b archivist: update playbook draft acme from JOURN-20
+index/all.md
+team/playbooks/acme.md
+7076bd4 learning: operational/acme-dana
+index/all.md
+team/learnings/index.jsonl
+team/learnings/index.md
+bd3cb9f librarian: compile skill acme
+team/skills/acme.md
+cc49653 archivist: entity article companies/vp-ops (2 facts)
+index/all.md
+team/companies/vp-ops.md
+832e830 archivist: compile playbook acme
+team/playbooks/.compiled/acme/SKILL.md
+81f5f43 fact: companies/vp-ops — Completed task JOURN-20 ("Acme 续约跟进邮件（致 Dana，独立英文文件）") involved this entity. Goal: 产出致 Dana（VP Ops）的英文续约跟进邮件独立 wiki 文件，呼应报价单要点，推动续约确认。. Produced artifact: team/emails/acme-renewal-followup.md.
+team/entities/companies-vp-ops.facts.jsonl
+d0bd06d archivist: create playbook draft acme from JOURN-18
+index/all.md
+team/playbooks/acme.md
+e0100af learning: operational/acme
+index/all.md
+team/learnings/index.jsonl
+team/learnings/index.md
+16e0ff7 archivist: entity article companies/vp-ops (1 facts)
+index/all.md
+team/companies/vp-ops.md
+2e108fa fact: companies/vp-ops — Completed task JOURN-18 ("Acme 一页续约报价单（独立英文文件）") involved this entity. Goal: 产出一页英文 Acme 续约报价单独立 wiki 文件，数字与硬约束完全一致，供 Dana（VP Ops）续约决策使用。. Produced artifact: team/accounts/acme-renewal-quote.md.
+team/entities/companies-vp-ops.facts.jsonl
+b74ba7c Add Acme renewal follow-up email (JOURN-20)
+index/all.md
+team/emails/acme-renewal-followup.md
+6e0ea64 Add Acme one-page renewal quote (JOURN-18)
+index/all.md
+team/accounts/acme-renewal-quote.md
+8b1607d JOURN-1 收尾计划
+agents/cos/notebook/plan-JOURN-1.md
+928503d wuphf: backfill skill data-modeling from broker state
+team/skills/data-modeling.md
+bb6ced4 archivist: skill consolidation migration sentinel
+team/skills/.system/migrated-skill-consolidation.md
+7526358 wuphf: backfill skill wiki-maintenance from broker state
+team/skills/wiki-maintenance.md
+6eb3eb0 wuphf: backfill skill app-building from broker state
+index/all.md
+team/skills/app-building.md
+9d7576c bot: seed office/USER.md
+office/USER.md
+6667166 bot: seed agents/cos/TOOLS.md
+agents/cos/TOOLS.md
+f376032 bot: seed agents/cos/OPERATIONS.md
+agents/cos/OPERATIONS.md
+4c4ce88 bot: seed agents/cos/IDENTITY.md
+agents/cos/IDENTITY.md
+e96e655 bot: seed agents/cos/SOUL.md
+agents/cos/SOUL.md
+b297d36 wuphf: init wiki
+index/.gitkeep
+team/.obsidian/.gitignore
+team/.obsidian/app.json
+team/companies/.gitkeep
+team/decisions/.gitkeep
+team/inbox/raw/.gitkeep
+team/learnings/.gitkeep
+team/people/.gitkeep
+team/playbooks/.gitkeep
+team/projects/.gitkeep

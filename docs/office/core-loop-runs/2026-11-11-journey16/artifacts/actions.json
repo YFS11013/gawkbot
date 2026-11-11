@@ -1,0 +1,360 @@
+[
+ {
+  "id": "action-1",
+  "kind": "task_created",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "human",
+  "summary": "Journey 16: Acme renewal pack（收尾版）",
+  "related_id": "JOURN-1",
+  "created_at": "2026-11-11T01:17:54Z"
+ },
+ {
+  "id": "action-2",
+  "kind": "request_created",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "Human interview Acme 续约的条款（方案、价格、周期、续约调整）和 Dana 的联系方式不在办公室里，两份交付物都要用。你现在能提供吗？",
+  "related_id": "request-3",
+  "created_at": "2026-11-11T01:22:36Z"
+ },
+ {
+  "id": "action-3",
+  "kind": "automation",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "JOURN-1 收尾计划如下 —— 拆成两条独立文件的子任务，条款缺口最后向你确认。\n\n**目标**：为 Acme 续约（VP Ops：Dana）产出两份互不依赖的英文文件，并把 JOURN-1 推进到 done。本 Issue 只统筹，不亲自写文件。\n\n**两条子任务（par…",
+  "related_id": "msg-5",
+  "created_at": "2026-11-11T01:22:40Z"
+ },
+ {
+  "id": "action-4",
+  "kind": "automation",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "采访卡片工具连续超时，我直接把问题发给你。\n\n**需要你提供的条款**（办公室里查不到，不能凭空编造）：\n- 续约方案、价格、周期、续约调整\n- Dana（VP Ops）的联系方式\n\n你可以直接回复条款，或告诉我从哪取；也可以让我先用 `[NEEDS CONFIRMATION]…",
+  "related_id": "msg-6",
+  "created_at": "2026-11-11T01:26:17Z"
+ },
+ {
+  "id": "action-5",
+  "kind": "request_created",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "Start work on Journey 16: Acme renewal pack（收尾版）? @cos wants to start work on Journey 16: Acme renewal pack（收尾版） (JOURN-1).\n\nApprove and th…",
+  "related_id": "request-7",
+  "created_at": "2026-11-11T01:26:17Z"
+ },
+ {
+  "id": "action-6",
+  "kind": "request_answered",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "you",
+  "summary": "Answered @cos's request: 可以，全部按下面这些死数字写，不要编：Acme，40 席位，现有 $18,000/年，合同 2026-12-31 到期，30 天付款；续约报价 $21,600/年，报价 14 天有效期；唯一签字人 Dana（VP Ops）。公司…",
+  "related_id": "request-3",
+  "created_at": "2026-11-11T01:27:06Z"
+ },
+ {
+  "id": "action-7",
+  "kind": "task_updated",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "Journey 16: Acme renewal pack（收尾版） [in_progress]",
+  "related_id": "JOURN-1",
+  "created_at": "2026-11-11T01:28:43Z"
+ },
+ {
+  "id": "action-8",
+  "kind": "automation",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "收到死数字，正在拆成两条子任务并推进 JOURN-1。",
+  "related_id": "msg-10",
+  "created_at": "2026-11-11T01:28:43Z"
+ },
+ {
+  "id": "action-9",
+  "kind": "automation",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "父任务还在 planning，先把计划正式定稿。",
+  "related_id": "msg-11",
+  "created_at": "2026-11-11T01:29:06Z"
+ },
+ {
+  "id": "action-10",
+  "kind": "automation",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "计划已定稿并进入 running，现在拆出两条子任务。",
+  "related_id": "msg-12",
+  "created_at": "2026-11-11T01:29:47Z"
+ },
+ {
+  "id": "action-11",
+  "kind": "automation",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "子任务仍被计划的审批门槛挡住，我把计划正式提交给人类确认。",
+  "related_id": "msg-14",
+  "created_at": "2026-11-11T01:30:36Z"
+ },
+ {
+  "id": "action-12",
+  "kind": "automation",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "已把计划定稿并请求你确认。等你回复「确认计划」后，我立刻拆出 A/B 两条子任务并写文件。",
+  "related_id": "msg-15",
+  "created_at": "2026-11-11T01:30:41Z"
+ },
+ {
+  "id": "action-13",
+  "kind": "task_updated",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "you",
+  "summary": "Journey 16: Acme renewal pack（收尾版） [plan approved]",
+  "related_id": "JOURN-1",
+  "created_at": "2026-11-11T01:30:55Z"
+ },
+ {
+  "id": "action-14",
+  "kind": "request_answered",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "you",
+  "summary": "Approved @cos's request.",
+  "related_id": "request-7",
+  "created_at": "2026-11-11T01:30:55Z"
+ },
+ {
+  "id": "action-15",
+  "kind": "task_created",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "Acme 一页续约报价单（独立英文文件）",
+  "related_id": "JOURN-18",
+  "created_at": "2026-11-11T01:32:06Z"
+ },
+ {
+  "id": "action-16",
+  "kind": "task_created",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "Acme 续约跟进邮件（致 Dana，独立英文文件）",
+  "related_id": "JOURN-20",
+  "created_at": "2026-11-11T01:32:09Z"
+ },
+ {
+  "id": "action-17",
+  "kind": "verification_replaced",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "verification none -> wiki_artifact team/accounts/acme-renewal-quote.md",
+  "related_id": "JOURN-18",
+  "created_at": "2026-11-11T01:32:25Z"
+ },
+ {
+  "id": "action-18",
+  "kind": "task_updated",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "Acme 一页续约报价单（独立英文文件） [in_progress]",
+  "related_id": "JOURN-18",
+  "created_at": "2026-11-11T01:32:25Z"
+ },
+ {
+  "id": "action-19",
+  "kind": "request_created",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "Missing details for JOURN-18 Before the team starts \"Acme 一页续约报价单（独立英文文件）\", a few details are missing:\n- success criterion: \"公司名与发件人使用占位符 […",
+  "related_id": "request-22",
+  "created_at": "2026-11-11T01:32:25Z"
+ },
+ {
+  "id": "action-20",
+  "kind": "automation",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "计划已批准，现在拆出 A 报价单 / B 跟进邮件两条子任务。",
+  "related_id": "msg-24",
+  "created_at": "2026-11-11T01:32:25Z"
+ },
+ {
+  "id": "action-21",
+  "kind": "verification_replaced",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "verification none -> wiki_artifact team/emails/acme-renewal-followup.md",
+  "related_id": "JOURN-20",
+  "created_at": "2026-11-11T01:32:29Z"
+ },
+ {
+  "id": "action-22",
+  "kind": "task_updated",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "Acme 续约跟进邮件（致 Dana，独立英文文件） [in_progress]",
+  "related_id": "JOURN-20",
+  "created_at": "2026-11-11T01:32:29Z"
+ },
+ {
+  "id": "action-23",
+  "kind": "request_created",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "Missing details for JOURN-20 Before the team starts \"Acme 续约跟进邮件（致 Dana，独立英文文件）\", a few details are missing:\n- success criterion: \"公司名与发件人使…",
+  "related_id": "request-25",
+  "created_at": "2026-11-11T01:32:29Z"
+ },
+ {
+  "id": "action-24",
+  "kind": "automation",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "两条子任务已就位。现在写文件——报价单和跟进邮件分别落各自独立 wiki 文章。",
+  "related_id": "msg-29",
+  "created_at": "2026-11-11T01:32:58Z"
+ },
+ {
+  "id": "action-25",
+  "kind": "request_canceled",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "office",
+  "summary": "task closed (done) Missing details for JOURN-18 Before the team starts \"Acme 一页续约报价单（独立英文文件）\", a few details are missing:\n- success criteri…",
+  "related_id": "request-22",
+  "created_at": "2026-11-11T01:33:35Z"
+ },
+ {
+  "id": "action-26",
+  "kind": "task_updated",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "Acme 一页续约报价单（独立英文文件） [done]",
+  "related_id": "JOURN-18",
+  "created_at": "2026-11-11T01:33:35Z"
+ },
+ {
+  "id": "action-27",
+  "kind": "request_canceled",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "office",
+  "summary": "task closed (done) Missing details for JOURN-20 Before the team starts \"Acme 续约跟进邮件（致 Dana，独立英文文件）\", a few details are missing:\n- success c…",
+  "related_id": "request-25",
+  "created_at": "2026-11-11T01:33:36Z"
+ },
+ {
+  "id": "action-28",
+  "kind": "task_updated",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "Acme 续约跟进邮件（致 Dana，独立英文文件） [done]",
+  "related_id": "JOURN-20",
+  "created_at": "2026-11-11T01:33:36Z"
+ },
+ {
+  "id": "action-29",
+  "kind": "skill_update",
+  "source": "office",
+  "channel": "general",
+  "actor": "librarian",
+  "summary": "acme [compiled]",
+  "related_id": "skill-acme",
+  "created_at": "2026-11-11T01:33:37Z"
+ },
+ {
+  "id": "action-30",
+  "kind": "guard_refused",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "broker",
+  "summary": "container artifact: team/accounts/acme-renewal-quote.md is JOURN-18's deliverable",
+  "related_id": "JOURN-1",
+  "created_at": "2026-11-11T01:33:56Z"
+ },
+ {
+  "id": "action-31",
+  "kind": "automation",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "两份文件已落 wiki。现在把两条子任务收尾。",
+  "related_id": "msg-33",
+  "created_at": "2026-11-11T01:33:56Z"
+ },
+ {
+  "id": "action-32",
+  "kind": "guard_refused",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "broker",
+  "summary": "container close: cos tried to close it with 2 delivered lane(s)",
+  "related_id": "JOURN-1",
+  "created_at": "2026-11-11T01:34:18Z"
+ },
+ {
+  "id": "action-33",
+  "kind": "task_updated",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "Journey 16: Acme renewal pack（收尾版） [review]",
+  "related_id": "JOURN-1",
+  "created_at": "2026-11-11T01:34:27Z"
+ },
+ {
+  "id": "action-34",
+  "kind": "request_created",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "Approve Journey 16: Acme renewal pack（收尾版）? @cos finished Journey 16: Acme renewal pack（收尾版） (JOURN-1) and the review is in. Nothing else m…",
+  "related_id": "request-35",
+  "created_at": "2026-11-11T01:34:32Z"
+ },
+ {
+  "id": "action-35",
+  "kind": "automation",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "两份文件已落地，JOURN-1 进入 review 等人类确认后收 done。",
+  "related_id": "msg-38",
+  "created_at": "2026-11-11T01:34:49Z"
+ },
+ {
+  "id": "action-36",
+  "kind": "automation",
+  "channel": "cos__human",
+  "actor": "cos",
+  "summary": "计划已获批准，现在拆出 A/B 两条子任务并开始写文件。",
+  "related_id": "msg-39",
+  "created_at": "2026-11-11T01:35:47Z"
+ },
+ {
+  "id": "action-37",
+  "kind": "request_answered",
+  "source": "office",
+  "channel": "cos__human",
+  "actor": "you",
+  "summary": "Answered @cos's request: Approve",
+  "related_id": "request-35",
+  "created_at": "2026-11-11T01:36:16Z"
+ }
+]
