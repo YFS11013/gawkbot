@@ -61,9 +61,14 @@ V5/V6 是这一轮的核心：**它们无法靠「模型写得好看」通过**�
 | F-e | 对外页复述内部术语（受众约束被忽略，等于没回答采访） |
 | F-f | 模型把 H3 的关单当成失败，另起一条 lane 重做 |
 
-## 5. 前置机械探针（不进 Journey）
+## 5. 前置机械探针：已由单测覆盖，不再单跑
 
-隔离办公室先用 API 写两次同一个 wiki 页（第二次 create/replace，作者是另一个任务），确认 `actions[]` 出现 `artifact_overwritten`、任务未 `blocked`。这条不需要模型，失败就是 `6a3f137` ③ 的代码问题。
+原本计划在隔离办公室用 API 连写两次同一页。核对后取消：`internal/team/wiki_artifact_overwrite_test.go` 走的就是真 handler（`handleWikiWriteTask` + `recordForeignArtifactOverwrite`），两条断言都钉住了——
+
+- `TestOverwritingAnotherTasksDeliverableLeavesARow`：另一个任务已交付的页被 `mode=replace` 覆盖 → 恰好一行 `artifact_overwritten`，summary 里同时出现路径与原作者任务号，且写入本身返回 200（不阻断）；
+- `TestRewritingAnUnownedPageLeavesNoRow`：写自己的页 / 写没人交付过的页 → 不留行（否则每存一次都记一笔，这行就没意义了）。
+
+2026-11-11 复跑：`ok internal/team 2.954s`。再起一个办公室手搓一遍只是把同一段代码跑第二次，`6a3f137` ③ 的证据强度不会增加，所以本轮不重复做。
 
 ## 6. 干预预算与停表
 
