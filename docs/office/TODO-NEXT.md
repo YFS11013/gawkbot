@@ -568,6 +568,12 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
    skill `daily-opencode-model-snapshot` 于 **2026-11-01 重新 archive 并验证落盘**：10-31 那次归档只改了内存/state，wiki 文件没重写（mtime 停在 10-29、frontmatter 仍 `active`），broker 重启后被 scanner 按文件重新导入 → 复活成 active。重做后 `team/skills/daily-opencode-model-snapshot.md` 的 `metadata.wuphf.status: archived`（提交 `0062abe`），`/skills` 回到 3 个 active。验收命令见 `RUNTIME-API.md` §7。
    **教训**：归档/禁用这类"看起来生效"的操作，必须读回落盘产物（frontmatter、文件 mtime、git log），否则重启就是一次回滚。
 
+### Journey 17（2026-11-11，本轮作废：上游限流）
+
+`core-loop-runs/2026-11-11-journey17/`：prereg `5696d9c` 保留，`ABORTED.md` 记根因。模型一次都没产出——02:07 起两回合都是 `opencode-go/longcat-2.5-free` 的 `stream error`，直连端点复现 `429 rate_limit_error`（02:29 / 02:31 两次）。办公室的自愈路径完整：回合失败 → `JOURN-1 blocked` → 自动止血单 `JOURN-4` → 人类催办后重起回合。**没有判据可判，不计入跨轮对比**。配额恢复后按 prereg 原样重跑（命令写在 ABORTED.md §怎么重跑）。
+
+运维含义：免费档配额打满时整个办公室**没有任何可用的降级**——`WUPHF_HEADLESS_MODEL_FALLBACK` 也是 `opencode-go` 的免费档，同一份额度，429 一起中。要么接受「配额打满就停摆」，要么给 fallback 配一个不同额度来源（另一个 provider 的 key），这是一条待拍板项。
+
 ### Journey 16（2026-11-11，已跑完并归档）
 
 `core-loop-runs/2026-11-11-journey16/`（prereg `a4b3b2f`、observations、scorecard、artifacts）。同一份种子在含三条决策的构建上重跑：**lane 决策卡消失**（人需作答的卡 4 → 3）、守卫仍被模型自发踩到并留痕、容器 `done/approved` + `artifact=null` + 无 `hollow_completion`。决策 ② 本轮无触发面（模型没再重述已授予权限），只能算「没有误伤」。
