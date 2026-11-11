@@ -15,10 +15,11 @@
 | 起跑时任务数 | 0 |
 | 起跑时 `requests` / `actions` | 0 / 0 |
 
-### 0.1 起跑前的两处环境动作（影响可比性，先记）
+### 0.1 起跑前后的三处环境动作（影响可比性，先记）
 
 1. **watchdog 已修**：`~/.wuphf/data/broker-watchdog.ps1` 的 `Restart-Broker` 原先按 `Name='gawkbot-fix.exe'` 杀全部同名进程（README §6 的修法只是文档，脚本里没有）。本轮开跑前改为按监听端口 7892 定位主办公室、按 `ParentProcessId` 取后代；`opencode.exe` 同样只清主办公室树内的，隔离办公室子树列入 `keep`。验证：故意把 `$TEMP\wuphf-broker-token-7892` 写成坏 token 触发一次真实重启，主办公室 pid 40920 → 60388，隔离办公室 7910 仍为 47992 且 `/health` ok（两边同时 200）。备份 `broker-watchdog.ps1.bak-j16-20261111-090557`。
-2. **隔离办公室改为手工启动**：`workspace create --from-scratch journey16` 起出来的 broker 用默认模型 `opencode-go/beam-free`（上游已退役）；`workspace pause --force journey16` 报 `context deadline exceeded` 且进程仍在，`resume` 报 `workspace is already running (port 7910)`。处理：`Stop-Process` 掉 pid 47992，用 `WUPHF_RUNTIME_HOME=…\journey16` + `WUPHF_OPENCODE_MODEL=opencode-go/longcat-2.5-free` + `WUPHF_HEADLESS_MODEL_FALLBACK=opencode-go/iceman-contributor-free` 手工 `Start-Process` 起 `--broker-port 7910 --web-port 7911 --no-open`，stdout/stderr 重定向到 `<home>\logs\broker.log|broker.err.log`。**判据外发现（D1）：workspace pause/resume 在这台机器上对该 workspace 不可用。**
+2. **操作员的一次 token 误操作触发了一次主办公室重启（01:36 UTC，运行期间）**：为验证 watchdog 修法，01:08 把 `$TEMP\wuphf-broker-token-7892` 写成坏 token 触发重启；重启后把**重启前**备份的旧 token 写回，而新 broker 启动时已写入了新 token，于是文件变成失效值。01:36 的例行 watchdog 读到旧 token → 401 → `broker unreachable` → 主办公室再重启一次（`watchdog.log` 本地时间 09:36:02/09:36:05）。两次都只动主办公室（端口级修法生效，隔离办公室 7910 全程未断），但对 J16 的时间窗有影响，记在此处。01:36 重启后 token 文件已由 broker 自身写回有效值（复核：带该 token 打 `/health` 返回 200）。
+3. **隔离办公室改为手工启动**：`workspace create --from-scratch journey16` 起出来的 broker 用默认模型 `opencode-go/beam-free`（上游已退役）；`workspace pause --force journey16` 报 `context deadline exceeded` 且进程仍在，`resume` 报 `workspace is already running (port 7910)`。处理：`Stop-Process` 掉 pid 47992，用 `WUPHF_RUNTIME_HOME=…\journey16` + `WUPHF_OPENCODE_MODEL=opencode-go/longcat-2.5-free` + `WUPHF_HEADLESS_MODEL_FALLBACK=opencode-go/iceman-contributor-free` 手工 `Start-Process` 起 `--broker-port 7910 --web-port 7911 --no-open`，stdout/stderr 重定向到 `<home>\logs\broker.log|broker.err.log`。**判据外发现（D1）：workspace pause/resume 在这台机器上对该 workspace 不可用。**
 
 ## 1 时间线（UTC，取自 `artifacts/broker-state.json` 的 `tasks[].created_at` / `requests[]` / `actions[]`）
 
