@@ -167,7 +167,15 @@ func (l *Launcher) enqueueHeadlessCodexTurnRecord(slug string, turn headlessCode
 			// bypasses it: the failing turn is still registered as active
 			// while its own retry is enqueued from inside the worker, and
 			// dropping the retry here would silently strand the task.
-			if !humanPriority && !turn.FromRoutine && !(isLead && urgentLeadTurn) &&
+			// A fallback retry is not a duplicate wake: it exists because the
+			// active attempt is failing on a model we have given up on. The
+			// same-task drop below would swallow it (same Attempts, same
+			// TransientRetries) and the task would sit on the dead model —
+			// the Journey 17 stall, seen from the queue's side. The rerun
+			// replay cannot cover this: it fires once, so the second and
+			// third models of the ring never get their attempt.
+			differentModel := strings.TrimSpace(turn.ModelOverride) != strings.TrimSpace(active.Turn.ModelOverride)
+			if !humanPriority && !turn.FromRoutine && !(isLead && urgentLeadTurn) && !differentModel &&
 				turn.Attempts <= active.Turn.Attempts &&
 				turn.TransientRetries <= active.Turn.TransientRetries {
 				// The running turn is dropped, but its prompt was rendered
@@ -574,7 +582,7 @@ func (l *Launcher) runHeadlessCodexQueue(lane headlessLane, stop <-chan struct{}
 			var silentFired atomic.Bool
 			silentDone := make(chan struct{})
 			if budget := headlessSilentTurnBudget(); budget > 0 &&
-				headlessTurnFallbackModel(turn) != "" && turn.TaskID != "" {
+				headlessTurnHasFallback(turn) && turn.TaskID != "" {
 				l.headless.mu.Lock()
 				active := l.headless.active[lane]
 				l.headless.mu.Unlock()
@@ -607,7 +615,7 @@ func (l *Launcher) runHeadlessCodexQueue(lane headlessLane, stop <-chan struct{}
 				appendHeadlessCodexLog(slug, fmt.Sprintf("error: headless codex turn timed out after %s", timeout))
 				l.updateHeadlessProgress(slug, "error", "error", fmt.Sprintf("turn timed out after %s", timeout), headlessProgressMetrics{})
 				l.noteChatTurnStall(slug, turn, fmt.Sprintf("the reply timed out after %s", timeout))
-				if fallback := headlessTurnFallbackModel(turn); fallback != "" &&
+				if fallback, depth := headlessTurnFallbackModel(turn); fallback != "" &&
 					l.headlessTurnSilent(slug, turn, startedAt) {
 					// A budget spent with no model output is not a slow turn. Spend
 					// one attempt on the fallback model before blocking the
@@ -616,6 +624,7 @@ func (l *Launcher) runHeadlessCodexQueue(lane headlessLane, stop <-chan struct{}
 					// then blocked it while a working model sat configured.
 					retryTurn := turn
 					retryTurn.ModelOverride = fallback
+					retryTurn.FallbackDepth = depth
 					retryTurn.TransientRetries = headlessCodexTransientTurnRetryLimit
 					retryTurn.EnqueuedAt = time.Now()
 					appendHeadlessCodexLog(slug, "model-fallback: primary produced no model output in "+timeout.String()+", retrying on "+fallback)
@@ -663,16 +672,17 @@ func (l *Launcher) runHeadlessCodexQueue(lane headlessLane, stop <-chan struct{}
 				l.emitHeadlessReconnecting(slug, turn, startedAt)
 				l.updateHeadlessProgress(slug, "active", "queued", "connection dropped — retrying", headlessProgressMetrics{})
 				l.enqueueHeadlessCodexTurnRecord(slug, retryTurn)
-			case isTransientProviderError(err) && headlessTurnFallbackModel(turn) != "":
+			case isTransientProviderError(err) && headlessTurnHasFallback(turn):
 				// Same-model reconnects are exhausted and the pipe/model is
 				// still failing. One attempt on the configured fallback model,
 				// then the normal failure path: a broken model id and a dead
 				// upstream both land here ("exit status 1" with no detail is
 				// what opencode prints for an unknown model).
-				fallback := headlessTurnFallbackModel(turn)
+				fallback, depth := headlessTurnFallbackModel(turn)
 				appendHeadlessCodexLog(slug, fmt.Sprintf("error: %v", err))
 				retryTurn := turn
 				retryTurn.ModelOverride = fallback
+				retryTurn.FallbackDepth = depth
 				// No same-model budget left on the fallback attempt: one try,
 				// then recover — otherwise a dead fallback doubles the wait.
 				retryTurn.TransientRetries = headlessCodexTransientTurnRetryLimit
@@ -1297,15 +1307,16 @@ func (l *Launcher) watchSilentHeadlessTurn(slug string, turn headlessCodexTurn, 
 			if time.Since(startedAt) < budget {
 				continue
 			}
-			fallback := headlessTurnFallbackModel(turn)
+			fallback, depth := headlessTurnFallbackModel(turn)
 			if fallback == "" {
-				return // nowhere to go; let the turn's own budget expire
+				return // the ring is spent; let the turn's own budget expire
 			}
 			fired.Store(true)
 			appendHeadlessCodexLog(slug, "silent-stall: no model output in "+budget.String()+" — cancelling this attempt, retrying on "+fallback)
 			l.updateHeadlessProgress(slug, "active", "queued", "model never responded — retrying on fallback", headlessProgressMetrics{})
 			retryTurn := turn
 			retryTurn.ModelOverride = fallback
+			retryTurn.FallbackDepth = depth
 			retryTurn.TransientRetries = headlessCodexTransientTurnRetryLimit
 			retryTurn.EnqueuedAt = time.Now()
 			l.enqueueHeadlessCodexTurnRecord(slug, retryTurn)

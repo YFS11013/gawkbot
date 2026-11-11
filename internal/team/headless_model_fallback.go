@@ -19,13 +19,36 @@ import (
 // This adds one attempt on a configured fallback model, taken after the
 // same-model reconnects are exhausted, and only once per turn.
 
-// headlessModelFallbackEnv names the model a turn retries on when the primary
-// keeps failing. Unset means no fallback: the queue behaves exactly as before.
+// headlessModelFallbackEnv names the model(s) a turn retries on when the
+// primary keeps failing: a comma-separated ring, tried left to right, once
+// each. Unset means no fallback: the queue behaves exactly as before.
+//
+// The ring exists because free pools throttle per MODEL, not per key: when
+// longcat is 429 the same key still answers on iceman and beam (probe,
+// 2026-11-11). A single fallback therefore turns one throttled model into a
+// dead office the moment the fallback shares the throttle. Each model is tried
+// at most once — a ring that loops forever would spend the whole budget
+// cycling through models that are all refusing.
 const headlessModelFallbackEnv = "WUPHF_HEADLESS_MODEL_FALLBACK"
 
-// headlessModelFallback returns the configured fallback model, or "".
-func headlessModelFallback() string {
-	return strings.TrimSpace(config.Getenv(headlessModelFallbackEnv))
+// headlessModelFallbackRing returns the configured fallback models in order.
+func headlessModelFallbackRing() []string {
+	raw := config.Getenv(headlessModelFallbackEnv)
+	var ring []string
+	seen := make(map[string]bool)
+	for _, part := range strings.Split(raw, ",") {
+		model := strings.TrimSpace(part)
+		if model == "" {
+			continue
+		}
+		key := strings.ToLower(model)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		ring = append(ring, model)
+	}
+	return ring
 }
 
 // headlessModelOverrideKey carries the model a turn must use. It is a context
@@ -55,12 +78,26 @@ func headlessModelOverride(ctx context.Context) string {
 	return ""
 }
 
-// headlessTurnFallbackModel decides whether this failed turn gets its one
-// fallback attempt. It reads the turn's own record, so the decision survives
-// the queue cycle that re-enqueues the turn.
-func headlessTurnFallbackModel(turn headlessCodexTurn) string {
-	if strings.TrimSpace(turn.ModelOverride) != "" {
-		return "" // already the fallback attempt: no chain
+// headlessTurnFallbackModel decides which model this failed turn retries on,
+// and the depth to stamp on the retry. It reads the turn's own record, so the
+// decision survives the queue cycle that re-enqueues the turn. The model the
+// turn is currently pinned to is skipped: retrying a turn on the model that
+// just refused it teaches nothing.
+func headlessTurnFallbackModel(turn headlessCodexTurn) (string, int) {
+	ring := headlessModelFallbackRing()
+	current := strings.TrimSpace(turn.ModelOverride)
+	for i := turn.FallbackDepth; i < len(ring); i++ {
+		if current != "" && strings.EqualFold(ring[i], current) {
+			continue
+		}
+		return ring[i], i + 1
 	}
-	return headlessModelFallback()
+	return "", 0
+}
+
+// headlessTurnHasFallback reports whether any model is left in the ring for
+// this turn. Callers need the predicate before they have a retry to build.
+func headlessTurnHasFallback(turn headlessCodexTurn) bool {
+	model, _ := headlessTurnFallbackModel(turn)
+	return model != ""
 }

@@ -162,6 +162,91 @@ func TestHeadlessQueueRetriesOfficeTurnAfterTransientProviderError(t *testing.T)
 	}
 }
 
+// TestHeadlessQueueFallsBackThroughTheWholeRing drives a turn whose provider
+// keeps failing transiently: same-model reconnects first, then each model of
+// the ring in order, once each. A free-model office lives on this — quotas
+// throttle per model, so the second throttled model must hand over to the
+// third instead of ending the turn.
+func TestHeadlessQueueFallsBackThroughTheWholeRing(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv(headlessModelFallbackEnv, "opencode-go/iceman-free,opencode-go/beam-free")
+	t.Setenv(headlessSilentTurnBudgetEnv, "0")
+
+	b := newTestBroker(t)
+	task := newOfficeModeTaskForTestWithOwner(t, b, "cmo")
+
+	var mu sync.Mutex
+	var models []string
+	done := make(chan struct{}, 8)
+	setHeadlessCodexRunTurnForTest(t, func(_ *Launcher, ctx context.Context, slug, _ string, _ ...string) error {
+		if slug != "cmo" {
+			return nil
+		}
+		mu.Lock()
+		models = append(models, headlessModelOverride(ctx))
+		mu.Unlock()
+		select {
+		case done <- struct{}{}:
+		default:
+		}
+		return errors.New("stream error: 429 too many requests")
+	})
+
+	l := newHeadlessLauncherForTest(t)
+	l.broker = b
+
+	l.enqueueHeadlessCodexTurnRecord("cmo", headlessCodexTurn{
+		Prompt:  "Work the team build for #" + task.ID,
+		Channel: task.Channel,
+		TaskID:  task.ID,
+	})
+
+	// One primary attempt, two same-model reconnects, one attempt per ring
+	// model, then the failure path.
+	for i := 0; i < 5; i++ {
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			mu.Lock()
+			got := append([]string(nil), models...)
+			mu.Unlock()
+			logBytes, _ := os.ReadFile(filepath.Join(wuphfLogDir(), "headless-codex-cmo.log"))
+			t.Fatalf("expected attempt %d to run, saw models %v; log:\n%s", i+1, got, logBytes)
+		}
+	}
+	l.waitForHeadlessIdle(t)
+
+	mu.Lock()
+	got := append([]string(nil), models...)
+	mu.Unlock()
+	want := []string{"", "opencode-go/iceman-free", "opencode-go/beam-free"}
+	var seen []string
+	for _, model := range got {
+		if len(seen) == 0 || seen[len(seen)-1] != model {
+			seen = append(seen, model)
+		}
+	}
+	if len(seen) != len(want) {
+		t.Fatalf("model order = %v (attempts %v), want %v", seen, got, want)
+	}
+	for i := range want {
+		if seen[i] != want[i] {
+			t.Fatalf("model order = %v, want %v", seen, want)
+		}
+	}
+
+	logBytes, err := os.ReadFile(filepath.Join(wuphfLogDir(), "headless-codex-cmo.log"))
+	if err != nil {
+		t.Fatalf("read headless log: %v", err)
+	}
+	logText := string(logBytes)
+	for _, model := range []string{"opencode-go/iceman-free", "opencode-go/beam-free"} {
+		if !strings.Contains(logText, "switching this turn to "+model) {
+			t.Fatalf("expected the ring to reach %s, log:\n%s", model, logText)
+		}
+	}
+}
+
 // TestHeadlessQueueSilentStallCancelsEarlyAndRetries proves the zero-output
 // budget: an attempt that never emits anything is cancelled well before the
 // turn's own timeout, and the work moves to the fallback model. This is the

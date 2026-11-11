@@ -181,6 +181,11 @@ type headlessCodexTurn struct {
 	// one attempt on WUPHF_HEADLESS_MODEL_FALLBACK before the normal failure
 	// path runs.
 	ModelOverride string
+	// FallbackDepth is how many models of the fallback ring this turn has
+	// already burned. Enqueued turns start at 0; each fallback retry stamps
+	// the index it consumed so the next retry takes the following model
+	// instead of hammering the one that just failed.
+	FallbackDepth int
 	// FromHuman marks turns originating from a real person's chat message
 	// (channel post or DM, tagged or not). Human-originated turns bypass
 	// the lead queue-hold, the lead queue cap, the same-task dedup drop,
