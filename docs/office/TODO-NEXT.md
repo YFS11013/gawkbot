@@ -568,6 +568,15 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
    skill `daily-opencode-model-snapshot` 于 **2026-11-01 重新 archive 并验证落盘**：10-31 那次归档只改了内存/state，wiki 文件没重写（mtime 停在 10-29、frontmatter 仍 `active`），broker 重启后被 scanner 按文件重新导入 → 复活成 active。重做后 `team/skills/daily-opencode-model-snapshot.md` 的 `metadata.wuphf.status: archived`（提交 `0062abe`），`/skills` 回到 3 个 active。验收命令见 `RUNTIME-API.md` §7。
    **教训**：归档/禁用这类"看起来生效"的操作，必须读回落盘产物（frontmatter、文件 mtime、git log），否则重启就是一次回滚。
 
+### Journey 16（2026-11-11，已跑完并归档）
+
+`core-loop-runs/2026-11-11-journey16/`（prereg `a4b3b2f`、observations、scorecard、artifacts）。同一份种子在含三条决策的构建上重跑：**lane 决策卡消失**（人需作答的卡 4 → 3）、守卫仍被模型自发踩到并留痕、容器 `done/approved` + `artifact=null` + 无 `hollow_completion`。决策 ② 本轮无触发面（模型没再重述已授予权限），只能算「没有误伤」。
+
+两条新发现：
+
+- **D2（不修，记录为承重事实）**：success criterion 里写「使用占位符 `[COMPANY NAME]`」会被确定性检测器判成缺口，两条 lane 各发一张 `definition-gap` 卡，66 秒后被 `8026e40` 的关单撤卡级联撤掉，人未见。修它要区分「说明要留占位符」与「占位符没填」，启发式套启发式；维护现状的前提是关单撤卡继续生效。
+- **D3（已修）**：`human_interview` 第一次轮询失败就整体失败——broker 在跑调用方自己的回合时持锁，`/interview/answer` 撞 15s 客户端超时，模型连试三次后自述「采访卡片工具连续超时」，在频道里手工重问一遍。现在轮询错误记录并继续，直到 30 分钟截止；测试 `TestHumanInterviewSurvivesATransientPollError`。
+
 ### 三个产品决策（2026-11-11，已定，见 DESIGN-DECISIONS §9.26）
 
 1. **lane 不单独发决策卡**：父 Issue 仍开着的 lane 由容器卡验收（容器卡逐字列出每条 lane 文件）；父 Issue 已终态的 lane 照旧发卡。J15 两张 lane 卡发出 38 秒后 lane 自批（无 reviewer），人的点击是空操作——与其「关了就撤卡」，不如不发。测试 `TestLaneDecisionCardDefersToItsLiveIssue`。
