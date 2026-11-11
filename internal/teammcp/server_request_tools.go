@@ -153,18 +153,31 @@ func handleHumanInterview(ctx context.Context, _ *mcp.CallToolRequest, args Huma
 	ticker := time.NewTicker(1500 * time.Millisecond)
 	defer ticker.Stop()
 
+	// One slow poll must not abort the wait. Journey 16: the broker was busy
+	// with the caller's own turn, the /interview/answer GET exceeded the 15s
+	// client timeout on three consecutive calls, every call returned an error,
+	// and the model reported "采访卡片工具连续超时" then asked the same question
+	// again in chat while a perfectly good card sat pending. The card is the
+	// durable artifact; the wait is best-effort, and a poll error is only worth
+	// reporting if the card never gets answered.
+	var lastErr error
 	for {
 		select {
 		case <-ctx.Done():
 			return toolError(ctx.Err()), nil, nil
 		case <-timeout:
+			if lastErr != nil {
+				return toolError(fmt.Errorf("timed out waiting for human interview answer (last poll: %v)", lastErr)), nil, nil
+			}
 			return toolError(fmt.Errorf("timed out waiting for human interview answer")), nil, nil
 		case <-ticker.C:
 			var result brokerInterviewAnswerResponse
 			path := "/interview/answer?id=" + url.QueryEscape(created.ID)
 			if err := brokerGetJSON(ctx, path, &result); err != nil {
-				return toolError(err), nil, nil
+				lastErr = err
+				continue
 			}
+			lastErr = nil
 			switch strings.ToLower(strings.TrimSpace(result.Status)) {
 			case "canceled", "cancelled":
 				return toolError(fmt.Errorf("human interview canceled")), nil, nil

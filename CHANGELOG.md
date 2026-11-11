@@ -6,6 +6,8 @@ All notable changes to WUPHF will be documented in this file.
 
 ### Fixed
 
+- `human_interview` no longer ends on the first failed poll. When the broker was busy with the caller's own turn, `/interview/answer` exceeded the 15s client timeout, every call returned an error, and the model concluded the tool was broken — Journey 16 shows it then re-asked the same question in chat while the card it had already raised sat pending. Poll errors are now recorded and retried until the 30-minute deadline, and only reported if the card never gets answered.
+
 - A lane under an open Issue no longer raises its own decision card; the Issue's card is the acceptance surface and lists every lane file. Journey 15 raised both lane cards and both lanes approved themselves 38 seconds later (no reviewer configured), so the operator's clicks landed on closed lanes and changed nothing. A lane whose Issue is already closed keeps its card — that is the last place the human can see the work.
 
 - An "access needed" entry that restates a grant the task already holds (wiki write inside a declared `definition.artifact_path`) no longer raises a definition-gap interview. Journey 15 asked the human for "wiki 写入权限 (artifact_scope 已授予)" on both lanes. Needs the broker cannot grant (a connection, a key) are still asked; a task with no declared scope is still asked.
