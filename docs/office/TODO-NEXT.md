@@ -576,6 +576,8 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 
 **已修并真机复验（`becd286` + `headless_codex_queue.go`）**：marker 认 `rate limit` / `rate_limit` / `too many requests`；超时分支额外判「这一回合有没有模型输出」（只认 `text`/`tool_use`/`tool_result`/`plan`，runner 死前补发的 `error`/`manifest` 不算），零输出就换 fallback 再试一次。12:14:34 实测：longcat 仍 429 → 跑满 10 分钟 → 切 `iceman-contributor-free` → `status=ok total_ms=76964`。未解决的是那 10 分钟等待（runner 内部重试，无环境变量可关）。
 
+**换主模型跑通全环（05:13–05:24，机制验证，不计分）**：longcat 仍 429，把隔离办公室主模型换成 `iceman-contributor-free` 后重跑同一份种子，`fallback-run.md` 记全过程。两点结论：① **D3 真机成立**——采访卡出现后等满 4 分钟再答，模型只调一次工具、同回合 37 秒继续，没有像 J16 那样连调三次再手工重问；② 整环 12 分钟走完（采访→计划→两条 lane→容器卡→`done/approved`），两条交付物按声明路径落盘且含全部死数字，`hollow_completion` 全 false、`artifact_overwritten` 0、`status=error` 0，守卫被动触发 2 次后正常发起关单卡。人需作答仍是 3 张卡、0 张 lane 卡。
+
 仍待拍板的是**整份额度**打满那种情况：fallback 与主模型同一份账单，一起 429 时没有出路，只能接受停摆或给 fallback 配另一个 provider 的 key。
 
 ### Journey 16（2026-11-11，已跑完并归档）
