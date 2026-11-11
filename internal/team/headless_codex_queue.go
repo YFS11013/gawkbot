@@ -595,7 +595,7 @@ func (l *Launcher) runHeadlessCodexQueue(lane headlessLane, stop <-chan struct{}
 				l.noteChatTurnStall(slug, turn, fmt.Sprintf("the reply timed out after %s", timeout))
 				if fallback := headlessTurnFallbackModel(turn); fallback != "" &&
 					l.headlessTurnSilent(slug, turn, startedAt) {
-					// A budget spent with zero events is not a slow turn. Spend
+					// A budget spent with no model output is not a slow turn. Spend
 					// one attempt on the fallback model before blocking the
 					// task: the alternative is the Journey 17 stall, where a
 					// rate-limited primary held the lane for ten minutes and
@@ -604,7 +604,7 @@ func (l *Launcher) runHeadlessCodexQueue(lane headlessLane, stop <-chan struct{}
 					retryTurn.ModelOverride = fallback
 					retryTurn.TransientRetries = headlessCodexTransientTurnRetryLimit
 					retryTurn.EnqueuedAt = time.Now()
-					appendHeadlessCodexLog(slug, "model-fallback: primary produced no events in "+timeout.String()+", retrying on "+fallback)
+					appendHeadlessCodexLog(slug, "model-fallback: primary produced no model output in "+timeout.String()+", retrying on "+fallback)
 					l.emitHeadlessReconnecting(slug, turn, startedAt)
 					l.updateHeadlessProgress(slug, "active", "queued", "model never responded — retrying on fallback", headlessProgressMetrics{})
 					l.enqueueHeadlessCodexTurnRecord(slug, retryTurn)
@@ -1166,7 +1166,7 @@ func isTransientProviderErrorText(detail string) bool {
 }
 
 // headlessTurnSilent resolves the turn's task stream and asks whether the
-// attempt produced any event at all.
+// attempt produced any model output.
 func (l *Launcher) headlessTurnSilent(slug string, turn headlessCodexTurn, attemptStartedAt time.Time) bool {
 	if l == nil || l.broker == nil {
 		return false
@@ -1175,7 +1175,7 @@ func (l *Launcher) headlessTurnSilent(slug string, turn headlessCodexTurn, attem
 	if taskID == "" {
 		taskID = l.botActiveTaskID(slug)
 	}
-	return headlessTurnEmittedNothing(l.broker.BotStream(slug), taskID, attemptStartedAt)
+	return headlessTurnProducedNoOutput(l.broker.BotStream(slug), taskID, attemptStartedAt)
 }
 
 // headlessLastErrorTurnID recovers the turn id of the runner turn that just
@@ -1222,17 +1222,21 @@ func headlessLastErrorTurnID(stream *botStreamBuffer, taskID string, notBefore t
 	return ""
 }
 
-// headlessTurnEmittedNothing reports whether an attempt pushed nothing at all
-// onto its task stream: no reply text, no tool call, no error event.
+// headlessTurnProducedNoOutput reports whether an attempt pushed no model
+// output onto its task stream: no text, no tool call, no tool result, no plan.
 //
 // This is the only in-process evidence that distinguishes "the model was
 // unreachable" from "the work ran long". Journey 17: the primary model
 // answered 429 on every request, the runner retried inside its own SDK and
 // never exited, and ten minutes later the broker saw a bare timeout — the
 // provider error never reached the queue, so neither the transient retry nor
-// the model fallback could fire. A turn that produced zero events in the
-// whole budget did not do half a job; it never started.
-func headlessTurnEmittedNothing(stream *botStreamBuffer, taskID string, attemptStartedAt time.Time) bool {
+// the model fallback could fire. A turn that produced no output in the whole
+// budget did not do half a job; it never started.
+//
+// The runner's own bookkeeping events (error, manifest, reconnecting) do NOT
+// count: every failed child exit emits a terminal error + manifest pair, so
+// counting them would make every timed-out turn look productive.
+func headlessTurnProducedNoOutput(stream *botStreamBuffer, taskID string, attemptStartedAt time.Time) bool {
 	if stream == nil || strings.TrimSpace(taskID) == "" {
 		return false
 	}
@@ -1248,14 +1252,19 @@ func headlessTurnEmittedNothing(stream *botStreamBuffer, taskID string, attemptS
 		if err := json.Unmarshal([]byte(strings.TrimSpace(line)), &evt); err != nil {
 			continue
 		}
-		if evt.Kind != HeadlessEventKind || strings.TrimSpace(evt.Type) == "" {
+		if evt.Kind != HeadlessEventKind {
 			continue
+		}
+		switch strings.TrimSpace(evt.Type) {
+		case HeadlessEventTypeText, HeadlessEventTypeToolUse, HeadlessEventTypeToolResult, HeadlessEventTypePlan:
+		default:
+			continue // bookkeeping (error, manifest, reconnecting, status)
 		}
 		ts, err := time.Parse(time.RFC3339, strings.TrimSpace(evt.StartedAt))
 		if err != nil || ts.Before(cutoff) {
 			continue
 		}
-		return false // this attempt produced something
+		return false // this attempt produced model output
 	}
 	return true
 }

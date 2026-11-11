@@ -17,6 +17,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -160,6 +162,69 @@ func TestHeadlessQueueRetriesOfficeTurnAfterTransientProviderError(t *testing.T)
 	}
 }
 
+// TestHeadlessQueueSilentTimeoutSwitchesToFallbackModel drives the real worker
+// through the Journey 17 failure: the turn times out without producing a byte
+// of model output. That turn must get one attempt on the configured fallback
+// model instead of going straight to BlockTask.
+func TestHeadlessQueueSilentTimeoutSwitchesToFallbackModel(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("WUPHF_HEADLESS_MODEL_FALLBACK", "opencode-go/iceman-contributor-free")
+
+	b := newTestBroker(t)
+	task := newOfficeModeTaskForTestWithOwner(t, b, "cmo")
+
+	var mu sync.Mutex
+	calls := 0
+	done := make(chan struct{}, 4)
+	setHeadlessCodexRunTurnForTest(t, func(_ *Launcher, _ context.Context, slug, _ string, _ ...string) error {
+		if slug != "cmo" {
+			return nil
+		}
+		mu.Lock()
+		calls++
+		mu.Unlock()
+		select {
+		case done <- struct{}{}:
+		default:
+		}
+		return context.DeadlineExceeded
+	})
+
+	l := newHeadlessLauncherForTest(t)
+	l.broker = b
+
+	l.enqueueHeadlessCodexTurnRecord("cmo", headlessCodexTurn{
+		Prompt:  "Work the team build for #" + task.ID,
+		Channel: task.Channel,
+		TaskID:  task.ID,
+	})
+
+	// First attempt times out, then the fallback attempt starts.
+	for i := 0; i < 2; i++ {
+		select {
+		case <-done:
+		case <-time.After(3 * time.Second):
+			t.Fatalf("expected attempt %d to run", i+1)
+		}
+	}
+	l.waitForHeadlessIdle(t)
+
+	mu.Lock()
+	gotCalls := calls
+	mu.Unlock()
+	if gotCalls != 2 {
+		t.Fatalf("expected exactly one fallback attempt after the silent timeout, got %d calls", gotCalls)
+	}
+
+	logBytes, err := os.ReadFile(filepath.Join(wuphfLogDir(), "headless-codex-cmo.log"))
+	if err != nil {
+		t.Fatalf("read headless log: %v", err)
+	}
+	if !strings.Contains(string(logBytes), "retrying on opencode-go/iceman-contributor-free") {
+		t.Fatalf("expected a model-fallback log line naming the fallback, got:\n%s", logBytes)
+	}
+}
+
 func TestHeadlessQueueDoesNotRetryOfficeTurnAfterNonTransientError(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 
@@ -218,33 +283,49 @@ func TestHeadlessQueueDoesNotRetryOfficeTurnAfterNonTransientError(t *testing.T)
 // zero-event timeout to the fallback model. Journey 17: a rate-limited primary
 // kept the runner alive for the whole turn budget without emitting anything,
 // so the broker only saw a timeout and blocked the task.
-func TestHeadlessTurnEmittedNothing(t *testing.T) {
+func TestHeadlessTurnProducedNoOutput(t *testing.T) {
 	start := time.Now().Add(-time.Minute)
 	start = start.Truncate(time.Second)
 
 	fresh := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
-	if !headlessTurnEmittedNothing(fresh, "task-1", start) {
+	if !headlessTurnProducedNoOutput(fresh, "task-1", start) {
 		t.Fatalf("empty stream should read as silent")
 	}
 
 	spoke := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
-	pushHeadlessEvent(spoke, HeadlessEvent{Type: HeadlessEventTypeIdle, Bot: "cos", TaskID: "task-1", Text: "hi"})
-	if headlessTurnEmittedNothing(spoke, "task-1", start) {
-		t.Fatalf("a turn that emitted an event is not silent")
+	pushHeadlessEvent(spoke, HeadlessEvent{Type: HeadlessEventTypeText, Bot: "cos", TaskID: "task-1", Text: "hi"})
+	if headlessTurnProducedNoOutput(spoke, "task-1", start) {
+		t.Fatalf("a turn that emitted model output is not silent")
+	}
+
+	tooled := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
+	pushHeadlessEvent(tooled, HeadlessEvent{Type: HeadlessEventTypeToolUse, Bot: "cos", TaskID: "task-1", ToolName: "bash"})
+	if headlessTurnProducedNoOutput(tooled, "task-1", start) {
+		t.Fatalf("a tool call counts as model output")
+	}
+
+	// A dead child still emits an error + manifest pair; that bookkeeping must
+	// not be mistaken for the model having spoken (this is what made the live
+	// Journey 17 timeout look productive).
+	bookkeeping := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
+	pushHeadlessEvent(bookkeeping, HeadlessEvent{Type: HeadlessEventTypeError, Bot: "cos", TaskID: "task-1", Text: "exit status 1"})
+	pushHeadlessEvent(bookkeeping, HeadlessEvent{Type: HeadlessEventTypeManifest, Bot: "cos", TaskID: "task-1", Text: "exit status 1"})
+	if !headlessTurnProducedNoOutput(bookkeeping, "task-1", start) {
+		t.Fatalf("terminal bookkeeping events must not count as model output")
 	}
 
 	// Events from an EARLIER attempt must not make this attempt look alive.
 	stale := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
 	pushHeadlessEvent(stale, HeadlessEvent{
-		Type: HeadlessEventTypeIdle, Bot: "cos", TaskID: "task-1", Text: "old",
+		Type: HeadlessEventTypeText, Bot: "cos", TaskID: "task-1", Text: "old",
 		StartedAt: start.Add(-5 * time.Minute).UTC().Format(time.RFC3339),
 	})
-	if !headlessTurnEmittedNothing(stale, "task-1", start) {
+	if !headlessTurnProducedNoOutput(stale, "task-1", start) {
 		t.Fatalf("an event stamped before the attempt started must not count")
 	}
 
 	// No task id means nothing to judge; stay conservative (not silent).
-	if headlessTurnEmittedNothing(spoke, " ", start) {
+	if headlessTurnProducedNoOutput(spoke, " ", start) {
 		t.Fatalf("blank task id should not be classified as silent")
 	}
 }
