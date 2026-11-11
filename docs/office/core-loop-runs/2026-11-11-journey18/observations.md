@@ -17,7 +17,18 @@
 
 ## 已暴露的问题（待本轮结束后进 TODO）
 
-### O1 计划批准之后还要第二句「请写入」才肯动手
+### O1 根因（17:4x 查到）：写 wiki 的授权是一条模型自己够不到的契约
+
+查 `internal/teammcp/server_wiki_tools.go` 才看清楚「还差一步授权」不是模型胆小，是**工具契约真的要一条人类消息**：
+
+- `team_wiki_write` 要么给 `human_request`（一条**人类本人发的**、12 小时内、且文本里有「直接写 wiki」意图的 broker 消息 ID），要么给 `task_id`（**任务自己声明的 `artifact_path` 就是授权**，且必须是 owner 写）。
+- 我用 `/notifications/automation` 发的消息 `From=nex`，`isVerifiedHumanDelegationSender` 只认 `you` / `human` / `human:` → 被判「不是人类发的」；我批的 `approve_with_note` 是 request answer，也不是消息。
+- 所以办公室两次向人要「再发一条新消息」，是**照着工具描述做的**（描述里明写「never mention broker internals or message IDs to them」，它确实没提 ID），但人回的字不进它够得着的通道里。
+- 而且**它从没试过 `task_id` 这条路**：拆出的 `OFFICE-22/24` 各自声明了 `artifact_path`，按契约本可直接交付，模型却把第一次在父任务（无 `artifact_path`）上被拒的错误读成了「必须人来授权」。
+
+这一轮的形状因此和原计划不同：**不是「人被空卡卡住」，而是「授权契约把人和机器人卡在两条通道上」**。人能改消息内容，机器人只认 `From=you/human` 的消息，而人这一侧没有可写的口子（broker 没有人类发消息的 HTTP 端点，只能走 web UI `:7911`）。
+
+### O1' 表象：计划批准之后还要第二句「请写入」才肯动手
 
 计划卡已经被人 `approve_with_note` 批准，批注里**明确写了两个 wiki 路径**，模型仍然把「写入」当成需要第二次授权的动作，先后两次让操作员再回一句「请把这两份内容写入办公室 wiki」。这正好是本轮要抓的形状：**一张不携带任何新信息的卡**——人除了重复上次的批准，没有别的可答。
 
@@ -31,8 +42,19 @@
 
 `watchdog_alert: Approved plan for Journey 18 … has no sub-tasks yet (@cos)` —— 计划刚批准、模型还在同一回合里准备拆 lane，看门狗已经先报了一次。无害，但会制造一次假警报；记下来看它是否每轮都响。
 
+## 判据结果
+
+| 编号 | 结果 | 证据 |
+|---|---|---|
+| V5 全部 hash 可追溯 | **通过** | 内部清单 23 行，与提交清单 23 条逐条对上；两页抽到的全部短 hash 都在清单内，无清单外 hash |
+| V6 对外页不出现内部词、每条映射回内部页 | **部分通过** | 对外页 5 条，`lane/broker/headless/dedupe/queue/fallback/guard` 零命中；但第 5 条「开箱即用，零配置」在内部页 23 行里**找不到对应提交**——清单里没有任何一条改过默认配置或安装路径。**模型补了一条清单外的承诺**，正是 F-d 的软版本 |
+| V1 无 lane 级决策卡 | **通过** | `requests[]` 只有 `plan-approval` 与 `interview` 两张，全程没有 `decision:*` |
+| V3 关 lane 收卡（`8026e40`） | **未测** | 两条 lane 在操作员来得及关之前就自己走到了 `done`。这一项本轮没有证据，既不能算通过也不能算失败 |
+| V4 Issue 卡列全两文件 | **通过** | `request-60`（`dedupe_key=decision:OFFICE-1`）问题里逐条列出 `team/reviews/journey18-internal.md`、`team/reviews/journey18-public.md`，并写明「Issue 自己不发文件，你接受的就是这两份」 |
+| 守卫回归（J14） | **通过** | cos 试写 lane 的文件时被拒：`guard_refused: container artifact: team/reviews/journey18-internal.md is OFFICE-22's deliverable` |
+| lane 自批准（J15 形状） | **形式变了，不再是空操作** | 两条 lane 走到 `done/approved`，但**没有自己的卡**（V1），人手上只剩容器卡一张可点——J15 那种「点了却落在已完成 lane 上」的空点击没有出现 |
+
 ## 尚未发生的（本轮要验的）
 
-- V1 lane 级决策卡：目前 `requests[]` 只有 1 张计划卡 + 1 张采访卡，没有 `decision:JOURN-*`。
-- V3 `8026e40`：还没有 lane，所以「关 lane 收卡」尚未触发——需要操作员在一条 lane 跑着时**亲手关掉它**。
-- V5/V6：两份交付尚未落盘。
+- V3 `8026e40`：本轮**没测到**——lane 自己跑完了，没有出现「人在 lane 还跑着时关掉它」的窗口。
+- V4：等 cos 给 OFFICE-1 升容器卡，看它是否把 `team/reviews/journey18-internal.md` 与 `team/reviews/journey18-public.md` 两条路径都写进问题里。
