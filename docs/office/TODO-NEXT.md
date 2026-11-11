@@ -531,7 +531,7 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 | 项 | 值 |
 |---|---|
 | 启动命令 | `gawkbot-fix.exe --broker-port 7892 --provider opencode --no-open` |
-| 模型 | `WUPHF_OPENCODE_MODEL=opencode-go/longcat-2.5-free`（用户级环境变量 + 看门狗脚本 + 启动参数三处一致，2026-11-10 起）；看门狗兜底 `opencode-go/iceman-contributor-free`。`crouton-alpha-free` 已被上游撤掉（§9.21）。 |
+| 模型 | `WUPHF_OPENCODE_MODEL=opencode-go/longcat-2.5-free`（用户级环境变量 + 看门狗脚本 + 启动参数三处一致，2026-11-10 起）；看门狗兜底 `opencode-go/iceman-contributor-free`。`crouton-alpha-free` 已被上游撤掉（§9.21）。；**2026-11-11 用户拍板继续用免费模型，不换付费**（DESIGN-DECISIONS §9.29）。当日探针：longcat 429、iceman 200、beam-free 200，主模型 429 时每回合先付 4 分钟零输出守卫 |
 
 | broker token | `%TEMP%\wuphf-broker-token-7892`，**每次重启都变** |
 | 桥 | Windows 计划任务跑 `forex-bridge-run.vbs`，每 6 小时；健康时无 `wiki/team/alerts.md` |
