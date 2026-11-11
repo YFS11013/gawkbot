@@ -683,7 +683,11 @@ Journey 17 的本轮运行被上游拒了：`opencode-go/longcat-2.5-free` 从 0
 
 **但 markdown 改完还不够——真正的现场是超时。** 同一轮的实测暴露了第二层：opencode 的 SDK 在内部重试 429，**十整分钟一次都没退出**，broker 看到的只有 `headless codex turn timed out after 10m0s`。超时分支明确把超时排除在 transient 之外（`headless_codex_recovery.go` 的注释写着「超时说明 provider 可达、只是跑得久」），于是切 fallback 的那段代码永远走不到。判据必须改成「这一回合有没有发出过任何一个事件」：`headlessTurnEmittedNothing`（`headless_codex_queue.go`）在超时分支读任务流，整段预算内零事件 = 模型根本没说话，用一次 fallback 尝试代替直接 block。零事件的回合不存在「做了一半」的可能，所以这个判定不会误伤慢回合；有事件但超时的仍然走原来的 `recoverTimedOutHeadlessTurn`。
 
-两条合起来才是完整的修法：marker 让「快速失败的 429」进 transient 路径，零事件超时让「慢速失败的 429」也能切 fallback。
+两条合起来才是完整的修法：marker 让「快速失败的 429」进 transient 路径，无输出超时让「慢速失败的 429」也能切 fallback。
+
+**真机复验（2026-11-11 12:14:34 +08:00，隔离办公室 :7910，`longcat` 仍 429）**：回合跑满 10 分钟、零输出，日志两行连着出现——`error: headless codex turn timed out after 10m0s` 与 `model-fallback: primary produced no model output in 10m0s, retrying on opencode-go/iceman-contributor-free`，随后新回合 `status=ok total_ms=76964 first_event_ms=22723 final_chars=3586`。即：429 的等待从「10 分钟白等 + block」变成「10 分钟 + 一次成功」，任务继续在跑。代价是那 10 分钟仍要付——runner 内部的 429 重试不受我们控制（`opencode` 无 retry 相关环境变量，二进制里逐个查过）。
+
+**判据第一版写错了，值得记下来。** 第一版把「任务流里没有任何 HeadlessEvent」当作沉默。上线后同一场景再跑，超时分支依然走 block——因为 runner 在子进程死掉之后**一定会**补发 `error` + `manifest` 两条记账事件，于是每一轮超时都显得「有产出」。改成只认模型输出（`text` / `tool_use` / `tool_result` / `plan`），记账事件（`error` / `manifest` / `reconnecting` / `status`）一律不算。这个错只有拿真机跑一遍才会暴露：单测里脚本化的 runTurn 不写流，永远是「沉默」，绿的；真机上 runner 自己会写。
 
 **边界（重要）**：这次只解决「**单个模型**限流」。J17 实测 longcat 429 而 iceman 200，属于同一网关内不同模型的独立额度，fallback 真能救。但若整份额度（或整个网关）打满，fallback 也是同一份账单，一起 429 —— 那时唯一的出路是给 fallback 配**另一个 provider 的 key**。这是一条待拍板项，不是本轮代码能解决的。
 

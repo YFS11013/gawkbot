@@ -574,6 +574,8 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 
 运维含义（已修正，02:44 实测）：429 是**按模型**算的，不是按 key。同一时刻 `longcat-2.5-free` 429、`iceman-contributor-free` 200、`beam-free` 200、`crouton-alpha-free` 410（已废弃）。所以「换一个免费模型」确实能救单个模型限流，前提是**代码肯去切**——原实现把 429 当普通失败，直接 blocked，fallback 一次都没被调用（见 DESIGN-DECISIONS §9.28 的修法）。
 
+**已修并真机复验（`becd286` + `headless_codex_queue.go`）**：marker 认 `rate limit` / `rate_limit` / `too many requests`；超时分支额外判「这一回合有没有模型输出」（只认 `text`/`tool_use`/`tool_result`/`plan`，runner 死前补发的 `error`/`manifest` 不算），零输出就换 fallback 再试一次。12:14:34 实测：longcat 仍 429 → 跑满 10 分钟 → 切 `iceman-contributor-free` → `status=ok total_ms=76964`。未解决的是那 10 分钟等待（runner 内部重试，无环境变量可关）。
+
 仍待拍板的是**整份额度**打满那种情况：fallback 与主模型同一份账单，一起 429 时没有出路，只能接受停摆或给 fallback 配另一个 provider 的 key。
 
 ### Journey 16（2026-11-11，已跑完并归档）
