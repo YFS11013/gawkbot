@@ -673,6 +673,22 @@ J14 的评分卡把 V1/V7 判成**未观察**——模型那一轮自发走了�
 
 **观察到的第三个数字**：模型这一轮在 01:30:36 自述「子任务仍被计划的审批门槛挡住」并为此多花一轮（`action-11`），说明计划审批门槛在 lane 创建前后各触发一次判断。不计为缺陷。
 
+### 9.28 限流是 transient：429 也算「管道坏了」，不是「模型说不了话」（2026-11-11）
+
+Journey 17 的本轮运行被上游拒了：`opencode-go/longcat-2.5-free` 从 02:07 起对办公室的每一次请求都回 `429 rate_limit_error`，直连端点复现（02:29、02:31 两次 429）。回合三次尝试全死，`JOURN-1` 进 `blocked`，办公室自建止血单。同期 `iceman-contributor-free` 探测 **200** —— 也就是说这个办公室手里明明还有能用的模型，只是从来没人去试。
+
+**缺陷**：`isTransientProviderErrorText` 的 markers 认识 5xx、连接重置、`overloaded`，不认识配额（`rate limit` / `rate_limit` / `too many requests`）。所以 429 走的是 `default` 分支：不重试、不切 `WUPHF_HEADLESS_MODEL_FALLBACK`，直接 `recoverFailedHeadlessTurn` → BlockTask。fallback 逻辑本身（`internal/team/headless_model_fallback.go`）写得再对也没用——决策点要求 `isTransientProviderError(err)` 为真。
+
+**修法**：三条 marker 进列表（`headless_codex_queue.go`），单测 `TestIsTransientProviderError` 补三例（真实 429 体、`rate_limit_error`、`Too Many Requests`），红证已验（删 marker → 三例 FAIL）。行为链变成：429 → 同模型重试 `headlessCodexTransientTurnRetryLimit` 次（流水线重启就是退避）→ 仍在 429 → 切 fallback 一次 → fallback 也死才 blocked。同模型重试在配额窗口内基本是白跑，成本是一次子进程重启；换来的是 fallback 有机会用上，这个交换明显划算。
+
+**但 markdown 改完还不够——真正的现场是超时。** 同一轮的实测暴露了第二层：opencode 的 SDK 在内部重试 429，**十整分钟一次都没退出**，broker 看到的只有 `headless codex turn timed out after 10m0s`。超时分支明确把超时排除在 transient 之外（`headless_codex_recovery.go` 的注释写着「超时说明 provider 可达、只是跑得久」），于是切 fallback 的那段代码永远走不到。判据必须改成「这一回合有没有发出过任何一个事件」：`headlessTurnEmittedNothing`（`headless_codex_queue.go`）在超时分支读任务流，整段预算内零事件 = 模型根本没说话，用一次 fallback 尝试代替直接 block。零事件的回合不存在「做了一半」的可能，所以这个判定不会误伤慢回合；有事件但超时的仍然走原来的 `recoverTimedOutHeadlessTurn`。
+
+两条合起来才是完整的修法：marker 让「快速失败的 429」进 transient 路径，零事件超时让「慢速失败的 429」也能切 fallback。
+
+**边界（重要）**：这次只解决「**单个模型**限流」。J17 实测 longcat 429 而 iceman 200，属于同一网关内不同模型的独立额度，fallback 真能救。但若整份额度（或整个网关）打满，fallback 也是同一份账单，一起 429 —— 那时唯一的出路是给 fallback 配**另一个 provider 的 key**。这是一条待拍板项，不是本轮代码能解决的。
+
+**顺带修掉**：watchdog 的 `WUPHF_SKILL_JUDGE_FALLBACK_MODEL` 指向 `crouton-alpha-free`，该模型 2026-11-10 已 `410 ModelDeprecated`（本轮探测复现），即判官的第二意见一直在打一通必然失败的电话。改成 `longcat-2.5-free`：同网关同凭据，且是办公室本来就在用的模型。
+
 ### 9.22 Journey 10：卡没发出来，不是「没到 decision」，是「Issue 没有自己的文件」（2026-11-10）
 
 **赛前**：`crouton-alpha-free` 被上游撤掉（§9.21），换 `opencode-go/longcat-2.5-free`；prereg §1.1 写明跨轮可比性代价。被测提交 `52456d3`（+ `76e6171`、`fdb6fa8`）。评分卡由独立子代理写（`core-loop-runs/2026-11-10-journey10/scorecard.md`），记录者只写时间线（`observations.md`）。

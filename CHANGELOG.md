@@ -6,6 +6,8 @@ All notable changes to WUPHF will be documented in this file.
 
 ### Fixed
 
+- Rate limits now count as transient provider failures. A 429 used to fall through to the "blocked" path without a retry and without ever trying `WUPHF_HEADLESS_MODEL_FALLBACK`, so an office whose primary model was out of quota sat idle even with a working fallback model configured (Journey 17: `longcat-2.5-free` returned 429 while `iceman-contributor-free` answered 200). The turn now retries on the same model, then switches to the fallback once. A turn that spends its whole budget without emitting a single event — what a rate-limited runner looks like when it retries inside its own SDK and never exits — is treated the same way: one fallback attempt instead of blocking the task.
+
 - `human_interview` no longer ends on the first failed poll. When the broker was busy with the caller's own turn, `/interview/answer` exceeded the 15s client timeout, every call returned an error, and the model concluded the tool was broken — Journey 16 shows it then re-asked the same question in chat while the card it had already raised sat pending. Poll errors are now recorded and retried until the 30-minute deadline, and only reported if the card never gets answered.
 
 - A lane under an open Issue no longer raises its own decision card; the Issue's card is the acceptance surface and lists every lane file. Journey 15 raised both lane cards and both lanes approved themselves 38 seconds later (no reviewer configured), so the operator's clicks landed on closed lanes and changed nothing. A lane whose Issue is already closed keeps its card — that is the last place the human can see the work.

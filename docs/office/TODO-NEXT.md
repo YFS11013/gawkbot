@@ -572,7 +572,9 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 
 `core-loop-runs/2026-11-11-journey17/`：prereg `5696d9c` 保留，`ABORTED.md` 记根因。模型一次都没产出——02:07 起两回合都是 `opencode-go/longcat-2.5-free` 的 `stream error`，直连端点复现 `429 rate_limit_error`（02:29 / 02:31 两次）。办公室的自愈路径完整：回合失败 → `JOURN-1 blocked` → 自动止血单 `JOURN-4` → 人类催办后重起回合。**没有判据可判，不计入跨轮对比**。配额恢复后按 prereg 原样重跑（命令写在 ABORTED.md §怎么重跑）。
 
-运维含义：免费档配额打满时整个办公室**没有任何可用的降级**——`WUPHF_HEADLESS_MODEL_FALLBACK` 也是 `opencode-go` 的免费档，同一份额度，429 一起中。要么接受「配额打满就停摆」，要么给 fallback 配一个不同额度来源（另一个 provider 的 key），这是一条待拍板项。
+运维含义（已修正，02:44 实测）：429 是**按模型**算的，不是按 key。同一时刻 `longcat-2.5-free` 429、`iceman-contributor-free` 200、`beam-free` 200、`crouton-alpha-free` 410（已废弃）。所以「换一个免费模型」确实能救单个模型限流，前提是**代码肯去切**——原实现把 429 当普通失败，直接 blocked，fallback 一次都没被调用（见 DESIGN-DECISIONS §9.28 的修法）。
+
+仍待拍板的是**整份额度**打满那种情况：fallback 与主模型同一份账单，一起 429 时没有出路，只能接受停摆或给 fallback 配另一个 provider 的 key。
 
 ### Journey 16（2026-11-11，已跑完并归档）
 
