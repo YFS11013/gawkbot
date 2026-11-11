@@ -689,6 +689,8 @@ Journey 17 的本轮运行被上游拒了：`opencode-go/longcat-2.5-free` 从 0
 
 **落地的是 broker 侧的「零输出预算」**（`WUPHF_TURN_SILENT_BUDGET`，默认 4 分钟，`0` 关闭）。判据沿用上面同一条：只看模型是否产出（text / tool_use / tool_result / plan），记账事件不算。守卫只在**同时满足**三个条件时启动——回合有 `TaskID`、配了 fallback 模型、还没有 `ModelOverride`（fallback 回合不再链式 fallback）——因为这条路径的全部动作就是「取消这次尝试 + 把同一个回合交给 fallback 重排一次」，没有 fallback 的地方取消只会凭空少一次尝试。一旦这次尝试吐出任何模型输出，守卫立刻退出，剩余时间仍归正常预算，所以合法慢回合不会被砍。真机上的第一批事件最晚 35 秒到（Journey 17 `first_event_ms` 记录），4 分钟是它的七倍余量。
 
+真机验证（2026-11-11 14:27:41 +08:00，隔离办公室 `:7910`，`longcat` 仍 429）：回合 14:27:41 起，`headless-codex-latency.log` 全静默；14:31:41 整整 4 分钟时出现 `silent-stall: no model output in 4m0s — cancelling this attempt, retrying on opencode-go/iceman-contributor-free`，14:31:42 新回合开始，14:32:00 `status=ok total_ms=18356 first_event_ms=12586 final_chars=281`，任务没有进 `blocked`。同一故障形状从 10 分钟缩到 4 分钟。
+
 **真机复验（2026-11-11 12:14:34 +08:00，隔离办公室 :7910，`longcat` 仍 429）**：回合跑满 10 分钟、零输出，日志两行连着出现——`error: headless codex turn timed out after 10m0s` 与 `model-fallback: primary produced no model output in 10m0s, retrying on opencode-go/iceman-contributor-free`，随后新回合 `status=ok total_ms=76964 first_event_ms=22723 final_chars=3586`。即：429 的等待从「10 分钟白等 + block」变成「10 分钟 + 一次成功」，任务继续在跑。当时那 10 分钟仍要付——runner 内部的 429 重试不受我们控制（`opencode` 无 retry 相关环境变量，二进制里逐个查过），这也是后来加「零输出预算」的原因：同一场景现在 4 分钟就该翻页。
 
 **判据第一版写错了，值得记下来。** 第一版把「任务流里没有任何 HeadlessEvent」当作沉默。上线后同一场景再跑，超时分支依然走 block——因为 runner 在子进程死掉之后**一定会**补发 `error` + `manifest` 两条记账事件，于是每一轮超时都显得「有产出」。改成只认模型输出（`text` / `tool_use` / `tool_result` / `plan`），记账事件（`error` / `manifest` / `reconnecting` / `status`）一律不算。这个错只有拿真机跑一遍才会暴露：单测里脚本化的 runTurn 不写流，永远是「沉默」，绿的；真机上 runner 自己会写。
