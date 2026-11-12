@@ -61,6 +61,25 @@
 - 容器卡 `request-19` 是 17:00:02 第一次 `submit_for_review` 时升起的，那一刻 `task.Artifact` 还是空的，所以正文写「The Issue ships no single file of its own … lanes delivered 1 file(s): team/reviews/j21-public.md」。之后（17:01:52 那次 submit）Issue 的 `artifact` 变成 `team/reviews/j21-internal.md`，退回时闸门就只看这一个文件——**卡按集合说话、闸门按单文件判定**，这是 D-3 的直接来源。
 - 重复 lane 不只是噪音：`JOURN-25`（与 `JOURN-14` 声明了同一个 wiki 路径）**5 次覆写了 `team/reviews/j21-public.md`**，台账每次都记了 `artifact_overwritten`（17:00:31 / 17:01:34 / 17:02:58 / 17:05:37 …），但写入照常成功——「一个任务能否覆盖另一个任务已交付的 artifact」是 `TODO-NEXT.md` 里早就挂着的产品决策，本轮把它的代价量到了：连返工那次改写（`0453dac`）都是记在 `JOURN-25` 名下的。
 
+## 补跑：同一工作区，换上带 D-3/D-4 的二进制
+
+原轮次卡在重提上结束后，把修好的二进制装进这个工作区，用**一条**操作员消息要求「直接重提 JOURN-2，不要再新建 lane、也不要改内部页」，看闸门是否真的放过集合变化。
+
+| 时刻 | 事件 |
+|---|---|
+| 17:52:18 | 模型尝试把容器 `artifact` 指到 lane 的 `team/reviews/j21-public.md`，被 J11 的容器守卫拒（`guard_refused: container artifact … is JOURN-14's deliverable`）——同一秒内它自己回落到正确做法 |
+| 17:52:20 | `submit_for_review` **成功**（原轮次这里是两次 400 byte-identical） |
+| 17:52:26 | `request-54` 升起：正文列 lane 文件，并写「The Issue itself also records team/reviews/j21-internal.md」；**没有**「has changed since this work was sent back」 |
+| 17:56:18 | 批准 |
+| 17:56:33 | `JOURN-2 [done]`，`SentBackFingerprint` 清空；`JOURN-22`/`JOURN-25` 保持 canceled |
+| 17:56:53 | 环路自带的 `Wiki maintenance` 也跟着 done |
+
+三条结论：
+
+1. **「退回 → 返工 → 重提 → 批准 → done」第一次跑通**，一个回合、没有新 lane、没有新卡。
+2. **V7 的卡侧第一次被锻炼到**：卡上有 `SentBackFingerprint`，但集合摘要已经变了，所以那句警告没出现——这正是 §9.30 里「has changed」分支的反面。
+3. 容器守卫（J11）在模型手滑时挡住了「把 lane 的文件冒充成 Issue 自己的交付」这条路，**没有**产生额外回合。
+
 ## 旁证
 
 - 计划未批准时建子任务被 409 拦住；容器 `complete` 被 409 拦住并指名 `submit_for_review`——两条错误信息自带修复路径，模型都照着做了。
