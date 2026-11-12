@@ -233,7 +233,20 @@ func (l *Launcher) taskNotificationTargets(action officeActionLog, task teamTask
 	}
 
 	if owner == lead {
-		if lead != "" && lead != actor {
+		// A lead that opens an Issue for itself is not talking to anybody: owner,
+		// lead and actor are the same slug, so this branch used to return with no
+		// target at all. Harmless for chatter, fatal for a fresh Issue — it enters
+		// Planning, and the ONLY way out of Planning is the plan-approval card,
+		// which is raised when a planning turn ENDS. With no turn queued the card
+		// is never raised, the Issue sits in Planning, and the office tells the
+		// human to press a start button that does not exist (Journey 20,
+		// core-loop-runs/2026-11-12-journey20). Queue that one turn.
+		switch {
+		case lead == "":
+			// nothing to wake
+		case lead != actor:
+			addImmediate(lead)
+		case action.Kind == "task_created" && task.LifecycleState == LifecycleStatePlanning && !task.blocked:
 			addImmediate(lead)
 		}
 		return immediate, delayed

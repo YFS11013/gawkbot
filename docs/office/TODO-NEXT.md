@@ -607,7 +607,16 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 
 **O2（已修）**：回合结束时的对账落在 `recordTaskLedgerEntry`。判据不是解析模型的措辞，而是事实：任务带着未清除的退回摘要（`SentBackFingerprint`）且交付物集合与退回时逐字节相同——这一回合就没写东西。此时记 `rework-unwritten` 台账、写 `rework_unwritten` 审计行、计入 `StalledTurns` 并arm 2 分钟短重试（而不是正常跟进间隔），下一回合的 packet 直接把这行渲染给模型看。失败回合和「有未答的人类请求」的 lane 豁免。测试 `TestTurnThatClaimsAReworkWithoutWritingOneIsNotATrace`、`TestClaimedReworkIsNotFlaggedWhileWaitingOnTheHuman`（去掉分类 / 去掉等待豁免分别变红）。仍留白的部分：模型声称写了一**别的**路径（不在交付物集合里）目前无从对账，只覆盖「被退回的那份没动」。
 
-**O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。**O1 现场复核（2026-11-12，隔离 workspace `journey19`，broker :7910）**：不走模型，直接对真 broker 跑 `mcp-team` 的 stdio 会话（bot `cos`，`WUPHF_ENABLE_AGENT_WIKI_WRITE` 不设，所以管理旁路关闭），三种情形：
+**O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。### Journey 20（2026-11-12，最小完整环路）
+
+prereg `70f5154`，工作区 `j20`，免费模型 `beam-free`。判分卡：`core-loop-runs/2026-11-12-journey20/scorecard.md`。
+
+- **V1 部分成立**：Issue 进了 `done`（有交付物），但不是自己走的；**V5 成立**（hash 全在清单内、对外页 0 hash）；V2/V4 因模型没拆 lane 而不适用/一半；V3 不成立（模型要人去点不存在的按钮）；V6/V7 未测。
+- **D-1（已修，`office-fixes`）**：bot 自建的 Issue 得不到 planning 回合 → plan-approval 卡永不升起 → 停在 `planning`。修法：`taskNotificationTargets` 在 `owner == lead == actor` 且 `task_created` + planning + 未阻塞时自我唤醒。测试 `TestSelfCreatedIssueStillGetsItsPlanningTurn`（红：`got []`）。
+- **D-2（未修）**：wiki 授权可被普通文件写入绕过，worker 以 "external edit" 平静接受。这是下一轮该做的闸门，不是文案问题。
+- 旁证：计划未批准时建子任务被 409 正确拦住；`/wiki/write-task` 首次被拒（`artifact path not declared`）后，模型自己 `define` 了 `artifact_path` 再写成功——错误信息自带修复路径，这条是好的。
+
+**O1 现场复核（2026-11-12，隔离 workspace `journey19`，broker :7910）**：不走模型，直接对真 broker 跑 `mcp-team` 的 stdio 会话（bot `cos`，`WUPHF_ENABLE_AGENT_WIKI_WRITE` 不设，所以管理旁路关闭），三种情形：
 
 | 情形 | 结果 |
 |---|---|

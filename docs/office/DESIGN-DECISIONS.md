@@ -161,6 +161,11 @@ digest ──► render_artifacts()（脚本，0 LLM）
 
 **看门狗的盲区（同日补）**：`task_stalled` 的判据是「任务没动」，而回合执行期间任务本来就不动。修法是问派发池要事实（`HasActiveTurnForTask`），不另建一份注册表：并行注册表只要有一条路径漏删，那个任务就永久不再报警，比假警报更糟。命中则 5 分钟后再看，回合结束后第一个 tick 照常判。
 
+**§9.31 Journey 20：环路闭合了，但不是它自己走的**（`core-loop-runs/2026-11-12-journey20`）。最小场景（5 条提交、两页）在修好的二进制上跑完，Issue 确实进了 `done`，代价是三次操作员动作，其中一次是我以 `human` 名义在 Issue 上留言——那次冒充是**缺陷的解药**，不是便利。
+
+- **D-1（已修）**：bot 在自己回合里给自己开的 Issue，`owner == lead == actor`，`taskNotificationTargets` 整段短路，一个 target 都没有。于是 planning 回合从未入队，而 `plan-approval` 卡只在 planning 回合**结束**时升起（`headless_opencode.go:386`）——卡不会来。任务停在 `planning`，唯一的出路是 60 分钟后的 stall watchdog，模型则反过来让人去点一个不存在的「Issues 板上启动」。修法是让「自建 + planning + 未阻塞」这一种情形自己唤醒自己；范围刻意收窄，running/blocked 的自建任务不唤醒（否则就是自激循环）。
+- **D-2（未修）**：`/wiki/write-task` 的授权对有文件系统权限的 bot 只是建议。J20 的对外页：`team_wiki_write` 带 `human_request=msg-1`（`nex` 发的）被正确拒绝，模型紧接着用普通 `write` 工具把同一个文件写进 wiki 目录，worker 以 "external edit" 收下并提交（作者是一串合成 id），还给它建了索引条目。授权被绕过且提交历史里看不出来。
+
 **没解决的**：模型声称写了一**个不在交付物集合里**的路径仍无从核对；人这一侧没有 HTTP 端点发人类消息，`human_request` 对脚本化操作员仍不可用；本轮一次全量测试出现过未复现的 FAIL（测试名被输出截断，未定位）。
 
 ## 5. 强制机制（不靠记忆）

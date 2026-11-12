@@ -2931,3 +2931,67 @@ func TestEngineerPromptMentionsGHPRCreate(t *testing.T) {
 		t.Fatal("engineer prompt must require pasting the returned GitHub URL into the channel")
 	}
 }
+
+// Journey 20: the lead opened an Issue inside its own turn, so owner, lead and
+// actor were all `cos` and taskNotificationTargets returned no target at all.
+// The Issue entered Planning; the plan-approval card that releases it is only
+// raised at the END of a planning turn, and no planning turn was ever queued —
+// the work sat there until a stranger commented on it.
+func TestSelfCreatedIssueStillGetsItsPlanningTurn(t *testing.T) {
+	l := &Launcher{
+		pack: &bot.PackDefinition{
+			LeadSlug: "cos",
+			Bots: []bot.BotConfig{
+				{Slug: "cos", Name: "Chief of Staff"},
+				{Slug: "fe", Name: "Frontend Engineer"},
+			},
+		},
+	}
+	task := teamTask{
+		ID:             "J-2",
+		Channel:        "cos__human",
+		Title:          "Journey 20",
+		Owner:          "cos",
+		CreatedBy:      "cos",
+		status:         "in_progress",
+		LifecycleState: LifecycleStatePlanning,
+	}
+	immediate, delayed := l.taskNotificationTargets(officeActionLog{
+		Kind:      "task_created",
+		Actor:     "cos",
+		Channel:   "cos__human",
+		RelatedID: "J-2",
+	}, task)
+	if len(delayed) != 0 {
+		t.Fatalf("a planning kickoff is not a delayed wake, got %+v", delayed)
+	}
+	if len(immediate) != 1 || !containsNotificationTarget(immediate, "cos") {
+		t.Fatalf("the lead's own fresh Issue must wake the lead to plan it, got %+v", immediate)
+	}
+
+	// The self-wake is scoped to the planning kickoff. A self-created task that
+	// is already executing must not bounce the lead back to itself.
+	task.LifecycleState = LifecycleStateRunning
+	immediate, _ = l.taskNotificationTargets(officeActionLog{
+		Kind:      "task_created",
+		Actor:     "cos",
+		Channel:   "cos__human",
+		RelatedID: "J-2",
+	}, task)
+	if len(immediate) != 0 {
+		t.Fatalf("a running self-created task must not self-wake, got %+v", immediate)
+	}
+
+	// ...but a blocked planning Issue is legitimately waiting on dependencies.
+	task.LifecycleState = LifecycleStatePlanning
+	task.blocked = true
+	immediate, _ = l.taskNotificationTargets(officeActionLog{
+		Kind:      "task_created",
+		Actor:     "cos",
+		Channel:   "cos__human",
+		RelatedID: "J-2",
+	}, task)
+	if len(immediate) != 0 {
+		t.Fatalf("a blocked planning Issue must not wake the lead, got %+v", immediate)
+	}
+}
