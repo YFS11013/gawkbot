@@ -876,6 +876,17 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 			Action: "approve", ID: taskID, ArtifactPath: strings.TrimSpace(delivery.ArtifactPath),
 		})
 	}
+	// A send-back from this path must carry the same artifact hash the
+	// MutateTask path stamps, or gateTaskResubmissionArtifactDelta has nothing
+	// to compare and a bot can "revise" bounced work byte-for-byte. Journey
+	// 18: the human's send-back came from the decision card, the objection
+	// went out with an empty ArtifactHash, and the delta gate could not have
+	// fired even if the office had resubmitted. Peeked and hashed OUTSIDE the
+	// lock, like every other verification read.
+	var decisionChangesArtifact, decisionChangesArtifactHash string
+	if action == RecordDecisionRequestChanges {
+		decisionChangesArtifact, decisionChangesArtifactHash = b.computeTaskArtifactHash(taskID)
+	}
 	// TODO(v1.1): auto-merge evaluator — once a safe-class definition
 	// (e.g. wiki-only edits with all green checks and zero
 	// critical/major grades) lands, route merge actions through the
@@ -1131,6 +1142,18 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 					Actor: taskObjectionActor(actorSlug),
 					Body:  trimmedComment,
 					At:    time.Now().UTC().Format(time.RFC3339),
+				}
+				// Same guard as the MutateTask path: only bind the hash when the
+				// artifact is still the one that was hashed, so a concurrent
+				// rewrite cannot stamp a stale digest on the objection.
+				// Same guard as the MutateTask path: only bind the hash when the
+				// artifact is still the one that was hashed, so a concurrent
+				// rewrite cannot stamp a stale digest on the objection.
+				// Same guard as the MutateTask path: only bind the hash when the
+				// artifact is still the one that was hashed, so a concurrent
+				// rewrite cannot stamp a stale digest on the objection.
+				if decisionChangesArtifactHash != "" && strings.TrimSpace(task.Artifact) == decisionChangesArtifact {
+					objection.ArtifactHash = decisionChangesArtifactHash
 				}
 				task.ChangesRequested = objection
 				if actor.isHuman {

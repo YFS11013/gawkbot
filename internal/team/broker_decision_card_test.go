@@ -7,6 +7,7 @@ package team
 // (F-H) actually was.
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -485,7 +486,7 @@ func TestDecisionCardSaysWhenTheRejectedWorkWasNeverRewritten(t *testing.T) {
 	if len(cards) != 1 {
 		t.Fatalf("want one card, got %d", len(cards))
 	}
-	if strings.Contains(cards[0].Question, "has changed since you sent this back") {
+	if strings.Contains(cards[0].Question, "has changed since this work was sent back") {
 		t.Fatal("the first card has nothing to compare against and must not warn")
 	}
 
@@ -503,7 +504,7 @@ func TestDecisionCardSaysWhenTheRejectedWorkWasNeverRewritten(t *testing.T) {
 		t.Fatalf("want a second card, got %d", len(cards))
 	}
 	second := cards[1]
-	if !strings.Contains(second.Question, "has changed since you sent this back") {
+	if !strings.Contains(second.Question, "has changed since this work was sent back") {
 		t.Fatalf("an unchanged deliverable must be flagged on the card, got %q", second.Question)
 	}
 
@@ -519,7 +520,7 @@ func TestDecisionCardSaysWhenTheRejectedWorkWasNeverRewritten(t *testing.T) {
 	if len(cards) != 3 {
 		t.Fatalf("want a third card, got %d", len(cards))
 	}
-	if strings.Contains(cards[2].Question, "has changed since you sent this back") {
+	if strings.Contains(cards[2].Question, "has changed since this work was sent back") {
 		t.Fatalf("a rewritten deliverable must clear the warning, got %q", cards[2].Question)
 	}
 
@@ -589,7 +590,7 @@ func TestContainerCardFlagsAnUnchangedLaneSet(t *testing.T) {
 	if !strings.Contains(cards[0].Question, "j18-internal.md") || !strings.Contains(cards[0].Question, "j18-public.md") {
 		t.Fatalf("the container card must name every lane file, got %q", cards[0].Question)
 	}
-	if strings.Contains(cards[0].Question, "has changed since you sent this back") {
+	if strings.Contains(cards[0].Question, "has changed since this work was sent back") {
 		t.Fatal("no send-back has happened yet, so there is nothing to warn about")
 	}
 
@@ -601,7 +602,7 @@ func TestContainerCardFlagsAnUnchangedLaneSet(t *testing.T) {
 	if len(cards) != 2 {
 		t.Fatalf("want a second card, got %d", len(cards))
 	}
-	if !strings.Contains(cards[1].Question, "has changed since you sent this back") {
+	if !strings.Contains(cards[1].Question, "has changed since this work was sent back") {
 		t.Fatalf("an untouched lane set must be flagged, got %q", cards[1].Question)
 	}
 
@@ -621,7 +622,45 @@ func TestContainerCardFlagsAnUnchangedLaneSet(t *testing.T) {
 	if len(cards) != 3 {
 		t.Fatalf("want a third card, got %d", len(cards))
 	}
-	if strings.Contains(cards[2].Question, "has changed since you sent this back") {
+	if strings.Contains(cards[2].Question, "has changed since this work was sent back") {
 		t.Fatalf("a reworked lane set must clear the warning, got %q", cards[2].Question)
+	}
+}
+
+// Journey 18's send-back came from the card, not from POST /tasks, and the
+// objection it produced carried no ArtifactHash — so the resubmission delta gate
+// had nothing to compare and a bot could have "revised" the rejected bytes
+// unchanged. The decision chokepoint now stamps the same hash the mutation path
+// does, which is what makes the gate bind for card answers.
+func TestDecisionSendBackStampsTheHashSoResubmissionIsGated(t *testing.T) {
+	b, abs := newArtifactDeltaBroker(t)
+	if err := b.RecordTaskDecisionWithComment("task-delta-1", string(RecordDecisionRequestChanges), "champion is wrong", "you"); err != nil {
+		t.Fatalf("decision send-back: %v", err)
+	}
+	bounced := b.TaskByID("task-delta-1")
+	if bounced.ChangesRequested == nil || !strings.HasPrefix(bounced.ChangesRequested.ArtifactHash, "sha256:") {
+		t.Fatalf("a decision send-back must stamp the artifact hash, got %+v", bounced.ChangesRequested)
+	}
+
+	_, err := b.MutateTask(TaskPostRequest{
+		Action: "submit_for_review", ID: "task-delta-1", Channel: "general",
+		CreatedBy: "eng", Details: "revised",
+	})
+	var mutationErr *TaskMutationError
+	if !errors.As(err, &mutationErr) || mutationErr.Kind != TaskMutationInvalid {
+		t.Fatalf("a byte-identical resubmission after a card send-back must be refused, got %v", err)
+	}
+	if !strings.Contains(mutationErr.Message, "byte-identical") {
+		t.Fatalf("the refusal must name the unchanged artifact, got %q", mutationErr.Message)
+	}
+
+	if err := os.WriteFile(abs, []byte("# One-pager v2\nchampion: Dana Whitfield\n"), 0o644); err != nil {
+		t.Fatalf("rewrite: %v", err)
+	}
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "submit_for_review", ID: "task-delta-1", Channel: "general",
+		CreatedBy: "eng", Details: "revised with Dana",
+	}); err != nil {
+		t.Fatalf("a real edit must clear the gate, got %v", err)
 	}
 }

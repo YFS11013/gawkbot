@@ -232,7 +232,7 @@ func (b *Broker) raiseDecisionCardLocked(task *teamTask) string {
 	// digest taken when the human sent it back and say so on the card — the
 	// human can still approve (their call), but not by mistake.
 	if b.sentBackDeliverablesUnchangedLocked(task) {
-		fmt.Fprintf(&qb, "\n\nNone of those files has changed since you sent this back at %s. Approving now accepts exactly what you rejected; if you asked for a rework, it was not written.", strings.TrimSpace(task.SentBackAt))
+		fmt.Fprintf(&qb, "\n\nNone of those files has changed since this work was sent back at %s. Approving now accepts exactly what was rejected there; if a rework was asked for, it was never written.", strings.TrimSpace(task.SentBackAt))
 	}
 
 	options := []interviewOption{

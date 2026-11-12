@@ -153,6 +153,8 @@ digest ──► render_artifacts()（脚本，0 LLM）
 
 **覆盖范围**：卡片、Inbox 的 Approve/Send back、`/tasks/{id}/decision` 走同一个 chokepoint，所以从别的入口退回同样会盖章。评审 bot 的 `request_changes` 也会盖章，措辞因此写成「this work was sent back」而不是「you sent this back」。
 
+**顺带补上的老洞**：`TaskReviewObjection.ArtifactHash`（重提门槛 `gateTaskResubmissionArtifactDelta` 的比较基准）原先只在 `POST /tasks` 的 `request_changes` 上盖章，走决策 chokepoint 的退回（卡片、Inbox 按钮）**从没盖过**——也就是说 J18 那种退回就算办公室真的去重提，字节完全相同也不会被拦。现在两条路都盖。
+
 **没解决的**（`TODO-NEXT.md` 的 O1–O3）：模型在回合里声称写过某个路径而 blob 未变，目前只在「卡片重升」这一个窗口被抓到；写 wiki 的授权契约仍然把人和机器人卡在两条通道上。
 
 ## 5. 强制机制（不靠记忆）
