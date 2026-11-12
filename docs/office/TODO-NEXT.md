@@ -612,6 +612,7 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 prereg `70f5154`，工作区 `j20`，免费模型 `beam-free`。判分卡：`core-loop-runs/2026-11-12-journey20/scorecard.md`。
 
 - **V1 部分成立**：Issue 进了 `done`（有交付物），但不是自己走的；**V5 成立**（hash 全在清单内、对外页 0 hash）；V2/V4 因模型没拆 lane 而不适用/一半；V3 不成立（模型要人去点不存在的按钮）；V6/V7 未测。
+- **D-1 现场复核（同日，工作区 `j20b`，修好的二进制）**：同一个场景重跑，操作员只发了那一句消息，**没有**在 Issue 上留言。20:33:14 聊天回合开始，20:33:37 **自动排入 planning 回合**（修复前不存在这一条），20:43:26 回合结束，`request-9`（`plan-approval:JB-2`）**自己升起**。修复前同一形状是 14 分钟无卡、模型要人去点不存在的按钮。
 - **D-1（已修，`office-fixes`）**：bot 自建的 Issue 得不到 planning 回合 → plan-approval 卡永不升起 → 停在 `planning`。修法：`taskNotificationTargets` 在 `owner == lead == actor` 且 `task_created` + planning + 未阻塞时自我唤醒。测试 `TestSelfCreatedIssueStillGetsItsPlanningTurn`（红：`got []`）。
 - **D-2（未修）**：wiki 授权可被普通文件写入绕过，worker 以 "external edit" 平静接受。这是下一轮该做的闸门，不是文案问题。
 - 旁证：计划未批准时建子任务被 409 正确拦住；`/wiki/write-task` 首次被拒（`artifact path not declared`）后，模型自己 `define` 了 `artifact_path` 再写成功——错误信息自带修复路径，这条是好的。

@@ -6,6 +6,8 @@ All notable changes to WUPHF will be documented in this file.
 
 ### Fixed
 
+Confirmed in situ: the same self-created Issue that used to sit in Planning now queues its own planning turn (started 23 s after creation, without any human comment) and the plan-approval card raises itself when that turn ends.
+
 An Issue a bot opens for itself now gets its planning turn. When the owner and the lead and the actor were the same slug, task notification returned no target at all — so no planning turn was queued, and since the plan-approval card is only raised when a planning turn *ends*, the Issue sat in Planning with no card to answer while the office told the human to press a start button that does not exist. The self-wake is scoped to the planning kickoff: a self-created Issue that is already running, or one blocked on dependencies, is still not bounced back to its owner. Found in Journey 20 (a human comment was the only thing that moved it); test `TestSelfCreatedIssueStillGetsItsPlanningTurn`.
 
 A bot whose task declares a wiki path now publishes it in one turn, with no second human go-ahead. Verified with a real turn on an isolated office (free model): the task declared `team/reviews/j19-model.md`, the operator nudge arrived from a non-human sender, and 46 s later the article was in the wiki as commit `f199c11` stamped `(task JM-1)` — the task-scoped endpoint — with zero messages asking the human for permission and nothing written into the working directory.
