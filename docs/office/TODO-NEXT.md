@@ -619,6 +619,10 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 
 **附带物证（同日 17:40）**：仓库根出现未跟踪的 `team/playbooks/meeting-prep.md`（9407 字节，17:40:23），6 秒后正式 wiki 里出现同名文章（11387 字节，17:40:29）——即 bot 先用文件写入把草稿落在进程 cwd（生产办公室的 cwd 就是仓库根），再由 wiki worker 落了正本。这就是 J18 O2' 那条「交付路径默认落在仓库目录」再次发生。已把仓库根这份草稿移到 `%TEMP%\stray-repo-writes\`，未删。**没修**：判据是「交付物只能经 wiki 工具落盘」在提示层仍只是建议，模型可以绕开工具直接写文件。
 
+**模型级复核（同日，隔离 workspace `j19m`，免费模型 `beam-free`）**：单测和 handler 探针都只证明「门开着」，不证明「模型会走门」。于是跑了一次真回合：任务 `JM-1` 声明 `team/reviews/j19-model.md`，操作员消息以 `nex`（**不是**已验证的人类发送者）投递，内容是「这是你自己任务里已经定好的交付物，不要再等我确认」。46 秒后文章已是 wiki 里的 commit `f199c11`（`cos Publish J19 model review page (task JM-1)`）——提交信息里的 `(task JM-1)` 说明走的是 `/wiki/write-task`，不是直接写文件；工作目录里没有留下 `team/reviews/`；全库消息里「go-ahead」类话术 **0 条**。对照 J18：同样的情形下模型回了两次「请再发一条明确消息」。
+
+**仍未证的**：模型是否在**没有**那句「不要再等我确认」时也会自己写。这次操作员明确说了别等确认，消掉的是「授权反射」，不是「主动性反射」。
+
 **这一轮证不了的**：模型侧是否真的不再要第二句授权——现场探针验的是「门开着并且只对声明过的路径开」，不是「模型会走这扇门」。要验后者需要人这一侧能发消息（见下面的留白）。
 
 测试 `TestStallAlertIsSkippedWhileTheOwnerTurnIsRunning`（去掉守卫即红：仍然投递 1 次）、`TestHasActiveTurnForTaskReadsTheDispatchPool`。

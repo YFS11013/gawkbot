@@ -6,6 +6,8 @@ All notable changes to WUPHF will be documented in this file.
 
 ### Fixed
 
+A bot whose task declares a wiki path now publishes it in one turn, with no second human go-ahead. Verified with a real turn on an isolated office (free model): the task declared `team/reviews/j19-model.md`, the operator nudge arrived from a non-human sender, and 46 s later the article was in the wiki as commit `f199c11` stamped `(task JM-1)` — the task-scoped endpoint — with zero messages asking the human for permission and nothing written into the working directory.
+
 A task that declares an artifact path can publish to it without a human message, and a closed task stops authorizing that path. Verified in situ against a real broker (isolated workspace, real `mcp-team` stdio session, admin bypass off): the declared path writes through `/wiki/write-task`, an undeclared path still asks the human, and a cancelled task's path is refused again. Test: `TestHandleTeamWikiWriteIgnoresTheScopeOfAClosedTask` (red without the status filter).
 
 The watchdog no longer calls a task stalled while its owner is mid-turn. A reminder tick that lands during a running turn sees no task movement — because the turn has not finished, not because nobody is working — and Journey 18 collected `task_stalled` alerts over turns that were still executing (27–170 s each, one past ten minutes). The scheduler now asks the dispatch pool whether a turn is executing for that task and, if so, rechecks in five minutes instead of alerting; the first tick after the turn ends still fires, so a genuinely stuck task is unaffected. Tests: `TestStallAlertIsSkippedWhileTheOwnerTurnIsRunning` (red without the guard: one delivery), `TestHasActiveTurnForTaskReadsTheDispatchPool`.
