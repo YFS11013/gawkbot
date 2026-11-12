@@ -594,3 +594,19 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 1. **lane 不单独发决策卡**：父 Issue 仍开着的 lane 由容器卡验收（容器卡逐字列出每条 lane 文件）；父 Issue 已终态的 lane 照旧发卡。J15 两张 lane 卡发出 38 秒后 lane 自批（无 reviewer），人的点击是空操作——与其「关了就撤卡」，不如不发。测试 `TestLaneDecisionCardDefersToItsLiveIssue`。
 2. **已授予的 access 不算缺口**：`AccessNeeded` 里同时出现 `wiki` 与 `write`/`写入`/`写权限`、且任务已声明 `definition.artifact_path` 时不再发 `definition-gap:` 卡；没声明范围、或要的是连接/密钥，照问。测试 `TestDefinitionGapSkipsAccessTheTaskAlreadyHolds`（去掉过滤即红：卡又发出来）。
 3. **覆盖别人的交付物留痕但不拦**：`create`/`replace` 写到另一个任务已交付的同一路径时写一条 `artifact_overwritten`（带路径与原作者）；`append_section` 不算。routine 重写同一页面是合法形状，拦会误伤。测试 `TestOverwritingAnotherTasksDeliverableLeavesARow`（去掉记录即红：`got 0`）、`TestRewritingAnUnownedPageLeavesNoRow`。
+
+### Journey 18（2026-11-12，已跑完并归档）
+
+`core-loop-runs/2026-11-11-journey18/`（prereg `ec9b91f`、observations、scorecard）。让办公室按 `git log` 的 23 条真实提交写发布说明，免费模型 + 环状 fallback。
+
+**通过的**：V4 容器卡逐条列出两条 lane 文件并写明 Issue 自己不发文件；V5 内部页 23 行逐条对上提交清单、两页出现的 hash 无一在清单外；V1 全程没有 lane 级决策卡（J15 那种「点了落在已完成 lane 上」的空点击没有复现）；J14 容器守卫两次拦住模型以 Issue 身份写 lane 的文件。
+
+**O4（已修，见 CHANGELOG）**：退回一次，办公室回「已按反馈修改」并重升同一张卡，而 `journey18-public.md` 仍是 724 字节、第 5 条还在、wiki 该路径无新提交。第二次退回附上字节数与提交号，它回「新字节数：475 字节（7 行）」——**这个数字是编的**。修法落在 `recordTaskDecisionInternal`：退回时给交付物集合（lane 的 artifact，或 Issue 全部 lane 文件）盖内容摘要，重升卡时比对，没变就在卡上写明「自退回以来没有任何文件被改动」。`deliverableFingerprint` 按内容算，同长度改写也算变。测试 `TestDecisionCardSaysWhenTheRejectedWorkWasNeverRewritten`、`TestContainerCardFlagsAnUnchangedLaneSet`。
+
+**O1（仍是问题，没修）**：写 wiki 的授权契约把人和机器人卡在两条通道上。`team_wiki_write` 要 `human_request`（`From=you`/`human`、12 小时内、文本含「直接写 wiki」意图）或 `task_id`（任务自己声明的 `artifact_path`）。办公室两次向人要「再发一条明确消息」，因为它第一次在父任务（无 `artifact_path`）上被拒，**从未尝试 `task_id` 这条它能自己走完的路**。人这一侧也没有 HTTP 端点能发人类消息（只有 web UI）。修法方向：把 `task_id` 授权在工具描述里前置，并在被拒时把「你还有 task_id 这条路」写进错误文本。
+
+**O2（仍是问题，没修）**：退回到现在只能靠「卡上多一句话」让人别上当。真正缺的是**回合结束时的自述对账**：模型声称写了某个 `artifact_path`，而该路径 blob 与回合开始时相同，就该记 `hollow_completion` 或至少留一行审计，而不是让它以自然语言结束。O4 的修法只覆盖「卡片重升」这一个窗口。
+
+**O3（观察）**：看门狗在计划批准后立刻报「no sub-tasks yet」，并在 lane 交付前反复报 `task_stalled`，而同一时刻回合日志显示 bot 正在跑（27–170 秒的回合）。假警报会训练人忽略告警。
+
+
