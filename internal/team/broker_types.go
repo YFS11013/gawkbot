@@ -360,6 +360,15 @@ type teamTask struct {
 	// with it the empty completion is accounted for and does not block a
 	// parent Issue from settling.
 	ArtifactNotRequired string `json:"artifact_not_required,omitempty"`
+	// SentBackFingerprint is the digest of this task's deliverable set at the
+	// moment a human last sent it back (deliverable_fingerprint.go), and
+	// SentBackAt is that moment. The next decision card for the task compares
+	// the two: when nothing changed, the card says so instead of re-presenting
+	// the rejected work as if it were new. Journey 18: the office twice
+	// reported a rework it never wrote (724-byte file unchanged, then an
+	// invented "475 bytes"), and the card could not tell.
+	SentBackFingerprint string `json:"sent_back_fingerprint,omitempty"`
+	SentBackAt          string `json:"sent_back_at,omitempty"`
 	// ChangesRequested is the LATEST request-changes verdict on this task
 	// (any reviewer — human or bot). Stored on the task itself so the
 	// feedback TEXT rides into the owner's next execution packet and wake

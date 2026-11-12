@@ -227,6 +227,13 @@ func (b *Broker) raiseDecisionCardLocked(task *teamTask) string {
 		fmt.Fprintf(&qb, "The owner declared this lane ships no file (%s).\n", strings.TrimSpace(task.ArtifactNotRequired))
 	}
 	qb.WriteString("Approve and the lane closes. Send it back and the owner picks up your note as the rework.")
+	// Journey 18: a send-back that changed nothing came back as an identical
+	// card with a prose claim of a fix. Compare the deliverable set against the
+	// digest taken when the human sent it back and say so on the card — the
+	// human can still approve (their call), but not by mistake.
+	if b.sentBackDeliverablesUnchangedLocked(task) {
+		fmt.Fprintf(&qb, "\n\nNone of those files has changed since you sent this back at %s. Approving now accepts exactly what you rejected; if you asked for a rework, it was not written.", strings.TrimSpace(task.SentBackAt))
+	}
 
 	options := []interviewOption{
 		{ID: decisionChoiceApprove, Label: "Approve", Description: "Accept the deliverable and close this lane."},
@@ -366,6 +373,9 @@ func (b *Broker) applyDecisionCardAnswer(requestID, actor string) error {
 		log.Printf("broker: decision card %s answered %q but the %s decision on task %s was refused: %v", requestID, choice, action, taskID, err)
 		return err
 	}
+	// The send-back / approval snapshot itself is taken inside
+	// recordTaskDecisionInternal, the chokepoint every answer path shares;
+	// doing it here too would only duplicate the digest.
 	return nil
 }
 

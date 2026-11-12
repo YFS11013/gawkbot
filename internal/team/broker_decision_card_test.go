@@ -7,6 +7,8 @@ package team
 // (F-H) actually was.
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -459,5 +461,167 @@ func TestLaneDecisionCardDefersToItsLiveIssue(t *testing.T) {
 	}
 	if _, ok := cards["JOURN-90"]; !ok {
 		t.Fatal("a lane whose Issue is closed keeps its own card — nothing else can accept it")
+	}
+}
+
+// Journey 18: the office twice reported a rework it never wrote — the file was
+// byte-identical (724 B) after the first send-back, and the second reply
+// invented a byte count ("475 bytes") for content that never existed. The card
+// was the only acceptance surface, so it has to say when the thing being
+// offered is the thing that was just rejected.
+func TestDecisionCardSaysWhenTheRejectedWorkWasNeverRewritten(t *testing.T) {
+	t.Setenv("WUPHF_RUNTIME_HOME", t.TempDir())
+	const artifact = "team/reviews/j18-public.md"
+	full := filepath.Join(WikiRootDir(), filepath.FromSlash(artifact))
+	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.WriteFile(full, []byte("AAAAA"), 0o644); err != nil {
+		t.Fatalf("seed deliverable: %v", err)
+	}
+
+	b, taskID := decisionCardFixture(t, artifact)
+	cards := decisionCards(b)
+	if len(cards) != 1 {
+		t.Fatalf("want one card, got %d", len(cards))
+	}
+	if strings.Contains(cards[0].Question, "has changed since you sent this back") {
+		t.Fatal("the first card has nothing to compare against and must not warn")
+	}
+
+	if status, msg := b.answerRequestFromActor("you", cards[0].ID, decisionChoiceChanges, "", "drop the fifth bullet"); status != 200 {
+		t.Fatalf("answer: %d %s", status, msg)
+	}
+	if task := b.TaskByID(taskID); task == nil || task.SentBackFingerprint == "" {
+		t.Fatalf("a send-back must record what was rejected, got %+v", task)
+	}
+
+	// The owner reports "done" and the lane converges again. Nothing changed.
+	reopenInDecision(t, b, taskID)
+	cards = decisionCards(b)
+	if len(cards) != 2 {
+		t.Fatalf("want a second card, got %d", len(cards))
+	}
+	second := cards[1]
+	if !strings.Contains(second.Question, "has changed since you sent this back") {
+		t.Fatalf("an unchanged deliverable must be flagged on the card, got %q", second.Question)
+	}
+
+	// A same-size rewrite is still a change: the digest is content-addressed.
+	if status, msg := b.answerRequestFromActor("you", second.ID, decisionChoiceChanges, "", "still not right"); status != 200 {
+		t.Fatalf("answer: %d %s", status, msg)
+	}
+	if err := os.WriteFile(full, []byte("BBBBB"), 0o644); err != nil {
+		t.Fatalf("rewrite deliverable: %v", err)
+	}
+	reopenInDecision(t, b, taskID)
+	cards = decisionCards(b)
+	if len(cards) != 3 {
+		t.Fatalf("want a third card, got %d", len(cards))
+	}
+	if strings.Contains(cards[2].Question, "has changed since you sent this back") {
+		t.Fatalf("a rewritten deliverable must clear the warning, got %q", cards[2].Question)
+	}
+
+	// Approval closes the task and drops the comparison point.
+	if status, msg := b.answerRequestFromActor("you", cards[2].ID, decisionChoiceApprove, "", ""); status != 200 {
+		t.Fatalf("answer: %d %s", status, msg)
+	}
+	if task := b.TaskByID(taskID); task != nil && (task.SentBackFingerprint != "" || task.SentBackAt != "") {
+		t.Fatalf("approve must clear the send-back digest, got %+v", task)
+	}
+}
+
+// reopenInDecision puts a task back where convergence can raise its card, which
+// is what an owner's re-submission produces in production.
+func reopenInDecision(t *testing.T, b *Broker, taskID string) {
+	t.Helper()
+	b.mu.Lock()
+	task := b.taskByIDLocked(taskID)
+	if task == nil {
+		b.mu.Unlock()
+		t.Fatalf("task %s vanished", taskID)
+	}
+	task.status = "review"
+	task.LifecycleState = LifecycleStateDecision
+	b.raiseDecisionCardAfterConvergenceLocked(taskID)
+	b.mu.Unlock()
+}
+
+// The Journey 18 failure was a CONTAINER card: the Issue accepted two lane
+// files, the human sent it back over one of them, and the re-raised card was
+// identical. The comparison therefore has to span the lane set, not the Issue's
+// own artifact (an Issue usually has none).
+func TestContainerCardFlagsAnUnchangedLaneSet(t *testing.T) {
+	t.Setenv("WUPHF_RUNTIME_HOME", t.TempDir())
+	internalPath := filepath.Join(WikiRootDir(), "team", "reviews", "j18-internal.md")
+	publicPath := filepath.Join(WikiRootDir(), "team", "reviews", "j18-public.md")
+	if err := os.MkdirAll(filepath.Dir(internalPath), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.WriteFile(internalPath, []byte("23 rows"), 0o644); err != nil {
+		t.Fatalf("seed internal: %v", err)
+	}
+	if err := os.WriteFile(publicPath, []byte("5 bullets"), 0o644); err != nil {
+		t.Fatalf("seed public: %v", err)
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	b := newTestBroker(t)
+	b.mu.Lock()
+	b.tasks = append(b.tasks,
+		teamTask{ID: "ISSUE-1", Title: "release notes", Channel: "team", Owner: "cos",
+			status: "in_progress", LifecycleState: LifecycleStateDecision, CreatedAt: now, UpdatedAt: now},
+		teamTask{ID: "LANE-1", ParentIssueID: "ISSUE-1", Channel: "team", Owner: "cos",
+			status: "done", LifecycleState: LifecycleStateApproved, CreatedAt: now, UpdatedAt: now,
+			Artifact: "team/reviews/j18-internal.md"},
+		teamTask{ID: "LANE-2", ParentIssueID: "ISSUE-1", Channel: "team", Owner: "cos",
+			status: "done", LifecycleState: LifecycleStateApproved, CreatedAt: now, UpdatedAt: now,
+			Artifact: "team/reviews/j18-public.md"},
+	)
+	b.raiseDecisionCardAfterConvergenceLocked("ISSUE-1")
+	b.mu.Unlock()
+
+	cards := decisionCards(b)
+	if len(cards) != 1 {
+		t.Fatalf("want one container card, got %d", len(cards))
+	}
+	if !strings.Contains(cards[0].Question, "j18-internal.md") || !strings.Contains(cards[0].Question, "j18-public.md") {
+		t.Fatalf("the container card must name every lane file, got %q", cards[0].Question)
+	}
+	if strings.Contains(cards[0].Question, "has changed since you sent this back") {
+		t.Fatal("no send-back has happened yet, so there is nothing to warn about")
+	}
+
+	if status, msg := b.answerRequestFromActor("you", cards[0].ID, decisionChoiceChanges, "", "drop the fifth bullet"); status != 200 {
+		t.Fatalf("answer: %d %s", status, msg)
+	}
+	reopenInDecision(t, b, "ISSUE-1")
+	cards = decisionCards(b)
+	if len(cards) != 2 {
+		t.Fatalf("want a second card, got %d", len(cards))
+	}
+	if !strings.Contains(cards[1].Question, "has changed since you sent this back") {
+		t.Fatalf("an untouched lane set must be flagged, got %q", cards[1].Question)
+	}
+
+	// Rewriting the rejected file clears it; the untouched sibling is not the
+	// comparison — the set is.
+	if err := os.WriteFile(publicPath, []byte("4 bullets"), 0o644); err != nil {
+		t.Fatalf("rewrite public: %v", err)
+	}
+	if status, msg := b.answerRequestFromActor("you", cards[1].ID, decisionChoiceChanges, "", "still not right"); status != 200 {
+		t.Fatalf("answer: %d %s", status, msg)
+	}
+	if err := os.WriteFile(publicPath, []byte("4 bullets, fixed"), 0o644); err != nil {
+		t.Fatalf("rewrite again: %v", err)
+	}
+	reopenInDecision(t, b, "ISSUE-1")
+	cards = decisionCards(b)
+	if len(cards) != 3 {
+		t.Fatalf("want a third card, got %d", len(cards))
+	}
+	if strings.Contains(cards[2].Question, "has changed since you sent this back") {
+		t.Fatalf("a reworked lane set must clear the warning, got %q", cards[2].Question)
 	}
 }

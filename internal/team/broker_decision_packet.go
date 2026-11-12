@@ -1146,6 +1146,17 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 	// OnDecisionRecorded acquires b.mu itself; call it after Unlock
 	// to avoid a self-deadlock through the unblock cascade.
 	b.OnDecisionRecorded(taskID)
+	// Journey 18: a send-back is a snapshot of the work the decider refused,
+	// and an approve means that comparison point is spent. Stamped here, at
+	// the chokepoint every surface shares (the decision card, the Inbox's
+	// buttons, /tasks/{id}/decision), so a rework claim made in another room
+	// still faces the same comparison when the card comes back.
+	switch action {
+	case RecordDecisionRequestChanges:
+		b.stampSentBackFingerprint(taskID, time.Now().UTC().Format(time.RFC3339))
+	case RecordDecisionApprove:
+		b.clearSentBackFingerprint(taskID)
+	}
 	// B1 knowledge-integrity: a terminal approve on the DECISION path is a
 	// done transition, so it must queue the same distillation hook MutateTask
 	// queues on reachedDone. The v3 live run terminalized every one of its

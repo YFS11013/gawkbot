@@ -1,0 +1,170 @@
+package team
+
+// Deliverable fingerprints: the send-back path needs to know whether the thing
+// the human rejected is still the thing they are being asked to accept.
+//
+// Journey 18 (core-loop-runs/2026-11-11-journey18): the human sent the public
+// release notes back with one specific defect. The office replied "已按反馈修改"
+// and re-raised the same card; the file was byte-identical (724 B, same mtime)
+// and the wiki had no commit for that path afterwards. A second send-back, this
+// time quoting the byte count and the last commit, produced a reply that invented
+// a new byte count ("475 bytes, 7 lines") for a file that never changed. The
+// card was the only acceptance surface, and it could not tell "fixed" from
+// "untouched" — so a human who reads the note approves what they just rejected.
+//
+// The fingerprint below is that missing comparison. It is content-addressed (not
+// size/mtime), so a same-size rewrite still counts as a change, and it is taken
+// over the deliverable SET (a lane's artifact, or every file an Issue's lanes
+// landed) because the container card approves the set, not one file.
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+)
+
+// deliverableFingerprint digests the current on-disk state of a deliverable set.
+// Paths are wiki-relative (the same form TaskPostRequest.ArtifactPath carries).
+// A missing file hashes as "missing" rather than being dropped, so deleting a
+// deliverable still registers as a change. Returns "" for an empty set, which
+// every caller reads as "nothing to compare".
+func deliverableFingerprint(paths []string) string {
+	if len(paths) == 0 {
+		return ""
+	}
+	root := WikiRootDir()
+	sorted := make([]string, 0, len(paths))
+	for _, p := range paths {
+		if p = strings.TrimSpace(p); p != "" {
+			sorted = append(sorted, p)
+		}
+	}
+	if len(sorted) == 0 {
+		return ""
+	}
+	sort.Strings(sorted)
+	h := sha256.New()
+	for _, p := range sorted {
+		fmt.Fprintf(h, "%s\x00", p)
+		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(p)))
+		if err != nil {
+			h.Write([]byte("missing\x00"))
+			continue
+		}
+		sum := sha256.Sum256(data)
+		h.Write(sum[:])
+		h.Write([]byte{0})
+	}
+	return hex.EncodeToString(h.Sum(nil))[:16]
+}
+
+// deliverablePathsLocked lists the files a decision card is asking the human to
+// accept: the task's own artifact plus every child lane's recorded artifact.
+// "ships no file" declarations are not files and are skipped. Caller holds b.mu.
+func (b *Broker) deliverablePathsLocked(task *teamTask) []string {
+	if b == nil || task == nil {
+		return nil
+	}
+	var out []string
+	if own := strings.TrimSpace(task.Artifact); own != "" {
+		out = append(out, own)
+	}
+	for _, entry := range b.childDeliverablesLocked(task) {
+		if strings.Contains(entry, " (ships no file)") {
+			continue
+		}
+		if path := strings.TrimSpace(entry); path != "" {
+			out = append(out, path)
+		}
+	}
+	return out
+}
+
+// stampSentBackFingerprint records what the human rejected, at the moment they
+// rejected it, so the next card for the same task can tell whether anything
+// moved. Reads the deliverable list under the lock, does the file IO outside it,
+// then re-finds the task by id (it may have been mutated while the digest ran).
+func (b *Broker) stampSentBackFingerprint(taskID string, at string) {
+	if b == nil {
+		return
+	}
+	taskID = strings.TrimSpace(taskID)
+	if taskID == "" {
+		return
+	}
+	b.mu.Lock()
+	task := b.taskByIDLocked(taskID)
+	if task == nil {
+		b.mu.Unlock()
+		return
+	}
+	paths := b.deliverablePathsLocked(task)
+	b.mu.Unlock()
+
+	fingerprint := deliverableFingerprint(paths)
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	task = b.taskByIDLocked(taskID)
+	if task == nil {
+		return
+	}
+	task.SentBackFingerprint = fingerprint
+	task.SentBackAt = strings.TrimSpace(at)
+	if err := b.saveLocked(); err != nil {
+		log.Printf("broker: persist send-back fingerprint for task %q: %v", taskID, err)
+	}
+}
+
+// clearSentBackFingerprint drops the comparison point once the work is
+// accepted: the task is closing, and a later reopen must not inherit a digest
+// from an earlier round.
+// the task is closing, and a later reopen must not inherit a stale digest.
+func (b *Broker) clearSentBackFingerprint(taskID string) {
+	if b == nil {
+		return
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	task := b.taskByIDLocked(strings.TrimSpace(taskID))
+	if task == nil || (task.SentBackFingerprint == "" && task.SentBackAt == "") {
+		return
+	}
+	task.SentBackFingerprint = ""
+	task.SentBackAt = ""
+	if err := b.saveLocked(); err != nil {
+		log.Printf("broker: clear send-back fingerprint for task %q: %v", taskID, err)
+	}
+}
+
+func (b *Broker) clearSentBackFingerprintLocked(task *teamTask) {
+	if task == nil {
+		return
+	}
+	task.SentBackFingerprint = ""
+	task.SentBackAt = ""
+}
+
+// sentBackDeliverablesUnchangedLocked reports whether the deliverable set is
+// byte-for-byte what it was when the human last sent this task back. The digest
+// reads a handful of small wiki files, which is why the card builder tolerates
+// the IO under the lock: it only runs for a task carrying a send-back stamp,
+// once per convergence sweep, and the files are the very set the human is
+// looking at. Caller holds b.mu.
+func (b *Broker) sentBackDeliverablesUnchangedLocked(task *teamTask) bool {
+	if b == nil || task == nil {
+		return false
+	}
+	stamp := strings.TrimSpace(task.SentBackFingerprint)
+	if stamp == "" {
+		return false
+	}
+	paths := b.deliverablePathsLocked(task)
+	current := deliverableFingerprint(paths)
+	return current != "" && current == stamp
+}
