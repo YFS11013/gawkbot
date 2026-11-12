@@ -385,3 +385,42 @@ func TestHandleTeamWikiWriteStaysGatedWhenNoTaskDeclaredThePath(t *testing.T) {
 		t.Fatalf("nothing should have been written, last path=%q", auth.lastPath)
 	}
 }
+
+// A cancelled task's declared path must stop authorizing writes the moment the
+// task closes. Journey 19's in-situ probe found the resolver picks the task from
+// a live broker listing, so "still open" is the only thing standing between a
+// finished task and a permanent write grant on its path.
+func TestHandleTeamWikiWriteIgnoresTheScopeOfAClosedTask(t *testing.T) {
+	srv, auth := stubBroker(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/tasks" {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"tasks": []map[string]any{
+					{"id": "OFFICE-7", "owner": "cos", "status": "canceled",
+						"definition": map[string]any{"artifact_path": "team/reviews/closed.md"}},
+				},
+			})
+			return
+		}
+		http.NotFound(w, r)
+	})
+	defer srv.Close()
+	withBrokerURL(t, srv.URL)
+	t.Setenv("WUPHF_ENABLE_AGENT_WIKI_WRITE", "")
+	t.Setenv("WUPHF_AGENT_SLUG", "cos")
+
+	res, _, err := handleTeamWikiWrite(context.Background(), nil, TeamWikiWriteArgs{
+		ArticlePath: "team/reviews/closed.md",
+		Mode:        "create",
+		Content:     "# Closed\n",
+		CommitMsg:   "reviews: closed",
+	})
+	if err != nil {
+		t.Fatalf("handler returned transport error: %v", err)
+	}
+	if !isToolError(res) || !strings.Contains(toolErrorText(res), "direct go-ahead") {
+		t.Fatalf("a closed task must not authorize its path; got %q", toolErrorText(res))
+	}
+	if auth.lastPath == "/wiki/write-task" || auth.lastPath == "/wiki/write" {
+		t.Fatalf("nothing should have been written, last path=%q", auth.lastPath)
+	}
+}

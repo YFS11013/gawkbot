@@ -607,6 +607,18 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 
 **O2（已修）**：回合结束时的对账落在 `recordTaskLedgerEntry`。判据不是解析模型的措辞，而是事实：任务带着未清除的退回摘要（`SentBackFingerprint`）且交付物集合与退回时逐字节相同——这一回合就没写东西。此时记 `rework-unwritten` 台账、写 `rework_unwritten` 审计行、计入 `StalledTurns` 并arm 2 分钟短重试（而不是正常跟进间隔），下一回合的 packet 直接把这行渲染给模型看。失败回合和「有未答的人类请求」的 lane 豁免。测试 `TestTurnThatClaimsAReworkWithoutWritingOneIsNotATrace`、`TestClaimedReworkIsNotFlaggedWhileWaitingOnTheHuman`（去掉分类 / 去掉等待豁免分别变红）。仍留白的部分：模型声称写了一**别的**路径（不在交付物集合里）目前无从对账，只覆盖「被退回的那份没动」。
 
-**O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。测试 `TestStallAlertIsSkippedWhileTheOwnerTurnIsRunning`（去掉守卫即红：仍然投递 1 次）、`TestHasActiveTurnForTaskReadsTheDispatchPool`。
+**O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。**O1 现场复核（2026-11-12，隔离 workspace `journey19`，broker :7910）**：不走模型，直接对真 broker 跑 `mcp-team` 的 stdio 会话（bot `cos`，`WUPHF_ENABLE_AGENT_WIKI_WRITE` 不设，所以管理旁路关闭），三种情形：
+
+| 情形 | 结果 |
+|---|---|
+| 自己开着的任务声明了该路径，调用不带 `task_id`、不带 `human_request` | 写入成功（`bytes_written=59`，commit `3fb931f`，走 `/wiki/write-task`） |
+| 没有任何任务声明该路径 | 拒绝，回人类授权话术 |
+| 声明过，但任务已 `canceled` | 拒绝，回人类授权话术（验证 `resolveTaskArtifactAuthorization` 的 terminal 过滤） |
+
+第三条此前只有代码没有测试，现补 `TestHandleTeamWikiWriteIgnoresTheScopeOfAClosedTask`（去掉状态过滤即红：handler 直接 POST `/wiki/write-task`）。顺带记一笔：`WUPHF_ENABLE_AGENT_WIKI_WRITE=1` 时 handler 完全不过闸，任意路径都能写（这是管理员旁路的本意，但脚本化环境里别开着它测授权）。
+
+**这一轮证不了的**：模型侧是否真的不再要第二句授权——现场探针验的是「门开着并且只对声明过的路径开」，不是「模型会走这扇门」。要验后者需要人这一侧能发消息（见下面的留白）。
+
+测试 `TestStallAlertIsSkippedWhileTheOwnerTurnIsRunning`（去掉守卫即红：仍然投递 1 次）、`TestHasActiveTurnForTaskReadsTheDispatchPool`。
 
 
