@@ -92,6 +92,15 @@ func handleTeamTask(ctx context.Context, _ *mcp.CallToolRequest, args TeamTaskAr
 	}
 	channel = resolveConversationChannel(ctx, mySlug, channel)
 	action := strings.TrimSpace(args.Action)
+	// Journey 21 (core-loop-runs/2026-11-13-journey21): a model that forgot
+	// `id` on define got "404 task not found" from the broker and retried the
+	// same call 65 times in one turn — the error pointed at a missing task,
+	// never at the missing argument. create is the only action that does not
+	// address an existing task; everything else names one, and the broker
+	// cannot infer it from the channel.
+	if action != "" && !strings.EqualFold(action, "create") && strings.TrimSpace(args.ID) == "" {
+		return toolError(fmt.Errorf("team_task action=%q needs the task id — pass id=<the id returned by create>", action)), nil, nil
+	}
 	payload := map[string]any{
 		"action":     action,
 		"channel":    channel,
