@@ -168,3 +168,65 @@ func (b *Broker) sentBackDeliverablesUnchangedLocked(task *teamTask) bool {
 	current := deliverableFingerprint(paths)
 	return current != "" && current == stamp
 }
+
+// sentBackDeliverablesUnchanged reports whether the task's deliverable set is
+// still byte-identical to the version a send-back rejected, and when that
+// send-back happened. Returns false for a task with no un-cleared stamp, and
+// false while a human request is open for it: a lane waiting on the human is
+// not dodging the rework. Reads the paths under the lock and hashes outside it.
+func (b *Broker) sentBackDeliverablesUnchanged(taskID string) (bool, string) {
+	if b == nil {
+		return false, ""
+	}
+	taskID = strings.TrimSpace(taskID)
+	if taskID == "" {
+		return false, ""
+	}
+	b.mu.Lock()
+	task := b.taskByIDLocked(taskID)
+	if task == nil {
+		b.mu.Unlock()
+		return false, ""
+	}
+	stamp := strings.TrimSpace(task.SentBackFingerprint)
+	if stamp == "" {
+		b.mu.Unlock()
+		return false, ""
+	}
+	sentBackAt := strings.TrimSpace(task.SentBackAt)
+	// A lane waiting on the human is not dodging the rework.
+	for _, req := range b.requests {
+		if strings.TrimSpace(req.IssueID) == task.ID && requestIsActive(req) {
+			b.mu.Unlock()
+			return false, ""
+		}
+	}
+	paths := b.deliverablePathsLocked(task)
+	b.mu.Unlock()
+
+	current := deliverableFingerprint(paths)
+	if current == "" || current != stamp {
+		return false, ""
+	}
+	return true, sentBackAt
+}
+
+// RecordReworkUnwritten leaves the audit row for a turn that reported a rework
+// without writing one. The ledger entry is the steering signal (the next packet
+// renders it); this row is what an operator reading the office log sees.
+func (b *Broker) RecordReworkUnwritten(taskID, actor, sentBackAt string) {
+	if b == nil {
+		return
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	task := b.taskByIDLocked(strings.TrimSpace(taskID))
+	if task == nil {
+		return
+	}
+	summary := "no file changed since the send-back at " + strings.TrimSpace(sentBackAt)
+	b.appendActionLocked("rework_unwritten", actor, normalizeChannelSlug(task.Channel), actor, truncateSummary(summary, 140), task.ID)
+	if err := b.saveLocked(); err != nil {
+		log.Printf("broker: persist rework_unwritten row for task %q: %v", task.ID, err)
+	}
+}

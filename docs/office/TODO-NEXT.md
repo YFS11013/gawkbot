@@ -605,7 +605,7 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 
 **O1（仍是问题，没修）**：写 wiki 的授权契约把人和机器人卡在两条通道上。`team_wiki_write` 要 `human_request`（`From=you`/`human`、12 小时内、文本含「直接写 wiki」意图）或 `task_id`（任务自己声明的 `artifact_path`）。办公室两次向人要「再发一条明确消息」，因为它第一次在父任务（无 `artifact_path`）上被拒，**从未尝试 `task_id` 这条它能自己走完的路**。人这一侧也没有 HTTP 端点能发人类消息（只有 web UI）。修法方向：把 `task_id` 授权在工具描述里前置，并在被拒时把「你还有 task_id 这条路」写进错误文本。
 
-**O2（仍是问题，没修）**：退回到现在只能靠「卡上多一句话」让人别上当。真正缺的是**回合结束时的自述对账**：模型声称写了某个 `artifact_path`，而该路径 blob 与回合开始时相同，就该记 `hollow_completion` 或至少留一行审计，而不是让它以自然语言结束。O4 的修法只覆盖「卡片重升」这一个窗口。
+**O2（已修）**：回合结束时的对账落在 `recordTaskLedgerEntry`。判据不是解析模型的措辞，而是事实：任务带着未清除的退回摘要（`SentBackFingerprint`）且交付物集合与退回时逐字节相同——这一回合就没写东西。此时记 `rework-unwritten` 台账、写 `rework_unwritten` 审计行、计入 `StalledTurns` 并arm 2 分钟短重试（而不是正常跟进间隔），下一回合的 packet 直接把这行渲染给模型看。失败回合和「有未答的人类请求」的 lane 豁免。测试 `TestTurnThatClaimsAReworkWithoutWritingOneIsNotATrace`、`TestClaimedReworkIsNotFlaggedWhileWaitingOnTheHuman`（去掉分类 / 去掉等待豁免分别变红）。仍留白的部分：模型声称写了一**别的**路径（不在交付物集合里）目前无从对账，只覆盖「被退回的那份没动」。
 
 **O3（观察）**：看门狗在计划批准后立刻报「no sub-tasks yet」，并在 lane 交付前反复报 `task_stalled`，而同一时刻回合日志显示 bot 正在跑（27–170 秒的回合）。假警报会训练人忽略告警。
 

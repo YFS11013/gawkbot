@@ -155,7 +155,9 @@ digest ──► render_artifacts()（脚本，0 LLM）
 
 **顺带补上的老洞**：`TaskReviewObjection.ArtifactHash`（重提门槛 `gateTaskResubmissionArtifactDelta` 的比较基准）原先只在 `POST /tasks` 的 `request_changes` 上盖章，走决策 chokepoint 的退回（卡片、Inbox 按钮）**从没盖过**——也就是说 J18 那种退回就算办公室真的去重提，字节完全相同也不会被拦。现在两条路都盖。
 
-**没解决的**（`TODO-NEXT.md` 的 O1–O3）：模型在回合里声称写过某个路径而 blob 未变，目前只在「卡片重升」这一个窗口被抓到；写 wiki 的授权契约仍然把人和机器人卡在两条通道上。
+**回合一侧的对账（同日补）**：`recordTaskLedgerEntry` 现在把「说了但没写」当成与「没说话」同级的无进展。判据是交付物摘要与退回时相同，不看措辞；后果是台账记 `rework-unwritten`、审计留行、计入手停计数器、arm 2 分钟短重试，下一回合的 packet 会把这行摆在模型面前。豁免：失败回合、同时改过任务状态的回合（block/留言是真痕迹）、以及有未答人类请求的 lane。
+
+**没解决的**（`TODO-NEXT.md` 的 O1、O3）：模型声称写了一**个不在交付物集合里**的路径仍无从核对；写 wiki 的授权契约仍然把人和机器人卡在两条通道上。
 
 ## 5. 强制机制（不靠记忆）
 

@@ -53,6 +53,24 @@ const (
 // nothing" signal in the journal.
 const noDurableTraceOutcome = "ok (no durable trace: no message, no task mutation)"
 
+// reworkUnwrittenOutcome is what a turn gets when it talked but wrote nothing:
+// the task is carrying an un-cleared send-back and the deliverable set is
+// byte-identical to the version that was rejected. Journey 18: the office
+// replied "已按反馈修改" twice, once with an invented byte count, while the file
+// never changed. The turn posted a message, so it counted as a durable trace
+// and the stall guard never saw it — a claim is not a trace. Like
+// noDurableTraceOutcome this string comes from broker-observable facts (the
+// digest comparison, not the model's prose), so it counts against the stall
+// streak and arms the short retry.
+const reworkUnwrittenOutcome = "rework-unwritten (deliverables still identical to the version sent back)"
+
+// outcomeLeftNoProgress reports whether a ledger outcome means the turn
+// advanced nothing. Both "did nothing" and "claimed an edit that is not on
+// disk" are the same fact about the work, so they share the stall counter.
+func outcomeLeftNoProgress(outcome string) bool {
+	return outcome == noDurableTraceOutcome || outcome == reworkUnwrittenOutcome
+}
+
 // maxStalledTurns is how many consecutive trace-free turns a task may have
 // before the broker takes it out of rotation.
 //
@@ -85,7 +103,7 @@ func (b *Broker) AppendTaskLedgerEntry(taskID string, entry TaskLedgerEntry) (st
 	// Progress resets the streak. A task that keeps producing messages or
 	// mutations may legitimately run for a long time; only "woke, changed
 	// nothing, again" accumulates.
-	if entry.Outcome == noDurableTraceOutcome {
+	if outcomeLeftNoProgress(entry.Outcome) {
 		task.StalledTurns++
 	} else {
 		task.StalledTurns = 0
@@ -146,6 +164,20 @@ func (l *Launcher) recordTaskLedgerEntry(slug string, turn headlessCodexTurn, st
 		entry.Actions = append(entry.Actions, a.Kind+": "+truncate(a.Summary, 160))
 	}
 
+	// A turn that spoke but wrote nothing is not progress. The comparison is
+	// content, not prose: an un-cleared send-back plus the same deliverable set
+	// means the rework is not on disk, whatever the reply says. Only word-only
+	// turns qualify — a bot that also mutated the task (blocked it, filed a
+	// note) did something durable, and the unwritten rework stays visible on
+	// the card. Failed turns and lanes with an open human request are exempt
+	// inside sentBackDeliverablesUnchanged.
+	if turnErr == nil && entry.Said != "" && len(entry.Actions) == 0 {
+		if unchanged, sentBackAt := l.broker.sentBackDeliverablesUnchanged(taskID); unchanged {
+			entry.Outcome = reworkUnwrittenOutcome
+			entry.Actions = append(entry.Actions, "rework_unwritten: nothing written since the send-back at "+sentBackAt)
+			l.broker.RecordReworkUnwritten(taskID, slug, sentBackAt)
+		}
+	}
 	if entry.Said == "" && len(entry.Actions) == 0 && entry.Outcome == "ok" {
 		// A turn that left no observable trace records only its outcome —
 		// still worth a line: "bot woke and produced nothing durable" is
@@ -153,7 +185,7 @@ func (l *Launcher) recordTaskLedgerEntry(slug string, turn headlessCodexTurn, st
 		entry.Outcome = noDurableTraceOutcome
 	}
 	stalledTurns, crossedLimit := l.broker.AppendTaskLedgerEntry(taskID, entry)
-	if entry.Outcome == noDurableTraceOutcome {
+	if outcomeLeftNoProgress(entry.Outcome) {
 		// A turn that changed nothing should not sleep a full follow-up
 		// interval: arm a short retry (2m, doubling) so the owner wakes again
 		// while the context is still fresh. Skipped when the task is done,
