@@ -1248,6 +1248,12 @@ func TestEnqueueHeadlessCodexTurnRecordDropsDuplicateBotTaskWhileActive(t *testi
 func TestEnqueueHeadlessCodexTurnRecordRoutineBypassesActiveDrop(t *testing.T) {
 	l := newHeadlessLauncherForTest(t)
 	l.pack = &bot.PackDefinition{LeadSlug: "cos"}
+	// A worker already owns this lane, so enqueue does not spawn one: the
+	// assertions below read what the enqueue DECISION left in the queue, and a
+	// freshly spawned worker goroutine can pop the turn first (the suite went
+	// red on exactly that, once, under load). Same fixture shape as the
+	// human-priority tests below.
+	l.headless.workers[headlessLane{slug: "eng"}] = true
 	l.headless.active[headlessLane{slug: "eng"}] = &headlessCodexActiveTurn{
 		Turn: headlessCodexTurn{
 			Prompt: "first prompt about #task-11",
@@ -1271,6 +1277,12 @@ func TestEnqueueHeadlessCodexTurnRecordRoutineBypassesActiveDrop(t *testing.T) {
 func TestEnqueueHeadlessCodexTurnRecordRoutineNotReplaced(t *testing.T) {
 	l := newHeadlessLauncherForTest(t)
 	l.pack = &bot.PackDefinition{LeadSlug: "cos"}
+	// A worker already owns this lane, so enqueue does not spawn one: the
+	// assertions below read what the enqueue DECISION left in the queue, and a
+	// freshly spawned worker goroutine can pop the turn first (the suite went
+	// red on exactly that, once, under load). Same fixture shape as the
+	// human-priority tests below.
+	l.headless.workers[headlessLane{slug: "eng"}] = true
 	l.headless.workers[headlessLane{slug: "eng"}] = true
 	l.headless.queues[headlessLane{slug: "eng"}] = []headlessCodexTurn{{
 		Prompt:     "older prompt about #task-11",
@@ -1295,6 +1307,12 @@ func TestEnqueueHeadlessCodexTurnRecordRoutineNotReplaced(t *testing.T) {
 func TestEnqueueHeadlessCodexTurnRecordReplacesPendingBotTaskTurn(t *testing.T) {
 	l := newHeadlessLauncherForTest(t)
 	l.pack = &bot.PackDefinition{LeadSlug: "cos"}
+	// A worker already owns this lane, so enqueue does not spawn one: the
+	// assertions below read what the enqueue DECISION left in the queue, and a
+	// freshly spawned worker goroutine can pop the turn first (the suite went
+	// red on exactly that, once, under load). Same fixture shape as the
+	// human-priority tests below.
+	l.headless.workers[headlessLane{slug: "eng"}] = true
 	l.headless.workers[headlessLane{slug: "eng"}] = true
 	l.headless.queues[headlessLane{slug: "eng"}] = []headlessCodexTurn{{
 		Prompt:     "older prompt about #task-11",
@@ -1322,6 +1340,12 @@ func TestEnqueueHeadlessCodexTurnRecordReplacesPendingBotTaskTurn(t *testing.T) 
 func TestEnqueueHeadlessCodexTurnRecordAllowsRetryBehindActiveBotTask(t *testing.T) {
 	l := newHeadlessLauncherForTest(t)
 	l.pack = &bot.PackDefinition{LeadSlug: "cos"}
+	// A worker already owns this lane, so enqueue does not spawn one: the
+	// assertions below read what the enqueue DECISION left in the queue, and a
+	// freshly spawned worker goroutine can pop the turn first (the suite went
+	// red on exactly that, once, under load). Same fixture shape as the
+	// human-priority tests below.
+	l.headless.workers[headlessLane{slug: "eng"}] = true
 	l.headless.workers[headlessLane{slug: "eng"}] = true
 	l.headless.active[headlessLane{slug: "eng"}] = &headlessCodexActiveTurn{
 		Turn: headlessCodexTurn{
