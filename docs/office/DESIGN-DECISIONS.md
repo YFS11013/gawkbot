@@ -129,6 +129,20 @@ digest ──► render_artifacts()（脚本，0 LLM）
 | 把结论存进 bot 的 notebook 当“记忆” | 曾因 `/notebook/catalog` 恒 404 而失效（`internal/teammcp/context_tools.go:491` 调了 broker 未注册的路由）。**2026-11-01 已修**：四个 `/notebook/*` 路由已注册并实测，契约见 `RUNTIME-API.md` §6 |
 | 直接改 `broker-state.json` 改 prompt | broker 内存持有该文件，会被覆盖；必须走 `PATCH /scheduler/{slug}` |
 
+### 9.32 重提闸门按「交付集合」判，不按 Issue 自己的那一个文件（2026-11-13，Journey 21）
+
+**决定**：`gateTaskResubmissionArtifactDelta` 在任务带有 `SentBackFingerprint`（决策路径退回时盖的交付集合摘要）时，用它比对；没有这个摘要时才回落到原来的单 `task.Artifact` 哈希。
+
+**为什么**：卡和闸门用的不是同一个集合。容器 Issue 的 `artifact` 是**其中一个** lane 的文件（J21 里是 `team/reviews/j21-internal.md`），而 `request-19` 的正文列的是 lane 的 `team/reviews/j21-public.md`（卡在 17:00:02 第一次 submit 时升起，那会儿 `task.Artifact` 还是空的）。人类退的是对外页，模型改的也是对外页，闸门却盯内部页——于是 `submit_for_review` 两次 400「byte-identical」，这个 Issue 再也回不到 review。
+
+**模型的反应值得抄下来**：它没有硬凑，先说「broker 的变更检测键在内部页上、因内部页未改动而阻塞」，然后请操作员在「直接批准 done」和「允许我对内部页做无内容改动的 touch」之间二选一。也就是说当闸门判错时，模型提出的出路是**骗过闸门**——这比它自己乱改更危险，因为人只要点一下头就真的发生了。
+
+**顺带修掉一处根不一致**：集合摘要原先在函数内部读进程级的 `WikiRootDir()`，而 broker 有自己解析出来的 wiki 根（`wikiRootLocked()`）。生产里两者是同一棵树，测试里不是——于是「集合有没有变」可能会去读一棵跟这个 broker 无关的树，答案永远是「没变」。现在根是参数，由 broker 传自己的（没有 wiki worker 时回落到进程根）。
+
+**为什么不修卡、让它只列一个文件**：卡是对的，人批准的就是集合；错的是有一处还在拿单文件当全集。集合摘要本来就已经在退回时盖好了（§9.30），闸门复用它，两个面从此同源。
+
+**顺带记下措辞问题**：卡上「ships no single file of its own」与 `task.Artifact` 实际有值同时存在——这句话也该跟着集合走，本轮没改，留在 `TODO-NEXT.md`。
+
 ### 9.31 直写 wiki 的那条路在 opencode 权限层关掉（2026-11-12，D-2）
 
 **决定**：headless 回合的 `wuphf-headless` agent 两层拒绝：`external_directory` 对 `<runtime>/.wuphf/wiki/*` 返回 deny（bot 的 cwd 是 agent scratch，wiki 对它永远是外部路径，这一层同时挡住 read 和 write），`edit` 对 `<runtime>/.wuphf/wiki/**` 与 `.wuphf/wiki/**` 返回 deny（万一回合 cwd 变成 runtime home，内部路径也挡住）。bot 要读页面走 `team_wiki_read`，要写走 `team_wiki_write`，两条都是 broker 校验过的门。
