@@ -617,6 +617,8 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 
 第三条此前只有代码没有测试，现补 `TestHandleTeamWikiWriteIgnoresTheScopeOfAClosedTask`（去掉状态过滤即红：handler 直接 POST `/wiki/write-task`）。顺带记一笔：`WUPHF_ENABLE_AGENT_WIKI_WRITE=1` 时 handler 完全不过闸，任意路径都能写（这是管理员旁路的本意，但脚本化环境里别开着它测授权）。
 
+**附带物证（同日 17:40）**：仓库根出现未跟踪的 `team/playbooks/meeting-prep.md`（9407 字节，17:40:23），6 秒后正式 wiki 里出现同名文章（11387 字节，17:40:29）——即 bot 先用文件写入把草稿落在进程 cwd（生产办公室的 cwd 就是仓库根），再由 wiki worker 落了正本。这就是 J18 O2' 那条「交付路径默认落在仓库目录」再次发生。已把仓库根这份草稿移到 `%TEMP%\stray-repo-writes\`，未删。**没修**：判据是「交付物只能经 wiki 工具落盘」在提示层仍只是建议，模型可以绕开工具直接写文件。
+
 **这一轮证不了的**：模型侧是否真的不再要第二句授权——现场探针验的是「门开着并且只对声明过的路径开」，不是「模型会走这扇门」。要验后者需要人这一侧能发消息（见下面的留白）。
 
 测试 `TestStallAlertIsSkippedWhileTheOwnerTurnIsRunning`（去掉守卫即红：仍然投递 1 次）、`TestHasActiveTurnForTaskReadsTheDispatchPool`。
