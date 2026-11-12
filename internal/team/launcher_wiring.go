@@ -50,9 +50,10 @@ func (l *Launcher) scheduler() *watchdogScheduler {
 	}
 	l.schedulerWorkerOnce.Do(func() {
 		l.schedulerWorker = &watchdogScheduler{
-			broker:      l.broker,
-			clock:       realClock{},
-			deliverTask: l.deliverTaskNotification,
+			broker:       l.broker,
+			clock:        realClock{},
+			deliverTask:  l.deliverTaskNotification,
+			turnInFlight: l.HasActiveTurnForTask,
 		}
 	})
 	return l.schedulerWorker

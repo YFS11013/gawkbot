@@ -327,6 +327,29 @@ func (l *Launcher) headlessLaneMayStartLocked(lane headlessLane) bool {
 	return true
 }
 
+// HasActiveTurnForTask reports whether a headless turn is executing for this
+// task right now. Derived from the dispatch pool's own active map rather than a
+// second registry: that map is the authority on what is running, and a parallel
+// copy would leak an entry on any path that ends a turn without cleaning up —
+// which would silence the watchdog for that task forever.
+func (l *Launcher) HasActiveTurnForTask(taskID string) bool {
+	if l == nil {
+		return false
+	}
+	taskID = strings.TrimSpace(taskID)
+	if taskID == "" {
+		return false
+	}
+	l.headless.mu.Lock()
+	defer l.headless.mu.Unlock()
+	for _, active := range l.headless.active {
+		if active != nil && strings.EqualFold(strings.TrimSpace(active.Turn.TaskID), taskID) {
+			return true
+		}
+	}
+	return false
+}
+
 // headlessWorkerPool groups the per-launcher headless-dispatch state
 // (PLAN.md §C7). All fields are lowercase package-internal — the pool
 // is never used outside `internal/team` and stays an embedded value

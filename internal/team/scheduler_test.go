@@ -1062,3 +1062,88 @@ func TestSchedulerStillWatchesPlanningTasks(t *testing.T) {
 		t.Fatalf("a delivered planning wake must stay quiet, got %v", b.systemMessages)
 	}
 }
+
+// Journey 18: the watchdog logged "still needs to move" while the owner's turn
+// was still running (27–170 s turns, one over ten minutes), and every false
+// alarm teaches the operator to ignore the real one. A task with an executing
+// turn is not stalled; it is mid-work.
+func TestStallAlertIsSkippedWhileTheOwnerTurnIsRunning(t *testing.T) {
+	b := newVerificationTestBroker(t)
+	task, _, err := b.EnsureTask("team", "Journal 18 rework", "write the page", "eng", "cos", "")
+	if err != nil {
+		t.Fatalf("ensure task: %v", err)
+	}
+	clock := newManualClock(time.Date(2026, 11, 12, 0, 0, 0, 0, time.UTC))
+	delivered := 0
+	inFlight := true
+	s := &watchdogScheduler{
+		broker: b,
+		clock:  clock,
+		deliverTask: func(officeActionLog, teamTask) bool {
+			delivered++
+			return true
+		},
+		turnInFlight: func(taskID string) bool {
+			return inFlight && strings.EqualFold(taskID, task.ID)
+		},
+	}
+	job := schedulerJob{
+		Slug:       normalizeSchedulerSlug("recheck", "team", "task", task.ID),
+		Kind:       "recheck",
+		TargetType: "task",
+		TargetID:   task.ID,
+		Channel:    "team",
+	}
+
+	s.processTaskJob(job)
+	if delivered != 0 {
+		t.Fatalf("a task whose turn is running must not be woken, got %d deliveries", delivered)
+	}
+	for _, a := range b.ActionsSince(time.Now().UTC().Add(-time.Hour).Format(time.RFC3339)) {
+		if a.Kind == "watchdog_alert" && a.RelatedID == task.ID {
+			t.Fatalf("mid-turn must not raise a stall alert, got %+v", a)
+		}
+	}
+
+	// Once the turn is gone the same tick alerts, so the guard cannot become a
+	// permanent mute.
+	inFlight = false
+	s.processTaskJob(job)
+	alerted := false
+	for _, a := range b.ActionsSince(time.Now().UTC().Add(-time.Hour).Format(time.RFC3339)) {
+		if a.Kind == "watchdog_alert" && a.RelatedID == task.ID {
+			alerted = true
+		}
+	}
+	if !alerted {
+		t.Fatal("with no turn running the stall alert must fire")
+	}
+}
+
+func TestHasActiveTurnForTaskReadsTheDispatchPool(t *testing.T) {
+	b := newVerificationTestBroker(t)
+	l := launcherForBrokerFixture(b)
+	if l.HasActiveTurnForTask("task-9") {
+		t.Fatal("nothing is running yet")
+	}
+	l.headless.mu.Lock()
+	if l.headless.active == nil {
+		l.headless.active = map[headlessLane]*headlessCodexActiveTurn{}
+	}
+	l.headless.active[headlessLane{slug: "eng"}] = &headlessCodexActiveTurn{
+		Turn: headlessCodexTurn{TaskID: "task-9"},
+	}
+	l.headless.mu.Unlock()
+	if !l.HasActiveTurnForTask("task-9") {
+		t.Fatal("an active turn for the task must be visible to the watchdog")
+	}
+	if l.HasActiveTurnForTask("task-10") {
+		t.Fatal("another task's turn must not count")
+	}
+	l.headless.mu.Lock()
+	delete(l.headless.active, headlessLane{slug: "eng"})
+	l.headless.mu.Unlock()
+	if l.HasActiveTurnForTask("task-9") {
+		t.Fatal("a finished turn must not linger")
+	}
+}

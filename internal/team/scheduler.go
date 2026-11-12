@@ -101,6 +101,11 @@ type watchdogScheduler struct {
 	// refused — see escalateRefusedWake.
 	deliverTask func(officeActionLog, teamTask) bool
 
+	// turnInFlight, when set, reports whether a headless turn is executing for
+	// this task right now. Wired to the launcher's active-turn pool; nil in
+	// fixtures that do not model turns (the guard simply does not apply).
+	turnInFlight func(taskID string) bool
+
 	// operatorRunRecorded, when set, fires after an operator routine's async
 	// fire has recorded its run (scheduler_operator_routines.go). Test seam:
 	// lets tests await the goroutine deterministically instead of polling.
@@ -348,6 +353,17 @@ func (w *watchdogScheduler) processTaskJob(job schedulerJob) {
 		_ = w.broker.UpdateSchedulerJobState(job.Slug, nextRun, "scheduled")
 		return
 	}
+	// A turn that is running right now moves nothing on the task until it
+	// finishes, so the reminder tick that lands mid-turn is not staleness — it
+	// is the watcher reading its own blind spot. Journey 18: cos logged
+	// `task_stalled` while its own turn was still going (27–170 s turns, one
+	// over 10 minutes), and every false alarm teaches the operator to ignore
+	// the next one. Recheck soon instead of alerting; a task that is genuinely
+	// stuck gets its alert on the first tick after the turn ends.
+	if w.turnInFlight != nil && w.turnInFlight(task.ID) {
+		_ = w.broker.UpdateSchedulerJobState(job.Slug, now.Add(turnInFlightRecheckDelay()), "scheduled")
+		return
+	}
 	alertKind := "task_stalled"
 	var summary string
 	if strings.TrimSpace(task.Owner) == "" {
@@ -384,6 +400,19 @@ func (w *watchdogScheduler) processTaskJob(job schedulerJob) {
 	}
 	nextRun := w.clock.Now().UTC().Add(time.Duration(config.ResolveTaskReminderInterval()) * time.Minute)
 	_ = w.broker.UpdateSchedulerJobState(job.Slug, nextRun, "scheduled")
+}
+
+// turnInFlightRecheckDelay is how soon the watchdog looks again after skipping
+// a task whose owner is mid-turn. Five minutes is longer than the slowest
+// observed office turn (a 10-minute budget turn is rare; 27–170 s is typical)
+// and shorter than the follow-up interval, so a task that is still stuck after
+// its turn gets the alert promptly without the ticker spinning.
+func turnInFlightRecheckDelay() time.Duration {
+	delay := 5 * time.Minute
+	if minutes := config.ResolveTaskReminderInterval(); minutes > 0 && time.Duration(minutes)*time.Minute < delay {
+		delay = time.Duration(minutes) * time.Minute
+	}
+	return delay
 }
 
 // processPlanDecompositionCheck is the one-shot look armed by plan approval
