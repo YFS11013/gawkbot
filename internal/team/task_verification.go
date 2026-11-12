@@ -630,14 +630,41 @@ func (b *Broker) gateTaskResubmissionArtifactDelta(body TaskPostRequest) error {
 	storedHash := strings.TrimSpace(task.ChangesRequested.ArtifactHash)
 	artifact := strings.TrimSpace(task.Artifact)
 	workDir := strings.TrimSpace(task.WorktreePath)
-	wikiRoot := b.wikiRootLocked()
+	wikiRoot := b.deliverableRootLocked()
 	channel := normalizeChannelSlug(task.Channel)
 	if channel == "" {
 		channel = "general"
 	}
+	// Journey 21 (core-loop-runs/2026-11-13-journey21): a container Issue's
+	// own artifact is ONE lane file, but the human approves the delivered SET,
+	// so a rework that lands in another lane used to be rejected forever —
+	// the public page was revised, the Issue's artifact (the internal page)
+	// was untouched, and submit_for_review answered "byte-identical" twice
+	// before the office forked duplicate lanes instead. The decision path
+	// already stamps the set digest (SentBackFingerprint, same set the card
+	// compares against); when it is present it is the comparison, and the
+	// single-artifact hash stays as the fallback for objections that carry no
+	// set digest.
+	sentBackFingerprint := strings.TrimSpace(task.SentBackFingerprint)
+	var deliverablePaths []string
+	if sentBackFingerprint != "" {
+		deliverablePaths = b.deliverablePathsLocked(task)
+	}
 	b.mu.Unlock()
 
 	// Compare phase: no lock held.
+	if sentBackFingerprint != "" {
+		if current := deliverableFingerprint(wikiRoot, deliverablePaths); current != "" {
+			if current == sentBackFingerprint {
+				return taskMutationError(
+					TaskMutationInvalid,
+					fmt.Sprintf("cannot %s %s: resubmission requires an artifact change — the delivered files (%s) are byte-identical to the version changes were requested on. Edit the deliverable to address the feedback, then resubmit.", action, id, strings.Join(deliverablePaths, ", ")),
+					nil,
+				)
+			}
+			return nil
+		}
+	}
 	currentHash := hashTaskArtifactFile(resolveTaskArtifactFile(artifact, workDir, wikiRoot))
 	if storedHash != "" && currentHash != "" {
 		if currentHash == storedHash {

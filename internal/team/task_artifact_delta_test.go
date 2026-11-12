@@ -149,3 +149,74 @@ func TestArtifactDelta_NoObjectionNoGate(t *testing.T) {
 		t.Fatalf("submit without an open objection must not be gated; got %v", err)
 	}
 }
+
+// Journey 21 (core-loop-runs/2026-11-13-journey21): the human sent the
+// container Issue back because of the PUBLIC page, the office revised exactly
+// that lane, and submit_for_review still answered "byte-identical" — the gate
+// only looked at the Issue's own artifact (the internal page). The office then
+// forked two duplicate lanes instead of resubmitting. The comparison has to be
+// the delivered SET the decision path already stamped.
+func TestArtifactDelta_ContainerLaneChangeClearsTheGate(t *testing.T) {
+	// No t.Parallel: the digest resolves paths through WikiRootDir(), which
+	// reads the process-wide runtime home.
+	home := t.TempDir()
+	setTestHome(t, home)
+	t.Setenv("WUPHF_RUNTIME_HOME", home)
+	wikiRoot := filepath.Join(home, ".wuphf", "wiki")
+
+	b := newHumanNoteTestBroker(t)
+	b.wikiWorker = NewWikiWorker(NewRepoAt(wikiRoot, filepath.Join(home, ".wuphf", "wiki.bak")), b)
+
+	ownRel := "team/accounts/launch-onepager.md"
+	laneRel := "team/accounts/launch-appendix.md"
+	for rel, body := range map[string]string{
+		ownRel:  "# One-pager v1\nchampion: Jordan Park\n",
+		laneRel: "appendix v1\n",
+	} {
+		abs := filepath.Join(wikiRoot, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(abs, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	b.tasks = append(b.tasks,
+		teamTask{
+			ID: "task-delta-1", Channel: "general", Title: "Build the Acme one-pager",
+			Owner: "eng", status: "review", reviewState: "ready_for_review", Artifact: ownRel,
+		},
+		teamTask{
+			ID: "task-delta-lane", Channel: "general", Title: "Write the appendix",
+			Owner: "eng", ParentIssueID: "task-delta-1", status: "done", Artifact: laneRel,
+		},
+	)
+
+	if _, err := b.MutateTask(TaskPostRequest{
+		Action: "request_changes", ID: "task-delta-1", Channel: "general",
+		CreatedBy: "human", Details: "The appendix is out of date.",
+	}); err != nil {
+		t.Fatalf("request_changes: %v", err)
+	}
+	// The decision card is the surface the human actually uses; it stamps the
+	// delivered-set digest a MutateTask send-back never sees.
+	b.stampSentBackFingerprint("task-delta-1", "2026-11-13T01:02:01Z")
+
+	// Nothing moved: refused, and the message names the set, not one file.
+	_, err := b.MutateTask(TaskPostRequest{Action: "submit_for_review", ID: "task-delta-1", Channel: "general", CreatedBy: "eng", Details: "revised"})
+	var mutationErr *TaskMutationError
+	if !errors.As(err, &mutationErr) || mutationErr.Kind != TaskMutationInvalid {
+		t.Fatalf("unchanged deliverable set must still be refused; got %v", err)
+	}
+	if !strings.Contains(mutationErr.Message, laneRel) {
+		t.Errorf("the refusal must name the delivered set; got %q", mutationErr.Message)
+	}
+
+	// The rework lands in the LANE, not in the Issue's own artifact.
+	if err := os.WriteFile(filepath.Join(wikiRoot, filepath.FromSlash(laneRel)), []byte("appendix v2 with the numbers the reviewer asked for\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.MutateTask(TaskPostRequest{Action: "submit_for_review", ID: "task-delta-1", Channel: "general", CreatedBy: "eng", Details: "appendix revised"}); err != nil {
+		t.Fatalf("a change to any delivered file must clear the gate; got %v", err)
+	}
+}

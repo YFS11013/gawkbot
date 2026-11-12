@@ -28,16 +28,30 @@ import (
 	"strings"
 )
 
-// deliverableFingerprint digests the current on-disk state of a deliverable set.
-// Paths are wiki-relative (the same form TaskPostRequest.ArtifactPath carries).
-// A missing file hashes as "missing" rather than being dropped, so deleting a
-// deliverable still registers as a change. Returns "" for an empty set, which
-// every caller reads as "nothing to compare".
-func deliverableFingerprint(paths []string) string {
+// deliverableRootLocked is the tree the set digest reads: the broker's own
+// wiki when it has one, the process wiki root otherwise (a broker assembled
+// without a worker still has to answer "did this change"). Caller holds b.mu.
+func (b *Broker) deliverableRootLocked() string {
+	if root := b.wikiRootLocked(); root != "" {
+		return root
+	}
+	return WikiRootDir()
+}
+
+// deliverableFingerprint digests the current on-disk state of a deliverable set
+// under the caller's wiki root. Paths are wiki-relative (the same form
+// TaskPostRequest.ArtifactPath carries). A missing file hashes as "missing"
+// rather than being dropped, so deleting a deliverable still registers as a
+// change. Returns "" for an empty set, which every caller reads as "nothing to
+// compare".
+//
+// The root is a parameter, not WikiRootDir(): the broker resolves its own wiki
+// (tests build one in a temp dir, and the stamp and the comparison have to hash
+// the same tree or "unchanged" becomes a statement about an unrelated file).
+func deliverableFingerprint(root string, paths []string) string {
 	if len(paths) == 0 {
 		return ""
 	}
-	root := WikiRootDir()
 	sorted := make([]string, 0, len(paths))
 	for _, p := range paths {
 		if p = strings.TrimSpace(p); p != "" {
@@ -104,9 +118,10 @@ func (b *Broker) stampSentBackFingerprint(taskID string, at string) {
 		return
 	}
 	paths := b.deliverablePathsLocked(task)
+	root := b.deliverableRootLocked()
 	b.mu.Unlock()
 
-	fingerprint := deliverableFingerprint(paths)
+	fingerprint := deliverableFingerprint(root, paths)
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -165,7 +180,7 @@ func (b *Broker) sentBackDeliverablesUnchangedLocked(task *teamTask) bool {
 		return false
 	}
 	paths := b.deliverablePathsLocked(task)
-	current := deliverableFingerprint(paths)
+	current := deliverableFingerprint(b.deliverableRootLocked(), paths)
 	return current != "" && current == stamp
 }
 
@@ -202,9 +217,10 @@ func (b *Broker) sentBackDeliverablesUnchanged(taskID string) (bool, string) {
 		}
 	}
 	paths := b.deliverablePathsLocked(task)
+	root := b.deliverableRootLocked()
 	b.mu.Unlock()
 
-	current := deliverableFingerprint(paths)
+	current := deliverableFingerprint(root, paths)
 	if current == "" || current != stamp {
 		return false, ""
 	}
