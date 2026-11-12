@@ -129,6 +129,26 @@ digest ──► render_artifacts()（脚本，0 LLM）
 | 把结论存进 bot 的 notebook 当“记忆” | 曾因 `/notebook/catalog` 恒 404 而失效（`internal/teammcp/context_tools.go:491` 调了 broker 未注册的路由）。**2026-11-01 已修**：四个 `/notebook/*` 路由已注册并实测，契约见 `RUNTIME-API.md` §6 |
 | 直接改 `broker-state.json` 改 prompt | broker 内存持有该文件，会被覆盖；必须走 `PATCH /scheduler/{slug}` |
 
+### 9.31 直写 wiki 的那条路在 opencode 权限层关掉（2026-11-12，D-2）
+
+**决定**：headless 回合的 `wuphf-headless` agent 两层拒绝：`external_directory` 对 `<runtime>/.wuphf/wiki/*` 返回 deny（bot 的 cwd 是 agent scratch，wiki 对它永远是外部路径，这一层同时挡住 read 和 write），`edit` 对 `<runtime>/.wuphf/wiki/**` 与 `.wuphf/wiki/**` 返回 deny（万一回合 cwd 变成 runtime home，内部路径也挡住）。bot 要读页面走 `team_wiki_read`，要写走 `team_wiki_write`，两条都是 broker 校验过的门。
+
+**为什么修在这层**：Journey 20 的物证是——`/wiki/write-task` 因为 `artifact path not declared` 拒绝了写入，模型随即用自己的写文件工具把同一份内容写进 wiki 目录，worker 看到「文件变了」，按设计提交成 `wiki: external edit`、作者是合成身份 `83509926@wuphf.local`。worker 拿不到「谁写的」，把它当外部编辑是它的合理行为；能执行规则的是 CLI 的权限层，而这一层的 `bash` 早就是 deny，`edit` 是同一回合里仅剩的写盘途径。
+
+**opencode 1.19.3 的实测行为（单测证明不了这些，全部来自真跑）**：
+- `permission` 是 V1 形态（map），`permissions: [{action, resource, effect}]` 那套是 V2，1.19.3 不认。
+- `write` / `patch` **不是**权限键：这两个工具按 `edit` 检查，写 `"write": "deny"` 时工具会直接消失，但写 `"write": {...}` 这种 map 是被静默忽略的——第一版实现就踩了这个坑（配置里 edit 有 deny，文件照样写出来）。
+- 单个 `*` **不跨** `/`：`a/*` 匹配不到 `a/b/c.txt`，所以路径规则要用 `**`；`external_directory` 的资源是「目录边界」，用 `/*` 就够（`.../wiki/*` 能挡住 `.../wiki/team/reviews/x.md`）。
+- 外部路径的写是由 `external_directory` 判决的：`edit` 的 disable 规则对 cwd 之外的绝对路径不生效，报错原文里点名的是 `external_directory pattern ... action deny`。
+- 规则是 last-match-wins，而 `encoding/json` 对 map 键排序，`*`（0x2A）恒在两支 deny（`.` 0x2E / 盘符 0x43）之前，所以「默认允许 + 精确拒绝」的写法和排序无关。
+
+**现场复核（2026-11-12，隔离工作区 `d2p4`，修好的二进制）**：让 cos 用绝对路径把 `d2-abs.md` 直接写进真实 wiki，模型回报原文 `The user has specified a rule which prevents you from using this specific tool call. ... external_directory pattern C:/Users/ireke/.wuphf-spaces/d2p4/.wuphf/wiki/* action deny`，`team/reviews/` 目录**根本没被创建**。同一份代码在修复前（`d2p3`）同样的话写成功了。
+
+**不采用的方案**：
+- **让 worker 把 external edit 转成待审**：人手在 Obsidian 里的编辑也走同一条路，会把正常工作变成一堆误报；权限层拒绝是精确的。
+- **整段 deny `edit`**：headless 回合也用来在 worktree 里改代码，一刀切会把代码任务一起废掉；所以只 deny wiki 路径，其余仍然 allow。
+- **靠提示词约束**：J20 的事实就是提示层已经写了要走 wiki 工具，模型被拒之后照样绕。
+
 ### 9.29 生产继续用免费模型（2026-11-11 用户拍板）
 
 **决定**：两个办公室都继续跑 `opencode-go` 的免费模型——主 `longcat-2.5-free`，兜底 `iceman-contributor-free`。§4 那行「用免费模型跑生产 → 硬停」是 10 月的判断，今天被用户明确覆盖，**不要再按那行去换付费模型**。

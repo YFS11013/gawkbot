@@ -614,7 +614,7 @@ prereg `70f5154`，工作区 `j20`，免费模型 `beam-free`。判分卡：`cor
 - **V1 部分成立**：Issue 进了 `done`（有交付物），但不是自己走的；**V5 成立**（hash 全在清单内、对外页 0 hash）；V2/V4 因模型没拆 lane 而不适用/一半；V3 不成立（模型要人去点不存在的按钮）；V6/V7 未测。
 - **D-1 现场复核（同日，工作区 `j20b`，修好的二进制）**：同一个场景重跑，操作员只发了那一句消息，**没有**在 Issue 上留言。20:33:14 聊天回合开始，20:33:37 **自动排入 planning 回合**（修复前不存在这一条），20:43:26 回合结束，`request-9`（`plan-approval:JB-2`）**自己升起**。修复前同一形状是 14 分钟无卡、模型要人去点不存在的按钮。
 - **D-1（已修，`office-fixes`）**：bot 自建的 Issue 得不到 planning 回合 → plan-approval 卡永不升起 → 停在 `planning`。修法：`taskNotificationTargets` 在 `owner == lead == actor` 且 `task_created` + planning + 未阻塞时自我唤醒。测试 `TestSelfCreatedIssueStillGetsItsPlanningTurn`（红：`got []`）。
-- **D-2（未修）**：wiki 授权可被普通文件写入绕过，worker 以 "external edit" 平静接受。这是下一轮该做的闸门，不是文案问题。
+- **D-2（已修，`office-fixes`）**：wiki 授权可被普通文件写入绕过，worker 以 "external edit" 平静接受。修法：headless agent 的 `external_directory` 对 `<runtime>/.wuphf/wiki/*` deny（cwd 是 agent scratch，wiki 永远是外部路径，这层挡 read 和 write），`edit` 对 `<runtime>/.wuphf/wiki/**` 与 `.wuphf/wiki/**` deny（内部路径兜底）。opencode 1.19.3 实测：`write`/`patch` 不是权限键（按 `edit` 检查）、单个 `*` 不跨 `/`（要 `**`）、外部路径由 `external_directory` 判决。现场复核（工作区 `d2p4`）：模型拿绝对路径直写真实 wiki 被拒，原文 `external_directory pattern .../wiki/* action deny`，目标目录未创建；修复前（`d2p3`）同样的指令写成功。测试 `TestHeadlessOpencodeConfigDeniesEditsUnderTheWikiRoot`。
 - 旁证：计划未批准时建子任务被 409 正确拦住；`/wiki/write-task` 首次被拒（`artifact path not declared`）后，模型自己 `define` 了 `artifact_path` 再写成功——错误信息自带修复路径，这条是好的。
 
 **O1 现场复核（2026-11-12，隔离 workspace `journey19`，broker :7910）**：不走模型，直接对真 broker 跑 `mcp-team` 的 stdio 会话（bot `cos`，`WUPHF_ENABLE_AGENT_WIKI_WRITE` 不设，所以管理旁路关闭），三种情形：

@@ -93,6 +93,35 @@ func (l *Launcher) writeHeadlessOpencodeMCPConfig(slug string) (string, error) {
 	if agents == nil {
 		agents = map[string]any{}
 	}
+	// The wiki is the office's canonical store and every page in it is supposed
+	// to arrive through the write API, which enforces path authorization,
+	// attribution and the index. A bot that hits a refusal there can simply
+	// write the same bytes with its own edit tool — Journey 20's public page did
+	// exactly that after `human_request` was rejected, and the wiki worker
+	// committed it as an "external edit" under a synthetic author, leaving no
+	// trace of which bot wrote it (core-loop-runs/2026-11-12-journey20).
+	//
+	// Two layers, because opencode 1.19.3 only enforces what it actually checks:
+	//   - A bot's cwd is its own scratch directory, so the wiki is always an
+	//     external path; `external_directory` is the action that gates external
+	//     reads AND writes (verified against 1.19.3: the deny fires for `write`
+	//     and names `external_directory` in the error).
+	//   - `edit` is the action behind `write`, `patch` and `edit` for internal
+	//     paths, so a turn whose cwd ever becomes the runtime home is covered
+	//     too. There is no `write`/`patch` permission key: opencode checks those
+	//     tools against `edit`, and unknown keys are dropped silently.
+	//
+	// Pattern syntax is V1 glob, last match wins, and a single "*" does NOT
+	// cross "/": the wiki denies need "**" for paths and "/*" for the external
+	// directory boundary. Ordering relies on encoding/json sorting keys, which
+	// puts "*" (0x2A) before both the "." and drive-letter patterns.
+	wikiRoot := filepath.ToSlash(filepath.Join(runtimeHome, ".wuphf", "wiki"))
+	editPermission := map[string]any{"*": "allow"}
+	externalDirectoryPermission := map[string]any{"*": "allow"}
+	for _, deny := range []string{wikiRoot + "/**", ".wuphf/wiki/**"} {
+		editPermission[deny] = "deny"
+	}
+	externalDirectoryPermission[wikiRoot+"/*"] = "deny"
 	agents["wuphf-headless"] = map[string]any{
 		"permission": map[string]any{
 			"read": "allow",
@@ -100,10 +129,10 @@ func (l *Launcher) writeHeadlessOpencodeMCPConfig(slug string) (string, error) {
 			// tasks outside the bot. Bash turned bots into agents that probed
 			// the broker's own auth endpoints and edited files mid-brief.
 			"bash":               "deny",
-			"edit":               "allow",
+			"edit":               editPermission,
 			"glob":               "allow",
 			"grep":               "allow",
-			"external_directory": "allow",
+			"external_directory": externalDirectoryPermission,
 			"doom_loop":          "allow",
 			// The digest is the only data source; fetching the web lets a bot
 			// invent numbers that the brief cannot cite back.

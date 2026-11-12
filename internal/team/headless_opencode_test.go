@@ -267,3 +267,78 @@ func TestWriteHeadlessOpencodeMCPConfigPinsSmallModel(t *testing.T) {
 		}
 	})
 }
+
+// Journey 20: after `/wiki/write-task` refused the write, the model wrote the
+// same page with its own file tool and the wiki worker committed it as an
+// "external edit". Bash is already denied for headless turns, so the file
+// tools are the remaining route: the wiki root must be denied at the layer
+// opencode actually consults, while edits elsewhere stay allowed.
+func TestHeadlessOpencodeConfigDeniesEditsUnderTheWikiRoot(t *testing.T) {
+	home := t.TempDir()
+	setTestHome(t, home)
+	t.Setenv("WUPHF_RUNTIME_HOME", home)
+
+	orig := headlessOpencodeExecutablePath
+	headlessOpencodeExecutablePath = func() (string, error) { return "/usr/local/bin/wuphf", nil }
+	defer func() { headlessOpencodeExecutablePath = orig }()
+
+	l := &Launcher{}
+	path, err := l.writeHeadlessOpencodeMCPConfig("cos")
+	if err != nil {
+		t.Fatalf("writeHeadlessOpencodeMCPConfig: %v", err)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read generated config: %v", err)
+	}
+	var cfg map[string]any
+	if err := json.Unmarshal(raw, &cfg); err != nil {
+		t.Fatalf("generated config is not JSON: %v\n%s", err, raw)
+	}
+	agents, _ := cfg["agent"].(map[string]any)
+	headless, _ := agents["wuphf-headless"].(map[string]any)
+	perm, _ := headless["permission"].(map[string]any)
+	// opencode 1.19.3 enforces path patterns only for the actions it actually
+	// checks: `edit` covers the edit/write/patch tools on internal paths, and
+	// `external_directory` gates anything outside the turn's cwd — which is the
+	// route a bot's absolute-path wiki write takes (its cwd is agent scratch).
+	edit, ok := perm["edit"].(map[string]any)
+	if !ok {
+		t.Fatalf("edit permission must be a per-path map so the wiki can be denied while other files stay editable, got %#v", perm["edit"])
+	}
+	if edit["*"] != "allow" {
+		t.Fatalf("edits outside the wiki must stay allowed, got %#v", edit["*"])
+	}
+	absDeny := filepath.ToSlash(filepath.Join(home, ".wuphf", "wiki")) + "/**"
+	for _, pattern := range []string{absDeny, ".wuphf/wiki/**"} {
+		if edit[pattern] != "deny" {
+			t.Fatalf("expected edit deny on %q, got %#v", pattern, edit)
+		}
+	}
+
+	ext, ok := perm["external_directory"].(map[string]any)
+	if !ok {
+		t.Fatalf("external_directory must be a per-path map so the wiki root can be denied, got %#v", perm["external_directory"])
+	}
+	if ext["*"] != "allow" {
+		t.Fatalf("external access outside the wiki must stay allowed, got %#v", ext["*"])
+	}
+	absDirDeny := filepath.ToSlash(filepath.Join(home, ".wuphf", "wiki")) + "/*"
+	if ext[absDirDeny] != "deny" {
+		t.Fatalf("expected external_directory deny on %q, got %#v", absDirDeny, ext)
+	}
+	// opencode checks write/patch against `edit`; a `write`/`patch` key here
+	// would be dropped silently and look like coverage that does not exist.
+	for _, bogus := range []string{"write", "patch"} {
+		if _, present := perm[bogus]; present {
+			t.Fatalf("%q is not a permission key opencode honours; use edit instead", bogus)
+		}
+	}
+
+	text := string(raw)
+	star := strings.Index(text, `"*": "allow"`)
+	deny := strings.Index(text, `".wuphf/wiki/**": "deny"`)
+	if star < 0 || deny < 0 || star > deny {
+		t.Fatalf("the allow-all rule must serialize before the deny rules:\n%s", text)
+	}
+}
