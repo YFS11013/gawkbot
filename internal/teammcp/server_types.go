@@ -381,8 +381,8 @@ type TeamWikiWriteArgs struct {
 	Mode         string `json:"mode" jsonschema:"One of: create | replace | append_section"`
 	Content      string `json:"content" jsonschema:"Full article content (create/replace) or new section text (append_section)"`
 	CommitMsg    string `json:"commit_message" jsonschema:"Why this change — becomes the git commit message"`
-	HumanRequest string `json:"human_request,omitempty" jsonschema:"Broker message ID for the recent human-authored request explicitly authorizing this direct wiki write. Required unless WUPHF_ENABLE_AGENT_WIKI_WRITE=true. For bot-authored knowledge not explicitly requested by the human, use notebook_write then notebook_promote instead."`
-	TaskID       string `json:"task_id,omitempty" jsonschema:"Task ID whose definition declares article_path as its artifact_path. Pass this instead of human_request when the task itself authorized the write (e.g. a broker-created review task writing its findings file). The broker accepts exactly the path the task declared, from the task owner only."`
+	TaskID       string `json:"task_id,omitempty" jsonschema:"Optional. Set when you already know which task declared article_path as its definition.artifact_path; the broker fills it in automatically for your own open tasks, so a task-scoped write needs neither this nor human_request. The broker accepts exactly the declared path, from the task owner only."`
+	HumanRequest string `json:"human_request,omitempty" jsonschema:"Broker message ID for the recent human-authored message that explicitly asked for this direct wiki write. Only needed when no open task of yours declares the path (a task-scoped write is already authorized). For bot-authored knowledge nobody asked for, use notebook_write then notebook_promote instead."`
 }
 
 // TeamWikiReadArgs is the contract for team_wiki_read.

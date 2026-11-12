@@ -191,15 +191,18 @@ func (b *Broker) authorizeTaskArtifactWrite(slug, taskID, path string) error {
 		return fmt.Errorf("%w: %s declares no artifact_path, so no wiki path is authorized for it. %s must set definition.artifact_path on the task (or route this deliverable through a human request); retrying this call cannot succeed",
 			errTaskArtifactUndeclared, taskID, creator)
 	}
-	if !sameWikiPath(declared, path) {
+	if !SameWikiPath(declared, path) {
 		return fmt.Errorf("task %s declares artifact_path %q, not %q", taskID, declared, path)
 	}
 	return nil
 }
 
-// sameWikiPath compares two wiki paths the way a filesystem would here:
-// separators normalized, no leading "./" or "/", case-insensitive.
-func sameWikiPath(a, b string) bool {
+// SameWikiPath compares two wiki paths the way a filesystem would here:
+// separators normalized, no leading "./" or "/", case-insensitive. Exported
+// because the MCP server resolves "does one of my tasks declare this path"
+// against the same rule the broker enforces when it authorizes the write;
+// two copies would drift into an authorization mismatch.
+func SameWikiPath(a, b string) bool {
 	canon := func(s string) string {
 		s = strings.ReplaceAll(strings.TrimSpace(s), "\\", "/")
 		s = strings.TrimPrefix(s, "./")
@@ -554,7 +557,7 @@ func (b *Broker) recordForeignArtifactOverwrite(taskID, slug, path string) {
 		if other.ID == taskID || !isDeliveredTeamTaskStatus(other.status) {
 			continue
 		}
-		if artifact := strings.TrimSpace(other.Artifact); artifact != "" && sameWikiPath(artifact, path) {
+		if artifact := strings.TrimSpace(other.Artifact); artifact != "" && SameWikiPath(artifact, path) {
 			ownerID = other.ID
 			break
 		}

@@ -1563,7 +1563,7 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 			switch {
 			case isVisualArtifactRef(scopeRecorded):
 				scopeViolation = "visual"
-			case !sameWikiPath(scopeDeclared, scopeRecorded):
+			case !SameWikiPath(scopeDeclared, scopeRecorded):
 				scopeViolation = "foreign"
 			}
 		}

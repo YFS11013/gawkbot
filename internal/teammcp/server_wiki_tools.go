@@ -42,15 +42,25 @@ func handleTeamWikiWrite(ctx context.Context, _ *mcp.CallToolRequest, args TeamW
 	// through notebook_write -> notebook_promote -> @librarian review, or pass a
 	// human_request for a one-off direct write.
 	// A task-scoped write skips the human-delegation gate: the broker created	the task and pinned its Definition.ArtifactPath, so authorization already	happened upstream and /wiki/write-task enforces the path match.
+	path := strings.TrimSpace(args.ArticlePath)
+	if path == "" {
+		return toolError(fmt.Errorf("article_path is required")), nil, nil
+	}
 	taskID := strings.TrimSpace(args.TaskID)
+	if taskID == "" && !adminDirectWikiWriteBypassEnabled() && !strings.EqualFold(strings.TrimSpace(slug), team.LibrarianSlug) {
+		// The authorization the task already granted is the one the bot least
+		// often notices. Journey 18: the parent Issue declared no artifact_path,
+		// /wiki/write-task refused, and the office spent two rounds asking the
+		// human for "another message that says write to the wiki" — while its
+		// own lane tasks had declared exactly these paths. Resolve it here so a
+		// task-scoped write needs no argument and no human round trip; the
+		// broker still enforces owner + declared path + open task.
+		taskID = resolveTaskArtifactAuthorization(ctx, slug, path)
+	}
 	if taskID == "" && !adminDirectWikiWriteBypassEnabled() && !strings.EqualFold(strings.TrimSpace(slug), team.LibrarianSlug) {
 		if err := verifyHumanWikiWriteDelegation(ctx, slug, args.HumanRequest); err != nil {
 			return toolError(err), nil, nil
 		}
-	}
-	path := strings.TrimSpace(args.ArticlePath)
-	if path == "" {
-		return toolError(fmt.Errorf("article_path is required")), nil, nil
 	}
 	mode := strings.TrimSpace(args.Mode)
 	if mode == "" {
@@ -91,6 +101,48 @@ func handleTeamWikiWrite(ctx context.Context, _ *mcp.CallToolRequest, args TeamW
 		"bytes_written": result.BytesWritten,
 	})
 	return textResult(string(payload)), nil, nil
+}
+
+// resolveTaskArtifactAuthorization returns the caller's open task whose
+// definition declares this exact path, or "" when none does. Best-effort: a
+// broker that cannot answer leaves the caller on the human-delegation path
+// rather than turning a lookup failure into an authorization.
+func resolveTaskArtifactAuthorization(ctx context.Context, slug, path string) string {
+	slug = strings.TrimSpace(slug)
+	path = strings.TrimSpace(path)
+	if slug == "" || path == "" {
+		return ""
+	}
+	var response struct {
+		Tasks []struct {
+			ID         string `json:"id"`
+			Owner      string `json:"owner"`
+			Status     string `json:"status"`
+			Definition *struct {
+				ArtifactPath string `json:"artifact_path"`
+			} `json:"definition"`
+		} `json:"tasks"`
+	}
+	query := "/tasks?all_channels=true&my_slug=" + url.QueryEscape(slug)
+	if err := brokerGetJSON(ctx, query, &response); err != nil {
+		return ""
+	}
+	for _, task := range response.Tasks {
+		if !strings.EqualFold(strings.TrimSpace(task.Owner), slug) {
+			continue
+		}
+		switch strings.ToLower(strings.TrimSpace(task.Status)) {
+		case "done", "failed", "cancelled", "canceled", "archived":
+			continue
+		}
+		if task.Definition == nil || strings.TrimSpace(task.Definition.ArtifactPath) == "" {
+			continue
+		}
+		if team.SameWikiPath(task.Definition.ArtifactPath, path) {
+			return strings.TrimSpace(task.ID)
+		}
+	}
+	return ""
 }
 
 func verifyHumanWikiWriteDelegation(ctx context.Context, slug, humanRequestID string) error {

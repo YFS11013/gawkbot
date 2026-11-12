@@ -294,3 +294,94 @@ func TestHandleTeamWikiWriteAdminBypassPostsToBroker(t *testing.T) {
 		t.Fatalf("posted path = %q, want /wiki/write", auth.lastPath)
 	}
 }
+
+// Journey 18: the office asked the human twice for "another message that says
+// write to the wiki" while its own lane tasks had already declared exactly the
+// paths it was trying to write. The task door is the one the bot owns, so the
+// broker — not the model's memory — has to find it.
+func TestHandleTeamWikiWriteResolvesTheTaskThatDeclaredThePath(t *testing.T) {
+	srv, auth := stubBroker(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/tasks":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"tasks": []map[string]any{
+					// Someone else's task declaring the same path: not ours.
+					{"id": "OFFICE-9", "owner": "pm", "status": "in_progress",
+						"definition": map[string]any{"artifact_path": "team/reviews/j18-public.md"}},
+					// Ours, but a different path.
+					{"id": "OFFICE-22", "owner": "cos", "status": "in_progress",
+						"definition": map[string]any{"artifact_path": "team/reviews/j18-internal.md"}},
+					// Ours and matching, with a path spelled the ugly way.
+					{"id": "OFFICE-24", "owner": "cos", "status": "in_progress",
+						"definition": map[string]any{"artifact_path": "./team/reviews/j18-public.md"}},
+				},
+			})
+		case "/wiki/write-task":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"path": "team/reviews/j18-public.md", "commit_sha": "abc1234", "bytes_written": 9,
+			})
+		default:
+			http.NotFound(w, r)
+		}
+	})
+	defer srv.Close()
+	withBrokerURL(t, srv.URL)
+	t.Setenv("WUPHF_ENABLE_AGENT_WIKI_WRITE", "")
+	t.Setenv("WUPHF_AGENT_SLUG", "cos")
+
+	res, _, err := handleTeamWikiWrite(context.Background(), nil, TeamWikiWriteArgs{
+		ArticlePath: "team/reviews/j18-public.md",
+		Mode:        "replace",
+		Content:     "- four\n",
+		CommitMsg:   "reviews: drop the unsourced bullet",
+	})
+	if err != nil {
+		t.Fatalf("handler returned transport error: %v", err)
+	}
+	if isToolError(res) {
+		t.Fatalf("a task that declared the path authorizes the write; got %s", toolErrorText(res))
+	}
+	if auth.lastPath != "/wiki/write-task" {
+		t.Fatalf("posted path = %q, want /wiki/write-task", auth.lastPath)
+	}
+	if !strings.Contains(auth.lastBody, `"task_id":"OFFICE-24"`) {
+		t.Fatalf("must write under the matching task, body=%s", auth.lastBody)
+	}
+}
+
+// No task of yours declares it, so the human-request gate still applies — the
+// lookup must not turn into a blanket authorization.
+func TestHandleTeamWikiWriteStaysGatedWhenNoTaskDeclaredThePath(t *testing.T) {
+	srv, auth := stubBroker(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/tasks" {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"tasks": []map[string]any{
+					{"id": "OFFICE-9", "owner": "cos", "status": "in_progress",
+						"definition": map[string]any{"artifact_path": "team/reviews/other.md"}},
+				},
+			})
+			return
+		}
+		http.NotFound(w, r)
+	})
+	defer srv.Close()
+	withBrokerURL(t, srv.URL)
+	t.Setenv("WUPHF_ENABLE_AGENT_WIKI_WRITE", "")
+	t.Setenv("WUPHF_AGENT_SLUG", "cos")
+
+	res, _, err := handleTeamWikiWrite(context.Background(), nil, TeamWikiWriteArgs{
+		ArticlePath: "team/decisions/unasked.md",
+		Mode:        "create",
+		Content:     "# Unasked\n",
+		CommitMsg:   "decisions: unasked",
+	})
+	if err != nil {
+		t.Fatalf("handler returned transport error: %v", err)
+	}
+	if !isToolError(res) || !strings.Contains(toolErrorText(res), "direct go-ahead") {
+		t.Fatalf("an undeclared path must still ask the human; got %q", toolErrorText(res))
+	}
+	if auth.lastPath != "/tasks" {
+		t.Fatalf("nothing should have been written, last path=%q", auth.lastPath)
+	}
+}

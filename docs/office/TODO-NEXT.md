@@ -603,7 +603,7 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 
 **O4（已修，见 CHANGELOG）**：退回一次，办公室回「已按反馈修改」并重升同一张卡，而 `journey18-public.md` 仍是 724 字节、第 5 条还在、wiki 该路径无新提交。第二次退回附上字节数与提交号，它回「新字节数：475 字节（7 行）」——**这个数字是编的**。修法落在 `recordTaskDecisionInternal`：退回时给交付物集合（lane 的 artifact，或 Issue 全部 lane 文件）盖内容摘要，重升卡时比对，没变就在卡上写明「自退回以来没有任何文件被改动」。`deliverableFingerprint` 按内容算，同长度改写也算变。测试 `TestDecisionCardSaysWhenTheRejectedWorkWasNeverRewritten`、`TestContainerCardFlagsAnUnchangedLaneSet`。
 
-**O1（仍是问题，没修）**：写 wiki 的授权契约把人和机器人卡在两条通道上。`team_wiki_write` 要 `human_request`（`From=you`/`human`、12 小时内、文本含「直接写 wiki」意图）或 `task_id`（任务自己声明的 `artifact_path`）。办公室两次向人要「再发一条明确消息」，因为它第一次在父任务（无 `artifact_path`）上被拒，**从未尝试 `task_id` 这条它能自己走完的路**。人这一侧也没有 HTTP 端点能发人类消息（只有 web UI）。修法方向：把 `task_id` 授权在工具描述里前置，并在被拒时把「你还有 task_id 这条路」写进错误文本。
+**O1（已修）**：写 wiki 有两条授权通道，`human_request`（人要的）和 `task_id`（任务自己声明的 `artifact_path`）。办公室只走前者，在父任务（无 `artifact_path`）上被拒后把它读成权限问题，两次向人要「再发一条明确消息」。现在 `team_wiki_write` 自己查「我这个 bot 的开着的任务里，有谁声明了这个路径」，命中就用 `/wiki/write-task` 写，不需要模型记得传参，也不需要人类再说话；broker 仍校验 owner + 声明路径 + 任务未关。工具描述改成先讲任务这扇门，`human_request` 降级为兜底。测试 `TestHandleTeamWikiWriteResolvesTheTaskThatDeclaredThePath`（去掉解析即红）、`TestHandleTeamWikiWriteStaysGatedWhenNoTaskDeclaredThePath`。另一侧仍留白：人没有 HTTP 端点能发人类消息（只有 web UI），`human_request` 这条路对脚本化的操作员仍不可用。
 
 **O2（已修）**：回合结束时的对账落在 `recordTaskLedgerEntry`。判据不是解析模型的措辞，而是事实：任务带着未清除的退回摘要（`SentBackFingerprint`）且交付物集合与退回时逐字节相同——这一回合就没写东西。此时记 `rework-unwritten` 台账、写 `rework_unwritten` 审计行、计入 `StalledTurns` 并arm 2 分钟短重试（而不是正常跟进间隔），下一回合的 packet 直接把这行渲染给模型看。失败回合和「有未答的人类请求」的 lane 豁免。测试 `TestTurnThatClaimsAReworkWithoutWritingOneIsNotATrace`、`TestClaimedReworkIsNotFlaggedWhileWaitingOnTheHuman`（去掉分类 / 去掉等待豁免分别变红）。仍留白的部分：模型声称写了一**别的**路径（不在交付物集合里）目前无从对账，只覆盖「被退回的那份没动」。
 
