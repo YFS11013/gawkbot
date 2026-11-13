@@ -21,6 +21,20 @@ import (
 // when a bot calls team_wiki_write. POST /wiki/write with
 // {slug, path, content, mode, commit_message}. Responses: 200 {path,
 // commit_sha, bytes_written}; 429 saturated; 500 generic; 503 no worker.
+// wikiWriteRequestStatus maps the writer's caller-shaped errors onto a 4xx, so
+// the bot reads "fix the request" instead of "the broker broke". Journey 27's
+// mode=create on an existing page came back 500 and cost a retry even though
+// the message itself said what to do.
+func wikiWriteRequestStatus(err error) (int, bool) {
+	switch {
+	case errors.Is(err, ErrWikiArticleExists):
+		return http.StatusConflict, true
+	case errors.Is(err, ErrWikiInvalidRequest):
+		return http.StatusBadRequest, true
+	}
+	return 0, false
+}
+
 func (b *Broker) handleWikiWrite(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -53,6 +67,10 @@ func (b *Broker) handleWikiWrite(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, ErrQueueSaturated) {
 			writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": err.Error()})
+			return
+		}
+		if status, ok := wikiWriteRequestStatus(err); ok {
+			writeJSON(w, status, map[string]string{"error": err.Error()})
 			return
 		}
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -130,6 +148,10 @@ func (b *Broker) handleWikiWriteTask(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, ErrQueueSaturated) {
 			writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": err.Error()})
+			return
+		}
+		if status, ok := wikiWriteRequestStatus(err); ok {
+			writeJSON(w, status, map[string]string{"error": err.Error()})
 			return
 		}
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})

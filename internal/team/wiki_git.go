@@ -282,6 +282,18 @@ func (r *Repo) ensureLayoutLocked() error {
 // short commit SHA and the number of bytes written.
 //
 // mode must be one of: "create", "replace", "append_section". "create" fails
+// Caller-shaped failures from the wiki writer. These are not server faults:
+// the request names a mode that cannot apply, or a path that already exists.
+// Journey 27 hit the first as a 500 — `mode=create` on a page that already
+// existed came back as "broker POST /wiki/write-task failed: 500 Internal
+// Server Error", which reads to the bot as "the broker broke" even though the
+// same string says "use replace or append_section". Handlers map these to 409
+// / 400 so the retry guidance lands as a request error.
+var (
+	ErrWikiArticleExists  = errors.New("wiki: article already exists")
+	ErrWikiInvalidRequest = errors.New("wiki: invalid request")
+)
+
 // if the file exists; "replace" overwrites wholesale; "append_section" appends
 // two newlines + content to an existing file (or creates it fresh).
 func (r *Repo) Commit(ctx context.Context, slug, relPath, content, mode, message string) (string, int, error) {
@@ -290,7 +302,7 @@ func (r *Repo) Commit(ctx context.Context, slug, relPath, content, mode, message
 
 	slug = strings.TrimSpace(slug)
 	if slug == "" {
-		return "", 0, fmt.Errorf("wiki: commit requires an author slug")
+		return "", 0, fmt.Errorf("%w: commit requires an author slug", ErrWikiInvalidRequest)
 	}
 	if err := validateArticlePath(relPath); err != nil {
 		return "", 0, err
@@ -300,18 +312,18 @@ func (r *Repo) Commit(ctx context.Context, slug, relPath, content, mode, message
 	switch mode {
 	case "create":
 		if _, err := os.Stat(fullPath); err == nil {
-			return "", 0, fmt.Errorf("wiki: article already exists at %q; use replace or append_section", relPath)
+			return "", 0, fmt.Errorf("%w at %q; use replace or append_section", ErrWikiArticleExists, relPath)
 		}
 	case "replace":
 		// overwrite fine
 	case "append_section":
 		// handled below
 	default:
-		return "", 0, fmt.Errorf("wiki: unknown write mode %q; expected create|replace|append_section", mode)
+		return "", 0, fmt.Errorf("%w: unknown write mode %q; expected create|replace|append_section", ErrWikiInvalidRequest, mode)
 	}
 
 	if strings.TrimSpace(content) == "" {
-		return "", 0, fmt.Errorf("wiki: content is required")
+		return "", 0, fmt.Errorf("%w: content is required", ErrWikiInvalidRequest)
 	}
 	if err := os.MkdirAll(filepath.Dir(fullPath), 0o700); err != nil {
 		return "", 0, fmt.Errorf("wiki: mkdir %s: %w", filepath.Dir(fullPath), err)
