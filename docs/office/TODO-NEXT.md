@@ -607,7 +607,17 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 
 **O2（已修）**：回合结束时的对账落在 `recordTaskLedgerEntry`。判据不是解析模型的措辞，而是事实：任务带着未清除的退回摘要（`SentBackFingerprint`）且交付物集合与退回时逐字节相同——这一回合就没写东西。此时记 `rework-unwritten` 台账、写 `rework_unwritten` 审计行、计入 `StalledTurns` 并arm 2 分钟短重试（而不是正常跟进间隔），下一回合的 packet 直接把这行渲染给模型看。失败回合和「有未答的人类请求」的 lane 豁免。测试 `TestTurnThatClaimsAReworkWithoutWritingOneIsNotATrace`、`TestClaimedReworkIsNotFlaggedWhileWaitingOnTheHuman`（去掉分类 / 去掉等待豁免分别变红）。仍留白的部分：模型声称写了一**别的**路径（不在交付物集合里）目前无从对账，只覆盖「被退回的那份没动」。
 
-**O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。### Journey 24（2026-11-13，D-6/D-7 第一版上线后）
+**O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。### Journey 25（2026-11-13，D-8/D-9 上线后）
+
+prereg `3aa1c41`，工作区 `journey25`。判分卡：`core-loop-runs/2026-11-13-journey25/scorecard.md`。
+
+- **D-12（已修）**：返工两页都走 `human_request`（`/wiki/write`），那扇门传输里 `task_id=None`——任务发布了两页，台账只有一页，卡只念一页。修法：`/wiki/write` 接受仅用于归属的 `task_id`，写成功后记台账（授权仍只认人类消息）；工具侧在该 bot 只有一个未终结任务时自动填。测试 `TestHumanAuthorizedWriteIsAttributedToItsTask`、`TestHumanRequestedWikiWriteCarriesTheSoleTaskID`。设计见 §9.36。
+- **D-13（记录，未修）**：模型在首个任务创建 27 秒后自建第二个顶层任务，各写一页——一个请求被拆成两张验收面；第二张计划卡从未批准，任务却已在跑，吃了 5 次 `409 still in planning`、3 次 `complete`、2 次 `403 parked`。它同时把 D-9 废掉（两个未终结任务 → 无法唯一解析 → 9 次通用报错）。同路径独占仍是未拍板决策，代价已从「覆写」扩到「切碎验收面」。
+- **本轮唯一变好的数字**：写入失败 3 次（J24 是 12 次），因为人类在 H3 里明确授权了那条路径。副作用提醒：写得顺不顺不该取决于人类背不背授权文案。
+- **E2 未触发**：集合里只有一个文件，假警告无法区分。
+- 附带：`hasDirectWikiWriteIntent` 只认英文动词 + `wiki/kb`，中文授权消息在字段里成功了但机制未证实——属漏报风险，未修。
+
+## Journey 24（2026-11-13，D-6/D-7 第一版上线后）
 
 prereg `a6e64ce`，工作区 `journey24`。判分卡：`core-loop-runs/2026-11-13-journey24/scorecard.md`。
 

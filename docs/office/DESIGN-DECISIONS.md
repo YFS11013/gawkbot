@@ -129,6 +129,18 @@ digest ──► render_artifacts()（脚本，0 LLM）
 | 把结论存进 bot 的 notebook 当“记忆” | 曾因 `/notebook/catalog` 恒 404 而失效（`internal/teammcp/context_tools.go:491` 调了 broker 未注册的路由）。**2026-11-01 已修**：四个 `/notebook/*` 路由已注册并实测，契约见 `RUNTIME-API.md` §6 |
 | 直接改 `broker-state.json` 改 prompt | broker 内存持有该文件，会被覆盖；必须走 `PATCH /scheduler/{slug}` |
 
+### 9.36 归属：谁写的，不等于谁要签收；但人工授权门必须记下它服务的是哪个任务（2026-11-13，Journey 25）
+
+**决定**：`/wiki/write` 接受一个只用于**归属**的 `task_id`。写入成功后把路径记到该任务（与 `/wiki/write-task` 同一本台账）；授权仍然只认那条人类消息。工具侧在走人工门时，若该 bot 只有一个未终结任务，就把 id 填上。
+
+**为什么**：J25 的返工两页都走 `human_request`，传输里 `task_id=None`。任务发布了两页，台账只有一页，卡只念一页——而 commit message 里那句「JOURN-2: …」是模型自己写的文本，不是事实。
+
+台账修完之后，「集合」这件事的最后一环是归属：**写入发生了，但任务不知道自己写过**。这不是宽度问题，也不是授权问题，是记录问题。
+
+**边界**：只归给调用者自己拥有的任务（`attributeWikiWrite` 校验 owner），且只有唯一候选时才由工具自动填。两个候选不猜——把 A 的交付记到 B 名下，比不记更糟。
+
+**同类观察（记录，未修）**：J25 的模型在任务创建 27 秒后自建了第二个顶层任务，各写一页，把一个请求拆成两张验收面；它的计划卡从未被批准，任务却已在跑。它同时消解了 §9.35 决定的第二半——「唯一未终结任务」的前提被重复 lane 破坏，`define` 漏 `id` 又回到通用报错 9 次。同路径独占仍是 `TODO-NEXT.md` 里未拍板的决策，但代价已经从「覆写」扩到「切碎验收面」。
+
 ### 9.35 集合的来源是写入台账，不是定义；报错说服不了正在重发的模型（2026-11-13，Journey 24）
 
 **决定一**：`teamTask.Artifacts` 记录本任务通过 `/wiki/write-task` 发布过的每个路径，`deliverablePathsLocked` 把它并入集合（与定义声明的 `deliverables`、`artifact`、子任务交付取并集，`SameWikiPath` 去重）。
