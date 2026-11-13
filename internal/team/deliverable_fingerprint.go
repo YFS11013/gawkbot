@@ -85,18 +85,55 @@ func (b *Broker) deliverablePathsLocked(task *teamTask) []string {
 		return nil
 	}
 	var out []string
-	if own := strings.TrimSpace(task.Artifact); own != "" {
-		out = append(out, own)
+	add := func(p string) {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			return
+		}
+		for _, seen := range out {
+			if SameWikiPath(seen, p) {
+				return
+			}
+		}
+		out = append(out, p)
 	}
+	// Journey 23 (core-loop-runs/2026-11-13-journey23): the definition lists
+	// every file the work has to produce, and office work routinely ships more
+	// than the one path recorded as the task's artifact. JOURN-2 wrote both
+	// pages, but the digest only read the internal one — so when the human sent
+	// it back over the PUBLIC page, a real rewrite left the digest untouched,
+	// the next card claimed "none of those files has changed", and the model
+	// made the digest move by adding a trailing space to the internal page and
+	// reverting it one commit later. A set that only sees one file teaches the
+	// bot to nudge that file.
+	if task.Definition != nil {
+		for _, d := range task.Definition.Deliverables {
+			add(wikiPathFromDeliverableName(d.Name))
+		}
+	}
+	add(task.Artifact)
 	for _, entry := range b.childDeliverablesLocked(task) {
 		if strings.Contains(entry, " (ships no file)") {
 			continue
 		}
-		if path := strings.TrimSpace(entry); path != "" {
-			out = append(out, path)
-		}
+		add(entry)
 	}
 	return out
+}
+
+// wikiPathFromDeliverableName reads a deliverable's name as a wiki path when it
+// is written like one ("team/reviews/acme.md"). Deliverables are also allowed
+// to be plain descriptions ("renewal brief"), and those carry no path.
+func wikiPathFromDeliverableName(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" || strings.Contains(name, " ") || !strings.Contains(name, "/") {
+		return ""
+	}
+	switch strings.ToLower(filepath.Ext(name)) {
+	case ".md", ".markdown", ".txt":
+		return name
+	}
+	return ""
 }
 
 // stampSentBackFingerprint records what the human rejected, at the moment they

@@ -222,7 +222,16 @@ func (b *Broker) raiseDecisionCardLocked(task *teamTask) string {
 			qb.WriteString("\nThe Issue ships no single file of its own; those are what you are accepting.\n")
 		}
 	case own != "":
-		fmt.Fprintf(&qb, "The deliverable is %s.\n", own)
+		// Office work often ships more than the one path recorded as the
+		// task's artifact (J23: an internal changelog and a public note). The
+		// human is accepting the SET, so the card has to name all of it —
+		// naming one file is what let a send-back over the other page look
+		// like a no-op.
+		if paths := b.deliverablePathsLocked(task); len(paths) > 1 {
+			fmt.Fprintf(&qb, "The deliverables are:\n\n%s\n", "- "+strings.Join(paths, "\n- "))
+		} else {
+			fmt.Fprintf(&qb, "The deliverable is %s.\n", own)
+		}
 	case strings.TrimSpace(task.ArtifactNotRequired) != "":
 		fmt.Fprintf(&qb, "The owner declared this lane ships no file (%s).\n", strings.TrimSpace(task.ArtifactNotRequired))
 	}

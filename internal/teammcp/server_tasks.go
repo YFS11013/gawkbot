@@ -99,7 +99,18 @@ func handleTeamTask(ctx context.Context, _ *mcp.CallToolRequest, args TeamTaskAr
 	// address an existing task; everything else names one, and the broker
 	// cannot infer it from the channel.
 	if action != "" && !strings.EqualFold(action, "create") && strings.TrimSpace(args.ID) == "" {
-		return toolError(fmt.Errorf("team_task action=%q needs the task id — pass id=<the id returned by create>", action)), nil, nil
+		// Journey 23 (core-loop-runs/2026-11-13-journey23): Journey 22 answered
+		// this with the same sentence seven times and the model retried the same
+		// call seven times; Journey 23 did it FIFTY-FOUR times in one turn — the
+		// tool never named a value, so "pass id=<the id returned by create>"
+		// reads as a form to fill in later. When this agent owns exactly one
+		// live task in the channel, the error names it. It is still an error,
+		// still the model's call to make; it just stops being a riddle.
+		hint := ""
+		if sole := soleLiveTaskIDForAgent(ctx, mySlug, channel); sole != "" {
+			hint = fmt.Sprintf(" — in %s that is %s", channel, sole)
+		}
+		return toolError(fmt.Errorf("team_task action=%q needs the task id%s. Pass id=<the id create returned>.", action, hint)), nil, nil
 	}
 	payload := map[string]any{
 		"action":     action,
@@ -285,6 +296,34 @@ func appWorkspaceBriefFrom(details string) string {
 		brief = brief[:end]
 	}
 	return strings.TrimSpace(brief)
+}
+
+// soleLiveTaskIDForAgent returns the id of the one task this agent owns in the
+// channel, or "" when there is none or more than one. Used only to make a
+// missing-id error concrete; it never satisfies the call on the model's behalf.
+func soleLiveTaskIDForAgent(ctx context.Context, slug, channel string) string {
+	if strings.TrimSpace(slug) == "" || strings.TrimSpace(channel) == "" {
+		return ""
+	}
+	_, tasks, err := fetchTeamTasks(ctx, TeamTasksArgs{Channel: channel, MySlug: slug})
+	if err != nil {
+		return ""
+	}
+	found := ""
+	for _, task := range tasks {
+		if !strings.EqualFold(strings.TrimSpace(task.Owner), slug) {
+			continue
+		}
+		switch strings.ToLower(strings.TrimSpace(task.Status)) {
+		case "done", "failed", "canceled", "cancelled", "archived":
+			continue
+		}
+		if found != "" {
+			return ""
+		}
+		found = task.ID
+	}
+	return found
 }
 
 func fetchTeamTasks(ctx context.Context, args TeamTasksArgs) (string, []brokerTaskSummary, error) {
