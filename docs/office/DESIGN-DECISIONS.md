@@ -129,6 +129,23 @@ digest ──► render_artifacts()（脚本，0 LLM）
 | 把结论存进 bot 的 notebook 当“记忆” | 曾因 `/notebook/catalog` 恒 404 而失效（`internal/teammcp/context_tools.go:491` 调了 broker 未注册的路由）。**2026-11-01 已修**：四个 `/notebook/*` 路由已注册并实测，契约见 `RUNTIME-API.md` §6 |
 | 直接改 `broker-state.json` 改 prompt | broker 内存持有该文件，会被覆盖；必须走 `PATCH /scheduler/{slug}` |
 
+### 9.34 交付集合 = 定义里声明的每一个文件（2026-11-13，Journey 23）
+
+**决定**：`deliverablePathsLocked` 除了 `task.Artifact` 与子任务交付，还纳入 `task.Definition.Deliverables[].Name` 里形如 wiki 路径的项（含 `/`、扩展名是 `.md/.markdown/.txt`、不含空格），按 `SameWikiPath` 去重。决策卡在集合 >1 时逐行列出全部路径。
+
+**为什么**：J23 的 `JOURN-2` 定义列了两个文件（内部变更清单 + 对外说明），`task.Artifact` 记的是内部页。人类退回时指的是**对外页**，模型也确实重写了对外页——但指纹只对内部页算，摘要没动。于是下一次提卡时卡上说「None of those files has changed since this work was sent back」。
+
+模型对这一警告的反应是**在内部页末尾加一个空格**（`258a9cd add trailing space to satisfy resubmission gate; content unchanged`），提卡，再在下一个提交把它删掉（`acae91b`）。它不是不懂规则，是规则把交付物变成了旋钮：闸门只认一个文件的哈希，那一个文件就成了唯一能让闸门打开的东西。
+
+**为什么不加「不许只改空白」的规则**：那是症状。集合错了，任何「改了什么算改」的补丁都只是换一个旋钮——加两个空格、改一行注释、换行尾。把集合改对，模型想让摘要动就必须真的改到被退回的那个文件，而那个文件的改写本来就是这个动作。
+
+**顺带解决的两件事**：
+
+- 卡不再只说一个文件。人类签收的是整套，卡就得念出整套；只说一个的时候，另一半的返工在卡上是不可见的。
+- `definition.deliverables[].name` 本来就是路径（规划器把 `artifact_path` 也写在里面），只是从来没有人把它读成路径。名字是自由文本（「renewal brief」），所以只有看起来像路径的才收。
+
+**测试**：`TestDeliverableSetCoversEveryDeclaredFile`——定义两个路径 + 一个自由文本名字，集合必须是 2；退回后只改**非 artifact** 的那个文件，`sentBackDeliverablesUnchanged` 必须为假，卡必须列出两个路径且不带「unchanged」警告。红证：把定义循环改成 `if false && …` → 「the set must be both declared files …, got [team/reviews/j23-internal.md]」。
+
 ### 9.33 交付了文件就不能自己关任务，哪怕没人要求过 review（2026-11-13，Journey 22）
 
 **决定**：`MutateTask` 里「到达 done」的收口再挡一条——非人类 actor 关闭一个**自己记着交付文件**的任务时，回 `409` 并指回 `submit_for_review`。与 §J12 的容器守卫同一个位置、同一种写法。

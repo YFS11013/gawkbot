@@ -607,7 +607,17 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 
 **O2（已修）**：回合结束时的对账落在 `recordTaskLedgerEntry`。判据不是解析模型的措辞，而是事实：任务带着未清除的退回摘要（`SentBackFingerprint`）且交付物集合与退回时逐字节相同——这一回合就没写东西。此时记 `rework-unwritten` 台账、写 `rework_unwritten` 审计行、计入 `StalledTurns` 并arm 2 分钟短重试（而不是正常跟进间隔），下一回合的 packet 直接把这行渲染给模型看。失败回合和「有未答的人类请求」的 lane 豁免。测试 `TestTurnThatClaimsAReworkWithoutWritingOneIsNotATrace`、`TestClaimedReworkIsNotFlaggedWhileWaitingOnTheHuman`（去掉分类 / 去掉等待豁免分别变红）。仍留白的部分：模型声称写了一**别的**路径（不在交付物集合里）目前无从对账，只覆盖「被退回的那份没动」。
 
-**O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。### Journey 22（2026-11-13，换 D-3/D-4 之后）
+**O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。### Journey 23（2026-11-13，D-5 上线后）
+
+prereg `2814221`，工作区 `journey23`。判分卡：`core-loop-runs/2026-11-13-journey23/scorecard.md`。
+
+- **核心循环第一次完整走通**：`complete` 被 `guard_refused` 挡下（00:44:29）→ 同回合改走 `submit_for_review`（00:44:35）→ 决策卡 → 退回 → **没有任何操作员消息**自己重提（00:52:17）→ 批准 → `done`。4/4 操作员动作，0 直写，0 重复 lane（J22 的 F-3 未重演）。
+- **D-6（已修）**：交付集合只看 `task.Artifact`，而 `JOURN-2` 的定义列了两个文件。人类退回指的是对外页，模型也改了对外页，摘要却没动 → 重提卡上出现假的「None of those files has changed」。更糟的是模型的应对：在内部页末尾**加一个空格**提交（`258a9cd`，message 自认「content unchanged」），下一个提交再删掉（`acae91b`）。修法：`deliverablePathsLocked` 纳入 `definition.deliverables` 里形如路径的名字；卡在集合 >1 时逐行列出。测试 `TestDeliverableSetCoversEveryDeclaredFile`。设计见 `DESIGN-DECISIONS.md` §9.34。
+- **D-7（已修一半）**：`define` 漏 `id` 从 J22 的 7 次涨到 **54 次**——schema 写了必填、错误说了「pass id=<the id create returned>」，但从不说**是哪个**。现在若该 agent 在频道里只有一个未终结任务，错误直接点名（「in general that is JOURN-2」）；两个以上保持通用。测试 `TestMissingTaskIDErrorNamesTheAgentsOwnTask`。**未做**：54 次同形重试本身没有熔断——模型的收尾信号（静默放弃 define）目前不落台账。
+- **第二个交付文件的写权限仍是窄缝**：`authorizeTaskArtifactWrite` 只授权 `definition.artifact_path` 一个路径，定义里第二个文件只能靠 `human_request`，而后者要求「人类消息里明确要求」。J23 因此吃了 9 次 403 + 11 次 `human_request` 用法错。开放项。
+- 计划卡仍是事后通知：两页在卡升起前 84 秒/77 秒已落盘（00:40:49 起卡，00:41:25/00:41:32 落盘），`complete` 因此被「still in planning」挡了 3 次。
+
+## Journey 22（2026-11-13，换 D-3/D-4 之后）
 
 prereg `1c209eb`，工作区 `journey22`。判分卡：`core-loop-runs/2026-11-13-journey22/scorecard.md`。
 
