@@ -221,3 +221,85 @@ func (b *Broker) refuseNewLaneUnderDeliveredParentLocked(parent *teamTask) error
 		nil,
 	)
 }
+
+// topLevelTitlesRestate reports whether one top-level title restates another.
+// The sibling thresholds are tuned for lanes under one parent and miss the
+// top-level shape: "Journey 26：把这批改动写成两页（…）" vs
+// "Journey 26：两页变更说明已写入 wiki" scores 0.375 containment, under the
+// lane cutoff, while sharing the three shingles that name the work (两页/变更/
+// 说明) and nothing about the phrasing. For two top-level tasks in one channel
+// that is enough to ask the caller to finish the open one instead.
+func topLevelTitlesRestate(a, b string) bool {
+	if titlesAreSimilar(a, b) || laneTitlesSharePhrase(a, b) {
+		return true
+	}
+	sa := cjkBigrams(a)
+	sb := cjkBigrams(b)
+	if len(sa) == 0 || len(sb) == 0 {
+		return false
+	}
+	seen := make(map[string]struct{}, len(sa))
+	for _, s := range sa {
+		seen[s] = struct{}{}
+	}
+	shared := 0
+	for _, s := range sb {
+		if _, ok := seen[s]; ok {
+			shared++
+		}
+	}
+	smallest := len(sa)
+	if len(sb) < smallest {
+		smallest = len(sb)
+	}
+	return shared >= 3 && float64(shared)/float64(smallest) >= 0.35
+}
+
+// applyOpenTopLevelExclusivityLocked refuses a bot-authored top-level task that
+// restates work an open top-level task already holds in the same channel.
+//
+// Journeys 22, 25 and 26 all ended with one human request split across two
+// Issues: the second arrived seconds after the first, covered the same file or
+// the same deliverable, and — because a task is the unit of acceptance — the
+// human was then asked to approve half the work twice. Journey 26's duplicate
+// declared no artifact at all: its title was "the two pages are already in the
+// wiki", i.e. it was created to *close out* work rather than do it, and it spent
+// the turn on 7 "still in planning" refusals, 4 parked approvals and 3 writes to
+// a task that declared no path.
+//
+// Same shape as the sibling rule (scope collision or a title that restates the
+// open task), one level up. allowDuplicate stays the caller's explicit opt-out,
+// and humans/internal actors are exempt: they re-split by design.
+func (b *Broker) applyOpenTopLevelExclusivityLocked(task *teamTask, actor string, allowDuplicate bool) error {
+	if task == nil || strings.TrimSpace(task.ParentIssueID) != "" {
+		return nil
+	}
+	if allowDuplicate || isHumanMessageSender(actor) {
+		return nil
+	}
+	channel := normalizeChannelSlug(task.Channel)
+	scope := declaredArtifactScope(task)
+	for i := range b.tasks {
+		other := &b.tasks[i]
+		if other.ID == task.ID || strings.TrimSpace(other.ParentIssueID) != "" {
+			continue
+		}
+		if normalizeChannelSlug(other.Channel) != channel {
+			continue
+		}
+		if isTerminalTeamTaskStatus(other.status) {
+			continue
+		}
+		sameScope := scope != "" && SameWikiPath(declaredArtifactScope(other), scope)
+		if !sameScope && !topLevelTitlesRestate(task.Title, other.Title) {
+			continue
+		}
+		return taskMutationError(
+			TaskMutationConflict,
+			fmt.Sprintf("open task %s (%q) already holds this work in #%s — one request is one acceptance, and a second top-level task splits it into two cards the human then has to approve separately. Finish %s where it is: submit_for_review when it ships a file (the human approves), or complete when it does not. Comment on %s if you need to add context; pass allow_duplicate=true only if this is genuinely separate work.",
+				other.ID, strings.TrimSpace(other.Title), channel, other.ID, other.ID),
+			nil,
+		)
+	}
+	return nil
+}

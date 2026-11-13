@@ -824,6 +824,12 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 			rollbackTask()
 			return TaskResponse{}, err
 		}
+		// Top-level duplicates split one request into two acceptance surfaces
+		// (Journeys 22, 25, 26). Same rule as the sibling guard, one level up.
+		if err := b.applyOpenTopLevelExclusivityLocked(&task, actor, body.AllowDuplicate); err != nil {
+			rollbackTask()
+			return TaskResponse{}, err
+		}
 		if len(task.DependsOn) > 0 && b.hasUnresolvedDepsLocked(&task) {
 			task.blocked = true
 		} else if task.Owner != "" {
