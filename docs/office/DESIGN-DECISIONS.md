@@ -129,6 +129,20 @@ digest ──► render_artifacts()（脚本，0 LLM）
 | 把结论存进 bot 的 notebook 当“记忆” | 曾因 `/notebook/catalog` 恒 404 而失效（`internal/teammcp/context_tools.go:491` 调了 broker 未注册的路由）。**2026-11-01 已修**：四个 `/notebook/*` 路由已注册并实测，契约见 `RUNTIME-API.md` §6 |
 | 直接改 `broker-state.json` 改 prompt | broker 内存持有该文件，会被覆盖；必须走 `PATCH /scheduler/{slug}` |
 
+### 9.37 一个请求就是一个验收面：bot 不能在同一个频道里开第二个顶层任务（2026-11-13，Journey 26）
+
+**决定**：`applyOpenTopLevelExclusivityLocked` 在 create 时拒绝一个 bot 的作者在**同一频道**内新建的顶层任务——若它声明了某个未终结顶层任务已声明的写入范围，或者标题在复述那件事。文案点名已有任务并指回 `submit_for_review`（交付了文件时）或 `complete`（没有文件时）；`allow_duplicate=true` 是逃生门，人类与内部 actor 不受影响。
+
+**为什么**：J22 的第二个任务覆写了已交付的文件；J25 的第二个任务把两页拆成两张卡；J26 的第二个任务干脆不声明任何路径，标题写着「两页变更说明已写入 wiki」——它不是另一份工作，是模型给自己造的结案通道。三轮的共同点是**验收单位（task）与请求单位（人类那一句话）脱节**：卡问「要批准这一半吗」。
+
+代价是可以量化的：J26 一轮 25 次工具错误里 22 次出自那个空任务（7 次 `409 still in planning`、4 次 `403 parked`、3 次 `403 artifact path not declared`、一张问「是否批准？」的 interview 卡），而且它让 §9.35 的「唯一未终结任务」前提失效，`define` 又回到 4 次报错。
+
+**为什么不复用 lane 的标题判据**：`laneTitlesSharePhrase` 是为同一父任务下的 lane 调的，「把这批改动写成两页（…）」与「两页变更说明已写入 wiki」的包含度只有 0.375，低于 0.5 的门槛——但共享的三个 bigram（两页/变更/说明）恰好都在命名这件事。顶层用 `topLevelTitlesRestate`：共享 ≥3 且包含度 ≥0.35。**不是把全局阈值调松**：lane 与顶层是两种文案形状，各有各的判据。
+
+**为什么不是「一个频道只许一个顶层任务」**：一个请求拆成 N 个 Issue 是合法能力（「这三件事各开一个」）。要拦的是**复述**，不是数量。
+
+**遗留**：J26 那个重复任务是在修复之前建的，仍是 `in_progress`；本决定不追溯清理。
+
 ### 9.36 归属：谁写的，不等于谁要签收；但人工授权门必须记下它服务的是哪个任务（2026-11-13，Journey 25）
 
 **决定**：`/wiki/write` 接受一个只用于**归属**的 `task_id`。写入成功后把路径记到该任务（与 `/wiki/write-task` 同一本台账）；授权仍然只认那条人类消息。工具侧在走人工门时，若该 bot 只有一个未终结任务，就把 id 填上。

@@ -607,7 +607,17 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 
 **O2（已修）**：回合结束时的对账落在 `recordTaskLedgerEntry`。判据不是解析模型的措辞，而是事实：任务带着未清除的退回摘要（`SentBackFingerprint`）且交付物集合与退回时逐字节相同——这一回合就没写东西。此时记 `rework-unwritten` 台账、写 `rework_unwritten` 审计行、计入 `StalledTurns` 并arm 2 分钟短重试（而不是正常跟进间隔），下一回合的 packet 直接把这行渲染给模型看。失败回合和「有未答的人类请求」的 lane 豁免。测试 `TestTurnThatClaimsAReworkWithoutWritingOneIsNotATrace`、`TestClaimedReworkIsNotFlaggedWhileWaitingOnTheHuman`（去掉分类 / 去掉等待豁免分别变红）。仍留白的部分：模型声称写了一**别的**路径（不在交付物集合里）目前无从对账，只覆盖「被退回的那份没动」。
 
-**O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。### Journey 25（2026-11-13，D-8/D-9 上线后）
+**O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。### Journey 26（2026-11-13，D-12 上线后）
+
+prereg `b033a2c`，工作区 `journey26`。判分卡：`core-loop-runs/2026-11-13-journey26/scorecard.md`。
+
+- **四轮里第一次卡说真话**：首次交付与返工后的两张决策卡都写「The deliverables are:」+ 两行路径；没有「unchanged」假警告；返工只有一次真实内容修改（`6cbd516`），没有动任何不该动的字节。
+- **D-14（已修）重复顶层任务**：`JOURN-7` 无交付路径、标题「两页变更说明已写入 wiki」——模型给自己造的结案通道。它吃掉了整轮 25 次工具错误里的 22 次（7×`still in planning`、4×`parked`、3×`artifact path not declared`、1× interview 工具超时），并让 D-9 的唯一解析失效（4 次 `define` 报错）。修法：`applyOpenTopLevelExclusivityLocked`——同范围或复述标题就拒绝，点名已有任务并指回 `submit_for_review`/`complete`，`allow_duplicate` 是逃生门。设计见 §9.37。
+- **D-12 现场未触发**：本轮两次写入都走 `/wiki/write-task`，人工门归属支路只有单测覆盖。
+- **重复 lane 的形态在恶化**：J22 覆写已交付文件 → J25 拆分两页 → J26 造结案任务。三轮都记过「同路径独占是未拍板决策」，但真正的病根是**验收单位与请求单位脱节**，已由 D-14 处理前半（不许复述），后半（一个顶层任务能承载多个交付路径）由台账+卡的多路径输出承担。
+- `JOURN-7` 仍 `in_progress`（修复前建立，不追溯清理）。
+
+## Journey 25（2026-11-13，D-8/D-9 上线后）
 
 prereg `3aa1c41`，工作区 `journey25`。判分卡：`core-loop-runs/2026-11-13-journey25/scorecard.md`。
 
