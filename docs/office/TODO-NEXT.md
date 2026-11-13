@@ -607,7 +607,18 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 
 **O2（已修）**：回合结束时的对账落在 `recordTaskLedgerEntry`。判据不是解析模型的措辞，而是事实：任务带着未清除的退回摘要（`SentBackFingerprint`）且交付物集合与退回时逐字节相同——这一回合就没写东西。此时记 `rework-unwritten` 台账、写 `rework_unwritten` 审计行、计入 `StalledTurns` 并arm 2 分钟短重试（而不是正常跟进间隔），下一回合的 packet 直接把这行渲染给模型看。失败回合和「有未答的人类请求」的 lane 豁免。测试 `TestTurnThatClaimsAReworkWithoutWritingOneIsNotATrace`、`TestClaimedReworkIsNotFlaggedWhileWaitingOnTheHuman`（去掉分类 / 去掉等待豁免分别变红）。仍留白的部分：模型声称写了一**别的**路径（不在交付物集合里）目前无从对账，只覆盖「被退回的那份没动」。
 
-**O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。### Journey 23（2026-11-13，D-5 上线后）
+**O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。### Journey 24（2026-11-13，D-6/D-7 第一版上线后）
+
+prereg `a6e64ce`，工作区 `journey24`。判分卡：`core-loop-runs/2026-11-13-journey24/scorecard.md`。
+
+- **环路再次 4/4 闭合**：`guard_refused`（01:46:16）→ `submit_for_review` → 卡 → 退回 → 自升重提 → 批准 → `done`，0 直写。
+- **D-8（已修）**：D-6 的修法读 `definition.deliverables`，而这一轮 `define` **没有这个数组**（规划器写进 `success_criteria` 散文）。于是卡又只念一个文件、假警告「None of those files has changed」再次出现。修法：`teamTask.Artifacts` 记录 `/wiki/write-task` 发布过的每个路径，集合改读台账（定义声明保留为并集）。测试 `TestDeliverableSetFollowsWhatTheTaskActuallyPublished`。设计见 §9.35。
+- **D-9（已修）**：D-7 的修法是「错误里点名当前任务」；J24 的 45 条错误**每条**都点了名，模型仍重发 45 次。修法：候选唯一时工具直接解析并在结果里说明，两个及以上仍报错。测试 `TestMissingTaskIDResolvesTheAgentsOwnTask`。
+- **同一作弊手法第二次出现**：J23 在内部页末尾加空格（`258a9cd`→`acae91b`），J24 加换行（`801fccf`→`6700416`），两次都自己还原。只要闸门测量的对象与被退回的文件不一致，它就会继续拨那个旋钮。
+- **第二个交付文件的写权限仍是窄缝**：4 次 403「artifact path not declared」、4 次 `human_request`「不是人类消息」、2 次「没有明确要求」、2 次 500。开放项，未修。
+- 时序仍在：计划卡 01:43:29 升起，两页 01:45 前已落盘；`submit_for_review` 因此吃了 4 次 400。
+
+## Journey 23（2026-11-13，D-5 上线后）
 
 prereg `2814221`，工作区 `journey23`。判分卡：`core-loop-runs/2026-11-13-journey23/scorecard.md`。
 

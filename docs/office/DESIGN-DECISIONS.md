@@ -129,6 +129,22 @@ digest ──► render_artifacts()（脚本，0 LLM）
 | 把结论存进 bot 的 notebook 当“记忆” | 曾因 `/notebook/catalog` 恒 404 而失效（`internal/teammcp/context_tools.go:491` 调了 broker 未注册的路由）。**2026-11-01 已修**：四个 `/notebook/*` 路由已注册并实测，契约见 `RUNTIME-API.md` §6 |
 | 直接改 `broker-state.json` 改 prompt | broker 内存持有该文件，会被覆盖；必须走 `PATCH /scheduler/{slug}` |
 
+### 9.35 集合的来源是写入台账，不是定义；报错说服不了正在重发的模型（2026-11-13，Journey 24）
+
+**决定一**：`teamTask.Artifacts` 记录本任务通过 `/wiki/write-task` 发布过的每个路径，`deliverablePathsLocked` 把它并入集合（与定义声明的 `deliverables`、`artifact`、子任务交付取并集，`SameWikiPath` 去重）。
+
+**为什么**：J23 把这理解为「集合 = 定义里声明的每个文件」。J24 的定义**没有 `deliverables` 数组**——规划器把两个文件写进了 `success_criteria` 的散文。于是同一条环路又跑了一遍同样的错：卡只念对外页，人类退回内部页，返工落在内部页，摘要不动，卡上说「文件都没变」，模型在内部页末尾加一个换行再删掉。
+
+定义是模型写的，形状随提示词漂移；写入是事实。授权已经知道 `task_id` 与 `path`（`authorizeTaskArtifactWrite` 就是拿它们判的），把它记下来只是同一份信息的另一个用途。
+
+**决定二**：`id` 缺失时，若该 agent 在频道里只有一个未终结任务，工具直接解析它并在结果里说明；两个及以上仍然报错。
+
+**为什么**：J23 的做法是在错误里点名任务（「in general that is JOURN-2」），J24 的 45 条错误**每一条**都点了名，模型照旧不带 `id`。它不是在读错误，它是在重发。文案能改善人类读者的体验，改善不了这种行为；要么让工具自己把值填上，要么就继续看着它重试到回合结束。
+
+**边界**：只有当候选唯一时才自动解析。两个候选之间替模型挑一个，等于替它决定做哪件事，那是另一种错误，而且不报错的那种。
+
+**测试**：`TestDeliverableSetFollowsWhatTheTaskActuallyPublished`（红证：去掉台账循环 → 「both published pages must be in the set, got [team/reviews/j24-public.md]」）、`TestMissingTaskIDResolvesTheAgentsOwnTask`（断言 broker 请求体里带 `"id":"JOURN-2"`）、`TestMissingTaskIDErrorStaysGenericWithTwoLiveTasks`。
+
 ### 9.34 交付集合 = 定义里声明的每一个文件（2026-11-13，Journey 23）
 
 **决定**：`deliverablePathsLocked` 除了 `task.Artifact` 与子任务交付，还纳入 `task.Definition.Deliverables[].Name` 里形如 wiki 路径的项（含 `/`、扩展名是 `.md/.markdown/.txt`、不含空格），按 `SameWikiPath` 去重。决策卡在集合 >1 时逐行列出全部路径。
