@@ -111,6 +111,12 @@ func (b *Broker) deliverablePathsLocked(task *teamTask) []string {
 			add(wikiPathFromDeliverableName(d.Name))
 		}
 	}
+	// What the task actually published beats what its definition hoped it
+	// would: Journey 24's define carried no deliverables list, and the two
+	// pages it wrote were only discoverable from the write ledger.
+	for _, published := range task.Artifacts {
+		add(published)
+	}
 	add(task.Artifact)
 	for _, entry := range b.childDeliverablesLocked(task) {
 		if strings.Contains(entry, " (ships no file)") {

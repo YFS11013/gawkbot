@@ -347,6 +347,14 @@ type teamTask struct {
 	// WITH a Definition cannot reach done until this is set; tasks without
 	// one keep legacy behavior. Wire key "artifact" is additive.
 	Artifact string `json:"artifact,omitempty"`
+	// Artifacts is every wiki path this task published through
+	// /wiki/write-task, in publication order. Artifact is the one the task
+	// *declares* as its deliverable; this is the ledger of what it actually
+	// wrote. Journey 24's definition arrived without a deliverables list (the
+	// planner filled success_criteria prose instead), so "what was published"
+	// cannot be inferred from the definition — and a set built from the wrong
+	// source is a set the human is not really accepting.
+	Artifacts []string `json:"artifacts,omitempty"`
 	// HollowCompletion marks a done task that shipped no artifact. Tasks WITH
 	// a Definition are blocked from reaching done empty (the artifact gate in
 	// the mutation service); tasks without one keep legacy behavior, and this
@@ -570,6 +578,7 @@ type teamTaskWire struct {
 	VerificationResult   *TaskVerificationResult `json:"verification_result,omitempty"`
 	Definition           *TaskDefinition         `json:"definition,omitempty"`
 	Artifact             string                  `json:"artifact,omitempty"`
+	Artifacts            []string                `json:"artifacts,omitempty"`
 	HollowCompletion     bool                    `json:"hollow_completion,omitempty"`
 	ArtifactNotRequired  string                  `json:"artifact_not_required,omitempty"`
 	ChangesRequested     *TaskReviewObjection    `json:"changes_requested,omitempty"`
@@ -631,6 +640,7 @@ func (t teamTask) MarshalJSON() ([]byte, error) {
 		VerificationResult:   t.VerificationResult,
 		Definition:           t.Definition,
 		Artifact:             t.Artifact,
+		Artifacts:            t.Artifacts,
 		HollowCompletion:     t.HollowCompletion,
 		ArtifactNotRequired:  t.ArtifactNotRequired,
 		ChangesRequested:     t.ChangesRequested,
@@ -694,6 +704,7 @@ func (t *teamTask) UnmarshalJSON(data []byte) error {
 	t.VerificationResult = w.VerificationResult
 	t.Definition = w.Definition
 	t.Artifact = w.Artifact
+	t.Artifacts = w.Artifacts
 	t.HollowCompletion = w.HollowCompletion
 	t.ArtifactNotRequired = w.ArtifactNotRequired
 	t.ChangesRequested = w.ChangesRequested

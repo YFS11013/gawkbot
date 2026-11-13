@@ -34,37 +34,39 @@ func TestHandleTeamTaskNamesAMissingIDInsteadOf404(t *testing.T) {
 	}
 }
 
-// Journey 23 (core-loop-runs/2026-11-13-journey23): the model called define
-// without id 54 times in one turn. The message told it what to pass ("the id
-// create returned") but never which value, so every retry was a fresh guess.
-// When the agent owns exactly one live task, the error names it.
-func TestMissingTaskIDErrorNamesTheAgentsOwnTask(t *testing.T) {
+// Journey 23 named the agent's task in the error; Journey 24 still called
+// define without id 45 times against that message. The tool now resolves the
+// sole live task itself and says which one it used.
+func TestMissingTaskIDResolvesTheAgentsOwnTask(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("WUPHF_AGENT_SLUG", "cos")
-	srv, _ := stubBroker(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/tasks" {
-			w.WriteHeader(http.StatusNotFound)
+	srv, auth := stubBroker(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodGet && r.URL.Path == "/tasks" {
+			_, _ = w.Write([]byte(`{"tasks":[
+				{"id":"JOURN-2","owner":"cos","status":"in_progress","channel":"general"},
+				{"id":"OLD-1","owner":"cos","status":"done","channel":"general"},
+				{"id":"OTHER-9","owner":"nazz","status":"running","channel":"general"}]}`))
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"tasks":[
-			{"id":"JOURN-2","owner":"cos","status":"planning","channel":"general"},
-			{"id":"OLD-1","owner":"cos","status":"done","channel":"general"},
-			{"id":"OTHER-9","owner":"nazz","status":"running","channel":"general"}]}`))
+		_, _ = w.Write([]byte(`{"task":{"id":"JOURN-2","owner":"cos","status":"in_progress","title":"two pages"}}`))
 	})
 	defer srv.Close()
 	withBrokerURL(t, srv.URL)
 
-	res, _, err := handleTeamTask(context.Background(), nil, TeamTaskArgs{Action: "define", Channel: "general"})
+	res, _, err := handleTeamTask(context.Background(), nil, TeamTaskArgs{Action: "define", Channel: "general", Goal: "two pages"})
 	if err != nil {
-		t.Fatalf("must be a tool error result: %v", err)
+		t.Fatalf("must be a tool result: %v", err)
 	}
 	text := textFromResult(t, res)
 	if !strings.Contains(text, "JOURN-2") {
-		t.Fatalf("the error must name the agent's one live task, got %q", text)
+		t.Fatalf("the result must name the task it acted on, got %q", text)
 	}
-	if strings.Contains(text, "OLD-1") || strings.Contains(text, "OTHER-9") {
-		t.Fatalf("closed tasks and other agents' tasks are not candidates, got %q", text)
+	if !strings.Contains(text, "only open task") {
+		t.Fatalf("the result must say the id was inferred, got %q", text)
+	}
+	if !strings.Contains(auth.lastBody, `"id":"JOURN-2"`) {
+		t.Fatalf("the broker call must carry the resolved id, got %q", auth.lastBody)
 	}
 }
 

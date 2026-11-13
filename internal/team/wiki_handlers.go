@@ -137,6 +137,7 @@ func (b *Broker) handleWikiWriteTask(w http.ResponseWriter, r *http.Request) {
 	if !isNew && !strings.EqualFold(strings.TrimSpace(body.Mode), "append_section") {
 		b.recordForeignArtifactOverwrite(taskID, slug, path)
 	}
+	b.recordTaskPublishedPath(taskID, path)
 	log.Printf("wiki write-task: task=%s slug=%s path=%s bytes=%d", taskID, slug, path, n)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"path":          path,
@@ -540,6 +541,37 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 // during the guard exercise (core-loop-runs/2026-11-10-guards), and nothing
 // recorded it. An audit row is the least this can cost: blocking would break
 // routines that rewrite the same path every run.
+// recordTaskPublishedPath notes that this task wrote this wiki path. The task's
+// Artifact is the one path it *declares*; this is what it actually published.
+// Journey 24's definition carried no deliverables list at all, so a delivered
+// set built from the definition alone read one of the two pages — the same hole
+// D-6 opened, from a different direction.
+func (b *Broker) recordTaskPublishedPath(taskID, path string) {
+	if b == nil {
+		return
+	}
+	taskID = strings.TrimSpace(taskID)
+	path = strings.TrimSpace(path)
+	if taskID == "" || path == "" {
+		return
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	task := b.taskByIDLocked(taskID)
+	if task == nil {
+		return
+	}
+	for _, seen := range task.Artifacts {
+		if SameWikiPath(seen, path) {
+			return
+		}
+	}
+	task.Artifacts = append(task.Artifacts, path)
+	if err := b.saveLocked(); err != nil {
+		log.Printf("wiki write-task: recording published path for %s failed: %v", taskID, err)
+	}
+}
+
 func (b *Broker) recordForeignArtifactOverwrite(taskID, slug, path string) {
 	if b == nil {
 		return

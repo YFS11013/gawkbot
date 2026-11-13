@@ -83,3 +83,76 @@ func TestDeliverableSetCoversEveryDeclaredFile(t *testing.T) {
 		t.Fatalf("the rework changed a file; the card must not claim nothing moved, got %q", body)
 	}
 }
+
+// Journey 24 (core-loop-runs/2026-11-13-journey24): the planner filled
+// success_criteria prose and an artifact_path but left definition.deliverables
+// empty, so a set built from the definition still read one of the two pages the
+// task wrote. What the task actually published is the only source that survives
+// a definition filled in three different ways; Artifact stays the declared
+// deliverable, Artifacts is the ledger.
+func TestDeliverableSetFollowsWhatTheTaskActuallyPublished(t *testing.T) {
+	b := newHumanNoteTestBroker(t)
+	wikiRoot := filepath.Join(t.TempDir(), "wiki")
+	b.wikiWorker = NewWikiWorker(NewRepoAt(wikiRoot, filepath.Join(t.TempDir(), "wiki.bak")), b)
+
+	const internalRel = "team/reviews/j24-internal.md"
+	const publicRel = "team/reviews/j24-public.md"
+	for _, rel := range []string{internalRel, publicRel} {
+		abs := filepath.Join(wikiRoot, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(abs, []byte("v1 "+rel+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	b.mu.Lock()
+	b.tasks = append(b.tasks, teamTask{
+		ID: "JOURN-24", Channel: "general", Owner: "cos", CreatedBy: "cos",
+		Title: "Write the two review pages", status: "review", reviewState: "ready_for_review",
+		Artifact: publicRel,
+		Definition: &TaskDefinition{
+			Goal:            "two pages",
+			ArtifactPath:    publicRel,
+			SuccessCriteria: []string{"both pages land"},
+		},
+	})
+	b.mu.Unlock()
+
+	b.recordTaskPublishedPath("JOURN-24", internalRel)
+	b.recordTaskPublishedPath("JOURN-24", publicRel)
+
+	b.mu.Lock()
+	paths := b.deliverablePathsLocked(b.taskByIDLocked("JOURN-24"))
+	b.mu.Unlock()
+	if len(paths) != 2 {
+		t.Fatalf("both published pages must be in the set, got %v", paths)
+	}
+
+	if err := b.RecordTaskDecisionWithComment("JOURN-24", string(RecordDecisionRequestChanges), "the internal page does not say what kind of change each line is", "you"); err != nil {
+		t.Fatalf("send back: %v", err)
+	}
+	// The rework lands in the page that is NOT the artifact.
+	internalAbs := filepath.Join(wikiRoot, filepath.FromSlash(internalRel))
+	if err := os.WriteFile(internalAbs, []byte("v2 "+internalRel+" (fix)\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if unchanged, _ := b.sentBackDeliverablesUnchanged("JOURN-24"); unchanged {
+		t.Fatal("a rewrite of a published page is a change, even when it is not the declared artifact")
+	}
+
+	reopenInDecision(t, b, "JOURN-24")
+	cards := decisionCards(b)
+	if len(cards) == 0 {
+		t.Fatal("want a decision card")
+	}
+	body := cards[len(cards)-1].Question
+	for _, rel := range []string{internalRel, publicRel} {
+		if !strings.Contains(body, rel) {
+			t.Fatalf("the card must name %s, got %q", rel, body)
+		}
+	}
+	if strings.Contains(body, "None of those files has changed") {
+		t.Fatalf("the rework changed a published page; the card must not claim nothing moved, got %q", body)
+	}
+}

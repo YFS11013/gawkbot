@@ -92,6 +92,9 @@ func handleTeamTask(ctx context.Context, _ *mcp.CallToolRequest, args TeamTaskAr
 	}
 	channel = resolveConversationChannel(ctx, mySlug, channel)
 	action := strings.TrimSpace(args.Action)
+	// inferredID is set when the caller omitted `id` and there was exactly one
+	// candidate; the result says so instead of pretending the argument arrived.
+	inferredID := ""
 	// Journey 21 (core-loop-runs/2026-11-13-journey21): a model that forgot
 	// `id` on define got "404 task not found" from the broker and retried the
 	// same call 65 times in one turn — the error pointed at a missing task,
@@ -99,18 +102,19 @@ func handleTeamTask(ctx context.Context, _ *mcp.CallToolRequest, args TeamTaskAr
 	// address an existing task; everything else names one, and the broker
 	// cannot infer it from the channel.
 	if action != "" && !strings.EqualFold(action, "create") && strings.TrimSpace(args.ID) == "" {
-		// Journey 23 (core-loop-runs/2026-11-13-journey23): Journey 22 answered
-		// this with the same sentence seven times and the model retried the same
-		// call seven times; Journey 23 did it FIFTY-FOUR times in one turn — the
-		// tool never named a value, so "pass id=<the id returned by create>"
-		// reads as a form to fill in later. When this agent owns exactly one
-		// live task in the channel, the error names it. It is still an error,
-		// still the model's call to make; it just stops being a riddle.
-		hint := ""
-		if sole := soleLiveTaskIDForAgent(ctx, mySlug, channel); sole != "" {
-			hint = fmt.Sprintf(" — in %s that is %s", channel, sole)
+		// Journey 23 named the agent's task in the error ("in general that is
+		// JOURN-2") and Journey 24 still retried the same id-less define 45
+		// times: the model is not reading the error, it is re-emitting the
+		// call. So when this agent has exactly one live task in the channel,
+		// the tool resolves it and says so in the result. Anything else — no
+		// task, or two candidates — is still the error, because guessing
+		// between two tasks is not a default anyone should get.
+		sole := soleLiveTaskIDForAgent(ctx, mySlug, channel)
+		if sole == "" {
+			return toolError(fmt.Errorf("team_task action=%q needs the task id. Pass id=<the id create returned>.", action)), nil, nil
 		}
-		return toolError(fmt.Errorf("team_task action=%q needs the task id%s. Pass id=<the id create returned>.", action, hint)), nil, nil
+		args.ID = sole
+		inferredID = sole
 	}
 	payload := map[string]any{
 		"action":     action,
@@ -276,6 +280,9 @@ func handleTeamTask(ctx context.Context, _ *mcp.CallToolRequest, args TeamTaskAr
 	// of turns before publishing).
 	if brief := appWorkspaceBriefFrom(result.Task.Details); brief != "" {
 		text += "\n\n" + brief
+	}
+	if inferredID != "" {
+		text += fmt.Sprintf("\n\n(No id was passed, so this acted on %s — your only open task. Pass id explicitly to address a different one.)", inferredID)
 	}
 	return textResult(text), nil, nil
 }
