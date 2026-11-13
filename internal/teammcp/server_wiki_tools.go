@@ -47,6 +47,9 @@ func handleTeamWikiWrite(ctx context.Context, _ *mcp.CallToolRequest, args TeamW
 		return toolError(fmt.Errorf("article_path is required")), nil, nil
 	}
 	taskID := strings.TrimSpace(args.TaskID)
+	// attributedTaskID is set only on the human-delegation path, and only for
+	// the ledger: /wiki/write stays authorizable by the human's message alone.
+	attributedTaskID := ""
 	if taskID == "" && !adminDirectWikiWriteBypassEnabled() && !strings.EqualFold(strings.TrimSpace(slug), team.LibrarianSlug) {
 		// The authorization the task already granted is the one the bot least
 		// often notices. Journey 18: the parent Issue declared no artifact_path,
@@ -61,6 +64,11 @@ func handleTeamWikiWrite(ctx context.Context, _ *mcp.CallToolRequest, args TeamW
 		if err := verifyHumanWikiWriteDelegation(ctx, slug, args.HumanRequest); err != nil {
 			return toolError(err), nil, nil
 		}
+		// Journey 25: the human authorized the write, the bot wrote it, and the
+		// task that the human was actually accepting never learned about it —
+		// its card kept naming the one file the task-scoped door had seen.
+		// Attribution only; the human's message is still what authorized it.
+		attributedTaskID = resolveSoleLiveTask(ctx, slug)
 	}
 	mode := strings.TrimSpace(args.Mode)
 	if mode == "" {
@@ -90,6 +98,8 @@ func handleTeamWikiWrite(ctx context.Context, _ *mcp.CallToolRequest, args TeamW
 	if taskID != "" {
 		endpoint = "/wiki/write-task"
 		body["task_id"] = taskID
+	} else if attributedTaskID != "" {
+		body["task_id"] = attributedTaskID
 	}
 	err = brokerPostJSON(ctx, endpoint, body, &result)
 	if err != nil {
@@ -101,6 +111,43 @@ func handleTeamWikiWrite(ctx context.Context, _ *mcp.CallToolRequest, args TeamW
 		"bytes_written": result.BytesWritten,
 	})
 	return textResult(string(payload)), nil, nil
+}
+
+// resolveSoleLiveTask returns the one non-terminal task this bot owns, or ""
+// when there is none or more than one. Used for attribution, never for
+// authorization: naming the wrong task would misreport an acceptance surface,
+// so the ambiguous case stays unnamed.
+func resolveSoleLiveTask(ctx context.Context, slug string) string {
+	slug = strings.TrimSpace(slug)
+	if slug == "" {
+		return ""
+	}
+	var response struct {
+		Tasks []struct {
+			ID     string `json:"id"`
+			Owner  string `json:"owner"`
+			Status string `json:"status"`
+		} `json:"tasks"`
+	}
+	query := "/tasks?all_channels=true&my_slug=" + url.QueryEscape(slug)
+	if err := brokerGetJSON(ctx, query, &response); err != nil {
+		return ""
+	}
+	found := ""
+	for _, task := range response.Tasks {
+		if !strings.EqualFold(strings.TrimSpace(task.Owner), slug) {
+			continue
+		}
+		switch strings.ToLower(strings.TrimSpace(task.Status)) {
+		case "done", "failed", "cancelled", "canceled", "archived":
+			continue
+		}
+		if found != "" {
+			return ""
+		}
+		found = task.ID
+	}
+	return found
 }
 
 // resolveTaskArtifactAuthorization returns the caller's open task whose

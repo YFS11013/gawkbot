@@ -37,6 +37,12 @@ func (b *Broker) handleWikiWrite(w http.ResponseWriter, r *http.Request) {
 		Content       string `json:"content"`
 		Mode          string `json:"mode"`
 		CommitMessage string `json:"commit_message"`
+		// TaskID is attribution, never authorization: a human-authorized write
+		// (/wiki/write) is not task-scoped, but it may still be *for* a task.
+		// Journey 25's rework went through this door and the task's ledger
+		// never learned the page existed, so the acceptance card kept naming
+		// one file while the task had published two.
+		TaskID string `json:"task_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, `{"error":"invalid json"}`, http.StatusBadRequest)
@@ -55,6 +61,7 @@ func (b *Broker) handleWikiWrite(w http.ResponseWriter, r *http.Request) {
 	if isNew {
 		b.emitNewWikiArticleCard(body.Path, body.Content, r.Header.Get(botRateLimitHeader))
 	}
+	b.attributeWikiWrite(body.Slug, body.TaskID, body.Path)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"path":          body.Path,
 		"commit_sha":    sha,
@@ -541,6 +548,25 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 // during the guard exercise (core-loop-runs/2026-11-10-guards), and nothing
 // recorded it. An audit row is the least this can cost: blocking would break
 // routines that rewrite the same path every run.
+// attributeWikiWrite records a human-authorized write against the task it was
+// for, when the caller named one it owns. It changes no authorization: the
+// write already happened, and a task id here only decides which acceptance
+// surface shows the page.
+func (b *Broker) attributeWikiWrite(slug, taskID, path string) {
+	taskID = strings.TrimSpace(taskID)
+	if taskID == "" {
+		return
+	}
+	b.mu.Lock()
+	task := b.taskByIDLocked(taskID)
+	owned := task != nil && strings.EqualFold(strings.TrimSpace(task.Owner), strings.TrimSpace(slug))
+	b.mu.Unlock()
+	if !owned {
+		return
+	}
+	b.recordTaskPublishedPath(taskID, path)
+}
+
 // recordTaskPublishedPath notes that this task wrote this wiki path. The task's
 // Artifact is the one path it *declares*; this is what it actually published.
 // Journey 24's definition carried no deliverables list at all, so a delivered

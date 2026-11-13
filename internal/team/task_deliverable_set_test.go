@@ -156,3 +156,33 @@ func TestDeliverableSetFollowsWhatTheTaskActuallyPublished(t *testing.T) {
 		t.Fatalf("the rework changed a published page; the card must not claim nothing moved, got %q", body)
 	}
 }
+
+// Journey 25 (core-loop-runs/2026-11-13-journey25): the rework was written
+// through the human-authorized door (/wiki/write), which carried no task at
+// all — the task published two pages and its acceptance card kept naming one.
+// The write now carries an attribution id, and only the owner's open task may
+// be attributed.
+func TestHumanAuthorizedWriteIsAttributedToItsTask(t *testing.T) {
+	b := newHumanNoteTestBroker(t)
+	b.mu.Lock()
+	b.tasks = append(b.tasks,
+		teamTask{ID: "JOURN-2", Channel: "general", Owner: "cos", CreatedBy: "cos",
+			Title: "two pages", status: "in_progress"},
+		teamTask{ID: "OTHER-1", Channel: "general", Owner: "nazz", CreatedBy: "nazz",
+			Title: "someone else's work", status: "in_progress"},
+	)
+	b.mu.Unlock()
+
+	b.attributeWikiWrite("cos", "JOURN-2", "team/reviews/j25-public.md")
+	b.attributeWikiWrite("cos", "OTHER-1", "team/accounts/acme.md") // not cos's task
+	b.attributeWikiWrite("cos", "", "team/reviews/j25-internal.md") // no attribution asked
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if got := b.taskByIDLocked("JOURN-2").Artifacts; len(got) != 1 || !SameWikiPath(got[0], "team/reviews/j25-public.md") {
+		t.Fatalf("the human-authorized write must land on the task it served, got %v", got)
+	}
+	if got := b.taskByIDLocked("OTHER-1").Artifacts; len(got) != 0 {
+		t.Fatalf("a write may not be attributed to somebody else's task, got %v", got)
+	}
+}

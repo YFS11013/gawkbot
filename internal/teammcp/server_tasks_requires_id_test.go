@@ -95,3 +95,40 @@ func TestMissingTaskIDErrorStaysGenericWithTwoLiveTasks(t *testing.T) {
 		t.Fatalf("with two candidates the error must not pick one, got %q", text)
 	}
 }
+
+// Journey 25: the task that the human is accepting has to learn about writes
+// that went through the human-authorized door. With one live task the tool now
+// sends its id for attribution (the human's message is still what authorized
+// the write); with two it stays silent rather than guess.
+func TestHumanRequestedWikiWriteCarriesTheSoleTaskID(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("WUPHF_AGENT_SLUG", "cos")
+	srv, auth := stubBroker(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/tasks":
+			_, _ = w.Write([]byte(`{"tasks":[{"id":"JOURN-2","owner":"cos","status":"in_progress"}]}`))
+		case r.URL.Path == "/messages":
+			_, _ = w.Write([]byte(`{"messages":[{"id":"msg-26","from":"you","source":"human","timestamp":"2026-11-13T04:40:00Z","content":"Please write the public note to the wiki at team/reviews/j25-public.md as part of this task"}]}`))
+		default:
+			_, _ = w.Write([]byte(`{"path":"team/reviews/j25-public.md","commit_sha":"abc","bytes_written":10}`))
+		}
+	})
+	defer srv.Close()
+	withBrokerURL(t, srv.URL)
+
+	res, _, err := handleTeamWikiWrite(context.Background(), nil, TeamWikiWriteArgs{
+		ArticlePath:  "team/reviews/j25-public.md",
+		Content:      "两条人话\n",
+		HumanRequest: "msg-26",
+	})
+	if err != nil {
+		t.Fatalf("tool error result: %v", err)
+	}
+	if isToolError(res) {
+		t.Fatalf("the human authorized this write; got %q", toolErrorText(res))
+	}
+	if !strings.Contains(auth.lastBody, `"task_id":"JOURN-2"`) {
+		t.Fatalf("the write must carry the task it serves, got %q", auth.lastBody)
+	}
+}
