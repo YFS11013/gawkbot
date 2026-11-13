@@ -615,6 +615,8 @@ prereg `6c5401c`，工作区 `journey27`。判分卡：`core-loop-runs/2026-11-1
 - **D-15（已修）判据落在措辞上就必然漏**：旧任务 create 时没有 `artifact_scope`（路径是计划阶段定的），两个标题的 bigram 交集只有 `对外`。而第二个任务声明的 `team/reviews/j27-public.md` 早就写在第一个任务的 details 里——人类那一句请求同时点了两个文件。修法：`openTaskNamesPath`，拿路径去旧任务全文里找。见 §9.38。
 - **D-16（已修）请求形状错误被报成 500**：`mode=create` 写已存在页面返回 500，正文却说「use replace or append_section」。模型信状态码，重试了一次。改为 409/400。
 - **拆分的代价量化了**：同形场景在 J26 里 4 个动作闭合；J27 里 4 个动作用尽仍未闭合（`JOURN-7` 停在 `in_progress`，交付卡在预算之外才出现）。两张卡各念一页，人要先批准一半、再回来批准另一半。
+- **下一轮的必测项：拒绝之后的恢复**（本轮没测到，因为守卫没触发）。断言要写成：第一次 `409` 之后 ≤1 次重试，且模型回到那个已存在的任务上干活（plan / 交付 / comment 任一）；**若出现 ≥2 次重试，就说明文案还不够可行动**——J24 的 45 次重发就是这么来的。为了让这条被测到，场景必须真的会触发守卫（同一请求里两次声明同一个路径，或第二次 create 的标题复述第一次）。
+- **守卫不拦合法扇出**：判据是「同一个文件 / 复述同一件事」，不是「一个频道只能有一个任务」。一次请求开 N 个各写各的文件的 Issue，路径与标题都不重叠，不会被拦；套件 747s 全绿也覆盖了现有多任务 create 的用例。
 - **人工授权门仍无现场数据**：自动化消息发送者恒为 `nex`，`human_request` 必判非人。要现场验证 D-12，harness 必须能以人类身份发消息。路径已确认：`POST /humans/invites`（broker 身份）取 token → `POST /humans/invites/accept`（`{token, display_name}`）拿会话 cookie → `POST /messages` 带 cookie，`From` 即为 `human:<slug>`，此时 `human_request=<该 msg id>` 才会过闸。下一轮接上即可。
 
 ## Journey 26（2026-11-13，D-12 上线后）
