@@ -19,10 +19,18 @@ const humanWikiDelegationMaxAge = 24 * time.Hour
 
 const directWikiIntentMaxGapWords = 5
 
+// The matcher reads the human's message in whatever language they wrote it.
+// Journey 28's authorization was Chinese ("我现在就授权你把这两页写进 wiki")
+// and an English-only verb list scored it false, so the one door that is
+// supposed to work without a pre-declared task scope refused the person it was
+// written for — then told the bot to ask them plainly, which produces the same
+// refusal again. CJK alternations carry no \b (word boundaries do not exist
+// between Han characters), so the English half keeps them and the CJK half
+// does not.
 var (
-	directWikiVerbRE     = regexp.MustCompile(`(?i)\b(write|add|put|save|record|preserve|publish|create|update)\b`)
-	directWikiTargetRE   = regexp.MustCompile(`(?i)\b(wiki|kb|knowledge\s+base)\b`)
-	directWikiNegationRE = regexp.MustCompile(`(?i)\b(do not|don't|dont|never)\b`)
+	directWikiVerbRE     = regexp.MustCompile(`(?i)\b(write|add|put|save|record|preserve|publish|create|update)\b|写入|写进|写到|写在|更新|发布|保存|新增|加到|放进|落到`)
+	directWikiTargetRE   = regexp.MustCompile(`(?i)\b(wiki|kb|knowledge\s+base)\b|知识库`)
+	directWikiNegationRE = regexp.MustCompile(`(?i)\b(do not|don't|dont|never)\b|不要|别|勿|不得|禁止`)
 )
 
 // handleTeamWikiWrite posts the article to the broker's wiki worker queue.
