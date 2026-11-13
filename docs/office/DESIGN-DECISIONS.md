@@ -129,6 +129,18 @@ digest ──► render_artifacts()（脚本，0 LLM）
 | 把结论存进 bot 的 notebook 当“记忆” | 曾因 `/notebook/catalog` 恒 404 而失效（`internal/teammcp/context_tools.go:491` 调了 broker 未注册的路由）。**2026-11-01 已修**：四个 `/notebook/*` 路由已注册并实测，契约见 `RUNTIME-API.md` §6 |
 | 直接改 `broker-state.json` 改 prompt | broker 内存持有该文件，会被覆盖；必须走 `PATCH /scheduler/{slug}` |
 
+### 9.38 判据要落在路径上，不要落在措辞上（2026-11-13，Journey 27）
+
+**决定**：顶层独占守卫再加一条信号——新任务声明的 `artifact_scope` 若已经出现在某个未终结顶层任务的 title / details / goal / deliverables / artifact_path 里，create 即被拒绝（`openTaskNamesPath`）。三条信号并联：同范围 → 路径被点名 → 标题复述。
+
+**为什么**：§9.37 的两条判据在 J27 全部落空。旧任务在 create 时没声明 scope（它的路径是后来在计划里定的），两个标题的 CJK bigram 交集只有 `对外`，containment 0.25，低于门槛。可人类那一句请求**同时点了两个文件**，第二个任务声明的路径四十秒前就写在第一个任务的 details 里。
+
+措辞会漂：同一个人把这件事写成「两页变更清单」「两页变更说明」「对外说明页」三种标题，四轮各一种。路径不会漂。于是判据从「像不像同一件事」改成「写的是不是同一个文件」——这不是更聪明的相似度，而是换了一个更硬的锚点。
+
+**代价**：两个互不相关但同文件的任务本来就不该并存（一个文件一个交付物，§9.26 的老原则），所以这条判据的误伤面比语言判据小。
+
+**附带**：`mode=create` 命中已存在页面返回 500 也一并修正为 409（`ErrWikiArticleExists`）。文案一直在教模型怎么改，状态码却一直说服务端坏了。
+
 ### 9.37 一个请求就是一个验收面：bot 不能在同一个频道里开第二个顶层任务（2026-11-13，Journey 26）
 
 **决定**：`applyOpenTopLevelExclusivityLocked` 在 create 时拒绝一个 bot 的作者在**同一频道**内新建的顶层任务——若它声明了某个未终结顶层任务已声明的写入范围，或者标题在复述那件事。文案点名已有任务并指回 `submit_for_review`（交付了文件时）或 `complete`（没有文件时）；`allow_duplicate=true` 是逃生门，人类与内部 actor 不受影响。

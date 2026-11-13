@@ -607,7 +607,17 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 
 **O2（已修）**：回合结束时的对账落在 `recordTaskLedgerEntry`。判据不是解析模型的措辞，而是事实：任务带着未清除的退回摘要（`SentBackFingerprint`）且交付物集合与退回时逐字节相同——这一回合就没写东西。此时记 `rework-unwritten` 台账、写 `rework_unwritten` 审计行、计入 `StalledTurns` 并arm 2 分钟短重试（而不是正常跟进间隔），下一回合的 packet 直接把这行渲染给模型看。失败回合和「有未答的人类请求」的 lane 豁免。测试 `TestTurnThatClaimsAReworkWithoutWritingOneIsNotATrace`、`TestClaimedReworkIsNotFlaggedWhileWaitingOnTheHuman`（去掉分类 / 去掉等待豁免分别变红）。仍留白的部分：模型声称写了一**别的**路径（不在交付物集合里）目前无从对账，只覆盖「被退回的那份没动」。
 
-**O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。### Journey 26（2026-11-13，D-12 上线后）
+**O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。### Journey 27（2026-11-13，D-14 上线后）
+
+prereg `6c5401c`，工作区 `journey27`。判分卡：`core-loop-runs/2026-11-13-journey27/scorecard.md`。
+
+- **守卫一次都没触发**：与 J26 逐字同形的两页场景，模型照样开了两个顶层任务。不是「被拒后恢复不好」，是根本没被拒。
+- **D-15（已修）判据落在措辞上就必然漏**：旧任务 create 时没有 `artifact_scope`（路径是计划阶段定的），两个标题的 bigram 交集只有 `对外`。而第二个任务声明的 `team/reviews/j27-public.md` 早就写在第一个任务的 details 里——人类那一句请求同时点了两个文件。修法：`openTaskNamesPath`，拿路径去旧任务全文里找。见 §9.38。
+- **D-16（已修）请求形状错误被报成 500**：`mode=create` 写已存在页面返回 500，正文却说「use replace or append_section」。模型信状态码，重试了一次。改为 409/400。
+- **拆分的代价量化了**：同形场景在 J26 里 4 个动作闭合；J27 里 4 个动作用尽仍未闭合（`JOURN-7` 停在 `in_progress`，交付卡在预算之外才出现）。两张卡各念一页，人要先批准一半、再回来批准另一半。
+- **人工授权门仍无现场数据**：自动化消息发送者恒为 `nex`，`human_request` 必判非人。要现场验证 D-12，harness 必须能以人类身份发消息。路径已确认：`POST /humans/invites`（broker 身份）取 token → `POST /humans/invites/accept`（`{token, display_name}`）拿会话 cookie → `POST /messages` 带 cookie，`From` 即为 `human:<slug>`，此时 `human_request=<该 msg id>` 才会过闸。下一轮接上即可。
+
+## Journey 26（2026-11-13，D-12 上线后）
 
 prereg `b033a2c`，工作区 `journey26`。判分卡：`core-loop-runs/2026-11-13-journey26/scorecard.md`。
 
