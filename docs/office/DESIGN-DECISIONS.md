@@ -129,6 +129,18 @@ digest ──► render_artifacts()（脚本，0 LLM）
 | 把结论存进 bot 的 notebook 当“记忆” | 曾因 `/notebook/catalog` 恒 404 而失效（`internal/teammcp/context_tools.go:491` 调了 broker 未注册的路由）。**2026-11-01 已修**：四个 `/notebook/*` 路由已注册并实测，契约见 `RUNTIME-API.md` §6 |
 | 直接改 `broker-state.json` 改 prompt | broker 内存持有该文件，会被覆盖；必须走 `PATCH /scheduler/{slug}` |
 
+### 9.39 机器校验不能替人验收（2026-11-14，Journey 28）
+
+**决定**：`taskCompletionProvesDelivery` 不再豁免 wiki 交付物。新增 `completionAcceptsTheBytes`：bot 关闭一个记录了交付物的任务时，只有**不是它自己写的检查**（command / url / artifact）才算交付证明；交付物落在 team wiki 根、或声明的是 `wiki_artifact` 校验，一律要走决策卡。
+
+**为什么**：J22（§9.33）的守卫写的是「bot 不许关掉自己交付的文件」，留了机器校验通过这个例外。J28 里模型在 `create` 时声明 `verification_kind=wiki_artifact`，spec 指向**它自己刚写的那一页**——校验当然通过（文件是它放的），例外生效，守卫让路：`done` / `review_state=not_required`，没有卡，没有人看过字节。同一次运行里两页都真实落库、台账完整（D-8/D-12 是好的），坏的只有验收面。
+
+J22 的注释原话：「人是否看到交付物，不能取决于 owner 选了哪个动词」。现在它取决于 owner 有没有**顺手声明一条校验**——同一个洞，换了入口。
+
+**为什么不是把机器校验整个取消**：command/url/artifact 说的是世界的状态（测试过没过、端点通没通、构建产物在不在），不是 bot 自己写的文字。对代码类任务，机器证明是足够的；对 wiki 页，「存在」只证明 bot 把文件放上去了，而**那正是人要看的东西**。
+
+**代价**：每一条 wiki 交付都要一张卡，即使校验通过。这会让办公室多问几次——可接受，因为问的是唯一读那一页的人。
+
 ### 9.38 判据要落在路径上，不要落在措辞上（2026-11-13，Journey 27）
 
 **决定**：顶层独占守卫再加一条信号——新任务声明的 `artifact_scope` 若已经出现在某个未终结顶层任务的 title / details / goal / deliverables / artifact_path 里，create 即被拒绝（`openTaskNamesPath`）。三条信号并联：同范围 → 路径被点名 → 标题复述。

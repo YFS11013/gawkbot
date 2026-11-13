@@ -607,7 +607,17 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 
 **O2（已修）**：回合结束时的对账落在 `recordTaskLedgerEntry`。判据不是解析模型的措辞，而是事实：任务带着未清除的退回摘要（`SentBackFingerprint`）且交付物集合与退回时逐字节相同——这一回合就没写东西。此时记 `rework-unwritten` 台账、写 `rework_unwritten` 审计行、计入 `StalledTurns` 并arm 2 分钟短重试（而不是正常跟进间隔），下一回合的 packet 直接把这行渲染给模型看。失败回合和「有未答的人类请求」的 lane 豁免。测试 `TestTurnThatClaimsAReworkWithoutWritingOneIsNotATrace`、`TestClaimedReworkIsNotFlaggedWhileWaitingOnTheHuman`（去掉分类 / 去掉等待豁免分别变红）。仍留白的部分：模型声称写了一**别的**路径（不在交付物集合里）目前无从对账，只覆盖「被退回的那份没动」。
 
-**O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。### Journey 27（2026-11-13，D-14 上线后）
+**O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。### Journey 28（2026-11-14，D-15/D-16 上线后）
+
+prereg `88a125f`，工作区 `journey28`。判分卡：`core-loop-runs/2026-11-13-journey28/scorecard.md`。
+
+- **D-17（已修，`cbc4bd1`）授权门只认英文**：中文的「我现在就授权你把这两页写进 wiki」被判 `does not explicitly ask for a direct wiki write`。现场证据到手；CJK 动词/目标/否定交替已加，`记录` 因为在中文里是名词而刻意排除。**工作区跑的是修复前的二进制，成功路径下一轮才验。**
+- **D-18（已修）机器校验成了绕过人的后门**：模型 `create` 时声明 `wiki_artifact` 校验指向自己刚写的页 → 校验通过 → J22 的守卫例外放行 → `done`/`not_required`、**没有决策卡**。修法 `completionAcceptsTheBytes`：只有不是 bot 自己写的检查（command/url/artifact）才豁免卡。见 §9.39。
+- **台账这次是好的**：两页都在 `artifacts`，wiki 提交 `2a3cfd2`/`f00f5ca`，D-8/D-12 链路无回归；坏的只有验收面。
+- **拒绝后的恢复连续两轮没测到**（J27 判据漏、J28 模型压根没开第二个任务）。下一轮要**逼出第二次 create**——同形的两页请求已经不够了。
+- **harness 结论（下一轮照做）**：真人身份走 `POST /humans/invites` → `/humans/invites/accept` 拿 cookie → `POST /messages`；**发一次就等**，重发会取消进行中的回合；新工作区默认模型可能不是 beam-free，启动时注入 `WUPHF_OPENCODE_MODEL=opencode-go/beam-free` 与 `WUPHF_HEADLESS_MODEL_FALLBACK=opencode-go/iceman-free`（默认不设，超时后无自动恢复）；硬杀 broker 后 registry 会卡 `already running`，`pause`→`resume` 收回来。
+
+## Journey 27（2026-11-13，D-14 上线后）
 
 prereg `6c5401c`，工作区 `journey27`。判分卡：`core-loop-runs/2026-11-13-journey27/scorecard.md`。
 
