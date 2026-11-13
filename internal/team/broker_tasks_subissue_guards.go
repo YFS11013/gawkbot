@@ -222,6 +222,37 @@ func (b *Broker) refuseNewLaneUnderDeliveredParentLocked(parent *teamTask) error
 	)
 }
 
+// openTaskNamesPath reports whether an open task already names the wiki path a
+// new task wants to write. Journey 27 opened a second top-level task for
+// "对外说明页" whose scope was team/reviews/j27-public.md — a path the first
+// task's details already named, because the human's one message named both
+// pages. Titles alone were useless there ("两页变更清单（内部 + 对外）" vs
+// "对外说明页" share one shingle and score 0.25 containment), but a path is an
+// unambiguous identity: if the open task already names the file, the second
+// task is the same work sliced differently.
+func openTaskNamesPath(task *teamTask, scope string) bool {
+	if task == nil || scope == "" {
+		return false
+	}
+	want := strings.ToLower(strings.ReplaceAll(scope, "\\", "/"))
+	fields := []string{task.Title, task.Details}
+	if d := task.Definition; d != nil {
+		fields = append(fields, d.Goal, d.ArtifactPath)
+		for _, item := range d.Deliverables {
+			fields = append(fields, item.Name, item.Format)
+		}
+	}
+	for _, f := range fields {
+		if f == "" {
+			continue
+		}
+		if strings.Contains(strings.ToLower(strings.ReplaceAll(f, "\\", "/")), want) {
+			return true
+		}
+	}
+	return false
+}
+
 // topLevelTitlesRestate reports whether one top-level title restates another.
 // The sibling thresholds are tuned for lanes under one parent and miss the
 // top-level shape: "Journey 26：把这批改动写成两页（…）" vs
@@ -290,14 +321,21 @@ func (b *Broker) applyOpenTopLevelExclusivityLocked(task *teamTask, actor string
 		if isTerminalTeamTaskStatus(other.status) {
 			continue
 		}
+		// Three signals, cheapest and most exact first:
+		//  1. both declare the same write scope — one file is one deliverable;
+		//  2. the new task declares a path the open task already NAMES (its
+		//     title, details, goal, deliverables or scope) — the human request
+		//     named both pages, so a task that pins one of them is covered;
+		//  3. the titles restate each other.
 		sameScope := scope != "" && SameWikiPath(declaredArtifactScope(other), scope)
-		if !sameScope && !topLevelTitlesRestate(task.Title, other.Title) {
+		coveredPath := scope != "" && openTaskNamesPath(other, scope)
+		if !sameScope && !coveredPath && !topLevelTitlesRestate(task.Title, other.Title) {
 			continue
 		}
 		return taskMutationError(
 			TaskMutationConflict,
-			fmt.Sprintf("open task %s (%q) already holds this work in #%s — one request is one acceptance, and a second top-level task splits it into two cards the human then has to approve separately. Finish %s where it is: submit_for_review when it ships a file (the human approves), or complete when it does not. Comment on %s if you need to add context; pass allow_duplicate=true only if this is genuinely separate work.",
-				other.ID, strings.TrimSpace(other.Title), channel, other.ID, other.ID),
+			fmt.Sprintf("open task %s (%q) already holds this work in #%s — one request is one acceptance, and a second top-level task splits it into two cards the human then has to approve separately. Finish %s where it is: submit_for_review when it ships a file (the human approves), or complete when it does not. If this really is a separate piece of the same request, create it as a sub-issue with parent_issue_id=%s; comment on %s if you only need to add context; pass allow_duplicate=true only if it is genuinely unrelated work.",
+				other.ID, strings.TrimSpace(other.Title), channel, other.ID, other.ID, other.ID),
 			nil,
 		)
 	}
