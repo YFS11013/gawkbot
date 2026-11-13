@@ -374,8 +374,11 @@ func TestCompletingALaneClosesItsOrphanedDecisionCard(t *testing.T) {
 	}
 	b.mu.Unlock()
 
+	// Closed by the human: since Journey 22 a bot may not close a task that
+	// carries a deliverable — that close is exactly the decision the card is
+	// holding. What this test pins is the cleanup that follows ANY close.
 	if _, err := b.MutateTask(TaskPostRequest{
-		Action: "complete", ID: "JOURN-15", Channel: "cos__human", CreatedBy: "cos",
+		Action: "complete", ID: "JOURN-15", Channel: "cos__human", CreatedBy: "you",
 		ArtifactPath: "team/accounts/acme-renewal-quote.md",
 	}); err != nil {
 		t.Fatalf("complete lane: %v", err)

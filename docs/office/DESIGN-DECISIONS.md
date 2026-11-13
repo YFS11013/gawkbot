@@ -129,6 +129,29 @@ digest ──► render_artifacts()（脚本，0 LLM）
 | 把结论存进 bot 的 notebook 当“记忆” | 曾因 `/notebook/catalog` 恒 404 而失效（`internal/teammcp/context_tools.go:491` 调了 broker 未注册的路由）。**2026-11-01 已修**：四个 `/notebook/*` 路由已注册并实测，契约见 `RUNTIME-API.md` §6 |
 | 直接改 `broker-state.json` 改 prompt | broker 内存持有该文件，会被覆盖；必须走 `PATCH /scheduler/{slug}` |
 
+### 9.33 交付了文件就不能自己关任务，哪怕没人要求过 review（2026-11-13，Journey 22）
+
+**决定**：`MutateTask` 里「到达 done」的收口再挡一条——非人类 actor 关闭一个**自己记着交付文件**的任务时，回 `409` 并指回 `submit_for_review`。与 §J12 的容器守卫同一个位置、同一种写法。
+
+**为什么**：J22 的 `JOURN-2` 是中文写的 wiki 任务，`taskNeedsStructuredReview` 判假（那个判据是对英文关键词做子串匹配：`code`/`repo`/`test`/`implement`……），于是 `complete` 直接 `markTaskDone`——计划被批准后 27 秒，任务 `done`，`review_state=not_required`，**没有任何人看过交付物**。同一轮里 `JOURN-9` 因为恰好说了 `submit_for_review` 就会拿到卡。
+
+也就是说，人类会不会被问，取决于模型挑哪个动词。这与 J12 认定「容器从任务端点关闭是人类主权的旁路」是同一条道理，只是叶子这一侧一直敞着。
+
+**为什么不改 `taskNeedsStructuredReview`**：那个函数决定的是流水线形态（worktree / live_external 要不要结构化评审），牵动调度与看板；这里要守的只是「交付物要被人类接住」。两件事，用两个门。
+
+**位置**：守卫放在 B5 存在性检查**之后**。顺序有讲究——一个指向不存在文件的 `artifact_path` 该报「文件不存在」，而不是「去找人类」；否则错误信息会把人引到错误的问题上。
+
+**受影响的既有测试（6 处，都不是在测「机器人能不能自己关」）**：
+
+- `finishTask`（`task_completion_hook_test.go`）：辅助函数，改成走真路——`complete` 被拒 → `submit_for_review` → 人类 `approve`。
+- `TestCompletingALaneClosesItsOrphanedDecisionCard`：它的题目是「关闭任务会取消孤儿卡」，关闭者换成人类即可，断言不变。
+- `office_eval_jobs_loop.go`（2 处）、`office_eval_jobs_task_integrity.go`、`office_eval_jobs_live_paths.go`：新增 `fx.finishDelivered`（提交评审 → 人类接受），由它代劳。
+- `TestArtifactGate_DonePostAndNoInboxCard`：随 `finishTask` 一起转绿，断言（done-post + 不发 Inbox 卡）不变。
+
+**代价**：office 任务只要落了文件，就必须过一张卡。这是有意的：office 工作里字节就是全部，没有卡就没有验收面。ships nothing 的任务（`verification=not_required` + 理由）不受影响，人类自己关闭也不受影响。
+
+**附带发现（未修，属产品决策）**：J22 里 `JOURN-9` 在 `JOURN-2` 已经 `done` 之后覆写了它交付的 `team/reviews/j22-public.md`，台账记 `artifact_overwritten` 但写入成功。「同一路径能否被第二个任务写」仍是 `TODO-NEXT.md` 里的开放项。
+
 ### 9.32 重提闸门按「交付集合」判，不按 Issue 自己的那一个文件（2026-11-13，Journey 21）
 
 **决定**：`gateTaskResubmissionArtifactDelta` 在任务带有 `SentBackFingerprint`（决策路径退回时盖的交付集合摘要）时，用它比对；没有这个摘要时才回落到原来的单 `task.Artifact` 哈希。

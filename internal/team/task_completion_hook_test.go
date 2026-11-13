@@ -58,15 +58,29 @@ func completionHookCreateDefinedTask(t *testing.T, b *Broker) string {
 // template demands (complete may route through review → approve).
 func finishTask(t *testing.T, b *Broker, taskID, artifactPath string) error {
 	t.Helper()
+	// The owner finishes. Since Journey 22 a bot cannot close a task that
+	// carries a deliverable — that close is the human's, and office work is
+	// exactly where the bytes are the point — so the refusal is the normal
+	// first step here and the helper walks the real route: hand it to review,
+	// then the human approves.
 	if _, err := b.MutateTask(TaskPostRequest{
 		Action: "complete", ID: taskID, Channel: "team", CreatedBy: "eng",
 		ArtifactPath: artifactPath,
 	}); err != nil {
-		return err
+		var mutationErr *TaskMutationError
+		if !errors.As(err, &mutationErr) || mutationErr.Kind != TaskMutationConflict {
+			return err
+		}
+		if _, err := b.MutateTask(TaskPostRequest{
+			Action: "submit_for_review", ID: taskID, Channel: "team", CreatedBy: "eng",
+			ArtifactPath: artifactPath,
+		}); err != nil {
+			return err
+		}
 	}
 	if cur := b.TaskByID(taskID); cur != nil && !strings.EqualFold(strings.TrimSpace(cur.status), "done") {
 		_, err := b.MutateTask(TaskPostRequest{
-			Action: "approve", ID: taskID, Channel: "team", CreatedBy: "cos",
+			Action: "approve", ID: taskID, Channel: "team", CreatedBy: "you",
 			ArtifactPath: artifactPath,
 		})
 		return err

@@ -152,6 +152,26 @@ func newOfficeEvalFixture(dir string) (*officeEvalFixture, error) {
 	}, nil
 }
 
+// finishDelivered drives a task that ships a file to done the way the office
+// does since Journey 22: the owner hands it to review and the human accepts.
+// A bot calling complete on a delivered task is refused on purpose — the close
+// is the human's — so an eval that wants a done task walks this route.
+func (fx *officeEvalFixture) finishDelivered(id, actor, channel, artifact string) error {
+	if _, err := fx.broker.MutateTask(TaskPostRequest{
+		Action: "submit_for_review", ID: id, Channel: channel, CreatedBy: actor, ArtifactPath: artifact,
+	}); err != nil {
+		return err
+	}
+	if cur := fx.broker.TaskByID(id); cur != nil && !strings.EqualFold(strings.TrimSpace(cur.status), "done") {
+		if _, err := fx.broker.MutateTask(TaskPostRequest{
+			Action: "approve", ID: id, Channel: channel, CreatedBy: "you", ArtifactPath: artifact,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // seedWikiFile materializes a deliverable file under the fixture's wiki
 // root so the B5 artifact-existence gate (knowledge-integrity) sees a real
 // file — done now requires the artifact to exist, not just be named. Plain

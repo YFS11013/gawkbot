@@ -474,17 +474,8 @@ func evalJobLivePaths(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	if err := fx.seedWikiFile(upArtifact, "# Competitor pricing research\n"); err != nil {
 		return err
 	}
-	if _, err := fx.broker.MutateTask(TaskPostRequest{
-		Action: "complete", ID: upID, Channel: "general", CreatedBy: "eng", ArtifactPath: upArtifact,
-	}); err != nil {
+	if err := fx.finishDelivered(upID, "eng", "general", upArtifact); err != nil {
 		return err
-	}
-	if cur := fx.broker.TaskByID(upID); cur != nil && !strings.EqualFold(strings.TrimSpace(cur.status), "done") {
-		if _, err := fx.broker.MutateTask(TaskPostRequest{
-			Action: "approve", ID: upID, Channel: "general", CreatedBy: "human", ArtifactPath: upArtifact,
-		}); err != nil {
-			return err
-		}
 	}
 	upDone := fx.broker.TaskByID(upID)
 	downAfter := fx.broker.TaskByID(downID)

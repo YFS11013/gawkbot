@@ -84,7 +84,7 @@ func evalJobCompletionHook(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	if err := fx.seedWikiFile(artifact, "# Acme renewal brief\n"); err != nil {
 		return err
 	}
-	if err := finish(artifact); err != nil {
+	if err := fx.finishDelivered(taskID, "eng", "general", artifact); err != nil {
 		r.add(job, "defined task reaches done once artifact_path is passed", false, err.Error(), "")
 		return nil
 	}
@@ -356,14 +356,16 @@ func evalJobEntityArticles(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		if err := fx.seedWikiFile(artifact, "# "+deliverable+"\n"); err != nil {
 			return "", err
 		}
+		// A delivered file closes through the review route and the human's
+		// approval (Journey 22): the owner hands it over, the human accepts.
 		if _, err := fx.broker.MutateTask(TaskPostRequest{
-			Action: "complete", ID: id, Channel: "general", CreatedBy: "eng", ArtifactPath: artifact,
+			Action: "submit_for_review", ID: id, Channel: "general", CreatedBy: "eng", ArtifactPath: artifact,
 		}); err != nil {
 			return "", err
 		}
 		if cur := fx.broker.TaskByID(id); cur != nil && !strings.EqualFold(strings.TrimSpace(cur.status), "done") {
 			if _, err := fx.broker.MutateTask(TaskPostRequest{
-				Action: "approve", ID: id, Channel: "general", CreatedBy: "cos", ArtifactPath: artifact,
+				Action: "approve", ID: id, Channel: "general", CreatedBy: "you", ArtifactPath: artifact,
 			}); err != nil {
 				return "", err
 			}
@@ -527,17 +529,8 @@ func evalJobPlaybookCompilation(fx *officeEvalFixture, r *OfficeEvalReport) erro
 		if err := fx.seedWikiFile(artifact, "# Investor update\n"); err != nil {
 			return "", err
 		}
-		if _, err := fx.broker.MutateTask(TaskPostRequest{
-			Action: "complete", ID: id, Channel: "general", CreatedBy: "eng", ArtifactPath: artifact,
-		}); err != nil {
+		if err := fx.finishDelivered(id, "eng", "general", artifact); err != nil {
 			return "", err
-		}
-		if cur := fx.broker.TaskByID(id); cur != nil && !strings.EqualFold(strings.TrimSpace(cur.status), "done") {
-			if _, err := fx.broker.MutateTask(TaskPostRequest{
-				Action: "approve", ID: id, Channel: "general", CreatedBy: "cos", ArtifactPath: artifact,
-			}); err != nil {
-				return "", err
-			}
 		}
 		fx.broker.distillCompletedTask(id)
 		return id, nil

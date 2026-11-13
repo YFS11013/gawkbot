@@ -193,17 +193,8 @@ func evalJobTaskIntegrity(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		return err
 	}
 	worker.WaitForIdle()
-	if _, err := fx.broker.MutateTask(TaskPostRequest{
-		Action: "complete", ID: child.ID, Channel: child.Channel, CreatedBy: child.Owner, ArtifactPath: healArtifact,
-	}); err != nil {
+	if err := fx.finishDelivered(child.ID, child.Owner, child.Channel, healArtifact); err != nil {
 		return err
-	}
-	if cur := fx.broker.TaskByID(child.ID); cur != nil && !strings.EqualFold(strings.TrimSpace(cur.Status()), "done") {
-		if _, err := fx.broker.MutateTask(TaskPostRequest{
-			Action: "approve", ID: child.ID, Channel: child.Channel, CreatedBy: "human",
-		}); err != nil {
-			return err
-		}
 	}
 	childDone := fx.broker.TaskByID(child.ID)
 	parentAfterHeal := fx.broker.TaskByID(parentAID)

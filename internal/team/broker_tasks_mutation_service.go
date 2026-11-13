@@ -1671,6 +1671,28 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 				nil,
 			)
 		}
+		// The leaf close is checked AFTER the existence gate: a phantom path is
+		// still a phantom path (it names the wrong problem otherwise), and only a
+		// real deliverable is worth sending back to review.
+		// Journey 22 (core-loop-runs/2026-11-13-journey22): the leaf twin of the
+		// guard above. JOURN-2 was an office task with two real wiki pages; the
+		// model called complete after the plan was approved, taskNeedsStructured
+		// Review said false (the work is writing, not code), and the Issue went
+		// straight to done — no decision card, no human, review_state=not_required.
+		// The same run's sibling task DID raise a card, because it happened to
+		// say submit_for_review. Whether the human sees a deliverable must not
+		// depend on which verb the owner picks: a bot that shipped a file asks
+		// the human, and the card is the only surface that asks.
+		if reachedDone && !isHumanMessageSender(actor) && !declaredNotRequired {
+			if own := strings.TrimSpace(task.Artifact); own != "" && !taskCompletionProvesDelivery(task) {
+				rollbackTask()
+				b.recordGuardRefusalLocked(task, "delivery close", fmt.Sprintf("%s tried to close %s without asking", actor, own))
+				return TaskResponse{}, taskMutationError(TaskMutationConflict,
+					fmt.Sprintf("task %s recorded the deliverable %s: a bot may not close it from here — that would skip the human, and office work is exactly where the bytes are the whole point. Call submit_for_review with artifact_path=%s; the card names the file and the human's approve closes it.", task.ID, own, own),
+					nil,
+				)
+			}
+		}
 		if strings.EqualFold(strings.TrimSpace(task.status), "done") {
 			overrideActor := strings.TrimSpace(body.MemoryWorkflowOverrideActor)
 			if overrideActor == "" {
