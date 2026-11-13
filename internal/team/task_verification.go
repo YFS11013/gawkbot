@@ -517,6 +517,44 @@ func taskCompletionProvesDelivery(task *teamTask) bool {
 	return false
 }
 
+// isWikiDeliverablePath reports whether a delivered-artifact reference names a
+// team-wiki page — the roots a bot may self-authorize a write to.
+func isWikiDeliverablePath(path string) bool {
+	p := strings.ReplaceAll(strings.TrimSpace(path), "\\", "/")
+	p = strings.TrimPrefix(p, "./")
+	for _, prefix := range taskArtifactPathPrefixes {
+		if strings.HasPrefix(p, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// completionAcceptsTheBytes reports whether a close may skip the human's card
+// on a task that recorded a deliverable. Machine proof excuses only checks
+// that are not the bot's own writing: a passing command or URL check says
+// something about the world, while wiki_artifact existence only says the file
+// the bot just wrote is on disk — and the bot is the one who put it there.
+//
+// Journey 28 pinned verification_kind=wiki_artifact at one of its two pages,
+// the check passed, and the Issue went straight to done with no card and
+// review_state=not_required: the Journey 22 outcome, reached through the
+// machine-proof exception instead of a missing guard. The J22 comment still
+// holds — whether the human sees a deliverable must not depend on which verb
+// the owner picks.
+func completionAcceptsTheBytes(task *teamTask, own string) bool {
+	if !taskCompletionProvesDelivery(task) {
+		return false
+	}
+	if isWikiDeliverablePath(own) {
+		return false
+	}
+	if task.Verification != nil && strings.EqualFold(strings.TrimSpace(task.Verification.Kind), taskVerificationKindWikiArtifact) {
+		return false
+	}
+	return true
+}
+
 // peekTaskDoneArtifact is the unlocked pre-phase for the B5 done-artifact
 // existence gate in MutateTask. It peeks (under lock) the artifact reference
 // this mutation would land done with — body.ArtifactPath when set, else the

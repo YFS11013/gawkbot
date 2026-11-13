@@ -1690,7 +1690,7 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		// depend on which verb the owner picks: a bot that shipped a file asks
 		// the human, and the card is the only surface that asks.
 		if reachedDone && !isHumanMessageSender(actor) && !declaredNotRequired {
-			if own := strings.TrimSpace(task.Artifact); own != "" && !taskCompletionProvesDelivery(task) {
+			if own := strings.TrimSpace(task.Artifact); own != "" && !completionAcceptsTheBytes(task, own) {
 				rollbackTask()
 				b.recordGuardRefusalLocked(task, "delivery close", fmt.Sprintf("%s tried to close %s without asking", actor, own))
 				return TaskResponse{}, taskMutationError(TaskMutationConflict,
