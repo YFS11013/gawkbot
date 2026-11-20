@@ -609,6 +609,16 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 
 **O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。
 
+
+### Journey 30（2026-11-20，顶层 create 守卫第一次被锻炼）
+
+prereg `06c358c`，工作区 `journey30`，二进制 `a959736`（与 HEAD 的非测试 Go 代码等价），模型 `opencode-go/hy4-flash-free` + `opencode-go/iceman-contributor-free`。原始观察 `core-loop-runs/2026-11-20-journey30/observations.md`，独立评分 `…/scorecard.md`（C1–C5 全成立，I-1..I-5 未发生）。
+
+- **C1 成立（I-1 终结）**：第二次 `team_task create` 声明 `j30-public.md`，12:16:12Z 被 `open task JOURN-3 already holds this work` 409 拒绝（`coveredPath`）；`create` 重试只 1 次，带 `allow_duplicate=true` 建出 `JOURN-6`。独立评分判定：第二页 scope 与第一页正交、人明确要求两个 Issue，逃生门合规；同时 `JOURN-3` 在 409 后 26 秒起持续 `define`/写入/送审，所以「原任务有新动作」也成立。J27/J28/J29 连续三轮 I-1 就此闭合。
+- **C2/C3 成立**：5 次操作（H1 + 两张计划卡 + 两张决策卡）内两条任务 `done`/`approved`，`/requests` 归零；两页经任务门落盘（首版 `d26979b`/`cd01ddc`，模型回读发现内部清单漏第 5 条且第 4 行截断后重写 `c35fc15`/`d130d6b`），0 次直写；5 条短 hash 全在给定清单，public 页 3 条无内部术语。
+- **C4/C5 回归通过**：bot 的 `complete` 5 次被 delivery close 409 拦住，改走 `submit_for_review` → 两张决策卡 → 人点后才 done；中文 `human_request=msg-2` 未误拒。
+- **新发现（信息级，未修）**：守卫 409 文案不点名命中的路径，模型要自行解释第二个 Issue 为何被拦；首版交付先落盘后自检，靠模型回读才发现内容截断。两者都未阻塞本轮闭合。
+
 ### Journey 29（2026-11-20，D-17/D-18 上线后）
 
 prereg `db2b189`，工作区 `journey29`，二进制从 `3087138` 新构建，模型 `opencode-go/hy4-flash-free`（兜底 `opencode-go/iceman-contributor-free`）。原始观察 `core-loop-runs/2026-11-20-journey29/observations.md`，独立评分 `…/scorecard.md`。
