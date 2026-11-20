@@ -39,3 +39,9 @@ git -C ~/.wuphf/wiki log --oneline -- team/reviews/release-notes-2026-11-20.md
 ```
 
 生产 web UI：`http://127.0.0.1:7891/`，进 `cos__human` 的 Tasks / Inbox 看卡。
+
+## 首次被动观察（2026-11-20 23:00 本地 / 15:00Z）
+
+- 22:59:25 `cos stage=started`，23:00:31 `status=ok`（65.5s，正文 3359 字）；`ACMER-3872` `in_progress` / `planning`。
+- 计划卡 `request-3875`（`dedupe_key=plan-approval:ACMER-3872`）**自行升起且 pending**。我方未答任何卡、未发任何补充消息。
+- 其余两张 pending（`request-3761` / `request-3803`）属于 `ACMER-3754` 的 forex 遗留，与本任务无关，同样未动。
