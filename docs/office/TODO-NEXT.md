@@ -607,7 +607,20 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 
 **O2（已修）**：回合结束时的对账落在 `recordTaskLedgerEntry`。判据不是解析模型的措辞，而是事实：任务带着未清除的退回摘要（`SentBackFingerprint`）且交付物集合与退回时逐字节相同——这一回合就没写东西。此时记 `rework-unwritten` 台账、写 `rework_unwritten` 审计行、计入 `StalledTurns` 并arm 2 分钟短重试（而不是正常跟进间隔），下一回合的 packet 直接把这行渲染给模型看。失败回合和「有未答的人类请求」的 lane 豁免。测试 `TestTurnThatClaimsAReworkWithoutWritingOneIsNotATrace`、`TestClaimedReworkIsNotFlaggedWhileWaitingOnTheHuman`（去掉分类 / 去掉等待豁免分别变红）。仍留白的部分：模型声称写了一**别的**路径（不在交付物集合里）目前无从对账，只覆盖「被退回的那份没动」。
 
-**O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。### Journey 28（2026-11-14，D-15/D-16 上线后）
+**O3（已修）**：看门狗在 bot 正跑时反复报 `task_stalled`（27–170 秒的回合，有一条超过 10 分钟）。原因很直白：回合没结束时任务当然「没动」，而提醒 tick 只看任务有没有动。现在 `processTaskJob` 升警报前先问派发池「这个任务有没有回合在跑」（`Launcher.HasActiveTurnForTask` 扫 `headless.active`，不另建注册表——并行注册表漏删一项等于永久静音看门狗），命中就 5 分钟后再看。回合结束后第一个 tick 照常报，真卡住的任务不受影响。
+
+### Journey 29（2026-11-20，D-17/D-18 上线后）
+
+prereg `db2b189`，工作区 `journey29`，二进制从 `3087138` 新构建，模型 `opencode-go/hy4-flash-free`（兜底 `opencode-go/iceman-contributor-free`）。原始观察 `core-loop-runs/2026-11-20-journey29/observations.md`，独立评分 `…/scorecard.md`。
+
+- **A2 成立（D-17 成功路径首次现场）**：真人 `msg-2` 的中文「我现在就授权你把这两页写进 wiki」命中 `human_request=msg-2`，`/wiki/write` 200，commit `6f95267`（273 B）。对照：模型先拿 `msg-17`（计划批准回执）当授权被正确拒为 `does not explicitly ask for a direct wiki write`，随后 `team_poll` 取回 `msg-2` 自纠成功。
+- **A3 成立（D-18 后门关上）**：两条任务都声明 `wiki_artifact` 校验；bot 的 `complete`/`approve` 共 8 次被 `guard_refused`（`a bot may not close it from here`）拦住，改走 `submit_for_review` → 决策卡 `request-42` → 人点 `approve_decision` → `JOURN-3` `done`/`approved`（587 B 校验 pass）。`JOURN-5` 未获批准停在 `decision`，反证门有效。
+- **A1 不成立（I-1 连续第三轮）**：两次 `team_task create` 全 completed、`create` 重试 0 次。根因在场景/判据侧：第二次 create 没有 `artifact_scope`，而 `sameScope` 与 `openTaskNamesPath` 都要求 `scope != ""`（`internal/team/broker_tasks_subissue_guards.go:330-331`），所以两条 Details 都写两页路径仍不触发；标题无复述也不命中。下一轮要逼出守卫，必须让第二次 create **声明**与第一条相同的路径（或复述标题），仅在 Details 里点名不够。
+- **A4 成立**：两页都经门落盘（internal `60aa22c` 走 `write-task`，public `6f95267` 走人工授权），0 次直写；internal 5 行短 hash 全在给定清单内，public 3 条无 hash / 内部术语。
+- **A5 不成立（动作数没超，闭合没达成）**：4 次操作用尽（H1 + 两张计划卡 + 一张决策卡），场景产生 2 计划卡 + 2 决策卡，预算只够批一张决策卡；`JOURN-5` 与 `task-skill-8` 留 `in_progress`。下一轮预算按「每任务一张计划卡 + 一张决策卡」重算。
+- **新发现（记录，未修）**：`JOURN-5` 的 `verification.spec=team/reviews/j29-internal.md`，而 `verification_result.detail=wiki artifact …j29-public.md (273 bytes)`、`pass=true`——`wiki_artifact` 似按已记录 artifact 的存在性放行，不严格比对 spec 路径。另有模型把计划批准回执当 `human_request`、8 次 `complete` 才收敛到 `submit_for_review` 的行为噪声。
+
+### Journey 28（2026-11-14，D-15/D-16 上线后）
 
 prereg `88a125f`，工作区 `journey28`。判分卡：`core-loop-runs/2026-11-13-journey28/scorecard.md`。
 
