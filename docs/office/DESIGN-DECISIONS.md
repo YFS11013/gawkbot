@@ -36,6 +36,12 @@
 - 仍禁用 `bear/deepseek-reasoner`：把 `<think>` 过程当消息推到频道。
 - 代价：切换需重启 broker，token 随之轮换（外部脚本需重取）。
 
+### D1a 模型层：切到 hy4-flash-free（2026-11-20）
+
+- 用户拍板：办公室主模型由 `opencode-go/longcat-2.5-free` 改为 `opencode-go/hy4-flash-free`。落点三处：用户级 `WUPHF_OPENCODE_MODEL`、`~/.wuphf/data/broker-watchdog.ps1` 的 `Restart-Broker`、J29 隔离工作区启动参数；沿用旧模型「三处一致」的规则（TODO-NEXT §附：当前运行参数）。
+- 探活：`opencode models` 中存在 `opencode-go/hy4-flash-free`；`opencode run --model opencode-go/hy4-flash-free "只回复OK"` 14.49s 返回 `OK`。兜底不变：`WUPHF_HEADLESS_MODEL_FALLBACK=opencode-go/iceman-contributor-free`。
+- 代价：切换需要重启 broker，token 随之轮换；没重启前 `/health` 的 `provider_model` 仍是旧值。本次只改配置，未重启生产。
+
 ### D2 数据层：digest 是唯一数据源
 
 `~/.wuphf/data/forex-bridge.py` 为唯一入口，每 6 小时由计划任务生成 `wiki/team/forex-bridge-digest.md`。已落地的字段约束：
