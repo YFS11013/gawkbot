@@ -620,6 +620,13 @@ prereg `db2b189`，工作区 `journey29`，二进制从 `3087138` 新构建，�
 - **A5 不成立（动作数没超，闭合没达成）**：4 次操作用尽（H1 + 两张计划卡 + 一张决策卡），场景产生 2 计划卡 + 2 决策卡，预算只够批一张决策卡；`JOURN-5` 与 `task-skill-8` 留 `in_progress`。下一轮预算按「每任务一张计划卡 + 一张决策卡」重算。
 - **新发现（记录，未修）**：`JOURN-5` 的 `verification.spec=team/reviews/j29-internal.md`，而 `verification_result.detail=wiki artifact …j29-public.md (273 bytes)`、`pass=true`——`wiki_artifact` 似按已记录 artifact 的存在性放行，不严格比对 spec 路径。另有模型把计划批准回执当 `human_request`、8 次 `complete` 才收敛到 `submit_for_review` 的行为噪声。
 
+### 2026-11-20 漂移门根因（J29 收尾时发现）
+
+- `DRIFT: 1` 不是模型问题：job `5`（外汇日简报）08:30Z 建任务被 `applyOpenTopLevelExclusivityLocked` 拒绝——旧任务 `ACMER-3754`（11-13，仍 open）与它标题/路径重复，而 `routineTaskActor="system"` 不在人类豁免里。routine 退化成 fallback 消息（简报照常发出 `msg-3845`），但 `last_run_status=failed`、没有任务承接 artifact，所以漂移门红。把主模型换成 hy4-flash-free 并不能解决它。
+- **已修（`367e796`）**：`CreateRoutineTask` 设 `AllowDuplicate=true`，routine 自己的 `source_signal_id = routine:<slug>:<slot>` 仍是去重权威；bot 自建顶层任务继续受守卫约束。回归 `TestCreateRoutineTaskIgnoresAnOlderOpenInstance`（旧实例仍 open 时，今天的火必须能建出自己的任务）。
+- 部署：16:55 换二进制 `sha256 eb898592…`（旧版备份 `gawkbot-fix.exe.bak-j5-20261120165552`），按 watchdog 配方重启；`/health` `provider_model=opencode-go/hy4-flash-free`，token `ba7c…`→`3e86…`，`scheduler: loop started` 16:56:12。临时把 `schedule_expr` 改到 08:59Z 复验，验证后还原 `30 8 * * 1-5`。
+- **预存测试失败（与本次修复无关）**：`TestDecisionApproveWithoutALanePathLeavesNoGuardRow`（nil deref，`broker_container_artifact_test.go:174`）、`TestDecisionCardRaisedForParentIssueWithDeliveredLanes`（`broker_decision_card_test.go:329`）、`TestContainerGuardRefusalsLeaveALedgerRow`（`task_definition_scope_test.go:261`）。已在修复前提交 `8389c68` 的干净快照上逐个复现；全量套件带这三条必红，routine 定点测试全绿。
+
 ### Journey 28（2026-11-14，D-15/D-16 上线后）
 
 prereg `88a125f`，工作区 `journey28`。判分卡：`core-loop-runs/2026-11-13-journey28/scorecard.md`。
