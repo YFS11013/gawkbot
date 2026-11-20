@@ -531,7 +531,7 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 | 项 | 值 |
 |---|---|
 | 启动命令 | `gawkbot-fix.exe --broker-port 7892 --provider opencode --no-open` |
-| 模型 | `WUPHF_OPENCODE_MODEL=opencode-go/hy4-flash-free`（用户级环境变量 + 看门狗脚本 + J29 隔离工作区启动参数三处一致，2026-11-20 起）；看门狗兜底不变 `opencode-go/iceman-contributor-free`。探活：`opencode models` 有该 id，`opencode run --model opencode-go/hy4-flash-free "只回复OK"` 14.49s 返回 `OK`。**运行中的生产进程仍是 `longcat-2.5-free`，需重启才生效；重启会轮换 token**。历史：2026-11-10 起 longcat-2.5-free；`crouton-alpha-free` 已被上游撤掉（§9.21）；2026-11-11 用户拍板继续用免费模型，不换付费（DESIGN-DECISIONS §9.29） |
+| 模型 | `WUPHF_OPENCODE_MODEL=opencode-go/hy4-flash-free`（用户级环境变量 + 看门狗脚本 + J29 隔离工作区启动参数三处一致，2026-11-20 起）；看门狗兜底不变 `opencode-go/iceman-contributor-free`。探活：`opencode models` 有该 id，`opencode run --model opencode-go/hy4-flash-free "只回复OK"` 14.49s 返回 `OK`。**2026-11-20 15:46 按看门狗配方手工重启生产并已生效**：`/health` 的 `provider_model=opencode-go/hy4-flash-free`，token 已轮换（`217c…`→`ba7c…`），`scheduler: loop started` 15:46:25；人消息唤醒 15:46:53 `stage=started` → 15:47:16 `status=ok`（14s/23s）。漂移检查仍 `DRIFT: 1`（job `5` 外汇日简报 `last_run=2026-11-19T08:30:06Z failed`），**与本次重启无关**，11-20 08:30Z 那次尚未到点。历史：2026-11-10 起 longcat-2.5-free；`crouton-alpha-free` 已被上游撤掉（§9.21）；2026-11-11 用户拍板继续用免费模型，不换付费（DESIGN-DECISIONS §9.29） |
 
 | broker token | `%TEMP%\wuphf-broker-token-7892`，**每次重启都变** |
 | 桥 | Windows 计划任务跑 `forex-bridge-run.vbs`，每 6 小时；健康时无 `wiki/team/alerts.md` |

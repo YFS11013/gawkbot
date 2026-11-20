@@ -40,7 +40,7 @@
 
 - 用户拍板：办公室主模型由 `opencode-go/longcat-2.5-free` 改为 `opencode-go/hy4-flash-free`。落点三处：用户级 `WUPHF_OPENCODE_MODEL`、`~/.wuphf/data/broker-watchdog.ps1` 的 `Restart-Broker`、J29 隔离工作区启动参数；沿用旧模型「三处一致」的规则（TODO-NEXT §附：当前运行参数）。
 - 探活：`opencode models` 中存在 `opencode-go/hy4-flash-free`；`opencode run --model opencode-go/hy4-flash-free "只回复OK"` 14.49s 返回 `OK`。兜底不变：`WUPHF_HEADLESS_MODEL_FALLBACK=opencode-go/iceman-contributor-free`。
-- 代价：切换需要重启 broker，token 随之轮换；没重启前 `/health` 的 `provider_model` 仍是旧值。本次只改配置，未重启生产。
+- 代价：切换需要重启 broker，token 随之轮换。2026-11-20 15:46 按 `Restart-Broker` 配方手工重启（按端口 7892 找主进程树，env 与重定向逐项照抄），`/health` 回显 `opencode-go/hy4-flash-free`，token `217c…`→`ba7c…`，`scheduler: loop started` 15:46:25；人消息 15:46:52 投递 → 15:46:53 `stage=started` → 15:47:16 `status=ok`（14.1s/22.9s），唤醒链未退化。同轮漂移检查 `DRIFT: 1`（job `5` 11-19 08:30Z 失败）是重启前既有状态，未在本轮处理。
 
 ### D2 数据层：digest 是唯一数据源
 
