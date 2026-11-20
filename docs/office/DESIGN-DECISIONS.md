@@ -40,7 +40,13 @@
 
 - 用户拍板：办公室主模型由 `opencode-go/longcat-2.5-free` 改为 `opencode-go/hy4-flash-free`。落点三处：用户级 `WUPHF_OPENCODE_MODEL`、`~/.wuphf/data/broker-watchdog.ps1` 的 `Restart-Broker`、J29 隔离工作区启动参数；沿用旧模型「三处一致」的规则（TODO-NEXT §附：当前运行参数）。
 - 探活：`opencode models` 中存在 `opencode-go/hy4-flash-free`；`opencode run --model opencode-go/hy4-flash-free "只回复OK"` 14.49s 返回 `OK`。兜底不变：`WUPHF_HEADLESS_MODEL_FALLBACK=opencode-go/iceman-contributor-free`。
-- 代价：切换需要重启 broker，token 随之轮换。2026-11-20 15:46 按 `Restart-Broker` 配方手工重启（按端口 7892 找主进程树，env 与重定向逐项照抄），`/health` 回显 `opencode-go/hy4-flash-free`，token `217c…`→`ba7c…`，`scheduler: loop started` 15:46:25；人消息 15:46:52 投递 → 15:46:53 `stage=started` → 15:47:16 `status=ok`（14.1s/22.9s），唤醒链未退化。同轮漂移检查 `DRIFT: 1`（job `5` 11-19 08:30Z 失败）是重启前既有状态，未在本轮处理。
+- 代价：切换需要重启 broker，token 随之轮换。2026-11-20 15:46 按 `Restart-Broker` 配方手工重启（按端口 7892 找主进程树，env 与重定向逐项照抄），`/health` 回显 `opencode-go/hy4-flash-free`，token `217c…`→`ba7c…`，`scheduler: loop started` 15:46:25；人消息 15:46:52 投递 → 15:46:53 `stage=started` → 15:47:16 `status=ok`（14.1s/22.9s），唤醒链未退化。同轮漂移检查 `DRIFT: 1`（job `5` 11-19 08:30Z 失败）与模型无关，根因与处置见 D1b。
+
+### D1b 常驻 routine 的去重键是 source_signal_id，不是标题（2026-11-20，J29 收尾）
+
+- 现象：job `5`（外汇日简报）每天建任务都被 `applyOpenTopLevelExclusivityLocked` 拒绝，因为上一交易日的任务还 open 且标题/路径重复；`routineTaskActor="system"` 不在人类豁免里。结果 routine 退化成 fallback 消息、`last_run_status=failed`、没有任务承接 artifact，漂移门常红——换模型并不能解决。
+- 决策：routine 自建任务由 `source_signal_id = routine:<slug>:<slot>` 唯一标识，同一班次重放由 `RoutineTaskForSignal` 去重；顶层标题/范围守卫只约束 bot 自建任务。`CreateRoutineTask` 统一 `AllowDuplicate=true`（`367e796`），回归 `TestCreateRoutineTaskIgnoresAnOlderOpenInstance`。
+- 验证：临时把 `schedule_expr` 改到 08:59Z，跑出 `ok` / `#ACMER-3852`，还原 `30 8 * * 1-5`；17:03 从 HEAD 重建部署（`sha256 b91562e9…`）后 `DRIFT: none`。当时记录的三条全量套件失败均在修复前提交的干净快照上复现，与本决策无关。
 
 ### D2 数据层：digest 是唯一数据源
 

@@ -531,7 +531,7 @@ prereg `4f161fd`（+ `d6ca54f` 记录赛前模型替换），被测 `52456d3`（
 | 项 | 值 |
 |---|---|
 | 启动命令 | `gawkbot-fix.exe --broker-port 7892 --provider opencode --no-open` |
-| 模型 | `WUPHF_OPENCODE_MODEL=opencode-go/hy4-flash-free`（用户级环境变量 + 看门狗脚本 + J29 隔离工作区启动参数三处一致，2026-11-20 起）；看门狗兜底不变 `opencode-go/iceman-contributor-free`。探活：`opencode models` 有该 id，`opencode run --model opencode-go/hy4-flash-free "只回复OK"` 14.49s 返回 `OK`。**2026-11-20 15:46 按看门狗配方手工重启生产并已生效**：`/health` 的 `provider_model=opencode-go/hy4-flash-free`，token 已轮换（`217c…`→`ba7c…`），`scheduler: loop started` 15:46:25；人消息唤醒 15:46:53 `stage=started` → 15:47:16 `status=ok`（14s/23s）。漂移检查仍 `DRIFT: 1`（job `5` 外汇日简报 `last_run=2026-11-19T08:30:06Z failed`），**与本次重启无关**，11-20 08:30Z 那次尚未到点。历史：2026-11-10 起 longcat-2.5-free；`crouton-alpha-free` 已被上游撤掉（§9.21）；2026-11-11 用户拍板继续用免费模型，不换付费（DESIGN-DECISIONS §9.29） |
+| 模型 | `WUPHF_OPENCODE_MODEL=opencode-go/hy4-flash-free`（用户级环境变量 + 看门狗脚本 + J29 隔离工作区启动参数三处一致，2026-11-20 起）；看门狗兜底不变 `opencode-go/iceman-contributor-free`。探活：`opencode models` 有该 id，`opencode run --model opencode-go/hy4-flash-free "只回复OK"` 14.49s 返回 `OK`。**2026-11-20 15:46 按看门狗配方手工重启生产生效**：`/health` 的 `provider_model=opencode-go/hy4-flash-free`；人消息唤醒 15:46:53 `stage=started` → 15:47:16 `status=ok`（14s/23s）。17:03 从 HEAD 重建并再次部署（`sha256 b91562e9…`，`scheduler: loop started` 17:03:29，当前 token `04ed1abf…`）。**漂移门已清：`DRIFT: none`（比对 16 个 job、4 个计划任务、1 个运行中二进制）**。历史：2026-11-10 起 longcat-2.5-free；`crouton-alpha-free` 已被上游撤掉（§9.21）；2026-11-11 用户拍板继续用免费模型，不换付费（DESIGN-DECISIONS §9.29） |
 
 | broker token | `%TEMP%\wuphf-broker-token-7892`，**每次重启都变** |
 | 桥 | Windows 计划任务跑 `forex-bridge-run.vbs`，每 6 小时；健康时无 `wiki/team/alerts.md` |
@@ -624,7 +624,7 @@ prereg `db2b189`，工作区 `journey29`，二进制从 `3087138` 新构建，�
 
 - `DRIFT: 1` 不是模型问题：job `5`（外汇日简报）08:30Z 建任务被 `applyOpenTopLevelExclusivityLocked` 拒绝——旧任务 `ACMER-3754`（11-13，仍 open）与它标题/路径重复，而 `routineTaskActor="system"` 不在人类豁免里。routine 退化成 fallback 消息（简报照常发出 `msg-3845`），但 `last_run_status=failed`、没有任务承接 artifact，所以漂移门红。把主模型换成 hy4-flash-free 并不能解决它。
 - **已修（`367e796`）**：`CreateRoutineTask` 设 `AllowDuplicate=true`，routine 自己的 `source_signal_id = routine:<slug>:<slot>` 仍是去重权威；bot 自建顶层任务继续受守卫约束。回归 `TestCreateRoutineTaskIgnoresAnOlderOpenInstance`（旧实例仍 open 时，今天的火必须能建出自己的任务）。
-- 部署：16:55 换二进制 `sha256 eb898592…`（旧版备份 `gawkbot-fix.exe.bak-j5-20261120165552`），按 watchdog 配方重启；`/health` `provider_model=opencode-go/hy4-flash-free`，token `ba7c…`→`3e86…`，`scheduler: loop started` 16:56:12。临时把 `schedule_expr` 改到 08:59Z 复验，验证后还原 `30 8 * * 1-5`。
+- 验证与清门：临时 `schedule_expr` 改到 08:59Z 那次跑成 `ok`（`Dispatched as task #ACMER-3852`），随后还原 `30 8 * * 1-5`（`next_run=2026-11-23T08:30:00Z`）。17:03 从 HEAD 重建二进制再部署（`sha256 b91562e9…`，旧版备份 `gawkbot-fix.exe.bak-j5b-20261120170309`），`scheduler: loop started` 17:03:29；漂移检查回到 `DRIFT: none`。
 - **预存测试失败（与本次修复无关）**：`TestDecisionApproveWithoutALanePathLeavesNoGuardRow`（nil deref，`broker_container_artifact_test.go:174`）、`TestDecisionCardRaisedForParentIssueWithDeliveredLanes`（`broker_decision_card_test.go:329`）、`TestContainerGuardRefusalsLeaveALedgerRow`（`task_definition_scope_test.go:261`）。已在修复前提交 `8389c68` 的干净快照上逐个复现；全量套件带这三条必红，routine 定点测试全绿。
 
 ### Journey 28（2026-11-14，D-15/D-16 上线后）
