@@ -164,6 +164,14 @@ func (w *watchdogScheduler) postRoutineFallbackMessage(job schedulerJob, botSlug
 // broker) so the scheduler keeps its narrow dependency: creating a task is the
 // only mutation it makes, and the dedupe lookup is the only read it makes.
 func (b *Broker) CreateRoutineTask(req TaskPostRequest) (TaskResponse, error) {
+	// A standing routine fires once per slot, and routineTaskSignal is its
+	// dedupe key. The generic top-level exclusivity guard compares titles and
+	// scopes, so it treats every later instance of the same daily brief as a
+	// duplicate of an older open one and refuses to create the task (J29:
+	// job 5 failed on 2026-11-20 because ACMER-3754 from 11-13 was still open).
+	// Let the signal be the authority for routine-created tasks; bot-authored
+	// tasks keep the guard.
+	req.AllowDuplicate = true
 	return b.MutateTask(req)
 }
 

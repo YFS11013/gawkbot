@@ -310,3 +310,38 @@ func TestRoutineTaskCarriesVerifiedArtifactGate(t *testing.T) {
 		t.Fatalf("routine task must carry a required wiki_artifact check; got kind=%q required=%v", req.VerificationKind, req.VerificationRequired)
 	}
 }
+
+// A standing routine is one task per fire, not one task per title. The
+// top-level exclusivity guard must not refuse today's brief because an older
+// instance from last week is still open (J29: job 5 failed on 2026-11-20).
+func TestCreateRoutineTaskIgnoresAnOlderOpenInstance(t *testing.T) {
+	b := newTestBroker(t)
+	b.members = []officeMember{{Slug: "forex-watch", Name: "Forex Watch"}}
+	b.channels = []teamChannel{{Slug: "forex-watch__human", Name: "Forex Watch DM", Members: []string{"human", "forex-watch"}}}
+
+	fire := func(slot string) TaskResponse {
+		t.Helper()
+		resp, err := b.CreateRoutineTask(TaskPostRequest{
+			Action:         "create",
+			Channel:        "forex-watch__human",
+			Title:          "每个交易日早上中文简报",
+			Details:        "每日外汇简报（全中文）。",
+			Owner:          "forex-watch",
+			CreatedBy:      routineTaskActor,
+			SourceSignalID: routineTaskSignal("5", slot),
+		})
+		if err != nil {
+			t.Fatalf("routine fire for %s was refused: %v", slot, err)
+		}
+		return resp
+	}
+
+	older := fire("2026-11-13T08:30:00Z")
+	newer := fire("2026-11-20T08:30:00Z")
+	if older.Task.ID == "" || newer.Task.ID == "" || older.Task.ID == newer.Task.ID {
+		t.Fatalf("each fire needs its own task; got %q and %q", older.Task.ID, newer.Task.ID)
+	}
+	if id, ok := b.RoutineTaskForSignal(routineTaskSignal("5", "2026-11-20T08:30:00Z")); !ok || id != newer.Task.ID {
+		t.Errorf("today's signal must resolve to today's task; got %q ok=%v", id, ok)
+	}
+}
