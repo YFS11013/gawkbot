@@ -618,14 +618,14 @@ prereg `db2b189`，工作区 `journey29`，二进制从 `3087138` 新构建，�
 - **A1 不成立（I-1 连续第三轮）**：两次 `team_task create` 全 completed、`create` 重试 0 次。根因在场景/判据侧：第二次 create 没有 `artifact_scope`，而 `sameScope` 与 `openTaskNamesPath` 都要求 `scope != ""`（`internal/team/broker_tasks_subissue_guards.go:330-331`），所以两条 Details 都写两页路径仍不触发；标题无复述也不命中。下一轮要逼出守卫，必须让第二次 create **声明**与第一条相同的路径（或复述标题），仅在 Details 里点名不够。
 - **A4 成立**：两页都经门落盘（internal `60aa22c` 走 `write-task`，public `6f95267` 走人工授权），0 次直写；internal 5 行短 hash 全在给定清单内，public 3 条无 hash / 内部术语。
 - **A5 不成立（动作数没超，闭合没达成）**：4 次操作用尽（H1 + 两张计划卡 + 一张决策卡），场景产生 2 计划卡 + 2 决策卡，预算只够批一张决策卡；`JOURN-5` 与 `task-skill-8` 留 `in_progress`。下一轮预算按「每任务一张计划卡 + 一张决策卡」重算。
-- **新发现（记录，未修）**：`JOURN-5` 的 `verification.spec=team/reviews/j29-internal.md`，而 `verification_result.detail=wiki artifact …j29-public.md (273 bytes)`、`pass=true`——`wiki_artifact` 似按已记录 artifact 的存在性放行，不严格比对 spec 路径。另有模型把计划批准回执当 `human_request`、8 次 `complete` 才收敛到 `submit_for_review` 的行为噪声。
+- **注记（非缺陷，不开修）**：`JOURN-5` 的 `verification.spec=team/reviews/j29-internal.md` 而 `verification_result.detail` 指向 public 页、`pass=true`，是 by-design——`internal/team/task_verification.go:93-99` 明确 `wiki_artifact` 的 spec 只是说明性字段，校验对象就是 complete 时声明的 `artifact_path`。真正的行为噪声：模型把计划批准回执当 `human_request`、8 次 `complete` 才收敛到 `submit_for_review`。
 
 ### 2026-11-20 漂移门根因（J29 收尾时发现）
 
 - `DRIFT: 1` 不是模型问题：job `5`（外汇日简报）08:30Z 建任务被 `applyOpenTopLevelExclusivityLocked` 拒绝——旧任务 `ACMER-3754`（11-13，仍 open）与它标题/路径重复，而 `routineTaskActor="system"` 不在人类豁免里。routine 退化成 fallback 消息（简报照常发出 `msg-3845`），但 `last_run_status=failed`、没有任务承接 artifact，所以漂移门红。把主模型换成 hy4-flash-free 并不能解决它。
 - **已修（`367e796`）**：`CreateRoutineTask` 设 `AllowDuplicate=true`，routine 自己的 `source_signal_id = routine:<slug>:<slot>` 仍是去重权威；bot 自建顶层任务继续受守卫约束。回归 `TestCreateRoutineTaskIgnoresAnOlderOpenInstance`（旧实例仍 open 时，今天的火必须能建出自己的任务）。
 - 验证与清门：临时 `schedule_expr` 改到 08:59Z 那次跑成 `ok`（`Dispatched as task #ACMER-3852`），随后还原 `30 8 * * 1-5`（`next_run=2026-11-23T08:30:00Z`）。17:03 从 HEAD 重建二进制再部署（`sha256 b91562e9…`，旧版备份 `gawkbot-fix.exe.bak-j5b-20261120170309`），`scheduler: loop started` 17:03:29；漂移检查回到 `DRIFT: none`。
-- **预存测试失败（与本次修复无关）**：`TestDecisionApproveWithoutALanePathLeavesNoGuardRow`（nil deref，`broker_container_artifact_test.go:174`）、`TestDecisionCardRaisedForParentIssueWithDeliveredLanes`（`broker_decision_card_test.go:329`）、`TestContainerGuardRefusalsLeaveALedgerRow`（`task_definition_scope_test.go:261`）。已在修复前提交 `8389c68` 的干净快照上逐个复现；全量套件带这三条必红，routine 定点测试全绿。
+- **预存测试失败已清（只改夹具，未改产品代码）**：`TestDecisionApproveWithoutALanePathLeavesNoGuardRow`、`TestDecisionCardRaisedForParentIssueWithDeliveredLanes`、`TestContainerGuardRefusalsLeaveALedgerRow` 的固定 `2026-11-10` 时间戳落在 7 天 GC 保留窗口外，批准的 `saveLocked` 在断言前 `pruneCompletedTasksLocked` 掉 terminal 任务，导致 nil deref / 守卫未命中。三处改用 `time.Now().UTC().Add(-time.Minute)`；全量 `go test ./internal/team -count=1 -timeout 30m -skip TestObsidianWatcher` 635s 全绿。
 
 ### Journey 28（2026-11-14，D-15/D-16 上线后）
 

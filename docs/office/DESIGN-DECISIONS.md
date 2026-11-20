@@ -46,7 +46,7 @@
 
 - 现象：job `5`（外汇日简报）每天建任务都被 `applyOpenTopLevelExclusivityLocked` 拒绝，因为上一交易日的任务还 open 且标题/路径重复；`routineTaskActor="system"` 不在人类豁免里。结果 routine 退化成 fallback 消息、`last_run_status=failed`、没有任务承接 artifact，漂移门常红——换模型并不能解决。
 - 决策：routine 自建任务由 `source_signal_id = routine:<slug>:<slot>` 唯一标识，同一班次重放由 `RoutineTaskForSignal` 去重；顶层标题/范围守卫只约束 bot 自建任务。`CreateRoutineTask` 统一 `AllowDuplicate=true`（`367e796`），回归 `TestCreateRoutineTaskIgnoresAnOlderOpenInstance`。
-- 验证：临时把 `schedule_expr` 改到 08:59Z，跑出 `ok` / `#ACMER-3852`，还原 `30 8 * * 1-5`；17:03 从 HEAD 重建部署（`sha256 b91562e9…`）后 `DRIFT: none`。当时记录的三条全量套件失败均在修复前提交的干净快照上复现，与本决策无关。
+- 验证：临时把 `schedule_expr` 改到 08:59Z，跑出 `ok` / `#ACMER-3852`，还原 `30 8 * * 1-5`；17:03 从 HEAD 重建部署（`sha256 b91562e9…`）后 `DRIFT: none`。当时全量套件的三条失败是夹具固定时间戳过期（7 天 GC），已用相对时间修好，与本决策无关。
 
 ### D2 数据层：digest 是唯一数据源
 

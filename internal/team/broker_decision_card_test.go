@@ -269,7 +269,9 @@ func TestDecisionCardAnswerIsAppliedOnce(t *testing.T) {
 func seedDecisionCardParent(t *testing.T) (*Broker, string) {
 	t.Helper()
 	b := newTestBroker(t)
-	now := time.Date(2026, 11, 10, 2, 54, 20, 0, time.UTC).Format(time.RFC3339)
+	// Keep seeded tasks inside the completion-GC window: approving the parent
+	// saves state, which prunes terminal tasks older than 7 days.
+	now := time.Now().UTC().Add(-time.Minute).Format(time.RFC3339)
 	b.mu.Lock()
 	b.tasks = append(b.tasks,
 		teamTask{ID: "JOURN-14", Title: "Journey 10: Acme renewal", Channel: "cos__human", Owner: "cos",

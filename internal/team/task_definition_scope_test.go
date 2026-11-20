@@ -223,7 +223,9 @@ func TestContainerGuardRefusalsLeaveALedgerRow(t *testing.T) {
 	b := newTestBroker(t)
 	const parentID, laneID = "GUARD-30", "GUARD-31"
 	const lanePath = "team/accounts/guard-quote.md"
-	now := time.Date(2026, 11, 10, 13, 0, 0, 0, time.UTC).Format(time.RFC3339)
+	// The delivered lane must survive the save triggered by each guard refusal;
+	// a fixed old timestamp would be GC-pruned before the third guard runs.
+	now := time.Now().UTC().Add(-time.Minute).Format(time.RFC3339)
 	b.mu.Lock()
 	b.tasks = append(b.tasks,
 		teamTask{

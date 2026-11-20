@@ -147,7 +147,10 @@ func TestDecisionApproveRefusesALanePathAsTheIssueArtifact(t *testing.T) {
 func TestDecisionApproveWithoutALanePathLeavesNoGuardRow(t *testing.T) {
 	b := newTestBroker(t)
 	const issueID = "JOURN-6"
-	now := time.Date(2026, 11, 10, 9, 0, 0, 0, time.UTC).Format(time.RFC3339)
+	// saveLocked prunes terminal tasks older than the 7-day retention window;
+	// a fixed historical timestamp would make the approved Issue vanish before
+	// this assertion can read it.
+	now := time.Now().UTC().Add(-time.Minute).Format(time.RFC3339)
 	b.mu.Lock()
 	b.tasks = append(b.tasks,
 		teamTask{ID: issueID, Title: "Issue", Channel: "team", Owner: "cos",
