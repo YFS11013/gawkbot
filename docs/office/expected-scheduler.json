@@ -50,11 +50,11 @@
    {
     "slug": "5",
     "loop_step": "1-6",
-    "enabled": true,
+    "enabled": false,
     "schedule_expr": "30 8 * * 1-5",
     "target_id": "forex-watch",
     "channel": "forex-watch__human",
-    "note": "外汇日简报"
+    "note": "外汇日简报 | 2026-11-21 用户确认基本不读，routine 停用；forex-bridge.py 数据脚本与 digest 保留"
    },
    {
     "slug": "weekly-saturday-fund-portfolio-ratio-analysis-report",

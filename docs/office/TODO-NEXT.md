@@ -23,6 +23,9 @@
 
 已完成、只在正文留档的：P0 #2 停用门禁、P2 #6 `/notebook/*`、P3 #7 测试包编译、P3 7d/7e 两个根因。
 
+已完成、只在正文留档的补充：2026-11-21 停用外汇简报 routine（job `5`，用户基本不读），
+关闭阻塞任务 `ACMER-3852`；数据链 `\Gawkbot\ForexBridge` + `forex-bridge.py` 保留，决策见 `DESIGN-DECISIONS.md` D8。
+
 ## 核心循环 Journey 2 暴露的四个缺陷（2026-11-07，待排期）
 
 来源：`core-loop-runs/2026-11-08-journey2/scorecard.md` §4。五条都有人可见后果，按严重度排。**J2-1 / J2-3 / J2-6 已于 2026-11-08 修复**，复现与测试见下方「2026-11-08 复核」。

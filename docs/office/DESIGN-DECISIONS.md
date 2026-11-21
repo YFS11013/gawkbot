@@ -130,6 +130,17 @@ digest ──► render_artifacts()（脚本，0 LLM）
 
 判据：`go test ./internal/team -run TestComposioSignin`（Windows 上自动跳过两条安装路径用例）、`npx vitest run src/components/apps/integrations`。
 
+### D8 外汇简报 routine 停用，数据脚本保留（2026-11-21）
+
+- 用户确认基本不读每日外汇简报。执行：`PATCH /scheduler/5 {"enabled":false}`；关闭遗留阻塞任务 `ACMER-3852`；
+  `expected-scheduler.json` 同步为期望停用（避免漂移误报）。
+- **保留** Windows 计划任务 `\Gawkbot\ForexBridge` 与 `forex-bridge.py` → `wiki/team/forex-bridge-digest.md`：
+  它是准备包、论点门槛和 R7 版本化引用的数据源，且无 LLM 成本。
+- 依据：`MINIMAL-CONFIG.md:164-183` 的 5 天试验判定多 bot 层为净成本；`forex-watch` 在 `ACMER-3852`
+  上卡于 artifact 新鲜度 / wiki 路径权限死锁——简报消息照发，但任务链与审阅链未闭合。
+- 判据：`DRIFT: none`；`/scheduler` 中 job 5 为 `enabled=false` / `status=disabled`；
+  `schtasks` 中 `\Gawkbot\ForexBridge` 仍 enabled。
+
 ## 4. 被否决的方案
 
 | 方案 | 否决理由 |
