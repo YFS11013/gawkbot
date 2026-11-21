@@ -50,6 +50,14 @@ git -C ~/.wuphf/wiki log --oneline -- team/reviews/release-notes-2026-11-20.md
 
 - **2026-11-21T01:26:52Z `actor=you` 批准 `request-3875`**（`action.request_answered` + `task_updated … [plan approved]`）。这是 J1–J30 之后第一次**非脚本化**的人类动作；从卡片升起（15:00:31Z）到被点，间隔 10 小时 26 分钟。期间系统记了 **48 条**与本任务/卡片相关的 `watchdog_alert`（半小时一轮，任务卡与两张请求卡各自告警），bot 另发了多轮「计划已定稿、等你放行」的消息。
 - 放行后 32 秒内 cos 成功 `submit_for_review`，交付页 `team/reviews/release-notes-2026-11-20.md` 随 `artifact_path` 附上（wiki commit `58ca870`，页面称 10 条 / 20 个 hash 全覆盖 / 两段分明 / 文末有「下一版注意」）。
-- 决策卡 `request-3935`（`decision:ACMER-3872`）01:27:44Z 升起，当前 pending。我方**仍未代点**。
+- 决策卡 `request-3935`（`decision:ACMER-3872`）01:27:44Z 升起，当日 01:37:17Z 被真人批准；harness 全程未代点。
 - 独立核对交付内容：盘上页面 1952 字节，含 20 个短 hash；与任务 details 里**冻结的** `git log -20` 清单逐一对上（0 缺、0 多）。注意不能用当前 `git log -20` 复核——任务创建后仓库又多了几次文档提交，清单尾部已滚动。
 - 结论性事实：人会点卡，但**在大量提醒之后、隔了 10 小时才点**。这是「卡片位置/提醒节奏」的产品信号，不是模型质量问题；原来的 forex 两张卡（`3761`/`3803`）在此期间消失，不在本次判据内。
+
+## 终态（2026-11-21 09:37 本地 / 01:37Z）
+
+- 真人 **01:37:17Z `actor=you` 批准 `request-3935`**，距升卡 9 分 33 秒；`/requests` 归零。
+- `ACMER-3872` 终态 `status=done` / `lifecycle_state=approved` / `review_state=approved`，`verification_result.pass=true`（`wiki_artifact`，1952 B，checked_at 01:37:17Z）。
+- wiki 中该路径只有一笔提交 `58ca870`：批准后页面没有被改动，没有返工、没有第二次编辑。
+- 两次人类动作的延迟相差很大：计划卡 10h26m + 48 条告警；决策卡 9m33s。人不在场时卡片会长期停着，一旦人在场，第二张卡能很快处理——这仍指向卡片可见性/提醒节奏，而不是模型或工作流。
+- 试验收口：harness 全程只创建任务、只读观察，未批准、未退回、未催、未发补充消息。
