@@ -162,3 +162,37 @@ func TestReadOpencodeJSONStreamSkipsMalformedJSON(t *testing.T) {
 		t.Fatalf("second valid text event missing: %q", res.FinalMessage)
 	}
 }
+
+func TestReadOpencodeJSONStreamStepFinishUsage(t *testing.T) {
+	stream := strings.Join([]string{
+		`{"type":"text","part":{"text":"OK"}}`,
+		`{"type":"step_finish","part":{"reason":"stop","tokens":{"total":14886,"input":14862,"output":3,"reasoning":21,"cache":{"write":0,"read":5}},"cost":0.25}}`,
+	}, "\n")
+	var finishes []OpencodeStreamEvent
+	res, err := ReadOpencodeJSONStream(strings.NewReader(stream), func(ev OpencodeStreamEvent) {
+		if ev.Type == "step_finish" {
+			finishes = append(finishes, ev)
+		}
+	})
+	if err != nil {
+		t.Fatalf("ReadOpencodeJSONStream: %v", err)
+	}
+	if len(finishes) != 1 || finishes[0].Tokens == nil {
+		t.Fatalf("step_finish token payload missing: %+v", finishes)
+	}
+	if got := finishes[0].Tokens.InputTokens; got != 14862 {
+		t.Fatalf("event input tokens = %d, want 14862", got)
+	}
+	if got := res.Usage.InputTokens; got != 14862 {
+		t.Fatalf("result input tokens = %d, want 14862", got)
+	}
+	if got := res.Usage.OutputTokens; got != 3 {
+		t.Fatalf("result output tokens = %d, want 3", got)
+	}
+	if got := res.Usage.CacheReadTokens; got != 5 {
+		t.Fatalf("result cache read tokens = %d, want 5", got)
+	}
+	if got := res.Usage.CostUSD; got != 0.25 {
+		t.Fatalf("result cost = %v, want 0.25", got)
+	}
+}

@@ -297,3 +297,16 @@ worktree 已创建）的回合对 `https://api.openai.com/v1/responses` 返回 `
 - 全包测试定位：`go test ./internal/team -count=1` 卡在 `TestContendedMutexLogsSlowAcquireWithCaller`；
   `-short` 卡在 `TestBackfillSkillFilesFromState_WritesMissingFiles`。两者**单独跑都在 1–3 秒内通过**，
   属套件并发/资源交互问题，不是本次改动引入；与改动相关的定向测试全部通过。
+
+## 16. token 埋点（2026-11-22）
+
+- `provider/opencode_stream.go` 解析 `step_finish.part.tokens`（input/output/reasoning/cache/cost）并汇总到
+  `OpencodeStreamResult.Usage`；`headless_opencode.go` 把它同时写进 terminal/manifest 事件和
+  `RecordBotUsage` per-bot 账本。此前 opencode 路径传 `nil`，完全没有 token 数据。
+- `event_sink.go` 的 `TurnManifest` 新增 `input_tokens` / `output_tokens`，按 task_id 落盘到
+  `<runtime home>/.wuphf/office/events.jsonl`。
+- 新增 `scripts/office/task-token-report.py`：按任务汇总 token，用 `source_signal_id=review:<parent>`
+  把审阅任务归并到父任务并算验证占比；manifest 缺失时回退到 broker `/usage` 汇总。
+- 实测（lab5）：`/usage` 记录 4 个 opencode 回合、779,494 total tokens（其中 cache read 580,096）；
+  任务 `CODIN-10` 的 manifest 记录 input=50,400 / output=1,345。
+- 局限：无工具调用的纯聊天回合不会生成 manifest；review 占比只有在 review 任务自身也落 manifest 时才能算。

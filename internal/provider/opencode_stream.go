@@ -24,12 +24,26 @@ type OpencodeStreamEvent struct {
 	ToolID   string
 	Detail   string
 	Raw      string
+	Tokens   *OpencodeTokenUsage
+}
+
+// OpencodeTokenUsage is the token/cost payload from opencode's step_finish
+// event. Fields map to the runner-agnostic ClaudeUsage used by the brokers'
+// per-bot usage ledger.
+type OpencodeTokenUsage struct {
+	InputTokens         int     `json:"input"`
+	OutputTokens        int     `json:"output"`
+	ReasoningTokens     int     `json:"reasoning"`
+	CacheReadTokens     int     `json:"cache_read"`
+	CacheCreationTokens int     `json:"cache_write"`
+	CostUSD             float64 `json:"cost"`
 }
 
 // OpencodeStreamResult captures the final outcome of a streamed Opencode turn.
 type OpencodeStreamResult struct {
 	FinalMessage string
 	LastError    string
+	Usage        OpencodeTokenUsage
 }
 
 type opencodeRawEvent struct {
@@ -39,16 +53,29 @@ type opencodeRawEvent struct {
 	Part    opencodeRawPart `json:"part"`
 }
 
+type opencodeRawTokens struct {
+	Total     int `json:"total"`
+	Input     int `json:"input"`
+	Output    int `json:"output"`
+	Reasoning int `json:"reasoning"`
+	Cache     struct {
+		Read  int `json:"read"`
+		Write int `json:"write"`
+	} `json:"cache"`
+}
+
 type opencodeRawPart struct {
-	Text     string          `json:"text"`
-	Message  string          `json:"message"`
-	Tool     string          `json:"tool"`
-	ToolName string          `json:"toolName"`
-	Name     string          `json:"name"`
-	ID       string          `json:"id"`
-	CallID   string          `json:"callID"`
-	Output   json.RawMessage `json:"output"`
-	Result   json.RawMessage `json:"result"`
+	Text     string             `json:"text"`
+	Message  string             `json:"message"`
+	Tool     string             `json:"tool"`
+	ToolName string             `json:"toolName"`
+	Name     string             `json:"name"`
+	ID       string             `json:"id"`
+	CallID   string             `json:"callID"`
+	Output   json.RawMessage    `json:"output"`
+	Result   json.RawMessage    `json:"result"`
+	Tokens   *opencodeRawTokens `json:"tokens"`
+	Cost     float64            `json:"cost"`
 }
 
 // ReadOpencodeJSONStream consumes `opencode run --format json` output and
@@ -121,8 +148,27 @@ func ReadOpencodeJSONStream(r io.Reader, onEvent func(OpencodeStreamEvent)) (Ope
 			}
 			id := firstNonEmpty(ev.Part.CallID, ev.Part.ID)
 			emit(OpencodeStreamEvent{Type: "tool_result", ToolID: id, Text: detail, Detail: detail, Raw: line})
-		case "step_start", "step_finish":
+		case "step_start":
 			emit(OpencodeStreamEvent{Type: ev.Type, Raw: line})
+		case "step_finish":
+			var usage *OpencodeTokenUsage
+			if t := ev.Part.Tokens; t != nil {
+				usage = &OpencodeTokenUsage{
+					InputTokens:         t.Input,
+					OutputTokens:        t.Output,
+					ReasoningTokens:     t.Reasoning,
+					CacheReadTokens:     t.Cache.Read,
+					CacheCreationTokens: t.Cache.Write,
+					CostUSD:             ev.Part.Cost,
+				}
+				result.Usage.InputTokens += t.Input
+				result.Usage.OutputTokens += t.Output
+				result.Usage.ReasoningTokens += t.Reasoning
+				result.Usage.CacheReadTokens += t.Cache.Read
+				result.Usage.CacheCreationTokens += t.Cache.Write
+				result.Usage.CostUSD += ev.Part.Cost
+			}
+			emit(OpencodeStreamEvent{Type: ev.Type, Raw: line, Tokens: usage})
 		case "error":
 			msg := firstNonEmpty(ev.Message, ev.Error, ev.Part.Message)
 			if msg != "" {

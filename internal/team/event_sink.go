@@ -31,11 +31,13 @@ type TurnToolCount struct {
 // summarizing which tools the turn invoked. A task's "shape" is its ordered
 // sequence of TurnManifests; the detection miner clusters tasks by that shape.
 type TurnManifest struct {
-	TaskID    string          `json:"task_id"`
-	TurnID    string          `json:"turn_id,omitempty"`
-	Bot       string          `json:"agent,omitempty"`
-	StartedAt string          `json:"started_at,omitempty"`
-	Tools     []TurnToolCount `json:"tools"`
+	TaskID       string          `json:"task_id"`
+	TurnID       string          `json:"turn_id,omitempty"`
+	Bot          string          `json:"agent,omitempty"`
+	StartedAt    string          `json:"started_at,omitempty"`
+	Tools        []TurnToolCount `json:"tools"`
+	InputTokens  int             `json:"input_tokens,omitempty"`
+	OutputTokens int             `json:"output_tokens,omitempty"`
 }
 
 const eventSinkFile = "events.jsonl"
@@ -87,13 +89,18 @@ func turnManifestFromEvent(e HeadlessEvent) (TurnManifest, bool) {
 		}
 		taskID = inlineTurnScopePrefix + turnID
 	}
-	return TurnManifest{
+	m := TurnManifest{
 		TaskID:    taskID,
 		TurnID:    strings.TrimSpace(e.TurnID),
 		Bot:       strings.TrimSpace(e.Bot),
 		StartedAt: strings.TrimSpace(e.StartedAt),
 		Tools:     tools,
-	}, true
+	}
+	if e.Metrics != nil {
+		m.InputTokens = e.Metrics.InputTokens
+		m.OutputTokens = e.Metrics.OutputTokens
+	}
+	return m, true
 }
 
 // workToolCount returns how many of the tools are real workflow work (not bot

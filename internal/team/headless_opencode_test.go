@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/nex-crm/wuphf/internal/provider"
 )
 
 func TestBuildHeadlessOpencodeArgsRequestsJSONFormat(t *testing.T) {
@@ -397,5 +399,20 @@ func TestHeadlessOpencodeConfigDeniesEditsUnderTheWikiRoot(t *testing.T) {
 	deny := strings.Index(text, `".wuphf/wiki/**": "deny"`)
 	if star < 0 || deny < 0 || star > deny {
 		t.Fatalf("the allow-all rule must serialize before the deny rules:\n%s", text)
+	}
+}
+
+func TestOpencodeUsageMapping(t *testing.T) {
+	u := provider.OpencodeTokenUsage{InputTokens: 14862, OutputTokens: 3, ReasoningTokens: 21, CacheReadTokens: 5, CostUSD: 0.25}
+	got := opencodeUsageToTokenUsage(u)
+	if got == nil || got.InputTokens != 14862 || got.OutputTokens != 24 {
+		t.Fatalf("headless usage mapping = %+v", got)
+	}
+	claude := opencodeUsageToClaudeUsage(u)
+	if claude.InputTokens != 14862 || claude.OutputTokens != 3 || claude.CacheReadTokens != 5 || claude.CostUSD != 0.25 {
+		t.Fatalf("ledger usage mapping = %+v", claude)
+	}
+	if !opencodeUsageRecorded(u) || opencodeUsageRecorded(provider.OpencodeTokenUsage{}) {
+		t.Fatal("usage presence check must distinguish zero from non-zero")
 	}
 }

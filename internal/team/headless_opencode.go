@@ -100,11 +100,36 @@ func seedOpencodeAuth(src, dst string) error {
 	return nil
 }
 
+// opencodeUsageToTokenUsage maps opencode's step_finish payload to the
+// runner-agnostic envelope attached to headless events.
+func opencodeUsageToTokenUsage(u provider.OpencodeTokenUsage) *headlessTokenUsage {
+	if u.InputTokens == 0 && u.OutputTokens == 0 && u.ReasoningTokens == 0 {
+		return nil
+	}
+	// Opencode reports reasoning separately; other runners fold it into output.
+	return &headlessTokenUsage{InputTokens: u.InputTokens, OutputTokens: u.OutputTokens + u.ReasoningTokens}
+}
+
+func opencodeUsageToClaudeUsage(u provider.OpencodeTokenUsage) provider.ClaudeUsage {
+	return provider.ClaudeUsage{
+		InputTokens:         u.InputTokens,
+		OutputTokens:        u.OutputTokens,
+		CacheReadTokens:     u.CacheReadTokens,
+		CacheCreationTokens: u.CacheCreationTokens,
+		CostUSD:             u.CostUSD,
+	}
+}
+
+func opencodeUsageRecorded(u provider.OpencodeTokenUsage) bool {
+	return u.InputTokens != 0 || u.OutputTokens != 0 || u.ReasoningTokens != 0 ||
+		u.CacheReadTokens != 0 || u.CacheCreationTokens != 0 || u.CostUSD != 0
+}
+
 // runHeadlessOpencodeTurn executes a single Opencode turn for slug, posting the
 // final text to channel (if any) via the same broker/progress machinery used
-// by the Codex runtime. Opencode emits plain text on stdout rather than
-// structured JSONL, so this path is a thinner version of runHeadlessCodexTurn
-// with no tool-event parsing and no Codex-specific auth/config layering.
+// by the Codex runtime. Opencode emits structured JSONL with step_finish usage
+// events; this path mirrors runHeadlessCodexTurn's telemetry plumbing.
+
 func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, notification string, channel ...string) error {
 	if _, err := headlessOpencodeLookPath("opencode"); err != nil {
 		return fmt.Errorf("opencode not found: %w", err)
@@ -291,6 +316,9 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 			}
 		}
 	})
+	// step_finish events are summed by the provider stream reader; attach the
+	// same totals to terminal/manifest events so per-task telemetry works.
+	usage := opencodeUsageToTokenUsage(streamRes.Usage)
 	// provider.ReadOpencodeJSONStream now uses a reader-based drain, so a
 	// single oversized output line cannot wedge cmd.Wait on backpressure.
 	// The previous SIGKILL fallback for bufio.ErrTooLong is therefore gone.
@@ -314,8 +342,8 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 			))
 			appendHeadlessCodexLog(slug, "opencode_stderr: "+detail)
 			l.updateHeadlessProgress(slug, "error", "error", truncate(detail, 180), metrics)
-			emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderOpencode, slug, taskID, "", detail, metrics, nil)
-			emitHeadlessManifest(botStream, turnID, HeadlessProviderOpencode, slug, taskID, detail, turnToolNames, turnTextLen, metrics, nil)
+			emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderOpencode, slug, taskID, "", detail, metrics, usage)
+			emitHeadlessManifest(botStream, turnID, HeadlessProviderOpencode, slug, taskID, detail, turnToolNames, turnTextLen, metrics, usage)
 			if isOpencodeAuthError(detail) && l.broker != nil {
 				sysTarget := target
 				if strings.TrimSpace(sysTarget) == "" {
@@ -335,15 +363,15 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 			durationMillis(startedAt, firstTextAt),
 			err.Error(),
 		))
-		emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderOpencode, slug, taskID, "", err.Error(), metrics, nil)
-		emitHeadlessManifest(botStream, turnID, HeadlessProviderOpencode, slug, taskID, err.Error(), turnToolNames, turnTextLen, metrics, nil)
+		emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderOpencode, slug, taskID, "", err.Error(), metrics, usage)
+		emitHeadlessManifest(botStream, turnID, HeadlessProviderOpencode, slug, taskID, err.Error(), turnToolNames, turnTextLen, metrics, usage)
 		return err
 	}
 	if scanErr != nil {
 		metrics.TotalMs = time.Since(startedAt).Milliseconds()
 		l.updateHeadlessProgress(slug, "error", "error", truncate(scanErr.Error(), 180), metrics)
-		emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderOpencode, slug, taskID, "", scanErr.Error(), metrics, nil)
-		emitHeadlessManifest(botStream, turnID, HeadlessProviderOpencode, slug, taskID, scanErr.Error(), turnToolNames, turnTextLen, metrics, nil)
+		emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderOpencode, slug, taskID, "", scanErr.Error(), metrics, usage)
+		emitHeadlessManifest(botStream, turnID, HeadlessProviderOpencode, slug, taskID, scanErr.Error(), turnToolNames, turnTextLen, metrics, usage)
 		return scanErr
 	}
 
@@ -364,8 +392,11 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 		summary = "reply ready · " + summary
 	}
 	l.updateHeadlessProgress(slug, "idle", "idle", summary, metrics)
-	emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderOpencode, slug, taskID, summary, "", metrics, nil)
-	emitHeadlessManifest(botStream, turnID, HeadlessProviderOpencode, slug, taskID, "", turnToolNames, turnTextLen, metrics, nil)
+	emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderOpencode, slug, taskID, summary, "", metrics, usage)
+	emitHeadlessManifest(botStream, turnID, HeadlessProviderOpencode, slug, taskID, "", turnToolNames, turnTextLen, metrics, usage)
+	if l.broker != nil && opencodeUsageRecorded(streamRes.Usage) {
+		l.broker.RecordBotUsage(slug, model, opencodeUsageToClaudeUsage(streamRes.Usage))
+	}
 	relay.Flush()
 	if text != "" {
 		appendHeadlessCodexLog(slug, "opencode_result: "+text)
