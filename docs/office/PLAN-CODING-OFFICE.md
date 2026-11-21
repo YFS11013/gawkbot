@@ -265,3 +265,15 @@ worktree 已创建）的回合对 `https://api.openai.com/v1/responses` 返回 `
 - 主办公室当前 `DRIFT: 1`（运行中二进制落后于 3 个 Go 提交：`5161f53` / `de71ceb` / `7a809c4`）。
   这是**未部署**的预期状态，不是回归；部署/重启主办公室需要单独决策。
 - 仍待：部署决策、turn 15m/10m 与 owner 独占、token 埋点、真实 PR（需 `gh auth`）、WP3 live E2E。
+
+## 13. 主办公室部署（2026-11-21）
+
+- 从当前 HEAD 构建到 `C:/tmp/gawkbot-deploy.exe`；复用 `broker-watchdog.ps1` 的 `Restart-Broker`
+  函数体生成临时部署脚本：按端口 7892 杀主进程树 → 覆盖 `gawkbot-fix.exe` → 用**原样 env 与重定向**启动。
+  隔离 lab2（`:7912/:7913`）未受影响。
+- 验证：`/health` 200、`provider_model=opencode-go/hy4-flash-free`、token 轮换为 `c1052…`、
+  进程路径为仓库内 `gawkbot-fix.exe`（PID 49952，父 37736，无残留孤儿）。
+- 唤醒链：`POST /messages` 到 `cos__human` 后 cos 回复 `OK`，投递正常。
+- 漂移：`DRIFT: none`（16 个 job / 4 个计划任务 / 1 个运行中二进制）。
+- 说明：临时部署脚本的 powershell 父进程因 `Start-Process` 持有 stdout 管道而超时 240s，
+  但 `Restart-Broker` 已返回 `True` 且 broker 正常——是测量方式问题，不是部署失败。
