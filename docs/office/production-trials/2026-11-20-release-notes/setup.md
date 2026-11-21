@@ -45,3 +45,10 @@ git -C ~/.wuphf/wiki log --oneline -- team/reviews/release-notes-2026-11-20.md
 - 22:59:25 `cos stage=started`，23:00:31 `status=ok`（65.5s，正文 3359 字）；`ACMER-3872` `in_progress` / `planning`。
 - 计划卡 `request-3875`（`dedupe_key=plan-approval:ACMER-3872`）**自行升起且 pending**。我方未答任何卡、未发任何补充消息。
 - 其余两张 pending（`request-3761` / `request-3803`）属于 `ACMER-3754` 的 forex 遗留，与本任务无关，同样未动。
+
+## 第二次观察（2026-11-21 09:28 本地 / 01:28Z）：真人真的点了卡
+
+- **2026-11-21T01:26:52Z `actor=you` 批准 `request-3875`**（`action.request_answered` + `task_updated … [plan approved]`）。这是 J1–J30 之后第一次**非脚本化**的人类动作；从卡片升起（15:00:31Z）到被点，间隔 10 小时 26 分钟。期间系统发了约 22 条 `watchdog_alert`（两条卡 + 任务本身，半小时一轮），bot 另发了多轮「计划已定稿、等你放行」的消息。
+- 放行后 32 秒内 cos 成功 `submit_for_review`，交付页 `team/reviews/release-notes-2026-11-20.md` 随 `artifact_path` 附上（wiki commit `58ca870`，页面称 10 条 / 20 个 hash 全覆盖 / 两段分明 / 文末有「下一版注意」）。
+- 决策卡 `request-3935`（`decision:ACMER-3872`）01:27:44Z 升起，当前 pending。我方**仍未代点**。
+- 结论性事实：人会点卡，但**在大量提醒之后、隔了 10 小时才点**。这是「卡片位置/提醒节奏」的产品信号，不是模型质量问题；原来的 forex 两张卡（`3761`/`3803`）在此期间消失，不在本次判据内。
