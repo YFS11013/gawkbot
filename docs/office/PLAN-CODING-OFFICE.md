@@ -1,0 +1,170 @@
+# 让 office 承担代码开发：执行方案（2026-11-21）
+
+> 证据档：`RESEARCH-2026-11-21-lauren-tan.md`（T1–T13、§7）、`RESEARCH-2026-11-01-multi-agent.md`、
+> `DESIGN-DECISIONS.md` §9/§10、`USE-CASES-2026-11-01.md`。
+> 本文件只留**做法、验收、回滚、里程碑**；来源、数字、口径只改证据档，不在本文件转引精确值。
+>
+> 状态：**方案，未实施**。本轮没有新跑实验或压测，全部基于静态代码与文档核对。
+
+## 0. 结论与目标
+
+**结论：当前形态不适合直接做代码开发，但平台已有约一半零件。** 缺的不是模型能力，是
+"bot 能产出代码 + 能交验证证据"这一段链路。
+
+- **目标**：office 承担代码任务的外环（发现、分流、验收、开 PR）+ 受控内环（在 codex worktree 里写代码、
+  跑机检、交 PR）。
+- **非目标**：不全局放开 opencode 的 `bash`；不并行写同一个 repo；不自动 merge / push / deploy；不放开外发。
+- **分工**：Grok Bot 式的外环归 office，写代码的执行层归 codex / CLI harness。这条分工来自 T9/T11/T13，见 §2。
+
+## 1. 现状基线：已有零件 vs 真缺口
+
+| 已有（代码强制） | 证据 | 缺口 / 备注 |
+|---|---|---|
+| `command` 判据：cmd.exe、cwd=worktree、5min、4000 字符截断 | `internal/team/task_verification.go:59-79,152-178`、`task_verification_shell_windows.go:29` | 由 **broker** 跑，不是 bot 自己跑；bot 侧仍无执行权 |
+| coding bot claim 任务时自动切 `local_worktree` | `internal/team/broker_tasks_worktrees.go:108-114` | 当前没有任何 coding 实例（见下表） |
+| 每任务独立 git worktree | `internal/team/worktree.go:132`（调研） | owner 级独占恒 false、跨 repo 无锁（`broker_tasks_worktrees.go:91`） |
+| codex 三档：plan=read-only / execute=workspace-write / unsafe=bypass | `internal/team/headless_codex_runner.go:59-76` | 要按 bot 选，不能全局切 |
+| PR 指令：`gh pr create` + 必须回帖真实 URL | `internal/team/prompt_builder.go:441-443`（`codingBotSlugs` 门控） | 只在 prompt 层，没有 routine 触发它 |
+| reviewer 路由已算 `git diff --name-only` | `internal/team/broker_reviewer_routing.go:578-610` | diff 不进审阅 brief |
+| 审阅回合落 `team/reviews/<id>.md`，干净上下文 | `internal/team/task_review.go:186-192,235-262` | 审的是交付文档，不是 patch |
+
+**真缺口（阻碍代码开发的）**
+
+| 缺口 | 证据 |
+|---|---|
+| opencode 侧 `bash: deny`、`webfetch: deny`、`task: deny` | `internal/team/headless_opencode_mcp.go:125-146` |
+| 无 coding routine / playbook；`expected-scheduler.json` 只有 forex 日简报；live 无 `local_worktree` 任务 | `docs/office/expected-scheduler.json`；调研 3、4 |
+| `StalledTurns` 不覆盖"从未启动"的任务 | `DESIGN-DECISIONS.md:344` |
+| 审批卡与投递通道互锁（J2-2 已修，需回归） | `TODO-NEXT.md:34` |
+| turn 15m / 10m 上限；同输入重放 41 次的历史 | `headless_codex.go:124,134`（调研）；`DESIGN-DECISIONS.md:436` |
+| 显式反面清单："用多 agent 硬啃长程编码" | `DESIGN-DECISIONS.md:1065` |
+
+## 2. 目标形态有先例：用 Grok Bot 开发 Grok Bot
+
+这一节回答"我们想做的事有没有人真做过"。答案是有，而且就在本次调研对象身上。
+
+### 2.1 她实际跑的几条闭环
+
+| 闭环 | 怎么跑 | 来源 |
+|---|---|---|
+| 发布后自测 | 每次发版 → Grok Bot 自动开 Cursor project → 像真实用户一样 fuzz 整个 build → 为 bug 开修复 PR → 自动合并 | T5，演讲原话 |
+| 反馈 → 修复 | Slack 反馈 → 建工单 → cloud agent 复现 → 修 → 另一个 agent 模拟用户验证 → 通知她；1 小时否决窗口 | T12（三级整理）+ T10（Coursiv） |
+| 个人编码入口 | 只跟 Chief of Staff 说话 → Macha（tech lead）拆解 → 工程 bot → 各自开 Cursor Cloud Agent；PR 回来 bot 先审，有时合了她才看 | T9，访谈逐字稿 |
+| pstack 自己的 eval | 在 Grok Bot 里跑不同模型 sub-agent 试同一个 skill 改动，目标真达成才接受 | T9 |
+| 产品本身的产出 | 七周从零到上线；她曾在 200 条 Slack 消息里和同事+bot 端到端做完一个功能，没开代码编辑器 | T6 / i10X |
+
+### 2.2 关键消歧：不是 Grok Bot 自己写代码
+
+官方 [Grok Bot 101](https://x.ai/bot/guides/grok-bot-101)（作者 Matt Palmer，是她同事，**不是 Lauren**）：
+
+> Grok Bot is not writing the code. It is creating the same prompts I would, then sending them to
+> a specialized coding harness that lives inside Cursor.
+
+所以准确说法是：**她用 Grok Bot 管理"开发 Grok Bot"这件事**——收上下文、保留原始报告、派活、验证、
+决定合不合；执行层是 Cursor 里的 coding harness。这正是本方案 §0 的分工来源。
+
+### 2.3 对她而言的前提，正是我们的缺口
+
+1. **能跑产品的 verification skill + feature map**——她能开云桌面、抓 trace、模拟真实用户；我们 bot 连 `bash` 都被禁。
+2. **发布/反馈事件源**——她的 routine 监听 Slack / X / GitHub；我们只有 forex 日简报一个 routine。
+3. **独立 verifier + 否决窗口**——她有另一组 agent 复测；我们审阅 brief 连 diff 都没有。
+
+**结论**：把"office 处理 gawkbot 自己的 bug 反馈"列为 **M4 之后的目标**，不从它起步。
+
+### 2.4 场景性质：既有项目还是新项目
+
+她在两类现场都做过：Cursor 3 Agent Window（既有产品里的新模块，第一周性能排查催生 verification skill）、
+Grok Bot（新项目，但接手时已是"快而无护栏"的原型，用 600+ 重构 PR 重建 Dune）、pstack（从失败模式增量长出）。
+
+她的判断反直觉：**绿地 vibe-coded 原型比大厂老代码库更危险**——老代码库本来就带着为大量工程师准备的护栏，
+agent 受益（T7，约 30:31–33:34）。这对我们有利：gawkbot 已有 lint / CI / `go test` / worktree / 判据 / 审阅 / 漂移巡检，
+属于"带护栏的既有仓库"，不是绿地。但**缺的是验证层**，这正是 WP3 要补的。
+
+### 2.5 口径
+
+11,000 PR / 0.5% revert / 227 贡献者全是团队自报；T12 是三级整理，1 小时否决窗口非逐字确认；
+不同剪辑里 bot 编制互相矛盾。这些只说明规模，不能当质量或效率证明。
+
+## 3. 四个工作包
+
+### WP1 — coding bot 切 codex（不改全局 provider）
+
+1. **不动 `llm_provider`**：主办公室当前是 opencode（`~/.wuphf/config.json`，运行时观察）；§9.1 禁 bash 的事故是全局理由，
+   不要推翻（`DESIGN-DECISIONS.md:465`）。
+2. 给单个 member 设 `ProviderBinding{Kind:"codex"}`：创建 / PATCH 入口 `broker_office_members.go:68,301,477-495`；
+   模型解析 `broker_member_runtime.go:66-78`。
+3. slug 必须在 `codingBotSlugs`（`mcp_config.go:21-30`：`eng/fe/be/ai/qa/tech-lead`）才能拿到 worktree 自动分配与 PR 指令。
+   建议**新建 `coder` 并加入这张表**，避免污染现有角色。
+4. 模式：plan 用 read-only；execute 用 workspace-write；`--dangerously-bypass` 只允许已确认的 local_worktree
+   （`headless_codex_runner.go:64-67` 的注释就是为此写的）。
+5. **验收**：隔离 workspace 内两次任务——①只读列文件：manifest 显示 provider=codex、无写；②改一个文件并跑
+   `go test ./internal/team -run <单测>`：worktree 有 commit，主工作树 `git status` 无变化。
+6. **回滚**：把 member provider 改回 opencode；全局 config 始终未动。
+
+### WP2 — coding routine + ship-pr playbook
+
+1. playbook 落 `team/playbooks/ship-pr.md`（路径约定 `broker_apps_starter_routine.go:165`），编译成 skill；
+   内容只写"怎么交付"，不写"怎么判完成"。
+2. 任务定义必须齐 Goal / Deliverables / Success criteria + `artifact_path`；verification 用 `command`，
+   spec 指向包级测试（如 `go test ./internal/team -run TestX`），由 broker 在 worktree 跑。
+3. **5min / 4000 字符是硬边界**（`task_verification.go:73-74`）：长测试拆包；超长输出靠落盘文件 + artifact 校验，
+   不塞进 verification detail。
+4. 新 job 要声明 `loop_step`（`DESIGN-DECISIONS.md:510`），否则 drift 报红。**先手工任务验证，通过后再登记 routine**，
+   避免反复漂移。
+5. **验收（端到端一次）**：人给一个小 bug → task 有 definition → `coder` claim 自动拿 worktree →
+   改动 + 测试 exit 0 → `gh pr create` 输出真实 URL → artifact 落 `team/` → 审阅任务自动生成。
+6. PR 创建涉及外发凭证，**第一次必须人在场**；之后才考虑放 routine。
+
+### WP3 — 审阅 brief 注入 diff
+
+1. 复用 `taskWorktreeDiff`（`broker_reviewer_routing.go:586-610`，5s 超时、基于 parent branch），
+   但那是 `--name-only`；在 `reviewTaskDetails`（`task_review.go:238-262`）里另取内容。
+2. 大小限制：建议 ≤2000 行 / 50KB，超出只给文件清单 + 关键 hunk + "完整 diff 在 worktree 路径"，别烧光审阅者上下文。
+3. **别破坏干净上下文契约**（`task_review.go:235-237`）：只加 patch 与验收标准，
+   不加作者推理、作者聊天记录。
+4. **验收**：找一个已知修复，审阅回合必须给出至少一条具体代码级发现；反向验证——抽掉 diff 后审阅退化为只认 artifact 文本。
+
+### WP4 — 门槛与稳定性
+
+| 门槛 | 处理 | 证据 |
+|---|---|---|
+| 审批卡阻塞投递 | J2-2 已修，回归验证一次 | `TODO-NEXT.md:34` |
+| `StalledTurns` 不覆盖"从未启动" | **必须修**，否则 coding 任务停在 breakdown 无人管 | `DESIGN-DECISIONS.md:344` |
+| turn 15m / 10m | 任务切成一个 PR 一个 slice；`prompt_builder.go:433` 已有 "narrow to smallest runnable slice" 指令 | `headless_codex.go:124,134`（调研） |
+| owner 独占恒 false | 先用调度约束保证"一个 repo 同时一个 coding 任务"，再考虑改代码 | `broker_tasks_worktrees.go:91`（调研） |
+| token 成本 | 每任务 token 上限 + 同输入重试上限；验证阶段埋点 | `DESIGN-DECISIONS.md:436`；证据档 §6 |
+| 成本对照 | 别引用她的 70% 当作我们的基线；本地无埋点 | 证据档 §6「验证 token 占比：无数据」 |
+
+## 4. 里程碑与 go/no-go
+
+```mermaid
+flowchart LR
+M0[隔离 workspace<br>不动主办公室] --> M1[WP1<br>codex coding bot]
+M1 --> M2[WP2<br>手工单任务端到端]
+M2 --> M3[WP3<br>diff 注入审阅]
+M3 --> M4[登记 routine<br>expected-scheduler]
+M4 --> M5[接反馈源 / 第二个 bot]
+```
+
+**M2 的 go/no-go 五条**：`go test` exit 0 且输出落盘；PR URL 来自真实 `gh` 输出；审阅给出代码级发现；
+main 无直接提交、无自动 merge；主办公室 `DRIFT: none` 且 watchdog 0 误报。任一不过就停在 M2，不推进 M4。
+
+**M5（可选，§2 的先例）**：接 Slack / GitHub 反馈 → 建工单 → cloud agent 复现 → 修复 → 独立 verifier → 人否决窗口。
+前置是 M3 的 diff 审阅 + WP4 的 token 埋点，缺一不可。
+
+## 5. 风险与回滚
+
+- **codex bypass 边界**：`--dangerously-bypass` 只在 local_worktree 用；禁止读写 wiki 根与 broker 鉴权路径——
+  这正是 §9.1 事故的形态（`DESIGN-DECISIONS.md:465`）。
+- **Windows**：`command` 走 cmd.exe（`task_verification_shell_windows.go:29`），路径与超时在隔离 workspace 实测。
+- **gh 凭证**：第一次 PR 外发需人在场；不允许 bot 自行配置 token。
+- **成本**：多 agent 15x token + 验证开销；先用单任务测出实际单价再谈并发。
+- **回滚单元**：WP1 回滚到 member provider=opencode；WP2/WP3 是新增文件与 brief 字段，删掉即退；
+  WP4 的 `StalledTurns` 修改按常规单测 + 反向验证走。
+
+## 6. 更新触发
+
+1. 主办公室 provider 或模型换代（`DESIGN-DECISIONS.md` 当前记 `opencode-go/hy4-flash-free`）；
+2. M2 的 go/no-go 出现任何一条不过，回到对应 WP 重做，不得跳级；
+3. `task_verification.go` 的 `command` 判据或 `headless_codex_runner.go` 的模式选择发生变化；
+4. 本地拿到"验证 token 占比"埋点数据后，重估 M5 的成本门槛。

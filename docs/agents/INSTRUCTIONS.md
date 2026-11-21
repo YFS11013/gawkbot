@@ -15,6 +15,7 @@
 | 当前待办 / 已定案 | `docs/office/TODO-NEXT.md` |
 | 评估"要不要上多 agent / 并行 / 审阅环节"（外部证据：Anthropic、Cognition、IDC） | `docs/office/RESEARCH-2026-11-01-multi-agent.md`（来源与局限）+ `docs/office/DESIGN-DECISIONS.md` §10（四条判据） |
 | 评估"并行之前该建什么"（验证产物、硬约束、skill eval、内外环；外部证据：Lauren Tan / Grok Bot） | `docs/office/RESEARCH-2026-11-21-lauren-tan.md`（一手/二手分级、数字口径、落地映射） |
+| 让 office 承担代码开发（WP1–WP4、M0–M5、go/no-go、回滚） | `docs/office/PLAN-CODING-OFFICE.md`（方案未实施；数字与来源仍看 `RESEARCH-2026-11-21-lauren-tan.md`） |
 | 找"还能把什么活交给 bot"、给场景排期 | **先读** `docs/office/DESIGN-DECISIONS.md` §9.5（核心循环的判定标准 + `loop_step` 机检门），再读 `docs/office/USE-CASES-2026-11-01.md`（按可落地性分层 + 每条的卡点与证据） |
 | 多 agent 同树并行（探针、文件归属、临时状态、批量编辑） | `docs/agents/shared-tree-lessons.md` §C 共享工作树与工具可信度 |
 | 派 sub-agent | `shared-tree-lessons.md` §Sub-agent dispatch contract（7 条必含项 + 模板） |
