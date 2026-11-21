@@ -1120,6 +1120,63 @@ func TestStallAlertIsSkippedWhileTheOwnerTurnIsRunning(t *testing.T) {
 	}
 }
 
+// A standing card produces one watchdog row, not one row per reminder tick.
+// The job keeps ticking and the alert stays active; only the audit ledger
+// stops duplicating the same "someone still needs to act" signal.
+func TestRepeatedReminderTickKeepsOneWatchdogAlertRow(t *testing.T) {
+	b := newVerificationTestBroker(t)
+	task, _, err := b.EnsureTask("team", "Waiting card", "write the page", "eng", "cos", "")
+	if err != nil {
+		t.Fatalf("ensure task: %v", err)
+	}
+	clock := newManualClock(time.Date(2026, 11, 12, 0, 0, 0, 0, time.UTC))
+	s := &watchdogScheduler{broker: b, clock: clock}
+	job := schedulerJob{
+		Slug:       normalizeSchedulerSlug("recheck", "team", "task", task.ID),
+		Kind:       "recheck",
+		TargetType: "task",
+		TargetID:   task.ID,
+		Channel:    "team",
+	}
+	since := time.Now().UTC().Add(-time.Hour).Format(time.RFC3339)
+	s.processTaskJob(job)
+	s.processTaskJob(job)
+
+	rows := 0
+	for _, a := range b.ActionsSince(since) {
+		if a.Kind == "watchdog_alert" && a.RelatedID == task.ID {
+			rows++
+		}
+	}
+	if rows != 1 {
+		t.Fatalf("two reminder ticks must leave one watchdog_alert row, got %d", rows)
+	}
+}
+
+// The request branch has the same dedupe contract: a card that stays pending
+// across many reminder ticks must leave one watchdog row, not one per tick.
+func TestRepeatedRequestReminderKeepsOneWatchdogAlertRow(t *testing.T) {
+	b := newTestBroker(t)
+	b.members = []officeMember{{Slug: "cos", Name: "CEO"}}
+	b.channels = []teamChannel{{Slug: "team", Name: "team", Members: []string{"human", "cos"}}}
+	b.requests = []humanInterview{{ID: "r1", Channel: "team", Title: "approve", From: "cos", Question: "do this?", Blocking: true, Status: "pending"}}
+	s := &watchdogScheduler{broker: b, clock: newManualClock(time.Now())}
+	job := schedulerJob{Slug: "request-follow-up:team:request:r1", Channel: "team", TargetType: "request", TargetID: "r1"}
+	since := time.Now().UTC().Add(-time.Hour).Format(time.RFC3339)
+	s.processRequestJob(job)
+	s.processRequestJob(job)
+
+	rows := 0
+	for _, a := range b.ActionsSince(since) {
+		if a.Kind == "watchdog_alert" && a.RelatedID == "r1" {
+			rows++
+		}
+	}
+	if rows != 1 {
+		t.Fatalf("two request reminder ticks must leave one watchdog_alert row, got %d", rows)
+	}
+}
+
 func TestHasActiveTurnForTaskReadsTheDispatchPool(t *testing.T) {
 	b := newVerificationTestBroker(t)
 	l := launcherForBrokerFixture(b)

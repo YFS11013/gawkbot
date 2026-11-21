@@ -372,9 +372,11 @@ func (w *watchdogScheduler) processTaskJob(job schedulerJob) {
 	} else {
 		summary = fmt.Sprintf("@%s still needs to move %s in #%s.", task.Owner, task.Title, normalizeChannelSlug(task.Channel))
 	}
-	_, _, _ = w.broker.CreateWatchdogAlert(alertKind, task.Channel, "task", task.ID, task.Owner, summary)
-	signalIDs, decisionID := w.recordLedger(task.Channel, alertKind, task.ID, task.Owner, summary, task.SourceSignalID)
-	_ = w.broker.RecordAction("watchdog_alert", "watchdog", task.Channel, "watchdog", truncate(summary, 140), task.ID, signalIDs, decisionID)
+	_, existing, _ := w.broker.CreateWatchdogAlert(alertKind, task.Channel, "task", task.ID, task.Owner, summary)
+	if !existing {
+		signalIDs, decisionID := w.recordLedger(task.Channel, alertKind, task.ID, task.Owner, summary, task.SourceSignalID)
+		_ = w.broker.RecordAction("watchdog_alert", "watchdog", task.Channel, "watchdog", truncate(summary, 140), task.ID, signalIDs, decisionID)
+	}
 	if w.deliverTask != nil {
 		woke := w.deliverTask(officeActionLog{
 			Kind:      "watchdog_alert",
@@ -501,8 +503,10 @@ func (w *watchdogScheduler) processRequestJob(job schedulerJob) {
 	}
 	summary := fmt.Sprintf("Still waiting on %s in #%s: %s", req.TitleOrDefault(), normalizeChannelSlug(req.Channel), truncate(req.Question, 120))
 	alert, existing, _ := w.broker.CreateWatchdogAlert("request_waiting", req.Channel, "request", req.ID, req.From, summary)
-	signalIDs, decisionID := w.recordLedger(req.Channel, "request_waiting", req.ID, req.From, summary, "")
-	_ = w.broker.RecordAction("watchdog_alert", "watchdog", req.Channel, "watchdog", truncate(summary, 140), req.ID, signalIDs, decisionID)
+	if !existing {
+		signalIDs, decisionID := w.recordLedger(req.Channel, "request_waiting", req.ID, req.From, summary, "")
+		_ = w.broker.RecordAction("watchdog_alert", "watchdog", req.Channel, "watchdog", truncate(summary, 140), req.ID, signalIDs, decisionID)
+	}
 	nextRun := w.clock.Now().UTC().Add(time.Duration(config.ResolveTaskReminderInterval()) * time.Minute)
 	_ = w.broker.UpdateSchedulerJobState(job.Slug, nextRun, "scheduled")
 	if !existing {
