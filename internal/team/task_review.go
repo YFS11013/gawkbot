@@ -32,6 +32,14 @@ import (
 // never itself reviewed.
 const taskReviewSignalPrefix = "review:"
 
+const (
+	reviewPatchMaxBytes = 50 * 1024
+	reviewPatchMaxLines = 2000
+)
+
+// Swapped in unit tests so the brief can be exercised without a real git repo.
+var taskWorktreePatchForReview = taskWorktreePatch
+
 // queueTaskReview schedules the clean-context review of a delivered artifact.
 // Called from the done branch of MutateTask, after b.mu is released.
 func (b *Broker) queueTaskReview(taskID string) {
@@ -232,6 +240,34 @@ func (b *Broker) memberSlugExistsLocked(slug string) bool {
 	return false
 }
 
+// taskWorktreePatch returns a bounded diff of the task worktree against its
+// parent branch. It is deliberately text-only: the reviewer gets the patch,
+// not the author's reasoning or chat history.
+func taskWorktreePatch(worktreePath, worktreeBranch string, maxBytes int) string {
+	worktreePath = strings.TrimSpace(worktreePath)
+	if worktreePath == "" {
+		return ""
+	}
+	parent := strings.TrimSpace(worktreeBranch)
+	if parent == "" {
+		parent = "HEAD"
+	}
+	out, err := runGitOutputWithTimeout(worktreePath, 5*time.Second,
+		"diff", "--no-ext-diff", "--no-color", "--unified=3", parent)
+	if err != nil || len(out) == 0 {
+		return ""
+	}
+	text := string(out)
+	lines := strings.Split(text, "\n")
+	if len(lines) > reviewPatchMaxLines {
+		text = strings.Join(lines[:reviewPatchMaxLines], "\n") + "\n... patch truncated (lines) ...\n"
+	}
+	if maxBytes > 0 && len(text) > maxBytes {
+		text = text[:maxBytes] + "\n... patch truncated (bytes) ...\n"
+	}
+	return text
+}
+
 // reviewTaskDetails is the reviewer's entire brief — clean context by
 // construction: the author's chat, plan, and reasoning are deliberately not
 // included, only the contract and where the deliverable lives.
@@ -253,6 +289,17 @@ func reviewTaskDetails(task teamTask) string {
 		}
 	}
 	sb.WriteString("交付物：" + strings.TrimSpace(task.Artifact) + "（wiki 相对路径）\n\n")
+	if strings.EqualFold(strings.TrimSpace(task.ExecutionMode), "local_worktree") {
+		if patch := taskWorktreePatchForReview(task.WorktreePath, task.WorktreeBranch, reviewPatchMaxBytes); patch != "" {
+			sb.WriteString("代码差异（来自任务 worktree；只有补丁，不含作者推理或聊天）：\n")
+			sb.WriteString("```diff\n")
+			sb.WriteString(patch)
+			if !strings.HasSuffix(patch, "\n") {
+				sb.WriteString("\n")
+			}
+			sb.WriteString("```\n\n")
+		}
+	}
 	sb.WriteString("要求：\n")
 	sb.WriteString("1. 先完整读一遍交付物，再下判断。没有证据的判断不要写。\n")
 	sb.WriteString("2. 逐条对照上面的验收标准，每条给「通过 / 不通过」，并引用交付物的章节或原文片段作为依据。\n")

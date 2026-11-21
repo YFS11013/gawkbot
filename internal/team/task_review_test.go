@@ -136,3 +136,58 @@ func TestReviewCompletedTaskNeedsAnIndependentReviewer(t *testing.T) {
 		t.Fatalf("a solo office must not self-review; got %+v", got)
 	}
 }
+
+func TestReviewTaskDetailsInjectsWorktreePatch(t *testing.T) {
+	orig := taskWorktreePatchForReview
+	defer func() { taskWorktreePatchForReview = orig }()
+	called := 0
+	taskWorktreePatchForReview = func(worktreePath, branch string, maxBytes int) string {
+		called++
+		if worktreePath != "W" || branch != "B" || maxBytes != reviewPatchMaxBytes {
+			t.Fatalf("patch args = (%q, %q, %d)", worktreePath, branch, maxBytes)
+		}
+		return "diff --git a/x.go b/x.go\n@@ -1 +1 @@\n-old\n+new\n"
+	}
+	task := teamTask{
+		ID:             "ACMER-PATCH",
+		Owner:          "eng",
+		Details:        "AUTHOR_SECRET_REASONING",
+		ExecutionMode:  "local_worktree",
+		WorktreePath:   "W",
+		WorktreeBranch: "B",
+		Artifact:       "team/reviews/ACMER-PATCH.md",
+		Definition: &TaskDefinition{
+			Goal:            "g",
+			SuccessCriteria: []string{"c"},
+		},
+	}
+	brief := reviewTaskDetails(task)
+	if called != 1 {
+		t.Fatalf("patch called %d times, want 1", called)
+	}
+	if !strings.Contains(brief, "代码差异") || !strings.Contains(brief, "```diff") || !strings.Contains(brief, "+new") {
+		t.Fatalf("brief does not carry the patch:\n%s", brief)
+	}
+	if strings.Contains(brief, "AUTHOR_SECRET_REASONING") {
+		t.Fatalf("brief leaked author reasoning:\n%s", brief)
+	}
+}
+
+func TestReviewTaskDetailsSkipsPatchForNonWorktree(t *testing.T) {
+	orig := taskWorktreePatchForReview
+	defer func() { taskWorktreePatchForReview = orig }()
+	taskWorktreePatchForReview = func(_, _ string, _ int) string {
+		t.Fatal("patch must not be fetched for non-worktree tasks")
+		return ""
+	}
+	brief := reviewTaskDetails(teamTask{ID: "ACMER-OFFICE", ExecutionMode: "office", WorktreePath: "W"})
+	if strings.Contains(brief, "代码差异") {
+		t.Fatalf("office task brief should have no patch section:\n%s", brief)
+	}
+}
+
+func TestTaskWorktreePatchNoWorktree(t *testing.T) {
+	if got := taskWorktreePatch("", "", reviewPatchMaxBytes); got != "" {
+		t.Fatalf("empty worktree path yielded %q", got)
+	}
+}

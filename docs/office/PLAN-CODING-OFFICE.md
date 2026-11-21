@@ -230,3 +230,15 @@ worktree 已创建）的回合对 `https://api.openai.com/v1/responses` 返回 `
   **未 push、未建 PR**，主工作树 `git status` 为空。
 - 人工审批后任务 `status=done`、`lifecycle_state=approved`，artifact 为上述测试文件。
 - 该测试文件已并入主仓。仍未做：真实 PR（需人在场 + `gh auth`）、WP3 的 diff 注入审阅。
+
+## 10. WP3：审阅 brief 注入 diff（2026-11-21）
+
+- 代码：`task_review.go` 新增 `taskWorktreePatch`，对 `local_worktree` 任务取
+  `git diff <parent>`，按 50KB / 2000 行截断；`reviewTaskDetails` 只把补丁作为 ```diff 段落注入。
+  干净上下文契约不变：brief 里没有作者聊天、计划或推理（单测用 `AUTHOR_SECRET_REASONING` 反向验证）。
+- 单测：`TestReviewTaskDetailsInjectsWorktreePatch`、`TestReviewTaskDetailsSkipsPatchForNonWorktree`、
+  `TestTaskWorktreePatchNoWorktree`，连同既有审阅测试一起通过。
+- 观察：lab2 的 `CODIN-11` 审批到 done 后**没有**自动生成 review 任务。代码线索是
+  `queueTaskReview` 只在 `reachedDone` 分支触发（`broker_tasks_mutation_service.go:1830-1836`），
+  审批路径未走该分支。记为 WP4 待修，也让 WP3 的 live E2E 暂时无法在该任务上验证。
+- 未做：用新二进制/新 lab 跑一条会直接触发 review lane 的任务做端到端复核。
