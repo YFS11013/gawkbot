@@ -636,6 +636,13 @@ prereg `db2b189`，工作区 `journey29`，二进制从 `3087138` 新构建，�
 - **已修（`367e796`）**：`CreateRoutineTask` 设 `AllowDuplicate=true`，routine 自己的 `source_signal_id = routine:<slug>:<slot>` 仍是去重权威；bot 自建顶层任务继续受守卫约束。回归 `TestCreateRoutineTaskIgnoresAnOlderOpenInstance`（旧实例仍 open 时，今天的火必须能建出自己的任务）。
 - 验证与清门：临时 `schedule_expr` 改到 08:59Z 那次跑成 `ok`（`Dispatched as task #ACMER-3852`），随后还原 `30 8 * * 1-5`（`next_run=2026-11-23T08:30:00Z`）。17:03 从 HEAD 重建二进制再部署（`sha256 b91562e9…`，旧版备份 `gawkbot-fix.exe.bak-j5b-20261120170309`），`scheduler: loop started` 17:03:29；漂移检查回到 `DRIFT: none`。
 - **预存测试失败已清（只改夹具，未改产品代码）**：`TestDecisionApproveWithoutALanePathLeavesNoGuardRow`、`TestDecisionCardRaisedForParentIssueWithDeliveredLanes`、`TestContainerGuardRefusalsLeaveALedgerRow` 的固定 `2026-11-10` 时间戳落在 7 天 GC 保留窗口外，批准的 `saveLocked` 在断言前 `pruneCompletedTasksLocked` 掉 terminal 任务，导致 nil deref / 守卫未命中。三处改用 `time.Now().UTC().Add(-time.Minute)`；全量 `go test ./internal/team -count=1 -timeout 30m -skip TestObsidianWatcher` 635s 全绿。
+- **漂移检查器补丁（`d72cec9`）**：`plan-decomposition-check` 也是任务生命周期自动增删的 per-task job，与 `task-follow-up`/`recheck` 同类；即便已 `status=done` 仍被当成清单外 standing job 报红。加入 `scripts/office/check-office-drift.ps1:46` 的 churn 过滤后恢复 `DRIFT: none`。
+
+### 生产真任务（2026-11-20/21，第一次非脚本化人类动作）
+
+- `ACMER-3872`（`cos__human`，20 条真实 `git log` 提交为真值，交付 `team/reviews/release-notes-2026-11-20.md`）。harness 只建任务、不答任何卡；完整基线与观察在 `docs/office/production-trials/2026-11-20-release-notes/setup.md`。
+- **真人 2026-11-21T01:26:52Z 自行批准计划卡 `request-3875`**，距升卡 10 小时 26 分，期间 48 条相关 `watchdog_alert`；这是 J1–J30 全程脚本化之后第一次真正的人类动作。放行后 32 秒 cos `submit_for_review`，决策卡 `request-3935` 升起且仍 pending，harness 未代点。
+- 交付页 1952 B、20 个短 hash 与任务里冻结的真值清单 0 缺 0 多；不能用当前 `git log -20` 复核（后续提交已滚动窗口）。结论：人会点卡，但在大量提醒之后隔了 10 小时——卡片位置/提醒节奏是产品信号，不是模型质量问题。
 
 ### Journey 28（2026-11-14，D-15/D-16 上线后）
 
