@@ -240,6 +240,26 @@ func (b *Broker) memberSlugExistsLocked(slug string) bool {
 	return false
 }
 
+// taskWorktreeBaseBranch resolves the branch the task worktrees fork from.
+// Worktrees are created with `git worktree add -b <task-branch> <path> HEAD`,
+// so the task branch itself is not the comparison point: once the owner
+// commits, `git diff <task-branch>` is empty and the reviewer sees nothing.
+func taskWorktreeBaseBranch() string {
+	repoRoot, err := gitRepoRoot()
+	if err != nil {
+		return ""
+	}
+	out, err := runGitOutputWithTimeout(repoRoot, 5*time.Second, "rev-parse", "--abbrev-ref", "HEAD")
+	if err != nil {
+		return ""
+	}
+	base := strings.TrimSpace(string(out))
+	if base == "" || base == "HEAD" {
+		return ""
+	}
+	return base
+}
+
 // taskWorktreePatch returns a bounded diff of the task worktree against its
 // parent branch. It is deliberately text-only: the reviewer gets the patch,
 // not the author's reasoning or chat history.
@@ -249,6 +269,9 @@ func taskWorktreePatch(worktreePath, worktreeBranch string, maxBytes int) string
 		return ""
 	}
 	parent := strings.TrimSpace(worktreeBranch)
+	if base := taskWorktreeBaseBranch(); base != "" {
+		parent = base
+	}
 	if parent == "" {
 		parent = "HEAD"
 	}

@@ -277,3 +277,13 @@ worktree 已创建）的回合对 `https://api.openai.com/v1/responses` 返回 `
 - 漂移：`DRIFT: none`（16 个 job / 4 个计划任务 / 1 个运行中二进制）。
 - 说明：临时部署脚本的 powershell 父进程因 `Start-Process` 持有 stdout 管道而超时 240s，
   但 `Restart-Broker` 已返回 `True` 且 broker 正常——是测量方式问题，不是部署失败。
+
+## 14. WP3 live E2E 与基分支修复（2026-11-21）
+
+- lab3（新二进制）跑通代码任务 `CODIN-1`：opencode hy 写测试、跑 `go test` 通过、提交到任务分支；
+  审批后 `queueTaskReview` 生效，自动生成审阅任务 `CODIN-12`（`source_signal_id=review:CODIN-1`）。
+- **发现缺口**：审阅 brief 里没有 diff。根因是 worktree 用 `git worktree add -b <task-branch> <path> HEAD`
+  创建，`taskWorktreePatch` 原先按 `WorktreeBranch`（即任务分支本身）取 diff；bot 提交后该 diff 为空。
+- 修复：`taskWorktreeBaseBranch()` 从仓库根 `git rev-parse --abbrev-ref HEAD` 取基分支（当前 `office-fixes`），
+  patch 改为 `git diff <base-branch>`。相关单测通过。
+- 待办：用修复后的二进制新建 lab4 重跑一次 E2E，确认审阅 brief 出现 ` ```diff ` 段落。
