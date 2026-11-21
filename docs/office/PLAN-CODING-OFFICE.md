@@ -218,3 +218,15 @@ worktree 已创建）的回合对 `https://api.openai.com/v1/responses` 返回 `
 - 清理：旧 codex lab 的 graceful / force pause 均超时，最终按端口定位 PID 45416 用 `taskkill /T /F` 结束；
   workspace 注册表仍显示 `stopping`（陈旧状态），可用 `gawkbot workspace doctor` 校正，不影响 lab2。
 - 未提交：3 个文件的改动待提交；提交后后续 worktree 才基于已提交代码。
+
+## 9. WP2 实测（2026-11-21，opencode hy）
+
+- 任务 `CODIN-11`（`local_worktree`，带 Goal / Deliverables / Success criteria）由 lab2 的
+  `eng` 承接。bot 在 worktree 内新增
+  `internal/team/headless_opencode_permission_test.go`，断言非 coding 角色 `cos` 的
+  `webfetch` / `task` 仍为 `deny`。
+- `command` 判据实测 `pass=true`，detail `ok github.com/nex-crm/wuphf/internal/team 0.194s`。
+- bot 只暂存自己的新文件，提交到任务分支 `wuphf-65f6c8a1-codin-11`（commit `1f4a836`）；
+  **未 push、未建 PR**，主工作树 `git status` 为空。
+- 人工审批后任务 `status=done`、`lifecycle_state=approved`，artifact 为上述测试文件。
+- 该测试文件已并入主仓。仍未做：真实 PR（需人在场 + `gh auth`）、WP3 的 diff 注入审阅。
