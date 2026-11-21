@@ -306,6 +306,10 @@ func (w *watchdogScheduler) processTaskJob(job schedulerJob) {
 		w.processPlanDecompositionCheck(job, task)
 		return
 	}
+	if strings.EqualFold(strings.TrimSpace(job.Kind), neverStartedCheckKind) {
+		w.processNeverStartedCheck(job, task)
+		return
+	}
 	// A task awaiting review is not a stalled owner: `decision`/`review` hand
 	// the ball to a reviewer or the human. Waking the owner is refused by
 	// isExecutableTeamTaskStatus (notifier_delivery.go), so every reminder tick
@@ -472,6 +476,50 @@ func (w *watchdogScheduler) processPlanDecompositionCheck(job schedulerJob, task
 		return
 	}
 	_ = w.broker.CloseSchedulerJob(job.Slug, "approved plan still had no sub-tasks; every wake path refused (escalated)")
+}
+
+// processNeverStartedCheck closes the silent gap that StalledTurns cannot see:
+// the task was created and dispatched but no headless turn ever appended a
+// ledger entry, so the turn-based counter stays at zero forever. It stays
+// quiet the moment the task has progressed, is blocked, or is in review.
+func (w *watchdogScheduler) processNeverStartedCheck(job schedulerJob, task teamTask) {
+	if !strings.EqualFold(strings.TrimSpace(task.status), "in_progress") ||
+		taskAwaitingReview(task.LifecycleState) || task.blocked {
+		_ = w.broker.CloseSchedulerJob(job.Slug, "task no longer in an executable state")
+		return
+	}
+	if len(task.Ledger) > 0 {
+		_ = w.broker.CloseSchedulerJob(job.Slug, "a turn has since run; ledger is non-empty")
+		return
+	}
+	if w.turnInFlight != nil && w.turnInFlight(task.ID) {
+		_ = w.broker.CloseSchedulerJob(job.Slug, "a turn is in flight; no longer never-started")
+		return
+	}
+	owner := strings.TrimSpace(task.Owner)
+	if owner == "" {
+		_ = w.broker.CloseSchedulerJob(job.Slug, "no owner to wake")
+		return
+	}
+	summary := fmt.Sprintf("Task %s in #%s never started a turn (no ledger entry after %s).",
+		task.Title, normalizeChannelSlug(task.Channel), neverStartedCheckDelay)
+	_, _, _ = w.broker.CreateWatchdogAlert("task_never_started", task.Channel, "task", task.ID, owner, summary)
+	signalIDs, decisionID := w.recordLedger(task.Channel, "task_never_started", task.ID, owner, summary, task.SourceSignalID)
+	_ = w.broker.RecordAction("watchdog_alert", "watchdog", task.Channel, "watchdog", truncate(summary, 140), task.ID, signalIDs, decisionID)
+	woke := true
+	if w.deliverTask != nil {
+		woke = w.deliverTask(officeActionLog{
+			Kind:      "watchdog_alert",
+			Source:    "watchdog",
+			Channel:   task.Channel,
+			Actor:     "watchdog",
+			RelatedID: task.ID,
+		}, task)
+		if !woke {
+			w.escalateRefusedWake(task, summary)
+		}
+	}
+	_ = w.broker.CloseSchedulerJob(job.Slug, "never-started probe fired; one-shot even when delivery refused")
 }
 
 // escalateRefusedWake makes a refused owner wake visible instead of a ledger

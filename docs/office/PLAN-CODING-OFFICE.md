@@ -252,3 +252,16 @@ worktree 已创建）的回合对 `https://api.openai.com/v1/responses` 返回 `
   全包跑 600s 超时未完成，不能算通过或失败，只按有界测试判定。
 - 仍待：`StalledTurns` 未启动盲区、turn 15m/10m 与 owner 独占、token 埋点、真实 PR（需 `gh auth`），
   以及用新二进制/新 lab 跑 WP3 的 live E2E。
+
+## 12. WP4 第二项：从未启动的任务（2026-11-21）
+
+- 新增一次性 job `task_never_started_check`：任务进入 `in_progress` 且 `Ledger` 为空时布防（10 分钟），
+  同一任务只布防一次。触发时若仍在可执行态、仍无 ledger、也无在飞回合，则发 `task_never_started`
+  watchdog 告警 + 唤醒 owner + 记录 action，然后关闭 job；期间一旦有 turn、被阻塞、进入审阅或完成，
+  就静默关闭。`StalledTurns` 的按轮计数不动。
+- 单测 3 个：只布防一次、无 turn 时告警、有 ledger 时静默——均通过。
+- 部署配套：`scripts/office/check-office-drift.ps1` 的 churn 过滤加入 `task-never-started-check`，
+  否则新 job 会被误报为"清单外新 standing job"。
+- 主办公室当前 `DRIFT: 1`（运行中二进制落后于 3 个 Go 提交：`5161f53` / `de71ceb` / `7a809c4`）。
+  这是**未部署**的预期状态，不是回归；部署/重启主办公室需要单独决策。
+- 仍待：部署决策、turn 15m/10m 与 owner 独占、token 埋点、真实 PR（需 `gh auth`）、WP3 live E2E。

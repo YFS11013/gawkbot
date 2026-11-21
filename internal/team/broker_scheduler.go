@@ -119,6 +119,51 @@ func (b *Broker) schedulePlanDecompositionCheckLocked(task *teamTask) {
 	_ = b.scheduleJobLocked(job)
 }
 
+// A task can also be stuck before it ever produces a turn: it is created with
+// pipeline_stage=breakdown, no ledger entry is ever appended, so StalledTurns
+// (which only counts trace-free turns) stays at zero forever. ACMER-3238 hung
+// eight hours that way (DESIGN-DECISIONS.md §6.8). This one-shot check gives
+// that silent case a visible wake without touching the turn-based counter.
+const neverStartedCheckKind = "task_never_started_check"
+
+const neverStartedCheckDelay = 10 * time.Minute
+
+// scheduleNeverStartedCheckLocked arms the one-shot check once per task. It is
+// a no-op when a job with the same slug already exists, so repeated lifecycle
+// refreshes cannot keep pushing the check into the future.
+func (b *Broker) scheduleNeverStartedCheckLocked(task *teamTask) {
+	if b == nil || task == nil || strings.TrimSpace(task.ID) == "" {
+		return
+	}
+	if len(task.Ledger) > 0 {
+		return
+	}
+	channel := normalizeChannelSlug(task.Channel)
+	if channel == "" {
+		channel = "general"
+	}
+	slug := normalizeSchedulerSlug(neverStartedCheckKind, channel, "task", task.ID)
+	for i := range b.scheduler {
+		if strings.EqualFold(strings.TrimSpace(b.scheduler[i].Slug), slug) {
+			return
+		}
+	}
+	when := time.Now().UTC().Add(neverStartedCheckDelay)
+	job := normalizeSchedulerJob(schedulerJob{
+		Slug:       slug,
+		Kind:       neverStartedCheckKind,
+		Label:      "Never started: " + truncateSummary(task.Title, 48),
+		TargetType: "task",
+		TargetID:   task.ID,
+		Channel:    channel,
+		DueAt:      when.Format(time.RFC3339),
+		NextRun:    when.Format(time.RFC3339),
+		Status:     "scheduled",
+		Payload:    task.Details,
+	})
+	_ = b.scheduleJobLocked(job)
+}
+
 // TaskSubIssueTotals reports how many lanes carry parentID and how many of them
 // are still open. total counts every lane on the board — canceled/archived ones
 // are excluded, since rebuilding canceled work is legal (J2-3) — and open counts
@@ -406,6 +451,10 @@ func (b *Broker) scheduleTaskLifecycleLocked(task *teamTask) {
 			Status:     "scheduled",
 			Payload:    task.Details,
 		}))
+		// StalledTurns only counts turns that actually ran. A task that never
+		// left breakdown has no ledger entry at all, so arm a separate one-shot
+		// probe. It closes itself quietly once a turn shows up.
+		b.scheduleNeverStartedCheckLocked(task)
 	default:
 		b.cancelSupersededTaskJobsLocked(task.ID, taskChannel, "recheck")
 		due := now.Add(time.Duration(recheckMinutes) * time.Minute)

@@ -1204,3 +1204,66 @@ func TestHasActiveTurnForTaskReadsTheDispatchPool(t *testing.T) {
 		t.Fatal("a finished turn must not linger")
 	}
 }
+
+func TestSchedulerNeverStartedCheckAlertsWhenNoTurnEverRan(t *testing.T) {
+	b := newSchedulerFixtureBroker(t)
+	b.tasks = []teamTask{{
+		ID: "t-never", Channel: "team", Title: "never started", Owner: "eng", status: "in_progress",
+	}}
+	b.dueJobs = []schedulerJob{{
+		Slug: "j-never", Kind: neverStartedCheckKind, Channel: "team", TargetType: "task", TargetID: "t-never",
+	}}
+	delivered := 0
+	sched := &watchdogScheduler{
+		broker:      b,
+		clock:       newManualClock(time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)),
+		deliverTask: func(officeActionLog, teamTask) bool { delivered++; return true },
+	}
+	sched.processOnce()
+	if len(b.alerts) != 1 || b.alerts[0].kind != "task_never_started" {
+		t.Fatalf("expected one task_never_started alert; got %+v", b.alerts)
+	}
+	if delivered != 1 {
+		t.Errorf("expected one wake; got %d", delivered)
+	}
+	if len(b.jobStateUpdates) == 0 || b.jobStateUpdates[len(b.jobStateUpdates)-1].status != "done" {
+		t.Fatalf("one-shot job should close; got %+v", b.jobStateUpdates)
+	}
+}
+
+func TestSchedulerNeverStartedCheckQuietOnceLedgerExists(t *testing.T) {
+	b := newSchedulerFixtureBroker(t)
+	b.tasks = []teamTask{{
+		ID: "t-started", Channel: "team", Title: "started", Owner: "eng", status: "in_progress",
+		Ledger: []TaskLedgerEntry{{Bot: "eng", Outcome: "ok"}},
+	}}
+	b.dueJobs = []schedulerJob{{
+		Slug: "j-started", Kind: neverStartedCheckKind, Channel: "team", TargetType: "task", TargetID: "t-started",
+	}}
+	sched := &watchdogScheduler{
+		broker: b,
+		clock:  newManualClock(time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)),
+	}
+	sched.processOnce()
+	if len(b.alerts) != 0 {
+		t.Fatalf("a task with a ledger entry must not alert; got %+v", b.alerts)
+	}
+}
+
+func TestScheduleNeverStartedCheckArmedOncePerTask(t *testing.T) {
+	b := newTestBroker(t)
+	b.tasks = []teamTask{{ID: "t-arm", Channel: "team", Title: "arm once", status: "in_progress"}}
+	b.mu.Lock()
+	b.scheduleTaskLifecycleLocked(&b.tasks[0])
+	b.scheduleTaskLifecycleLocked(&b.tasks[0])
+	b.mu.Unlock()
+	count := 0
+	for _, job := range b.scheduler {
+		if strings.EqualFold(job.Kind, neverStartedCheckKind) {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("expected exactly one never-started job, got %d (%+v)", count, b.scheduler)
+	}
+}
