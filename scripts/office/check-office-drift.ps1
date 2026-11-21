@@ -43,7 +43,7 @@ $BrokerUrl  = 'http://127.0.0.1:7892'
 $TokenUrl   = 'http://127.0.0.1:7891/api-token'
 
 # churn job：由任务/请求生命周期自动增删，不在期望清单里比对，也不算“新增 standing job”
-$ChurnPattern = '^(task-follow-up|request-follow-up|recheck|task-reminder|request-reminder):'
+$ChurnPattern = '^(task-follow-up|request-follow-up|recheck|task-reminder|request-reminder|plan-decomposition-check):'
 
 function Get-BrokerToken {
     if (Test-Path -LiteralPath $TokenFile) {
