@@ -122,13 +122,28 @@ func (l *Launcher) writeHeadlessOpencodeMCPConfig(slug string) (string, error) {
 		editPermission[deny] = "deny"
 	}
 	externalDirectoryPermission[wikiRoot+"/*"] = "deny"
+	// Coding bots need a shell for tests, git and PR creation. Every other
+	// role keeps the global deny from the §9.1 incident. The allowlist is
+	// deliberately narrow: no curl / powershell / gh api / git push.
+	bashPermission := any("deny")
+	if codingBotSlugs[slug] {
+		bashPermission = map[string]any{
+			"*":              "deny",
+			"go test *":      "allow",
+			"go build *":     "allow",
+			"git status *":   "allow",
+			"git diff *":     "allow",
+			"git add *":      "allow",
+			"git commit *":   "allow",
+			"gh pr create *": "allow",
+		}
+	}
 	agents["wuphf-headless"] = map[string]any{
 		"permission": map[string]any{
 			"read": "allow",
-			// Shell is not part of the core loop: bridge + QA run as scheduled
-			// tasks outside the bot. Bash turned bots into agents that probed
-			// the broker's own auth endpoints and edited files mid-brief.
-			"bash":               "deny",
+			// Per-role shell policy: coding bots get a narrow allowlist above;
+			// every other role stays denied so no bot can probe broker auth.
+			"bash":               bashPermission,
 			"edit":               editPermission,
 			"glob":               "allow",
 			"grep":               "allow",

@@ -149,6 +149,63 @@ func TestWriteHeadlessOpencodeMCPConfigConcurrent(t *testing.T) {
 	}
 }
 
+func TestWriteHeadlessOpencodeMCPConfigBashPermissionByRole(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("WUPHF_RUNTIME_HOME", home)
+	configDir := filepath.Join(home, ".config", "opencode")
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	orig := headlessOpencodeExecutablePath
+	headlessOpencodeExecutablePath = func() (string, error) { return "/usr/local/bin/wuphf", nil }
+	defer func() { headlessOpencodeExecutablePath = orig }()
+
+	l := &Launcher{}
+	for _, tc := range []struct {
+		slug      string
+		wantAllow bool
+	}{
+		{slug: "eng", wantAllow: true},
+		{slug: "cos", wantAllow: false},
+	} {
+		path, err := l.writeHeadlessOpencodeMCPConfig(tc.slug)
+		if err != nil {
+			t.Fatalf("%s: write config: %v", tc.slug, err)
+		}
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("%s: read config: %v", tc.slug, err)
+		}
+		var out map[string]any
+		if err := json.Unmarshal(raw, &out); err != nil {
+			t.Fatalf("%s: parse config: %v", tc.slug, err)
+		}
+		agents, _ := out["agent"].(map[string]any)
+		headless, _ := agents["wuphf-headless"].(map[string]any)
+		permission, _ := headless["permission"].(map[string]any)
+		bash, ok := permission["bash"]
+		if !ok {
+			t.Fatalf("%s: permission.bash missing", tc.slug)
+		}
+		if !tc.wantAllow {
+			if bash != "deny" {
+				t.Fatalf("%s: bash = %#v, want deny", tc.slug, bash)
+			}
+			continue
+		}
+		rules, ok := bash.(map[string]any)
+		if !ok {
+			t.Fatalf("%s: bash = %#v, want allowlist object", tc.slug, bash)
+		}
+		if rules["*"] != "deny" || rules["go test *"] != "allow" || rules["gh pr create *"] != "allow" {
+			t.Fatalf("%s: unexpected bash allowlist: %#v", tc.slug, rules)
+		}
+		if _, leaked := rules["git push *"]; leaked {
+			t.Fatalf("%s: git push must stay denied", tc.slug)
+		}
+	}
+}
+
 // TestWriteHeadlessOpencodeMCPConfigLogsBaseConfigParseFailure verifies that a
 // malformed base ~/.config/opencode/opencode.json (e.g. trailing comma) causes
 // writeHeadlessOpencodeMCPConfig to surface the parse error via the bot

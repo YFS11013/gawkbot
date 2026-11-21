@@ -168,3 +168,53 @@ main 无直接提交、无自动 merge；主办公室 `DRIFT: none` 且 watchdog
 2. M2 的 go/no-go 出现任何一条不过，回到对应 WP 重做，不得跳级；
 3. `task_verification.go` 的 `command` 判据或 `headless_codex_runner.go` 的模式选择发生变化；
 4. 本地拿到"验证 token 占比"埋点数据后，重估 M5 的成本门槛。
+
+## 7. 实施记录（2026-11-21，首次尝试）
+
+**M0 已完成**：`gawkbot workspace create coding-lab` → broker `:7910` / web `:7911`，
+runtime home `C:\Users\ireke\.wuphf-spaces\coding-lab`。主办公室 `:7892` 未受影响
+（lab `members=1`，主 `members=4`）。lab token 来自 `:7911/api-token`。
+
+**WP1 配置层已完成**：lab 内 `POST /office-members` 创建 `eng`，
+`provider.kind=codex`；`/office-members` 回显 `runtime.harness=codex`、`model=gpt-5.6-sol`。
+
+**WP1 执行层未通过 — 阻断在 codex 鉴权**：探测任务 `CODIN-1`（`execution_mode=local_worktree`，
+worktree 已创建）的回合对 `https://api.openai.com/v1/responses` 返回 `401 invalid_api_key`，
+重试 1/2、2/2 均失败，任务已取消（`changed=true`），不再重投。
+
+根因（代码已核，非猜测）：
+
+1. `headless_codex_runner.go:554-567` 的 `prepareHeadlessCodexHome` **只把 `auth.json` 和 `.one/*`
+   拷进隔离 home，不拷 `config.toml`**。lab 的 `~/.wuphf/codex-headless/config.toml` 只有 65 字节的
+   `trust_level` 段，用户全局 `~/.codex/config.toml` 里的 provider / `base_url` 全部没有继承。
+2. codex 因此回落到默认 `api.openai.com`，并使用从 `~/.codex/auth.json` 拷来的失效 key（`sk-pUIIk...`）。
+3. 同时 `config.ResolveOpenAIAPIKey()`（`internal/config/config.go:875-883`）把环境里的
+   `OPENAI_API_KEY` 通过 `headless_codex_runner.go:478-480` 注入子进程——同一个失效 key。
+4. 用户全局 config 里配的三个本地/内网端点（`127.0.0.1:4000`、`127.0.0.1:20128`、
+   `192.168.1.3:3000`）实测全部不可达（`curl` 返回 `000`），当前没有可切换的可用 provider。
+
+**结论**：`runtime.harness=codex` 只证明绑定生效，不证明可调用；WP1 判定为**未通过**。
+`codex login` 刷新 `~/.codex/auth.json`（或提供有效的 `WUPHF_OPENAI_API_KEY` /
+可用 provider）之前，**不得建新任务**。修好后用同一条只读探测复验，不跳级。
+
+**现状**：lab 留在运行态但空闲；可 `gawkbot workspace pause coding-lab` 或 `shred` 回收。
+本轮未改仓库代码、未新增提交。
+
+## 8. 最终路线：opencode 免费 hy（用户拍板，2026-11-21）
+
+用户明确要求接入 opencode 免费 `hy4-flash-free`，不再走 codex 订阅路线。
+
+- 中途验证过 magpie：本地网关 `127.0.0.1:3425/v1` 支持 Responses，`kiro/claude-sonnet-4.5`
+  实测返回正常；因优先级变更，网关已停、探测任务已取消，**不作为最终方案**。
+- 新建隔离 lab2：`:7912/:7913`，runtime 为 `opencode` / `opencode-go/hy4-flash-free`。
+- 代码改动：`headless_opencode_mcp.go` 按 `codingBotSlugs[slug]` 给 coding bot 开 bash 白名单
+  （`go test *`、`go build *`、`git status|diff|add|commit *`、`gh pr create *`），其余角色仍 `deny`；
+  `webfetch` / `task` / wiki 的 deny 不变。新增单测
+  `TestWriteHeadlessOpencodeMCPConfigBashPermissionByRole`；新测与原有并发配置测试均通过。
+- **M1 通过（实测）**：任务 `CODIN-1` 在 worktree 内执行
+  `go test ./internal/team -run TestWriteHeadlessOpencodeMCPConfigConcurrent -count=1`，
+  `verification_result.pass=true`，detail 为 `ok github.com/nex-crm/wuphf/internal/team 0.383s`，
+  任务进入 `review`。
+- 清理：旧 codex lab 的 graceful / force pause 均超时，最终按端口定位 PID 45416 用 `taskkill /T /F` 结束；
+  workspace 注册表仍显示 `stopping`（陈旧状态），可用 `gawkbot workspace doctor` 校正，不影响 lab2。
+- 未提交：3 个文件的改动待提交；提交后后续 worktree 才基于已提交代码。
