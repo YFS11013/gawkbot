@@ -644,6 +644,7 @@ prereg `db2b189`，工作区 `journey29`，二进制从 `3087138` 新构建，�
 - **真人 2026-11-21T01:26:52Z 自行批准计划卡 `request-3875`**，距升卡 10 小时 26 分，期间 48 条相关 `watchdog_alert`；这是 J1–J30 全程脚本化之后第一次真正的人类动作。放行后 32 秒 cos `submit_for_review`，决策卡 `request-3935` 01:27:44Z 升起，**真人在 01:37:17Z 批准**（9 分 33 秒），任务进 `done`/`approved`，`/requests` 归零；harness 未代点任何卡。
 - 交付页 1952 B、20 个短 hash 与任务里冻结的真值清单 0 缺 0 多；不能用当前 `git log -20` 复核（后续提交已滚动窗口）。批准后页面无新增提交（仅 `58ca870`），无返工。结论：两次人类动作延迟 10h26m vs 9m33s——人不在场时卡片长期停摆，在场时能快速处理；问题在卡片位置/提醒节奏，不是模型质量问题。
 - **口径更正与去重**：上面的「48 条 `watchdog_alert`」是 `actions[]` **审计行**，不是用户可见消息——`cos__human` 共 105 条消息，watchdog 形状的只有 1 条 `task_stalled` 和 4 条 automation。`CreateWatchdogAlert` 本身已按 `(kind, channel, target)` 去重（`existing=true`），但 `processTaskJob` / `processRequestJob` 每 tick 仍重复 `recordLedger` + `RecordAction`。已修：只在 `!existing`（新告警）时记这两项；每个 tick 仍刷新告警的 `UpdatedAt`、仍 `deliverTask` 唤醒 owner，**提醒节奏与用户可见消息均不变**。回归 `TestRepeatedReminderTickKeepsOneWatchdogAlertRow`、`TestRepeatedRequestReminderKeepsOneWatchdogAlertRow`。这不改变「计划卡等 10h26m」的人类延迟结论。
+- 部署：09:58 按 watchdog 配方换二进制 `sha256 82c6cbde…`（旧版备份 `gawkbot-fix.exe.bak-alert-20261121095855`）并重启；`/health` `provider_model=opencode-go/hy4-flash-free`，token 轮换为 `17833f31…`，`DRIFT: none`。生产数据里的历史 48 条仍是旧行为留下的，不会被回填。
 
 ### Journey 28（2026-11-14，D-15/D-16 上线后）
 
