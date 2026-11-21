@@ -287,3 +287,13 @@ worktree 已创建）的回合对 `https://api.openai.com/v1/responses` 返回 `
 - 修复：`taskWorktreeBaseBranch()` 从仓库根 `git rev-parse --abbrev-ref HEAD` 取基分支（当前 `office-fixes`），
   patch 改为 `git diff <base-branch>`。相关单测通过。
 - 待办：用修复后的二进制新建 lab4 重跑一次 E2E，确认审阅 brief 出现 ` ```diff ` 段落。
+
+## 15. E2E 完成与全包测试定位（2026-11-21）
+
+- lab4（修复后二进制）重跑：`CODIN-1` 由 opencode hy 写测试、跑 `go test` 通过、提交任务分支；
+  审批后自动生成审阅任务 `CODIN-15`，其 brief **实测包含完整 ` ```diff ` 段落**（新增 16 行文件），
+  且不含作者推理。审阅者据此写出 6342 字节结论文件（`wiki_artifact` 校验通过），并在发现里逐行引用补丁。
+  **WP3 live E2E 通过。**
+- 全包测试定位：`go test ./internal/team -count=1` 卡在 `TestContendedMutexLogsSlowAcquireWithCaller`；
+  `-short` 卡在 `TestBackfillSkillFilesFromState_WritesMissingFiles`。两者**单独跑都在 1–3 秒内通过**，
+  属套件并发/资源交互问题，不是本次改动引入；与改动相关的定向测试全部通过。
