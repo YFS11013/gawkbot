@@ -242,3 +242,13 @@ worktree 已创建）的回合对 `https://api.openai.com/v1/responses` 返回 `
   `queueTaskReview` 只在 `reachedDone` 分支触发（`broker_tasks_mutation_service.go:1830-1836`），
   审批路径未走该分支。记为 WP4 待修，也让 WP3 的 live E2E 暂时无法在该任务上验证。
 - 未做：用新二进制/新 lab 跑一条会直接触发 review lane 的任务做端到端复核。
+
+## 11. WP4 进展（2026-11-21）
+
+- **已修**：审批到 done 不触发审阅车道。`broker_decision_packet.go` 在 terminal approve 分支补上
+  `queueTaskReview`（与 distillation 并列），新增 `TestTerminalApproveQueuesCleanContextReview`；
+  该路径通过单测后，WP3 的 diff 注入有了真实触发入口。
+- 验证口径：相关测试（审阅、diff 注入、审批触发）与包编译均通过；`go test ./internal/team -count=1`
+  全包跑 600s 超时未完成，不能算通过或失败，只按有界测试判定。
+- 仍待：`StalledTurns` 未启动盲区、turn 15m/10m 与 owner 独占、token 埋点、真实 PR（需 `gh auth`），
+  以及用新二进制/新 lab 跑 WP3 的 live E2E。

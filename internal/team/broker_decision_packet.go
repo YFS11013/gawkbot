@@ -1191,6 +1191,11 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 	// (approve-after-complete) is safe.
 	if action == RecordDecisionApprove && target == LifecycleStateApproved {
 		b.queueTaskDistillation(taskID)
+	// Clean-context review had the same gap as distillation: it was queued only
+	// from MutateTask's reachedDone branch, while the live Inbox approve button
+	// lands here. queueTaskReview is idempotent (source_signal dedupe), so an
+	// approve-after-complete overlap cannot fan out a second review.
+	b.queueTaskReview(taskID)
 	}
 	return nil
 }

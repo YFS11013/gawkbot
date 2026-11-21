@@ -1,6 +1,8 @@
 package team
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -190,4 +192,44 @@ func TestTaskWorktreePatchNoWorktree(t *testing.T) {
 	if got := taskWorktreePatch("", "", reviewPatchMaxBytes); got != "" {
 		t.Fatalf("empty worktree path yielded %q", got)
 	}
+}
+
+func TestTerminalApproveQueuesCleanContextReview(t *testing.T) {
+	b := newTestBroker(t)
+	b.members = []officeMember{{Slug: "cos", BuiltIn: true}, {Slug: "data-keeper"}}
+	const taskID = "ACMER-APPROVE-REVIEW"
+	seedTaskInState(t, b, taskID, LifecycleStateReview)
+	worktree := t.TempDir()
+	artifactRel := "team/accounts/delivered.md"
+	if err := os.MkdirAll(filepath.Join(worktree, "team", "accounts"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(worktree, filepath.FromSlash(artifactRel)), []byte("# delivered\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	b.mu.Lock()
+	for i := range b.tasks {
+		if b.tasks[i].ID == taskID {
+			b.tasks[i].Owner = "cos"
+			b.tasks[i].WorktreePath = worktree
+			b.tasks[i].Artifact = artifactRel
+			b.tasks[i].ArtifactNotRequired = ""
+			b.tasks[i].Verification = nil
+			b.tasks[i].Definition = &TaskDefinition{Goal: "g", SuccessCriteria: []string{"c"}}
+		}
+	}
+	b.mu.Unlock()
+
+	if err := b.recordTaskDecisionInternal(taskID, string(RecordDecisionApprove),
+		decisionActor{slug: "human", isHuman: true}, "", DecisionDelivery{}); err != nil {
+		t.Fatalf("approve: %v", err)
+	}
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if len(reviewsForTask(b, taskID)) > 0 {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("terminal approve did not queue a review task")
 }
