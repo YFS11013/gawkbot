@@ -310,3 +310,13 @@ worktree 已创建）的回合对 `https://api.openai.com/v1/responses` 返回 `
 - 实测（lab5）：`/usage` 记录 4 个 opencode 回合、779,494 total tokens（其中 cache read 580,096）；
   任务 `CODIN-10` 的 manifest 记录 input=50,400 / output=1,345。
 - 局限：无工具调用的纯聊天回合不会生成 manifest；review 占比只有在 review 任务自身也落 manifest 时才能算。
+
+## 17. 主办公室二次部署（2026-11-22）
+
+- 部署 HEAD `bd544702`（含审阅 diff 的基分支修复 + opencode token 埋点）。
+- 首次执行因残留 `gawkbot-fix.exe`（PID 59932，不监听端口）占用文件，`Copy-Item` 失败并中止脚本；
+  清理全部同名进程后重跑成功。主办公室短暂中断，已恢复。
+- 验证：`/health` ok、`provider_model=opencode-go/hy4-flash-free`、token 轮换为 `07a62d8…`、
+  进程 PID 18636 路径为仓库内 `gawkbot-fix.exe`、`DRIFT: none`。
+- 埋点实测：探针消息前后 `/usage` total 从 5,883,811 → 5,988,286（+104,475），requests 160；
+  `task-token-report.py` 在该 home 无 manifest 时回退到 `/usage`，列出 session / total / 各 bot token。
