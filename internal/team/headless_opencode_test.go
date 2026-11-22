@@ -199,7 +199,8 @@ func TestWriteHeadlessOpencodeMCPConfigBashPermissionByRole(t *testing.T) {
 		if !ok {
 			t.Fatalf("%s: bash = %#v, want allowlist object", tc.slug, bash)
 		}
-		if rules["*"] != "deny" || rules["go test *"] != "allow" || rules["gh pr create *"] != "allow" {
+		if rules["*"] != "deny" || rules["go test *"] != "allow" || rules["gh pr create *"] != "allow" ||
+			rules["git push mine *"] != "allow" || rules["gh auth status *"] != "allow" {
 			t.Fatalf("%s: unexpected bash allowlist: %#v", tc.slug, rules)
 		}
 		if _, leaked := rules["git push *"]; leaked {

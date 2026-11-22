@@ -123,19 +123,21 @@ func (l *Launcher) writeHeadlessOpencodeMCPConfig(slug string) (string, error) {
 	}
 	externalDirectoryPermission[wikiRoot+"/*"] = "deny"
 	// Coding bots need a shell for tests, git and PR creation. Every other
-	// role keeps the global deny from the §9.1 incident. The allowlist is
-	// deliberately narrow: no curl / powershell / gh api / git push.
+	// role keeps the global deny from the §9.1 incident. The allowlist stays
+	// narrow: no curl / powershell / gh api; push is limited to the fork.
 	bashPermission := any("deny")
 	if codingBotSlugs[slug] {
 		bashPermission = map[string]any{
-			"*":              "deny",
-			"go test *":      "allow",
-			"go build *":     "allow",
-			"git status *":   "allow",
-			"git diff *":     "allow",
-			"git add *":      "allow",
-			"git commit *":   "allow",
-			"gh pr create *": "allow",
+			"*":                "deny",
+			"go test *":        "allow",
+			"go build *":       "allow",
+			"git status *":     "allow",
+			"git diff *":       "allow",
+			"git add *":        "allow",
+			"git commit *":     "allow",
+			"git push mine *":  "allow",
+			"gh auth status *": "allow",
+			"gh pr create *":   "allow",
 		}
 	}
 	agents["wuphf-headless"] = map[string]any{

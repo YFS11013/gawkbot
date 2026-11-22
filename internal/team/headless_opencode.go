@@ -176,6 +176,10 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 	env = l.isolateOpencodeDataHome(env, slug)
 	env = stripEnvKeys(env, []string{"CODEX_HOME"})
 	env = stripEnvKeys(env, headlessOpencodeSecretEnvVars)
+	// The repo's pre-push hook refuses even explicit refspecs unless this is
+	// set. Only coding roles have git push in their bash allowlist, so this
+	// does not widen the other bots' capabilities.
+	env = setEnvValue(env, "WUPHF_ALLOW_PUSH", "1")
 	env = setEnvValue(env, "NO_COLOR", "1")
 	if isTaskWorktree {
 		env = append(env, "WUPHF_WORKTREE_PATH="+workspaceDir)
